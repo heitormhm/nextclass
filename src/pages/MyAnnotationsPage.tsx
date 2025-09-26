@@ -15,7 +15,7 @@ import AnnotationCard from "@/components/AnnotationCard";
 interface Annotation {
   id: string;
   title: string;
-  source: 'Lecture' | 'Lesson' | 'Internship';
+  source: 'Workshop' | 'OnlineCourse' | 'CaseStudy';
   createdAt?: string;
   preview?: string;
 }
@@ -23,59 +23,38 @@ interface Annotation {
 const mockAnnotations: Annotation[] = [
   { 
     id: '101', 
-    title: 'Notas da Aula de Cardiologia', 
-    source: 'Lecture', 
-    createdAt: '2024-03-15',
-    preview: 'Conceitos fundamentais sobre anatomia e fisiologia cardíaca. Principais patologias cardiovasculares...'
+    title: 'Anotações sobre Análise de Circuitos', 
+    source: 'Workshop', 
+    createdAt: '2024-03-14',
+    preview: 'Cálculos da Lei de Ohm e aplicação das Leis de Kirchhoff em circuitos mistos...'
   },
   { 
     id: '102', 
-    title: 'Resumo do Caso de Dor Torácica', 
-    source: 'Internship', 
-    createdAt: '2024-03-14',
-    preview: 'Paciente masculino, 45 anos, com dor precordial há 2 horas. Investigação diagnóstica realizada...'
+    title: 'Resumo do Estudo de Falha Estrutural', 
+    source: 'CaseStudy', 
+    createdAt: '2024-03-13',
+    preview: 'Análise da fadiga de material em viga de aço sob carga cíclica. Fatores contribuintes...'
   },
   { 
     id: '103', 
-    title: 'Dúvidas sobre Fisiologia Renal', 
-    source: 'Lesson', 
-    createdAt: '2024-03-13',
-    preview: 'Mecanismo de filtração glomerular e regulação da pressão arterial. Questões sobre homeostase...'
+    title: 'Dúvidas sobre Termodinâmica', 
+    source: 'OnlineCourse', 
+    createdAt: '2024-03-12',
+    preview: 'Diferença entre ciclo de Rankine e ciclo de Carnot. Eficiência e transferência de calor...'
   },
   { 
     id: '104', 
-    title: 'Protocolo de Emergência Cardíaca', 
-    source: 'Lecture', 
-    createdAt: '2024-03-12',
-    preview: 'Sequência de atendimento em parada cardiorrespiratória. Medicações e dosagens de emergência...'
+    title: 'Notas de Laboratório de Materiais', 
+    source: 'Workshop', 
+    createdAt: '2024-03-11',
+    preview: 'Resultados do ensaio de tração para o corpo de prova de alumínio. Módulo de Young e limite de escoamento...'
   },
   { 
     id: '105', 
-    title: 'Caso Clínico - Hipertensão', 
-    source: 'Internship', 
-    createdAt: '2024-03-11',
-    preview: 'Abordagem terapêutica da hipertensão arterial sistêmica. Critérios diagnósticos e classificação...'
-  },
-  { 
-    id: '106', 
-    title: 'Farmacologia Cardiovascular', 
-    source: 'Lesson', 
+    title: 'Interpretação de Diagramas de Fase', 
+    source: 'OnlineCourse', 
     createdAt: '2024-03-10',
-    preview: 'Principais classes de medicamentos cardiovasculares. Mecanismo de ação dos beta-bloqueadores...'
-  },
-  { 
-    id: '107', 
-    title: 'Exame Físico do Coração', 
-    source: 'Lecture', 
-    createdAt: '2024-03-09',
-    preview: 'Técnicas de ausculta cardíaca e identificação de sopros. Propedêutica cardiovascular básica...'
-  },
-  { 
-    id: '108', 
-    title: 'Interpretação de ECG', 
-    source: 'Lesson', 
-    createdAt: '2024-03-08',
-    preview: 'Análise sistematizada do eletrocardiograma. Reconhecimento de arritmias e alterações isquêmicas...'
+    preview: 'Análise do diagrama de fases Ferro-Carbono. Ponto eutetoide e suas implicações na microestrutura...'
   },
 ];
 
@@ -101,12 +80,12 @@ const MyAnnotationsPage = () => {
 
   const getSourceLabel = (source: string) => {
     switch (source) {
-      case 'Lecture':
-        return 'Aula Presencial';
-      case 'Lesson':
-        return 'Aula Online';
-      case 'Internship':
-        return 'Cenário Clínico';
+      case 'Workshop':
+        return 'Workshop Prático';
+      case 'OnlineCourse':
+        return 'Curso Online';
+      case 'CaseStudy':
+        return 'Estudo de Caso';
       default:
         return source;
     }
@@ -143,9 +122,9 @@ const MyAnnotationsPage = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as origens</SelectItem>
-              <SelectItem value="Lecture">Aulas Presenciais</SelectItem>
-              <SelectItem value="Lesson">Aulas Online</SelectItem>
-              <SelectItem value="Internship">Cenários Clínicos</SelectItem>
+              <SelectItem value="Workshop">Workshops Práticos</SelectItem>
+              <SelectItem value="OnlineCourse">Cursos Online</SelectItem>
+              <SelectItem value="CaseStudy">Estudos de Caso</SelectItem>
             </SelectContent>
           </Select>
         </div>

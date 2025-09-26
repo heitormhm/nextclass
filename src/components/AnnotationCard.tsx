@@ -44,11 +44,11 @@ const AnnotationCard = ({ id, title, source, createdAt, preview, onDelete, onSha
 
   const getSourceColor = (source: string) => {
     switch (source) {
-      case 'Aula Presencial':
+      case 'Workshop Prático':
         return 'bg-blue-500/10 text-blue-700 border-blue-200';
-      case 'Aula Online':
+      case 'Curso Online':
         return 'bg-green-500/10 text-green-700 border-green-200';
-      case 'Cenário Clínico':
+      case 'Estudo de Caso':
         return 'bg-purple-500/10 text-purple-700 border-purple-200';
       default:
         return 'bg-gray-500/10 text-gray-700 border-gray-200';
