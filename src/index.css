@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NextDoc Learning Design System - Medical Education Platform
+All colors MUST be HSL. Design tokens for consistent theming.
+*/
+
+@layer base {
+  :root {
+    /* Core brand colors */
+    --primary: 330 75% 55%; /* NextDoc Pink/Magenta #E32A88 */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --primary-light: 330 75% 65%; /* Lighter pink for hover states */
+    --primary-glow: 330 75% 85%; /* Very light pink for backgrounds */
+    
+    /* Background system */
+    --background: 0 0% 100%; /* Pure white */
+    --background-secondary: 250 100% 98.5%; /* Light lavender #F8F7FF */
+    --background-muted: 240 10% 96%; /* Very light gray */
+    
+    /* Text colors */
+    --foreground: 220 15% 15%; /* Dark gray for text */
+    --foreground-muted: 220 10% 45%; /* Muted text color */
+    --foreground-light: 220 8% 65%; /* Light text color */
+    
+    /* Component colors */
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+    --card-secondary: 250 100% 98.5%; /* Lavender cards */
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 15%;
+    
+    /* Semantic colors */
+    --secondary: 240 10% 96%;
+    --secondary-foreground: 220 15% 15%;
+    
+    --muted: 240 10% 96%;
+    --muted-foreground: 220 10% 45%;
+    
+    --accent: 250 100% 98.5%;
+    --accent-foreground: 220 15% 15%;
+    
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* UI elements */
+    --border: 240 10% 90%;
+    --input: 240 10% 90%;
+    --ring: 330 75% 55%;
+    
+    /* Design system tokens */
+    --radius: 0.75rem;
+
+  }
+
+  .dark {
+    /* Dark mode for NextDoc Learning - maintaining pink primary */
+    --primary: 330 75% 65%; /* Lighter pink for dark mode */
+    --primary-foreground: 220 15% 15%;
+    --primary-light: 330 75% 75%;
+    --primary-glow: 330 75% 25%;
+    
+    --background: 220 15% 8%; /* Dark background */
+    --background-secondary: 220 15% 10%; /* Darker secondary */
+    --background-muted: 220 15% 12%;
+    
+    --foreground: 0 0% 95%; /* Light text */
+    --foreground-muted: 220 8% 65%;
+    --foreground-light: 220 8% 45%;
+    
+    --card: 220 15% 10%;
+    --card-foreground: 0 0% 95%;
+    --card-secondary: 220 15% 12%;
+    
+    --popover: 220 15% 10%;
+    --popover-foreground: 0 0% 95%;
+    
+    --secondary: 220 15% 12%;
+    --secondary-foreground: 0 0% 95%;
+    
+    --muted: 220 15% 12%;
+    --muted-foreground: 220 8% 65%;
+    
+    --accent: 220 15% 12%;
+    --accent-foreground: 0 0% 95%;
+    
+    --success: 142 76% 45%;
+    --warning: 38 92% 55%;
+    --destructive: 0 84% 65%;
+    
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 330 75% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
+  }
+  
+  /* Mobile-first responsive typography system */
+  h1 {
+    @apply text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight;
+  }
+  
+  h2 {
+    @apply text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight;
+  }
+  
+  h3 {
+    @apply text-lg md:text-xl lg:text-2xl font-semibold tracking-tight;
+  }
+  
+  h4 {
+    @apply text-base md:text-lg lg:text-xl font-medium tracking-tight;
+  }
+  
+  /* Ensure proper touch targets on mobile */
+  button, a[role="button"], [role="button"] {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Form inputs touch-friendly sizing */
+  input, textarea, select {
+    @apply min-h-[44px] text-base;
+  }
+  
+  /* Smooth transitions for interactive elements */
+  button, a, input, textarea, select {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 3D Transform utilities for flashcard animations */
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+
+  /* Modern Background and Frosted Glass Effects */
+  .bg-blur-blobs {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bg-blur-blobs::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 25%), 
+                      radial-gradient(circle at 80% 15%, rgba(168, 85, 247, 0.4) 0%, rgba(168, 85, 247, 0) 30%), 
+                      radial-gradient(circle at 25% 75%, rgba(236, 72, 153, 0.5) 0%, rgba(236, 72, 153, 0) 35%), 
+                      radial-gradient(circle at 90% 85%, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 20%), 
+                      radial-gradient(circle at 50% 50%, rgba(192, 132, 252, 0.3) 0%, rgba(192, 132, 252, 0) 40%);
+    background-color: #f9fafb;
+    filter: blur(80px);
+    z-index: 0;
+  }
+
+  .frost-white {
+    @apply bg-white/70 backdrop-blur-lg border border-white/20;
+  }
+
+  .frost-white-subtle {
+    @apply bg-white/50 backdrop-blur-md border border-white/10;
+  }
+
+  .frost-white-strong {
+    @apply bg-white/80 backdrop-blur-xl border border-white/30;
+  }
+}

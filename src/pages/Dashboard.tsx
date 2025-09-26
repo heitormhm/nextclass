@@ -1,0 +1,565 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Search, BookOpen, Target, Award, Video, Stethoscope, FileText, Library, Calendar, Play, Clock, Users, Brain, Sparkles } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import MainLayout from '@/components/MainLayout';
+
+interface MetricCard {
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ElementType;
+  trend: string;
+}
+
+interface QuickMenuItem {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  href: string;
+}
+
+interface LearningPathItem {
+  id: string;
+  title: string;
+  time: string;
+  type: 'lecture' | 'case-study' | 'quiz' | 'live-session';
+  duration: string;
+  progress?: number;
+}
+
+const Dashboard = () => {
+  // Fixed: Use proper student name for student dashboard
+  const currentUser = { name: 'Antônio' };
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const metrics: MetricCard[] = [
+    {
+      title: 'Aulas Concluídas',
+      value: '24',
+      description: '+12% em relação ao mês passado',
+      icon: BookOpen,
+      trend: 'up'
+    },
+    {
+      title: 'Meta Semanal',
+      value: '85%',
+      description: '17/20 objetivos atingidos',
+      icon: Target,
+      trend: 'up'
+    },
+    {
+      title: 'Certificações',
+      value: '3',
+      description: '2 novas este mês',
+      icon: Award,
+      trend: 'up'
+    },
+    {
+      title: 'Horas Estudadas',
+      value: '127h',
+      description: 'Média de 4.2h por dia',
+      icon: Clock,
+      trend: 'steady'
+    }
+  ];
+
+  const quickMenuItems: QuickMenuItem[] = [
+    {
+      title: 'Biblioteca',
+      description: 'Acesse materiais e recursos',
+      icon: Library,
+      href: '/library'
+    },
+    {
+      title: 'Meus Cursos',
+      description: 'Continue onde parou',
+      icon: Video,
+      href: '/courses'
+    },
+    {
+      title: 'Calendário',
+      description: 'Aulas e eventos programados',
+      icon: Calendar,
+      href: '/calendar'
+    },
+    {
+      title: 'Modo Estágio',
+      description: 'Simule cenários reais',
+      icon: Stethoscope,
+      href: '/internship'
+    }
+  ];
+
+  const todaySchedule: LearningPathItem[] = [
+    {
+      id: '1',
+      title: 'Cardiologia: Arritmias Cardíacas',
+      time: '09:00',
+      type: 'lecture',
+      duration: '45 min',
+      progress: 0
+    },
+    {
+      id: '2', 
+      title: 'Caso Clínico: Paciente com Dispneia',
+      time: '10:30',
+      type: 'case-study',
+      duration: '30 min',
+      progress: 0
+    },
+    {
+      id: '3',
+      title: 'Quiz: Fisiologia Respiratória',
+      time: '14:00',
+      type: 'quiz',
+      duration: '15 min',
+      progress: 0
+    },
+    {
+      id: '4',
+      title: 'Live: Discussão de Casos Complexos',
+      time: '16:00',
+      type: 'live-session',
+      duration: '60 min',
+      progress: 0
+    }
+  ];
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'lecture':
+        return <Play className="h-4 w-4" />;
+      case 'case-study':
+        return <FileText className="h-4 w-4" />;
+      case 'quiz':
+        return <Brain className="h-4 w-4" />;
+      case 'live-session':
+        return <Users className="h-4 w-4" />;
+      default:
+        return <BookOpen className="h-4 w-4" />;
+    }
+  };
+
+  const getActivityColor = (type: string) => {
+    switch (type) {
+      case 'lecture':
+        return 'bg-blue-500';
+      case 'case-study':
+        return 'bg-green-500';
+      case 'quiz':
+        return 'bg-purple-500';
+      case 'live-session':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  const filteredSchedule = todaySchedule.filter(item =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <MainLayout>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        {/* Page Header */}
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">
+            Bem-vindo de volta, <span className="text-primary">{currentUser.name}</span>!
+          </h1>
+          <p className="text-sm sm:text-base text-foreground-muted">
+            Continue sua jornada de aprendizado médico. Você está fazendo um ótimo progresso!
+          </p>
+        </div>
+
+        {/* Metrics Cards - Mobile-first 2x2 grid, then responsive */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          {metrics.map((metric) => (
+            <Card key={metric.title} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground-muted">
+                      {metric.title}
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {metric.value}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                    <metric.icon className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Main Content - Stacked on mobile */}
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1">
+            {/* Quick Menu */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl">Acesso Rápido</CardTitle>
+                <CardDescription>
+                  Navegue rapidamente para as principais seções
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Mobile: Single column list, Desktop: Grid */}
+                <div className="block md:hidden space-y-3">
+                  <Link to="/courses">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
+                            <Video className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              Meus Cursos
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Continue onde parou
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  <Link to="/internship">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
+                            <Stethoscope className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              Modo Estágio
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Simule cenários reais
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  <Link to="/aichat">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
+                            <Sparkles className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              AI Chat
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Pergunte sobre critérios e diretrizes
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  <Link to="/calendar">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
+                            <Calendar className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              Calendário
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Aulas e eventos programados
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  <Link to="/annotations">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              Minhas Anotações
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Acesse suas notas e resumos
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  <Link to="/library">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
+                            <Library className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              Biblioteca
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Acesse materiais e recursos
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </div>
+
+                {/* Desktop: 2x3 Grid */}
+                <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Link to="/courses">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
+                      <CardContent className="p-6 h-full">
+                        <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
+                            <Video className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              Meus Cursos
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Continue onde parou
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  <Link to="/internship">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
+                      <CardContent className="p-6 h-full">
+                        <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
+                            <Stethoscope className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              Modo Estágio
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Simule cenários reais
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  <Link to="/aichat">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
+                      <CardContent className="p-6 h-full">
+                        <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
+                            <Sparkles className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              AI Chat
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Pergunte sobre critérios e diretrizes
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  <Link to="/calendar">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
+                      <CardContent className="p-6 h-full">
+                        <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
+                            <Calendar className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              Calendário
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Aulas e eventos programados
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  <Link to="/annotations">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
+                      <CardContent className="p-6 h-full">
+                        <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              Minhas Anotações
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Acesse suas notas e resumos
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  <Link to="/library">
+                    <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
+                      <CardContent className="p-6 h-full">
+                        <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
+                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
+                            <Library className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                              Biblioteca
+                            </h3>
+                            <p className="text-sm text-foreground-muted">
+                              Acesse materiais e recursos
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Activities */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl">Atividades Recentes</CardTitle>
+                <CardDescription>
+                  Seus últimos progressos e conquistas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4 p-4 bg-background-secondary rounded-lg">
+                  <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center">
+                    <Award className="h-5 w-5 text-success" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Certificação Concluída</p>
+                    <p className="text-sm text-foreground-muted">Cardiologia Básica - Nível 1</p>
+                  </div>
+                  <Badge variant="secondary">Hoje</Badge>
+                </div>
+
+                <div className="flex items-center gap-4 p-4 bg-background-secondary rounded-lg">
+                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Aula Concluída</p>
+                    <p className="text-sm text-foreground-muted">Fisiologia do Sistema Nervoso</p>
+                  </div>
+                  <Badge variant="secondary">Ontem</Badge>
+                </div>
+
+                <div className="flex items-center gap-4 p-4 bg-background-secondary rounded-lg">
+                  <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
+                    <Brain className="h-5 w-5 text-purple-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Quiz Realizado</p>
+                    <p className="text-sm text-foreground-muted">Anatomia Humana - 92% de acerto</p>
+                  </div>
+                  <Badge variant="secondary">2 dias</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar - Agenda appears first on mobile */}
+          <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl">Agenda de Hoje</CardTitle>
+                <CardDescription>
+                  Suas atividades programadas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground-muted h-4 w-4" />
+                  <Input
+                    placeholder="Buscar atividades..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {/* Schedule Items */}
+                <div className="space-y-3">
+                  {filteredSchedule.map((item) => (
+                    <div key={item.id} className="flex items-center gap-4 p-4 border border-border rounded-lg hover:border-primary/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${getActivityColor(item.type)}`} />
+                        <span className="text-sm font-medium text-foreground-muted min-w-[50px]">
+                          {item.time}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-foreground text-sm leading-tight mb-1">
+                          {item.title}
+                        </h4>
+                        <div className="flex items-center gap-2 text-xs text-foreground-muted">
+                          {getActivityIcon(item.type)}
+                          <span>{item.duration}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {filteredSchedule.length === 0 && (
+                  <div className="text-center py-8 text-foreground-muted">
+                    <p>Nenhuma atividade encontrada</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
+  );
+};
+
+export default Dashboard;
