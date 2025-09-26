@@ -9,80 +9,80 @@ import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
 import CourseCard from '@/components/CourseCard';
 
-// Import medical lecture images
-import myocardialInfarctionImg from '@/assets/lecture-myocardial-infarction.jpg';
-import bloodGasAnalysisImg from '@/assets/lecture-blood-gas-analysis.jpg';
-import pulmonaryAuscultationImg from '@/assets/lecture-pulmonary-auscultation.jpg';
-import traumaManagementImg from '@/assets/lecture-trauma-management.jpg';
-import antibioticTherapyImg from '@/assets/lecture-antibiotic-therapy.jpg';
-import abdominalDiagnosisImg from '@/assets/lecture-abdominal-diagnosis.jpg';
+// Import engineering course images
+import structuralAnalysisImg from '@/assets/course-structural-analysis.jpg';
+import thermodynamicsImg from '@/assets/course-thermodynamics.jpg';
+import electricalCircuitsImg from '@/assets/course-electrical-circuits.jpg';
+import fluidMechanicsImg from '@/assets/course-fluid-mechanics.jpg';
+import controlSystemsImg from '@/assets/course-control-systems.jpg';
+import materialsScienceImg from '@/assets/course-materials-science.jpg';
 
-// Static course data with realistic medical lectures
+// Static course data with realistic engineering courses
 const coursesData = [
   {
     id: 1,
-    lessonNumber: "Aula 1",
-    title: "Fisiopatologia do Infarto Agudo do Miocárdio",
-    instructor: "Dr. Carlos Mendoza",
+    lessonNumber: "Curso 1",
+    title: "Introdução à Análise Estrutural",
+    instructor: "Prof. Ricardo Costa",
     duration: "55 min",
-    progress: 80,
-    thumbnail: myocardialInfarctionImg,
-    topic: "Cardiologia",
+    progress: 90,
+    thumbnail: structuralAnalysisImg,
+    topic: "Engenharia Civil",
     type: "online"
   },
   {
     id: 2,
-    lessonNumber: "Aula 2", 
-    title: "Interpretação de Gasometria Arterial",
-    instructor: "Dra. Ana Paula Santos",
+    lessonNumber: "Curso 2", 
+    title: "Princípios de Termodinâmica",
+    instructor: "Prof. Beatriz Lima",
     duration: "45 min",
-    progress: 65,
-    thumbnail: bloodGasAnalysisImg,
-    topic: "Pneumologia",
+    progress: 80,
+    thumbnail: thermodynamicsImg,
+    topic: "Engenharia Mecânica",
     type: "online"
   },
   {
     id: 3,
-    lessonNumber: "Aula 3",
-    title: "Fundamentos da Ausculta Pulmonar",
-    instructor: "Dr. Ricardo Oliveira",
+    lessonNumber: "Curso 3",
+    title: "Circuitos Elétricos I: Análise DC",
+    instructor: "Prof. Ana Santos",
     duration: "60 min", 
-    progress: 30,
-    thumbnail: pulmonaryAuscultationImg,
-    topic: "Pneumologia",
+    progress: 65,
+    thumbnail: electricalCircuitsImg,
+    topic: "Engenharia Elétrica",
     type: "presencial"
   },
   {
     id: 4,
-    lessonNumber: "Aula 4",
-    title: "Manejo Inicial do Paciente Politraumatizado (ATLS)",
-    instructor: "Dra. Fernanda Costa",
+    lessonNumber: "Curso 4",
+    title: "Mecânica dos Fluidos Aplicada",
+    instructor: "Prof. Fernando Dias",
     duration: "75 min",
-    progress: 90,
-    thumbnail: traumaManagementImg,
-    topic: "Emergência",
+    progress: 45,
+    thumbnail: fluidMechanicsImg,
+    topic: "Engenharia Mecânica",
     type: "online"
   },
   {
     id: 5,
-    lessonNumber: "Aula 5",
-    title: "Antibioticoterapia na Prática Clínica", 
-    instructor: "Dr. Miguel Rodriguez",
+    lessonNumber: "Curso 5",
+    title: "Sistemas de Controle e Automação", 
+    instructor: "Prof. Júlia Fernandes",
     duration: "50 min",
-    progress: 15,
-    thumbnail: antibioticTherapyImg,
-    topic: "Infectologia",
+    progress: 70,
+    thumbnail: controlSystemsImg,
+    topic: "Engenharia de Controle",
     type: "presencial"
   },
   {
     id: 6,
-    lessonNumber: "Aula 6",
-    title: "Diagnóstico Diferencial da Dor Abdominal",
-    instructor: "Dra. Júlia Fernandes",
+    lessonNumber: "Curso 6",
+    title: "Ciência dos Materiais: Metais e Ligas",
+    instructor: "Prof. Carlos Mendoza",
     duration: "65 min",
-    progress: 45,
-    thumbnail: abdominalDiagnosisImg, 
-    topic: "Gastroenterologia",
+    progress: 55,
+    thumbnail: materialsScienceImg, 
+    topic: "Engenharia de Materiais",
     type: "online"
   }
 ];
@@ -130,9 +130,9 @@ const MyCoursesPage = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header Section */}
         <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Painel de Aulas</h1>
+            <h1 className="text-3xl font-bold mb-2">Catálogo de Cursos</h1>
             <p className="text-foreground-muted mb-6">
-              Explore todas as aulas disponíveis e acompanhe seu progresso.
+              Explore todos os cursos disponíveis e acompanhe seu progresso.
             </p>
 
             {/* Segmented Filter Buttons */}
@@ -146,7 +146,7 @@ const MyCoursesPage = () => {
                     : 'text-foreground-muted hover:text-foreground'
                 }`}
               >
-                Aulas Online
+                Cursos Online
               </Button>
               <Button
                 variant={activeFilter === 'presencial' ? 'default' : 'ghost'}
@@ -157,7 +157,7 @@ const MyCoursesPage = () => {
                     : 'text-foreground-muted hover:text-foreground'
                 }`}
               >
-                Aulas Presenciais
+                Workshops Presenciais
               </Button>
             </div>
           </div>
@@ -170,7 +170,7 @@ const MyCoursesPage = () => {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground-muted h-5 w-5" />
                   <Input
-                    placeholder="Pesquisar aulas por título, professor ou palavra-chave..."
+                    placeholder="Pesquisar cursos por título, professor ou área de engenharia..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-11 py-3 text-base border-border bg-background"
@@ -249,7 +249,7 @@ const MyCoursesPage = () => {
             <Card className="p-12 text-center border-0 shadow-sm">
               <div className="text-foreground-muted">
                 <Filter className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">Nenhuma aula encontrada</h3>
+                <h3 className="text-lg font-semibold mb-2">Nenhum curso encontrado</h3>
                 <p>Tente ajustar os filtros ou termo de busca.</p>
               </div>
             </Card>
