@@ -74,7 +74,7 @@ const mockConversations: ConversationData = {
     },
     {
       id: "1-4",
-      content: `Para o tratamento inicial de DM2, a metformina continua sendo a terapia de primeira linha, sempre associada a modificações no estilo de vida (dieta e exercícios). A dose inicial é geralmente de 500 mg uma ou duas vezes ao dia, com aumento gradual para minimizar efeitos gastrointestinais. É crucial monitorar a função renal antes e durante o tratamento.`,
+      content: `Para dimensionamento inicial de estruturas de aço sem cargas excepcionais, é recomendado partir de pré-dimensionamento baseado em índices de esbeltez. Para vigas, uma altura inicial pode ser estimada como L/20 a L/15 do vão. É importante considerar as combinações de cargas conforme ABNT NBR 8681 e verificar se não há cargas dinâmicas significativas.`,
       isUser: false,
       timestamp: new Date(Date.now() - 4 * 60 * 1000),
     },
@@ -88,17 +88,14 @@ const mockConversations: ConversationData = {
     },
     {
       id: "2-2",
-      content: `O protocolo clássico é o mnemônico MONA, mas a abordagem moderna é mais nuanced. O tratamento imediato inclui:
+      content: `É fundamental avaliar rapidamente os 4 modos de falha principais que representam risco imediato:
 
-**Aspirina (AAS):** 162-325 mg mastigável.
+1. **Flambagem:** Instabilidade por compressão.
+2. **Fadiga:** Falha por carregamento cíclico.
+3. **Fratura Frágil:** Ocorre subitamente sem deformação plástica.
+4. **Escoamento:** Deformação plástica excessiva.
 
-**Oxigênio:** Apenas se a saturação de O2 for < 90%.
-
-**Nitrato (Nitroglicerina):** Sublingual, se a pressão arterial permitir.
-
-**Terapia de Reperfusão:** Angioplastia primária (ICP) é o padrão-ouro (porta-balão < 90 min).
-
-É crucial obter um ECG de 12 derivações nos primeiros 10 minutos.`,
+A avaliação inicial deve focar em estabilidade estrutural e realizar análises direcionadas como verificação de tensões e, se necessário, modelagem computacional.`,
       isUser: false,
       timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000 + 2 * 60 * 1000),
     },
@@ -112,16 +109,13 @@ const mockConversations: ConversationData = {
     },
     {
       id: "3-2",
-      content: `É fundamental descartar rapidamente as 6 causas potencialmente fatais de dor torácica:
+      content: `O protocolo inicial para instabilidade por vibração inclui:
 
-1. **Síndrome Coronariana Aguda (SCA)**
-2. **Dissecção Aguda de Aorta**
-3. **Tromboembolismo Pulmonar (TEP)**
-4. **Pneumotórax Hipertensivo**
-5. **Tamponamento Cardíaco**
-6. **Ruptura Esofágica**
+1. **Análise de Frequência Natural:** Para evitar ressonância.
+2. **Verificação de Amortecimento:** Avaliar a capacidade da estrutura de dissipar energia.
+3. **Análise de Cargas Dinâmicas:** Identificar fontes de excitação, como vento ou tráfego.
 
-A avaliação inicial deve focar em estabilidade estrutural e realizar análises direcionadas como verificação de tensões e, se necessário, modelagem computacional.`,
+A avaliação inicial deve focar em estabilidade hemodinâmica e realizar ECG, troponina e, se necessário, ecocardiograma.`,
       isUser: false,
       timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000 + 3 * 60 * 1000),
     },
@@ -135,11 +129,11 @@ A avaliação inicial deve focar em estabilidade estrutural e realizar análises
     },
     {
       id: "4-2",
-      content: `A distinção é a presença de lesão de órgão-alvo.
+      content: `A distinção é a magnitude e duração:
 
-**Urgência Hipertensiva:** PA > 180/120 mmHg sem lesão de órgão-alvo. O tratamento é com anti-hipertensivos orais.
+**Sobrecorrente:** Corrente acima do valor nominal, geralmente por sobrecarga. Proteção por disjuntores térmicos.
 
-**Emergência Hipertensiva:** PA elevada com lesão de órgão-alvo (ex: encefalopatia, AVC, IAM). O manejo requer internação em UTI e uso de drogas IV (Nitroprussiato, Labetalol) para redução controlada da PA.`,
+**Curto-circuito:** Contato de baixíssima impedância, resultando em correntes altíssimas e instantâneas. Exige interrupção imediata por disjuntores magnéticos ou fusíveis ultrarrápidos.`,
       isUser: false,
       timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000 + 2 * 60 * 1000),
     },
@@ -428,13 +422,40 @@ const AIChatPage = () => {
                       />
                     </div>
 
-                    {/* Deep Search Toggle - Hidden on small screens */}
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-background-secondary/50 shrink-0">
-                      <Switch
-                        checked={isDeepSearch}
-                        onCheckedChange={setIsDeepSearch}
-                      />
-                      <span className="text-xs text-foreground-muted whitespace-nowrap">Busca Aprofundada</span>
+                    {/* AI Mode Selector - Modern Toggle Button */}
+                    <div className="hidden sm:flex shrink-0">
+                      <button
+                        onClick={() => setIsDeepSearch(!isDeepSearch)}
+                        className={`
+                          relative inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300 transform hover:scale-105
+                          ${isDeepSearch 
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25' 
+                            : 'bg-background-secondary/50 text-foreground-muted hover:bg-background-secondary/70 border border-border'
+                          }
+                        `}
+                      >
+                        <div className="flex items-center gap-2">
+                          {isDeepSearch ? (
+                            <>
+                              <div className="w-4 h-4 relative">
+                                <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" />
+                                <div className="absolute inset-1 bg-white rounded-full" />
+                              </div>
+                              <span>Busca Aprofundada</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4" />
+                              <span>Busca Padrão</span>
+                            </>
+                          )}
+                        </div>
+                        
+                        {/* Subtle glow effect when active */}
+                        {isDeepSearch && (
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 blur-md -z-10" />
+                        )}
+                      </button>
                     </div>
 
                     {/* Send Button */}
