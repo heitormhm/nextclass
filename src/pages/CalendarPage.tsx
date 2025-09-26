@@ -29,7 +29,7 @@ const CalendarPage = () => {
   const events: CalendarEvent[] = [
     {
       id: '1',
-      title: 'Fisiopatologia Cardiovascular',
+      title: 'Análise Termodinâmica',
       date: new Date(2024, 2, 15), // March 15, 2024
       startTime: '09:00',
       endTime: '10:30',
@@ -38,12 +38,12 @@ const CalendarPage = () => {
     },
     {
       id: '2',
-      title: 'Seminário de Cardiologia',
+      title: 'Seminário de Estruturas',
       date: new Date(2024, 2, 15),
       startTime: '14:00',
       endTime: '16:00',
       type: 'presencial',
-      location: 'Auditório A - Campus Medicina',
+      location: 'Auditório A - Campus Engenharia',
       description: 'Apresentação de casos clínicos'
     },
     {
@@ -58,7 +58,7 @@ const CalendarPage = () => {
     },
     {
       id: '4',
-      title: 'Webinar: Novidades em Cardiologia',
+      title: 'Webinar: Novidades em Circuitos',
       date: new Date(2024, 2, 20),
       startTime: '19:00',
       endTime: '20:30',
@@ -91,8 +91,8 @@ const CalendarPage = () => {
       startTime: '09:00',
       endTime: '11:00',
       type: 'presencial',
-      location: 'Laboratório de Cardiologia',
-      description: 'Interpretação de eletrocardiogramas'
+      location: 'Laboratório de Eletrônica',
+      description: 'Análise de circuitos integrados'
     }
   ];
 

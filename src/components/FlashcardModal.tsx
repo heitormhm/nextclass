@@ -20,47 +20,45 @@ interface FlashcardModalProps {
 const mockFlashcards: Flashcard[] = [
   { 
     id: 'fc1', 
-    question: 'Qual a função do Nó Sinoatrial?', 
-    answer: 'É o marcapasso natural do coração, iniciando o impulso elétrico para a contração.',
-    tags: ['Fisiologia', 'Anatomia'] 
+    question: 'Qual é a Lei de Ohm?', 
+    answer: 'V = I × R, onde V é a tensão (volts), I é a corrente (ampères) e R é a resistência (ohms).',
+    tags: ['Circuitos', 'Fundamentos'] 
   },
   { 
     id: 'fc2', 
-    question: 'Sintomas clássicos do Infarto Agudo do Miocárdio', 
-    answer: 'Dor torácica opressiva com irradiação para o membro superior esquerdo, sudorese e dispneia.',
-    tags: ['Sintomas-chave', 'Correlação Clínica'] 
+    question: 'O que é momento fletor em uma viga?', 
+    answer: 'É o momento interno que causa flexão na viga, resultando em tensões de tração e compressão.',
+    tags: ['Estruturas', 'Análise Estrutural'] 
   },
   { 
     id: 'fc3', 
-    question: 'Tratamento inicial para Angina Estável', 
-    answer: 'Nitratos, beta-bloqueadores e aspirina são a base do tratamento.',
-    tags: ['Tratamento', 'Farmacologia'] 
+    question: 'Segunda Lei da Termodinâmica', 
+    answer: 'A entropia de um sistema isolado nunca diminui, sempre aumenta ou permanece constante.',
+    tags: ['Termodinâmica', 'Conceitos'] 
   },
   {
     id: 'fc4',
-    question: 'Como interpretar um eletrocardiograma normal?',
-    answer: 'Onda P positiva, intervalo PR entre 0,12-0,20s, complexo QRS menor que 0,12s.',
-    tags: ['Exames', 'Diagnóstico']
+    question: 'Como calcular a frequência de ressonância de um circuito LC?',
+    answer: 'f = 1/(2π√(LC)), onde L é a indutância e C é a capacitância.',
+    tags: ['Circuitos', 'Análise de Frequência']
   },
   {
     id: 'fc5',
-    question: 'Principais causas de hipertensão secundária',
-    answer: 'Doença renal, hiperaldosteronismo, feocromocitoma e coarctação da aorta.',
-    tags: ['Fisiopatologia', 'Diagnóstico Diferencial']
+    question: 'Principais tipos de cargas estruturais',
+    answer: 'Cargas permanentes (peso próprio), cargas variáveis (sobrecarga) e cargas excepcionais (vento, sismos).',
+    tags: ['Estruturas', 'Dimensionamento']
   }
 ];
 
 const tagColors = {
-  'Fisiologia': 'bg-blue-100 text-blue-800 border-blue-200',
-  'Anatomia': 'bg-green-100 text-green-800 border-green-200',
-  'Sintomas-chave': 'bg-red-100 text-red-800 border-red-200',
-  'Correlação Clínica': 'bg-purple-100 text-purple-800 border-purple-200',
-  'Tratamento': 'bg-orange-100 text-orange-800 border-orange-200',
-  'Farmacologia': 'bg-cyan-100 text-cyan-800 border-cyan-200',
-  'Exames': 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  'Diagnóstico': 'bg-pink-100 text-pink-800 border-pink-200',
-  'Fisiopatologia': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  'Diagnóstico Diferencial': 'bg-gray-100 text-gray-800 border-gray-200'
+  'Circuitos': 'bg-blue-100 text-blue-800 border-blue-200',
+  'Fundamentos': 'bg-green-100 text-green-800 border-green-200',
+  'Estruturas': 'bg-red-100 text-red-800 border-red-200',
+  'Análise Estrutural': 'bg-purple-100 text-purple-800 border-purple-200',
+  'Termodinâmica': 'bg-orange-100 text-orange-800 border-orange-200',
+  'Conceitos': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+  'Análise de Frequência': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  'Dimensionamento': 'bg-pink-100 text-pink-800 border-pink-200'
 };
 
 export const FlashcardModal: React.FC<FlashcardModalProps> = ({ open, onOpenChange }) => {

@@ -10,7 +10,7 @@ import MainLayout from "@/components/MainLayout";
 import { toast } from "sonner";
 
 const SettingsPage = () => {
-  const [email, setEmail] = useState("antonio.silva@nextdoc.com");
+  const [email, setEmail] = useState("antonio.silva@netclass.com");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

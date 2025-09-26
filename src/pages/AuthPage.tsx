@@ -75,7 +75,7 @@ const AuthPage = () => {
           <div className="relative z-10 flex flex-col justify-center items-start p-12 text-foreground">
             <div className="max-w-md">
               <h1 className="text-4xl font-bold mb-6">
-                Bem-vindo ao <span className="text-primary">NextDoc Learning</span>
+                Bem-vindo ao <span className="text-primary">NetClass Learning</span>
               </h1>
               <p className="text-xl text-foreground-muted leading-relaxed">
                 Plataforma completa de educação médica com cursos, biblioteca digital e comunidade ativa de profissionais.
@@ -89,7 +89,7 @@ const AuthPage = () => {
           <div className="w-full max-w-md space-y-6 sm:space-y-8">
             {/* Mobile Header */}
             <div className="text-center lg:hidden py-4">
-              <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">NextDoc Learning</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">NetClass Learning</h1>
               <p className="text-sm sm:text-base text-foreground-muted">Educação médica de excelência</p>
             </div>
 

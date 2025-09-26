@@ -28,7 +28,7 @@ interface ConversationData {
 const mockChatHistory: ChatHistory[] = [
   {
     id: "1",
-    title: "Critérios Diagnósticos de DM2",
+    title: "Critérios de Análise Estrutural",
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
     isActive: true,
   },
@@ -56,7 +56,7 @@ const mockConversations: ConversationData = {
   "1": [
     {
       id: "1-1",
-      content: "Quais são os critérios diagnósticos atuais para Diabetes Mellitus tipo 2, de acordo com a ADA?",
+      content: "Quais são os critérios atuais para análise de segurança estrutural em vigas de aço, de acordo com as normas brasileiras?",
       isUser: true,
       timestamp: new Date(Date.now() - 10 * 60 * 1000),
     },
@@ -75,7 +75,7 @@ Lembre-se que, na ausência de hiperglicemia inequívoca, o diagnóstico requer 
     },
     {
       id: "1-3",
-      content: "Excelente. E sobre o tratamento inicial para um paciente recém-diagnosticado sem comorbidades significativas?",
+      content: "Excelente. E sobre o dimensionamento inicial para uma estrutura de aço sem cargas excepcionais significativas?",
       isUser: true,
       timestamp: new Date(Date.now() - 5 * 60 * 1000),
     },
@@ -89,7 +89,7 @@ Lembre-se que, na ausência de hiperglicemia inequívoca, o diagnóstico requer 
   "2": [
     {
       id: "2-1",
-      content: "Qual o protocolo de atendimento inicial para um paciente com suspeita de Infarto Agudo do Miocárdio com supra de ST?",
+      content: "Qual o protocolo de análise inicial para um projeto com suspeita de instabilidade lateral em vigas?",
       isUser: true,
       timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
     },
@@ -113,7 +113,7 @@ Lembre-se que, na ausência de hiperglicemia inequívoca, o diagnóstico requer 
   "3": [
     {
       id: "3-1",
-      content: "Recebi um paciente com dor torácica aguda na emergência. Quais são os diagnósticos diferenciais que representam risco de vida imediato?",
+      content: "Recebi um projeto com falha estrutural aparente na análise. Quais são os tipos de falhas que representam risco estrutural imediato?",
       isUser: true,
       timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
     },
@@ -128,7 +128,7 @@ Lembre-se que, na ausência de hiperglicemia inequívoca, o diagnóstico requer 
 5. **Tamponamento Cardíaco**
 6. **Ruptura Esofágica**
 
-A avaliação inicial deve focar em estabilizar o paciente e realizar exames direcionados como ECG e, se necessário, angio-TC de tórax.`,
+A avaliação inicial deve focar em estabilidade estrutural e realizar análises direcionadas como verificação de tensões e, se necessário, modelagem computacional.`,
       isUser: false,
       timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000 + 3 * 60 * 1000),
     },
@@ -246,7 +246,7 @@ const AIChatPage = () => {
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate">
-                AI Chat Médico com Mia
+                AI Chat de Engenharia com Mia
               </h1>
               <p className="text-xs sm:text-sm text-foreground-muted hidden sm:block">
                 Sua assistente médica especializada

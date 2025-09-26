@@ -20,7 +20,7 @@ const AnnotationPage = () => {
         <ul class="list-disc pl-6 space-y-2">
           <li class="text-gray-700">Anatomia básica do sistema cardiovascular</li>
           <li class="text-gray-700">Principais patologias cardíacas</li>
-          <li class="text-gray-700">Métodos de diagnóstico em cardiologia</li>
+          <li class="text-gray-700">Métodos de análise em termodinâmica</li>
         </ul>
       </div>
       
@@ -28,14 +28,14 @@ const AnnotationPage = () => {
         <h2 class="text-lg font-semibold text-gray-800 mb-3">❓ Minhas Dúvidas</h2>
         <ol class="list-decimal pl-6 space-y-2">
           <li class="text-gray-700">Como diferenciar sopros fisiológicos de patológicos?</li>
-          <li class="text-gray-700">Qual a importância do ECG no diagnóstico precoce?</li>
+          <li class="text-gray-700">Qual a importância do diagrama P-V na análise de processos?</li>
         </ol>
       </div>
       
       <div>
         <h2 class="text-lg font-semibold text-gray-800 mb-3">📝 Resumo Pessoal</h2>
         <p class="text-gray-700">
-          A aula de hoje foi fundamental para entender os conceitos básicos da cardiologia. 
+          A aula de hoje foi fundamental para entender os conceitos básicos da termodinâmica. 
           <span class="bg-yellow-200 px-1">A anatomia do coração</span> é essencial para compreender 
           as patologias que serão estudadas nos próximos módulos.
         </p>
@@ -122,7 +122,7 @@ const AnnotationPage = () => {
     }
   };
 
-  const lessonTitle = `Anotações sobre Introdução à Cardiologia`;
+  const lessonTitle = `Anotações sobre Introdução à Termodinâmica`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
@@ -130,7 +130,7 @@ const AnnotationPage = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Introdução à Cardiologia</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Introdução à Termodinâmica</h1>
             <p className="text-sm text-gray-600 mt-1">Aula ao vivo • Módulo 1</p>
           </div>
           <Button 

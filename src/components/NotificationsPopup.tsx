@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const mockNotifications = [
-  { id: 1, text: 'Suas notas de Cardiologia foram publicadas.', time: '2h atrás' },
+  { id: 1, text: 'Suas notas de Termodinâmica foram publicadas.', time: '2h atrás' },
   { id: 2, text: 'A aula ao vivo de Neurologia começa em 1 hora.', time: '3h atrás' },
   { id: 3, text: 'Não se esqueça: a entrega do projeto de Farmacologia é em 3 dias.', time: '1d atrás' }
 ];

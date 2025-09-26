@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 const TeacherProfileSettings = () => {
   const [profileData, setProfileData] = useState({
     fullName: 'Ana Santos',
-    email: 'ana.santos@nextdoc.com.br',
+    email: 'ana.santos@netclass.com.br',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''

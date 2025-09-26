@@ -2,14 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* NextDoc Learning Design System - Medical Education Platform
+/* NetClass Learning Design System - Engineering Education Platform
 All colors MUST be HSL. Design tokens for consistent theming.
 */
 
 @layer base {
   :root {
     /* Core brand colors */
-    --primary: 330 75% 55%; /* NextDoc Pink/Magenta #E32A88 */
+    --primary: 330 75% 55%; /* NetClass Pink/Magenta #E32A88 */
     --primary-foreground: 0 0% 100%; /* White text on primary */
     --primary-light: 330 75% 65%; /* Lighter pink for hover states */
     --primary-glow: 330 75% 85%; /* Very light pink for backgrounds */
@@ -63,7 +63,7 @@ All colors MUST be HSL. Design tokens for consistent theming.
   }
 
   .dark {
-    /* Dark mode for NextDoc Learning - maintaining pink primary */
+    /* Dark mode for NetClass Learning - maintaining pink primary */
     --primary: 330 75% 65%; /* Lighter pink for dark mode */
     --primary-foreground: 220 15% 15%;
     --primary-light: 330 75% 75%;

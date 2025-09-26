@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { MedicalConductModal } from '@/components/MedicalConductModal';
+import { EngineeringConductModal } from '@/components/EngineeringConductModal';
 
 // Mock diagnoses database
 const mockDiagnoses = [
@@ -451,7 +451,7 @@ const ConsultationReviewPage = () => {
         </div>
       </div>
 
-      <MedicalConductModal
+      <EngineeringConductModal
         open={showMedicalConductModal}
         onClose={() => setShowMedicalConductModal(false)}
         onSave={handleMedicalConductSave}

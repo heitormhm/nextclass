@@ -1,6 +1,6 @@
 // Internship Dashboard - Fixed Link import issue
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Heart, ChevronDown, ChevronLeft, ChevronRight, Eye, MapPin, Calendar, Stethoscope, Plus } from 'lucide-react';
+import { Search, Filter, Heart, ChevronDown, ChevronLeft, ChevronRight, Eye, MapPin, Calendar, Briefcase, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -516,7 +516,7 @@ const InternshipDashboard = () => {
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-12 text-center">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-background-secondary flex items-center justify-center">
-                    <Stethoscope className="h-8 w-8 text-foreground-muted" />
+                    <Briefcase className="h-8 w-8 text-foreground-muted" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Nenhuma anotação encontrada</h3>
                   <p className="text-foreground-muted mb-4">

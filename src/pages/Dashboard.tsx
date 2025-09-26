@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, BookOpen, Target, Award, Video, Stethoscope, FileText, Library, Calendar, Play, Clock, Users, Brain, Sparkles } from 'lucide-react';
+import { Search, BookOpen, Target, Award, Video, Briefcase, FileText, Library, Calendar, Play, Clock, Users, Brain, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -89,7 +89,7 @@ const Dashboard = () => {
     {
       title: 'Modo Estágio',
       description: 'Simule cenários reais',
-      icon: Stethoscope,
+      icon: Briefcase,
       href: '/internship'
     }
   ];
@@ -238,7 +238,7 @@ const Dashboard = () => {
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
-                            <Stethoscope className="h-6 w-6 text-primary" />
+                             <Briefcase className="h-6 w-6 text-primary" />
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -361,7 +361,7 @@ const Dashboard = () => {
                       <CardContent className="p-6 h-full">
                         <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
                           <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
-                            <Stethoscope className="h-6 w-6 text-primary" />
+                            <Briefcase className="h-6 w-6 text-primary" />
                           </div>
                           <div className="space-y-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
