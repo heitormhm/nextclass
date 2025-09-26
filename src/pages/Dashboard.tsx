@@ -38,7 +38,7 @@ const Dashboard = () => {
   
   const metrics: MetricCard[] = [
     {
-      title: 'Aulas Concluídas',
+      title: 'Módulos Concluídos',
       value: '24',
       description: '+12% em relação ao mês passado',
       icon: BookOpen,
@@ -52,9 +52,9 @@ const Dashboard = () => {
       trend: 'up'
     },
     {
-      title: 'Certificações',
+      title: 'Projetos Finalizados',
       value: '3',
-      description: '2 novas este mês',
+      description: '2 novos este mês',
       icon: Award,
       trend: 'up'
     },
@@ -97,7 +97,7 @@ const Dashboard = () => {
   const todaySchedule: LearningPathItem[] = [
     {
       id: '1',
-      title: 'Cardiologia: Arritmias Cardíacas',
+      title: 'Termodinâmica: Ciclo de Rankine',
       time: '09:00',
       type: 'lecture',
       duration: '45 min',
@@ -105,7 +105,7 @@ const Dashboard = () => {
     },
     {
       id: '2', 
-      title: 'Caso Clínico: Paciente com Dispneia',
+      title: 'Estudo de Caso: Análise de Tensão em Viga',
       time: '10:30',
       type: 'case-study',
       duration: '30 min',
@@ -113,7 +113,7 @@ const Dashboard = () => {
     },
     {
       id: '3',
-      title: 'Quiz: Fisiologia Respiratória',
+      title: 'Teste: Leis de Kirchhoff',
       time: '14:00',
       type: 'quiz',
       duration: '15 min',
@@ -121,7 +121,7 @@ const Dashboard = () => {
     },
     {
       id: '4',
-      title: 'Live: Discussão de Casos Complexos',
+      title: 'Live: Otimização de Sistemas de Controle',
       time: '16:00',
       type: 'live-session',
       duration: '60 min',
@@ -172,7 +172,7 @@ const Dashboard = () => {
             Bem-vindo de volta, <span className="text-primary">{currentUser.name}</span>!
           </h1>
           <p className="text-sm sm:text-base text-foreground-muted">
-            Continue sua jornada de aprendizado médico. Você está fazendo um ótimo progresso!
+            Continue sua jornada em engenharia. Você está fazendo um ótimo progresso!
           </p>
         </div>
 
@@ -473,8 +473,8 @@ const Dashboard = () => {
                     <Award className="h-5 w-5 text-success" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-foreground">Certificação Concluída</p>
-                    <p className="text-sm text-foreground-muted">Cardiologia Básica - Nível 1</p>
+                    <p className="font-medium text-foreground">Projeto Finalizado</p>
+                    <p className="text-sm text-foreground-muted">Simulação de Ponte Treliçada - Nível 1</p>
                   </div>
                   <Badge variant="secondary">Hoje</Badge>
                 </div>
@@ -484,8 +484,8 @@ const Dashboard = () => {
                     <BookOpen className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-foreground">Aula Concluída</p>
-                    <p className="text-sm text-foreground-muted">Fisiologia do Sistema Nervoso</p>
+                    <p className="font-medium text-foreground">Módulo Concluído</p>
+                    <p className="text-sm text-foreground-muted">Fundamentos do Eletromagnetismo</p>
                   </div>
                   <Badge variant="secondary">Ontem</Badge>
                 </div>
@@ -495,8 +495,8 @@ const Dashboard = () => {
                     <Brain className="h-5 w-5 text-purple-500" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-foreground">Quiz Realizado</p>
-                    <p className="text-sm text-foreground-muted">Anatomia Humana - 92% de acerto</p>
+                    <p className="font-medium text-foreground">Teste Realizado</p>
+                    <p className="text-sm text-foreground-muted">Circuitos Lógicos - 92% de acerto</p>
                   </div>
                   <Badge variant="secondary">2 dias</Badge>
                 </div>
