@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, ChevronDown, LayoutDashboard, Stethoscope, BookOpen, StickyNote, Library, Calendar, Sparkles, Home, Mic, BarChart3 } from "lucide-react";
+import { Menu, X, ChevronDown, LayoutDashboard, Briefcase, BookOpen, StickyNote, Library, Calendar, Sparkles, Home, Mic, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,7 +16,7 @@ import { Link, useLocation } from "react-router-dom";
 
 const studentNavigationItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Modo Estágio", href: "/internship", icon: Stethoscope },
+  { label: "Modo Estágio", href: "/internship", icon: Briefcase },
   { label: "Minhas Aulas", href: "/courses", icon: BookOpen },
   { label: "Minhas Anotações", href: "/annotations", icon: StickyNote },
   { label: "Biblioteca", href: "/library", icon: Library },
