@@ -6,14 +6,12 @@ import LibraryCard from '@/components/LibraryCard';
 import MainLayout from '@/components/MainLayout';
 
 const mockLibraryMaterials: LibraryMaterial[] = [
-  { id: 'lib-01', title: 'Eletrocardiograma: Guia Prático', description: 'Um guia completo para interpretação de ECG.', type: 'PDF', category: 'Cardiologia', teacher: 'Dra. Emily Carter' },
-  { id: 'lib-02', title: 'Ausculta Cardíaca (Sons)', description: 'Áudios de bulhas cardíacas normais e patológicas.', type: 'Áudio', category: 'Cardiologia', teacher: 'Dra. Emily Carter' },
-  { id: 'lib-03', title: 'Cirurgia de Revascularização', description: 'Vídeo demonstrativo do procedimento cirúrgico.', type: 'Vídeo', category: 'Cirurgia', teacher: 'Dr. David Lee' },
-  { id: 'lib-04', title: 'Anatomia do Cérebro', description: 'Infográfico detalhado das estruturas cerebrais.', type: 'Imagem', category: 'Neurologia', teacher: 'Dra. Sarah Chen' },
-  { id: 'lib-05', title: 'Fisiologia Cardíaca Avançada', description: 'Material complementar sobre função cardíaca.', type: 'PDF', category: 'Cardiologia', teacher: 'Dr. Michael Johnson' },
-  { id: 'lib-06', title: 'Exame Neurológico Básico', description: 'Vídeo tutorial sobre avaliação neurológica.', type: 'Vídeo', category: 'Neurologia', teacher: 'Dra. Sarah Chen' },
-  { id: 'lib-07', title: 'Sons Pulmonares Anormais', description: 'Coleção de áudios para treinamento auditivo.', type: 'Áudio', category: 'Pneumologia', teacher: 'Dr. Robert Wilson' },
-  { id: 'lib-08', title: 'Atlas de Histologia', description: 'Imagens microscópicas de tecidos humanos.', type: 'Imagem', category: 'Histologia', teacher: 'Dra. Lisa Anderson' },
+  { id: 'lib-01', title: 'Manual de Fórmulas de Estruturas', description: 'Um guia completo para cálculo de vigas, treliças e pórticos.', type: 'PDF', category: 'Engenharia Civil', teacher: 'Prof. Emily Carter' },
+  { id: 'lib-02', title: 'Podcast: Fundamentos de Sinais e Sistemas', description: 'Série de áudios sobre a Transformada de Laplace e suas aplicações.', type: 'Áudio', category: 'Engenharia Elétrica', teacher: 'Prof. David Lee' },
+  { id: 'lib-03', title: 'Simulação de Fluidos em CFD', description: 'Vídeo demonstrativo de uma simulação de escoamento em software CFD.', type: 'Vídeo', category: 'Engenharia Mecânica', teacher: 'Prof. Ana Santos' },
+  { id: 'lib-04', title: 'Diagrama de Circuitos Lógicos', description: 'Infográfico detalhado com as principais portas lógicas e suas tabelas-verdade.', type: 'Imagem', category: 'Engenharia da Computação', teacher: 'Prof. Sarah Chen' },
+  { id: 'lib-05', title: 'Normas Técnicas de Materiais', description: 'Material complementar sobre as propriedades de aços-carbono.', type: 'PDF', category: 'Engenharia de Materiais', teacher: 'Prof. Michael Johnson' },
+  { id: 'lib-06', title: 'Tutorial de Programação em Python', description: 'Vídeo tutorial sobre estruturas de dados e algoritmos básicos.', type: 'Vídeo', category: 'Engenharia de Software', teacher: 'Prof. Sarah Chen' },
 ];
 
 interface LibraryMaterial {
@@ -51,7 +49,7 @@ const LibraryPage = () => {
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">Biblioteca de Recursos</h1>
           <p className="text-sm sm:text-base lg:text-lg text-foreground-muted">
-            Acesse materiais educacionais, PDFs, vídeos e áudios dos seus professores
+            Acesse manuais técnicos, projetos, vídeos e diagramas dos seus professores
           </p>
         </div>
 
