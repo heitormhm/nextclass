@@ -24,62 +24,62 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { EngineeringConductModal } from '@/components/EngineeringConductModal';
 
-// Mock diagnoses database
-const mockDiagnoses = [
-  'I10 - Hipertensão essencial',
-  'E11 - Diabetes mellitus não insulino-dependente', 
-  'J45 - Asma',
-  'J06 - Infecções agudas das vias aéreas superiores',
-  'I20 - Angina pectoris',
-  'I21 - Infarto agudo do miocárdio',
-  'I25 - Doença isquêmica crônica do coração',
-  'N18 - Doença renal crônica'
+// Mock project analysis database
+const mockAnalysis = [
+  'P10 - Análise de tensão estrutural',
+  'E11 - Cálculo de eficiência energética', 
+  'C45 - Análise de circuitos AC/DC',
+  'F06 - Estudo de fluxo de fluidos',
+  'T20 - Análise termodinâmica',
+  'M21 - Avaliação de materiais',
+  'S25 - Simulação computacional',
+  'R18 - Análise de resistência'
 ];
 
-const ConsultationReviewPage = () => {
+const ProjectReviewPage = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('anamnese');
-  const [consultationType, setConsultationType] = useState('primeira-consulta');
+  const [activeTab, setActiveTab] = useState('projeto');
+  const [projectType, setProjectType] = useState('projeto-inicial');
   const [documentType, setDocumentType] = useState('');
-  const [showMedicalConductModal, setShowMedicalConductModal] = useState(false);
-  const [medicalConductAdded, setMedicalConductAdded] = useState(false);
+  const [showEngineeringConductModal, setShowEngineeringConductModal] = useState(false);
+  const [engineeringConductAdded, setEngineeringConductAdded] = useState(false);
   
-  // Diagnostic hypothesis state
-  const [diagnosisInput, setDiagnosisInput] = useState('');
-  const [diagnosisSuggestions, setDiagnosisSuggestions] = useState<string[]>([]);
-  const [selectedDiagnoses, setSelectedDiagnoses] = useState<string[]>([]);
+  // Analysis hypothesis state
+  const [analysisInput, setAnalysisInput] = useState('');
+  const [analysisSuggestions, setAnalysisSuggestions] = useState<string[]>([]);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<string[]>([]);
   
-  const [anamneseContent, setAnamneseContent] = useState(`
+  const [projectContent, setProjectContent] = useState(`
 <div class="space-y-6">
 <div>
-<h3 class="font-semibold text-gray-800 mb-2">IDENTIFICAÇÃO</h3>
-<p class="text-gray-700">Maria Silva, 45 anos, feminino, brasileira, casada, professora, natural e procedente de São Paulo/SP.</p>
+<h3 class="font-semibold text-gray-800 mb-2">IDENTIFICAÇÃO DO PROJETO</h3>
+<p class="text-gray-700">Ponte Rodoviária Rio Grande, 45m de vão, estrutura mista (aço-concreto), localizada em São Paulo/SP, projeto iniciado em março/2025.</p>
 </div>
 
 <div>
-<h3 class="font-semibold text-gray-800 mb-2">QUEIXA PRINCIPAL (QP)</h3>
-<p class="text-gray-700">"Dor no peito e falta de ar há 3 dias"</p>
+<h3 class="font-semibold text-gray-800 mb-2">ESCOPO PRINCIPAL (EP)</h3>
+<p class="text-gray-700">"Análise de estabilidade estrutural e dimensionamento de vigas"</p>
 </div>
 
 <div>
-<h3 class="font-semibold text-gray-800 mb-2">HISTÓRIA DA MOLÉSTIA ATUAL (HMA)</h3>
-<p class="text-gray-700">Paciente refere início de dor precordial há 3 dias, de caráter opressivo, com irradiação para membro superior esquerdo, associada a dispneia aos pequenos esforços. Nega palpitações, síncope ou edema de membros inferiores. Procurou atendimento médico devido à intensificação dos sintomas.</p>
+<h3 class="font-semibold text-gray-800 mb-2">DESCRIÇÃO TÉCNICA ATUAL (DTA)</h3>
+<p class="text-gray-700">Projeto apresenta necessidade de análise de tensões críticas nas vigas principais, com verificação de deflexão máxima permitida. Cargas consideradas: peso próprio, sobrecarga rodoviária e ações do vento. Solicitado estudo de fadiga para vida útil de 50 anos.</p>
 </div>
 
 <div>
-<h3 class="font-semibold text-gray-800 mb-2">ANTECEDENTES PESSOAIS</h3>
-<p class="text-gray-700">HAS há 10 anos, em uso de Losartana 50mg/dia. Nega DM, dislipidemia ou cardiopatia prévia. Não tabagista, etilismo social. Sedentária.</p>
+<h3 class="font-semibold text-gray-800 mb-2">PARÂMETROS ANTERIORES</h3>
+<p class="text-gray-700">Estrutura similar executada em 2020, vão de 35m, sem problemas estruturais. Materiais: aço ASTM A572 Gr50, concreto C30. Não houve falhas de fadiga. Projeto executivo aprovado pelos órgãos competentes.</p>
 </div>
 
 <div>
-<h3 class="font-semibold text-gray-800 mb-2">ANTECEDENTES FAMILIARES</h3>
-<p class="text-gray-700">Pai com IAM aos 60 anos. Mãe hipertensa. Nega outros antecedentes cardiovasculares familiares relevantes.</p>
+<h3 class="font-semibold text-gray-800 mb-2">REFERÊNCIAS TÉCNICAS</h3>
+<p class="text-gray-700">NBR 8800 (estruturas de aço), NBR 6118 (estruturas de concreto), NBR 7188 (cargas móveis). Consultoria estrutural especializada em pontes rodoviárias disponível.</p>
 </div>
 
 <div>
-<h3 class="font-semibold text-gray-800 mb-2">EXAME FÍSICO</h3>
-<p class="text-gray-700">REG, corada, hidratada, anictérica. PA: 160x100mmHg, FC: 88bpm, FR: 20irpm. ACV: RCR 2T BNF, sem sopros. AR: MVF sem RA. Abdome: plano, RHA+, indolor. MMII: sem edema.</p>
+<h3 class="font-semibold text-gray-800 mb-2">ANÁLISE TÉCNICA INICIAL</h3>
+<p class="text-gray-700">Estrutura apresenta-se adequada aos carregamentos previstos. Tensões dentro dos limites admissíveis. Deflexão L/300 atendida. Recomenda-se análise dinâmica complementar para verificação de vibrações.</p>
 </div>
 </div>
   `);
@@ -87,16 +87,16 @@ const ConsultationReviewPage = () => {
   const [transcriptionContent] = useState(`
 <div class="space-y-4">
 <div class="p-4 bg-gray-50 rounded-lg">
-<p class="text-sm text-gray-600 mb-2"><strong>Médico:</strong> Boa tarde, senhora Maria. Como posso ajudá-la hoje?</p>
+<p class="text-sm text-gray-600 mb-2"><strong>Engenheiro:</strong> Boa tarde. Vamos analisar os parâmetros estruturais deste projeto?</p>
 </div>
 <div class="p-4 bg-blue-50 rounded-lg">
-<p class="text-sm text-gray-600 mb-2"><strong>Paciente:</strong> Doutor, estou com uma dor no peito há uns três dias que não passa. Também estou sentindo falta de ar.</p>
+<p class="text-sm text-gray-600 mb-2"><strong>Técnico:</strong> Sim, identificamos algumas tensões elevadas nas vigas principais. As deflexões também estão próximas do limite.</p>
 </div>
 <div class="p-4 bg-gray-50 rounded-lg">
-<p class="text-sm text-gray-600 mb-2"><strong>Médico:</strong> Entendo. Pode me descrever melhor essa dor? Onde exatamente sente?</p>
+<p class="text-sm text-gray-600 mb-2"><strong>Engenheiro:</strong> Entendo. Você pode me mostrar os valores específicos? Onde exatamente estão as maiores tensões?</p>
 </div>
 <div class="p-4 bg-blue-50 rounded-lg">
-<p class="text-sm text-gray-600 mb-2"><strong>Paciente:</strong> É bem aqui no meio do peito, doutor. Às vezes irradia para o braço esquerdo. É como se fosse um peso.</p>
+<p class="text-sm text-gray-600 mb-2"><strong>Técnico:</strong> Principalmente no meio do vão, próximo aos pontos de aplicação das cargas móveis. A tensão está em 280 MPa.</p>
 </div>
 </div>
   `);
@@ -118,11 +118,11 @@ const ConsultationReviewPage = () => {
     navigate('/internship');
   };
 
-  const handleMedicalConduct = () => {
-    if (medicalConductAdded) {
+  const handleEngineeringConduct = () => {
+    if (engineeringConductAdded) {
       handleSave();
     } else {
-      setShowMedicalConductModal(true);
+      setShowEngineeringConductModal(true);
     }
   };
 
@@ -131,32 +131,32 @@ const ConsultationReviewPage = () => {
     toast.info(isEditing ? "Modo de visualização ativado" : "Modo de edição ativado");
   };
 
-  // Diagnostic hypothesis functions
-  const handleDiagnosisInputChange = (value: string) => {
-    setDiagnosisInput(value);
+  // Analysis hypothesis functions
+  const handleAnalysisInputChange = (value: string) => {
+    setAnalysisInput(value);
     if (value.length > 1) {
-      const suggestions = mockDiagnoses.filter(diagnosis =>
-        diagnosis.toLowerCase().includes(value.toLowerCase())
+      const suggestions = mockAnalysis.filter(analysis =>
+        analysis.toLowerCase().includes(value.toLowerCase())
       );
-      setDiagnosisSuggestions(suggestions);
+      setAnalysisSuggestions(suggestions);
     } else {
-      setDiagnosisSuggestions([]);
+      setAnalysisSuggestions([]);
     }
   };
 
-  const addDiagnosis = (diagnosis: string) => {
-    if (!selectedDiagnoses.includes(diagnosis)) {
-      setSelectedDiagnoses([...selectedDiagnoses, diagnosis]);
+  const addAnalysis = (analysis: string) => {
+    if (!selectedAnalysis.includes(analysis)) {
+      setSelectedAnalysis([...selectedAnalysis, analysis]);
     }
-    setDiagnosisInput('');
-    setDiagnosisSuggestions([]);
+    setAnalysisInput('');
+    setAnalysisSuggestions([]);
   };
 
-  const removeDiagnosis = (diagnosis: string) => {
-    setSelectedDiagnoses(selectedDiagnoses.filter(d => d !== diagnosis));
+  const removeAnalysis = (analysis: string) => {
+    setSelectedAnalysis(selectedAnalysis.filter(d => d !== analysis));
   };
 
-  const handleMedicalConductSave = (data: any) => {
+  const handleEngineeringConductSave = (data: any) => {
     // Format the medical conduct data and append to anamnesis
     let conductSection = '\n\n<div>\n<h3 class="font-semibold text-gray-800 mb-2">CONDUTA MÉDICA</h3>\n';
     
@@ -183,9 +183,9 @@ const ConsultationReviewPage = () => {
 
     conductSection += '</div>';
     
-    setAnamneseContent(prev => prev + conductSection);
-    setShowMedicalConductModal(false);
-    setMedicalConductAdded(true);
+    setProjectContent(prev => prev + conductSection);
+    setShowEngineeringConductModal(false);
+    setEngineeringConductAdded(true);
     toast.success("Conduta médica adicionada ao documento!");
   };
 
@@ -290,25 +290,25 @@ const ConsultationReviewPage = () => {
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">
-                    Hipótese Diagnóstica
+                    Hipótese de Análise
                   </label>
                   <div className="relative">
                     <Input
-                      value={diagnosisInput}
-                      onChange={(e) => handleDiagnosisInputChange(e.target.value)}
-                      placeholder="Digite para buscar diagnósticos (CID-10/11)..."
+                      value={analysisInput}
+                      onChange={(e) => handleAnalysisInputChange(e.target.value)}
+                      placeholder="Digite para buscar análises técnicas..."
                       className="mb-2"
                     />
                     
-                    {diagnosisSuggestions.length > 0 && (
+                    {analysisSuggestions.length > 0 && (
                       <div className="absolute z-50 w-full bg-background border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                        {diagnosisSuggestions.map((diagnosis, index) => (
+                        {analysisSuggestions.map((analysis, index) => (
                           <div
                             key={index}
                             className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                            onClick={() => addDiagnosis(diagnosis)}
+                            onClick={() => addAnalysis(analysis)}
                           >
-                            {diagnosis}
+                            {analysis}
                           </div>
                         ))}
                       </div>
@@ -316,12 +316,12 @@ const ConsultationReviewPage = () => {
                   </div>
 
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedDiagnoses.map((diagnosis, index) => (
+                    {selectedAnalysis.map((analysis, index) => (
                       <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                        {diagnosis}
+                        {analysis}
                         <X
                           className="h-3 w-3 cursor-pointer"
-                          onClick={() => removeDiagnosis(diagnosis)}
+                          onClick={() => removeAnalysis(analysis)}
                         />
                       </Badge>
                     ))}
@@ -361,14 +361,14 @@ const ConsultationReviewPage = () => {
                   </div>
                   
                   <div className="min-w-[180px]">
-                    <Select value={consultationType} onValueChange={setConsultationType}>
+                    <Select value={projectType} onValueChange={setProjectType}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-background border shadow-lg z-50">
-                        <SelectItem value="primeira-consulta">Primeira Consulta</SelectItem>
-                        <SelectItem value="retorno">Retorno</SelectItem>
-                        <SelectItem value="urgencia">Urgência</SelectItem>
+                        <SelectItem value="projeto-inicial">Projeto Inicial</SelectItem>
+                        <SelectItem value="revisao">Revisão</SelectItem>
+                        <SelectItem value="urgencia">Análise Urgente</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -379,14 +379,14 @@ const ConsultationReviewPage = () => {
               <CardContent className="px-6 pb-20">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="anamnese">Anamnese Médica</TabsTrigger>
-                    <TabsTrigger value="transcricao">Transcrição da Consulta</TabsTrigger>
+                    <TabsTrigger value="projeto">Relatório do Projeto</TabsTrigger>
+                    <TabsTrigger value="transcricao">Transcrição da Análise</TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="anamnese" className="mt-6">
+                  <TabsContent value="projeto" className="mt-6">
                     <div
                       contentEditable={isEditing}
-                      dangerouslySetInnerHTML={{ __html: anamneseContent }}
+                      dangerouslySetInnerHTML={{ __html: projectContent }}
                       className={cn(
                         "min-h-[600px] p-6 rounded-lg border",
                         isEditing 
@@ -398,7 +398,7 @@ const ConsultationReviewPage = () => {
                       )}
                       onInput={(e) => {
                         if (isEditing) {
-                          setAnamneseContent(e.currentTarget.innerHTML);
+                          setProjectContent(e.currentTarget.innerHTML);
                         }
                       }}
                     />
@@ -438,11 +438,11 @@ const ConsultationReviewPage = () => {
                   </Button>
                   
                   <Button
-                    onClick={handleMedicalConduct}
+                    onClick={handleEngineeringConduct}
                     className="bg-primary hover:bg-primary/90 flex items-center space-x-2"
                   >
                     <Save className="h-4 w-4" />
-                    <span>{medicalConductAdded ? 'Salvar Documento' : 'Conduta Médica'}</span>
+                    <span>{engineeringConductAdded ? 'Salvar Documento' : 'Conduta de Engenharia'}</span>
                   </Button>
                 </div>
               </div>
@@ -452,12 +452,12 @@ const ConsultationReviewPage = () => {
       </div>
 
       <EngineeringConductModal
-        open={showMedicalConductModal}
-        onClose={() => setShowMedicalConductModal(false)}
-        onSave={handleMedicalConductSave}
+        open={showEngineeringConductModal}
+        onClose={() => setShowEngineeringConductModal(false)}
+        onSave={handleEngineeringConductSave}
       />
     </div>
   );
 };
 
-export default ConsultationReviewPage;
+export default ProjectReviewPage;

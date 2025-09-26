@@ -19,60 +19,60 @@ import {
 import MainLayout from '@/components/MainLayout';
 
 const LectureTranscription = () => {
-  const [lectureTitle, setLectureTitle] = useState('Fisiologia Cardiovascular - Ciclo Cardíaco');
+  const [lectureTitle, setLectureTitle] = useState('Análise de Circuitos - Fundamentos de Eletrônica');
   const [lectureStatus, setLectureStatus] = useState<'draft' | 'review' | 'published'>('draft');
   const [uploadedFiles, setUploadedFiles] = useState<Array<{id: string, name: string, type: string}>>([]);
 
-  const rawTranscript = `[00:00:15] Professor: Bom dia, turma. Hoje vamos abordar um dos temas mais fundamentais da cardiologia: o ciclo cardíaco.
+  const rawTranscript = `[00:00:15] Professor: Bom dia, turma. Hoje vamos abordar um dos temas mais fundamentais da eletrônica: a análise de circuitos.
 
-[00:00:28] Professor: O ciclo cardíaco compreende todos os eventos que ocorrem desde o início de um batimento cardíaco até o início do próximo batimento.
+[00:00:28] Professor: A análise de circuitos compreende todos os métodos utilizados para determinar tensões e correntes em um circuito elétrico.
 
-[00:00:45] Professor: Podemos dividir o ciclo cardíaco em duas fases principais: a sístole e a diástole.
+[00:00:45] Professor: Podemos dividir os métodos de análise em duas categorias principais: análise nodal e análise de malhas.
 
-[00:01:02] Professor: Durante a sístole, que dura aproximadamente 0,3 segundos em repouso, os ventrículos se contraem e ejetam o sangue.
+[00:01:02] Professor: Na análise nodal, aplicamos a Lei de Kirchhoff das Correntes (LKC) em cada nó do circuito.
 
-[00:01:18] Professor: Já na diástole, que dura cerca de 0,5 segundos, os ventrículos relaxam e se enchem de sangue.
+[00:01:18] Professor: Já na análise de malhas, utilizamos a Lei de Kirchhoff das Tensões (LKT) em cada malha independente.
 
-[00:01:35] Professor: É importante entender que essas durações podem variar conforme a frequência cardíaca do indivíduo.`;
+[00:01:35] Professor: É importante entender que esses métodos são complementares e podem ser aplicados conforme a complexidade do circuito.`;
 
-  const structuredContent = `# Fisiologia Cardiovascular - Ciclo Cardíaco
+  const structuredContent = `# Análise de Circuitos - Fundamentos de Eletrônica
 
 ## Introdução
-O ciclo cardíaco é um processo fundamental que garante a circulação sanguínea contínua no organismo.
+A análise de circuitos é um processo fundamental que permite determinar o comportamento elétrico de qualquer sistema.
 
 ## Definição
-O ciclo cardíaco compreende todos os eventos que ocorrem desde o início de um batimento cardíaco até o início do próximo batimento.
+A análise de circuitos compreende todos os métodos utilizados para determinar tensões e correntes em um circuito elétrico.
 
-## Fases do Ciclo Cardíaco
+## Métodos de Análise
 
-### 1. Sístole
-- **Duração:** Aproximadamente 0,3 segundos (em repouso)
-- **Processo:** Contração ventricular
-- **Função:** Ejeção do sangue dos ventrículos
+### 1. Análise Nodal
+- **Base:** Lei de Kirchhoff das Correntes (LKC)
+- **Processo:** Aplicação da LKC em cada nó
+- **Função:** Determinação das tensões nodais
 
-### 2. Diástole  
-- **Duração:** Aproximadamente 0,5 segundos (em repouso)
-- **Processo:** Relaxamento ventricular
-- **Função:** Enchimento ventricular com sangue
+### 2. Análise de Malhas  
+- **Base:** Lei de Kirchhoff das Tensões (LKT)
+- **Processo:** Aplicação da LKT em malhas independentes
+- **Função:** Determinação das correntes de malha
 
 ## Considerações Importantes
-- As durações das fases variam conforme a frequência cardíaca
-- O ciclo total dura aproximadamente 0,8 segundos em repouso
-- A frequência cardíaca normal varia entre 60-100 bpm
+- Os métodos são complementares
+- A escolha depende da complexidade do circuito
+- Sempre verificar se o circuito está em regime permanente
 
 ## Pontos-Chave para Memorização
-1. Sístole = Contração = Ejeção
-2. Diástole = Relaxamento = Enchimento
-3. Duração total ≈ 0,8s (repouso)`;
+1. Análise Nodal = LKC = Tensões
+2. Análise de Malhas = LKT = Correntes
+3. Ambos baseados nas Leis de Kirchhoff`;
 
-  const aiSummary = `Esta aula abordou os conceitos fundamentais do ciclo cardíaco, focando na distinção entre sístole e diástole. Os principais pontos discutidos incluem:
+  const aiSummary = `Esta aula abordou os conceitos fundamentais da análise de circuitos, focando na distinção entre análise nodal e análise de malhas. Os principais pontos discutidos incluem:
 
-• Definição completa do ciclo cardíaco
-• Duração e características da sístole (0,3s - contração/ejeção)
-• Duração e características da diástole (0,5s - relaxamento/enchimento)
-• Variabilidade temporal baseada na frequência cardíaca
+• Definição completa da análise de circuitos
+• Métodos de análise nodal (LKC - tensões nodais)
+• Métodos de análise de malhas (LKT - correntes de malha)
+• Complementaridade dos métodos conforme complexidade
 
-Recomendação: Adicionar material visual (ECG, ecocardiograma) para melhor compreensão dos conceitos.`;
+Recomendação: Adicionar material visual (diagramas de circuitos, simulações) para melhor compreensão dos conceitos.`;
 
   const handleFileUpload = (type: string) => {
     // Simulate file upload
@@ -148,18 +148,18 @@ Recomendação: Adicionar material visual (ECG, ecocardiograma) para melhor comp
                     <div className="grid gap-2">
                       <Label htmlFor="publish-class">Selecionar a Turma</Label>
                       <select className="w-full p-3 border border-gray-300 rounded-md min-h-[44px] text-base">
-                        <option>Cardiologia - 2025/2</option>
-                        <option>Nefrologia - 2025/1</option>
-                        <option>Pneumologia - 2025/2</option>
+                        <option>Eletrônica - 2025/2</option>
+                        <option>Estruturas - 2025/1</option>
+                        <option>Termodinâmica - 2025/2</option>
                       </select>
                     </div>
                     
                     <div className="grid gap-2">
                       <Label htmlFor="publish-subject">Selecionar a Matéria</Label>
                       <select className="w-full p-3 border border-gray-300 rounded-md min-h-[44px] text-base">
-                        <option>Fisiologia Cardiovascular</option>
-                        <option>Distúrbios Hidroeletrolíticos</option>
-                        <option>Patologias Respiratórias</option>
+                        <option>Fundamentos de Eletrônica</option>
+                        <option>Análise de Estruturas</option>
+                        <option>Processos Termodinâmicos</option>
                       </select>
                     </div>
                     
@@ -226,17 +226,17 @@ Recomendação: Adicionar material visual (ECG, ecocardiograma) para melhor comp
                           <div className="space-y-1">
                             <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                               <FileText className="h-4 w-4 text-red-500" />
-                              <span className="flex-1">Apresentacao_Cardiologia.pdf</span>
+                              <span className="flex-1">Apresentacao_Eletronica.pdf</span>
                               <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded">PDF</span>
                             </div>
                             <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                               <Image className="h-4 w-4 text-blue-500" />
-                              <span className="flex-1">Eletrocardiograma_Exemplo.png</span>
+                              <span className="flex-1">Circuito_Exemplo.png</span>
                               <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">Imagem</span>
                             </div>
                             <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                               <AudioLines className="h-4 w-4 text-green-500" />
-                              <span className="flex-1">Ausculta_Cardiaca.mp3</span>
+                              <span className="flex-1">Teste_Audio_Circuito.mp3</span>
                               <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">Áudio</span>
                             </div>
                           </div>
@@ -249,9 +249,9 @@ Recomendação: Adicionar material visual (ECG, ecocardiograma) para melhor comp
                             onClick={() => {
                               // Simulate adding files to the main list
                               const newFiles = [
-                                { id: '1', name: 'Apresentacao_Cardiologia.pdf', type: 'pdf' },
-                                { id: '2', name: 'Eletrocardiograma_Exemplo.png', type: 'image' },
-                                { id: '3', name: 'Ausculta_Cardiaca.mp3', type: 'audio' }
+                                 { id: '1', name: 'Apresentacao_Eletronica.pdf', type: 'pdf' },
+                                 { id: '2', name: 'Circuito_Exemplo.png', type: 'image' },
+                                 { id: '3', name: 'Teste_Audio_Circuito.mp3', type: 'audio' }
                               ];
                               setUploadedFiles(prev => [...prev, ...newFiles]);
                             }}

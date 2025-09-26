@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
-import PatientIntakeModal from '@/components/PatientIntakeModal';
+import ProjectIntakeModal from '@/components/ProjectIntakeModal';
 
 interface Annotation {
   id: string;
@@ -41,8 +41,8 @@ const InternshipDashboard = () => {
     {
       id: '1',
       date: '2024-03-15',
-      case: 'Dor torácica em paciente jovem',
-      annotation: 'Paciente apresentou dor precordial típica, ECG normal. Investigar causas não cardíacas.',
+      case: 'Análise de tensão em estrutura jovem',
+      annotation: 'Estrutura apresentou tensões críticas no ponto central, verificação normal. Investigar cargas não previstas.',
       location: 'Hospital Universitário',
       specialty: 'Cardiologia',
       isFavorite: true,
@@ -52,8 +52,8 @@ const InternshipDashboard = () => {
     {
       id: '2',
       date: '2024-03-12',
-      case: 'Hipertensão arterial descontrolada',
-      annotation: 'PA 180x110, sem sinais de lesão de órgão-alvo. Ajuste medicamentoso necessário.',
+      case: 'Sistema de pressão descontrolado',
+      annotation: 'Pressão 18 bar, sem sinais de falha no sistema. Ajuste de válvulas necessário.',
       location: 'UBS Central',
       specialty: 'Clínica Geral',
       isFavorite: false,
@@ -63,8 +63,8 @@ const InternshipDashboard = () => {
     {
       id: '3',
       date: '2024-03-10',
-      case: 'Arritmia cardíaca em idoso',
-      annotation: 'Fibrilação atrial paroxística. Paciente em uso de varfarina. Avaliar necessidade de cardioversão.',
+      case: 'Vibração em equipamento antigo',
+      annotation: 'Oscilação de frequência detectada. Sistema em monitoramento contínuo. Avaliar necessidade de substituição.',
       location: 'Hospital Cardiológico',
       specialty: 'Cardiologia',
       isFavorite: true,
@@ -74,8 +74,8 @@ const InternshipDashboard = () => {
     {
       id: '4',
       date: '2024-03-08',
-      case: 'Infarto agudo do miocárdio',
-      annotation: 'STEMI inferior, cateterismo de urgência realizado. Stent implantado em CD. Evolução favorável.',
+      case: 'Falha crítica em sistema principal',
+      annotation: 'STEMI no subsistema principal, manutenção de urgência realizada. Substituição de componente em CD. Evolução favorável.',
       location: 'Hospital de Emergência',
       specialty: 'Cardiologia',
       isFavorite: true,
@@ -209,7 +209,7 @@ const InternshipDashboard = () => {
               <div>
                 <h1 className="text-3xl font-bold">Meu Estágio</h1>
                 <p className="text-foreground-muted mt-1">
-                  Histórico de anotações e casos clínicos
+                  Histórico de anotações e estudos de caso
                 </p>
               </div>
               <Button 
@@ -531,7 +531,7 @@ const InternshipDashboard = () => {
           </div>
         </div>
       
-      <PatientIntakeModal
+      <ProjectIntakeModal
         isOpen={isPatientModalOpen}
         onClose={() => setIsPatientModalOpen(false)}
       />

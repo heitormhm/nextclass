@@ -222,18 +222,18 @@ const PatientIntakeModal: React.FC<PatientIntakeModalProps> = ({ isOpen, onClose
       <DialogContent className="bg-white max-w-[95vw] sm:max-w-md w-full mx-2 sm:mx-0">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">
-            {step === 1 ? 'Buscar Paciente' : step === 2 ? 'Dados do Paciente' : 'Local da Consulta'}
+            {step === 1 ? 'Buscar Projeto' : step === 2 ? 'Dados do Projeto' : 'Local da Análise'}
           </DialogTitle>
         </DialogHeader>
 
         {step === 1 ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Para iniciar a Gravação do Caso Clínico informe os dados do Paciente
+              Para iniciar a Gravação do Estudo de Caso informe os dados do Projeto
             </p>
             
             <div className="space-y-2">
-              <Label htmlFor="search">CPF ou Nome completo do paciente</Label>
+              <Label htmlFor="search">Código ou Nome do projeto</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -262,7 +262,7 @@ const PatientIntakeModal: React.FC<PatientIntakeModalProps> = ({ isOpen, onClose
                 
                 {showPatientDropdown && filteredPatients.length === 0 && searchQuery.trim() && (
                   <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-md px-3 py-2">
-                    <div className="text-sm text-muted-foreground">Nenhum paciente encontrado</div>
+                    <div className="text-sm text-muted-foreground">Nenhum projeto encontrado</div>
                   </div>
                 )}
               </div>
@@ -278,7 +278,7 @@ const PatientIntakeModal: React.FC<PatientIntakeModalProps> = ({ isOpen, onClose
                 className="flex-1 min-h-[48px]"
               >
                 <Search className="h-4 w-4 mr-2" />
-                Buscar Paciente
+                Buscar Projeto
               </Button>
             </div>
           </div>
@@ -287,13 +287,13 @@ const PatientIntakeModal: React.FC<PatientIntakeModalProps> = ({ isOpen, onClose
             {foundPatient ? (
               <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                 <p className="text-sm text-green-800 font-medium">
-                  ✓ Paciente encontrado no sistema
+                  ✓ Projeto encontrado no sistema
                 </p>
               </div>
             ) : (
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                 <p className="text-sm text-yellow-800 font-medium">
-                  Paciente não encontrado. Preencha os dados para cadastro.
+                  Projeto não encontrado. Preencha os dados para cadastro.
                 </p>
               </div>
             )}
@@ -309,7 +309,7 @@ const PatientIntakeModal: React.FC<PatientIntakeModalProps> = ({ isOpen, onClose
                     onChange={(e) => handleInputChange('fullName', e.target.value)}
                     disabled={!!foundPatient}
                     className="pl-10 min-h-[44px]"
-                    placeholder="Nome completo do paciente"
+                    placeholder="Nome completo do projeto"
                   />
                 </div>
               </div>
