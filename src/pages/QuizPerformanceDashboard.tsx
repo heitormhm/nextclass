@@ -31,27 +31,27 @@ const QuizPerformanceDashboard = () => {
 
   // Static data for performance by topic - Updated as per requirements
   const performanceByTopicData = [
-    { topic: 'Fisiologia', score: 95, color: '#10b981' },
-    { topic: 'Anatomia', score: 82, color: '#3b82f6' },
-    { topic: 'Farmacologia', score: 75, color: '#f97316' }
+    { topic: 'Termodinâmica', score: 95, color: '#10b981' },
+    { topic: 'Análise de Circuitos', score: 82, color: '#3b82f6' },
+    { topic: 'Mecânica dos Fluidos', score: 75, color: '#f97316' }
   ];
 
   // Areas for improvement data
   const improvementAreas = [
     {
-      topic: 'Farmacologia Cardiovascular',
+      topic: 'Sistemas de Controle',
       score: 65,
-      moduleId: 'farm-cardio'
+      moduleId: 'sistemas-controle'
     },
     {
-      topic: 'Fisiopatologia Renal',
+      topic: 'Análise Estrutural',
       score: 70,
-      moduleId: 'fisio-renal'
+      moduleId: 'analise-estrutural'
     },
     {
-      topic: 'Neuroanatomia',
+      topic: 'Eletromagnetismo',
       score: 72,
-      moduleId: 'neuro-anatomia'
+      moduleId: 'eletromagnetismo'
     }
   ];
 
@@ -62,7 +62,7 @@ const QuizPerformanceDashboard = () => {
           {/* Header */}
             <div>
               <h1 className="text-3xl font-bold text-foreground">
-                Dashboard de Desempenho do Quiz
+                Dashboard de Desempenho em Testes
               </h1>
               <p className="text-foreground-muted mt-1">
                 Acompanhe seu progresso e identifique áreas para melhoria
@@ -110,7 +110,7 @@ const QuizPerformanceDashboard = () => {
                     </div>
                     <div>
                       <p className="text-3xl font-bold text-foreground">12</p>
-                      <p className="text-sm text-foreground-muted">Quizzes Realizados</p>
+                      <p className="text-sm text-foreground-muted">Testes Realizados</p>
                     </div>
                   </div>
                 </CardContent>

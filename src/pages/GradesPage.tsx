@@ -23,53 +23,53 @@ import MainLayout from "@/components/MainLayout";
 const mockGrades = [
   {
     id: "1",
-    subject: "Cardiologia",
+    subject: "Termodinâmica",
     grade: "8.5",
     maxGrade: "10.0",
-    teacher: "Dra. Emily Carter",
-    date: "2024-03-15",
+    teacher: "Prof. Emily Carter",
+    date: "2024-03-14",
     type: "Prova"
   },
   {
     id: "2",
-    subject: "Neurologia",
+    subject: "Análise de Circuitos",
     grade: "9.2",
     maxGrade: "10.0",
-    teacher: "Dra. Sarah Chen",
-    date: "2024-03-10",
+    teacher: "Prof. Sarah Chen",
+    date: "2024-03-09",
     type: "Trabalho"
   },
   {
     id: "3",
-    subject: "Cirurgia Geral",
+    subject: "Mecânica Estrutural",
     grade: "7.8",
     maxGrade: "10.0",
-    teacher: "Dr. David Lee",
-    date: "2024-03-05",
+    teacher: "Prof. David Lee",
+    date: "2024-03-04",
     type: "Prova Prática"
   },
   {
     id: "4",
-    subject: "Pediatria",
+    subject: "Ciência dos Materiais",
     grade: "9.0",
     maxGrade: "10.0",
-    teacher: "Dr. Michael Brown",
-    date: "2024-02-28",
+    teacher: "Prof. Michael Brown",
+    date: "2024-02-27",
     type: "Seminário"
   },
   {
     id: "5",
-    subject: "Ginecologia",
+    subject: "Algoritmos",
     grade: "8.7",
     maxGrade: "10.0",
-    teacher: "Dra. Lisa Wilson",
-    date: "2024-02-20",
+    teacher: "Prof. Lisa Wilson",
+    date: "2024-02-19",
     type: "Prova"
   }
 ];
 
-const subjects = ["Todas as Disciplinas", "Cardiologia", "Neurologia", "Cirurgia Geral", "Pediatria", "Ginecologia"];
-const teachers = ["Todos os Professores", "Dra. Emily Carter", "Dra. Sarah Chen", "Dr. David Lee", "Dr. Michael Brown", "Dra. Lisa Wilson"];
+const subjects = ["Todas as Disciplinas", "Termodinâmica", "Análise de Circuitos", "Mecânica Estrutural", "Ciência dos Materiais", "Algoritmos"];
+const teachers = ["Todos os Professores", "Prof. Emily Carter", "Prof. Sarah Chen", "Prof. David Lee", "Prof. Michael Brown", "Prof. Lisa Wilson"];
 
 const GradesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");

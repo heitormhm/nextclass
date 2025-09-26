@@ -34,19 +34,19 @@ const mockChatHistory: ChatHistory[] = [
   },
   {
     id: "2", 
-    title: "Tratamento de Infarto Agudo do Miocárdio",
+    title: "Protocolo de Análise de Falhas",
     timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
     isActive: false,
   },
   {
     id: "3",
-    title: "Diferenciais para Dor Torácica", 
+    title: "Diferenciais de Vibração Mecânica", 
     timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
     isActive: false,
   },
   {
     id: "4",
-    title: "Manejo de Crise Hipertensiva",
+    title: "Manejo de Sobrecarga em Circuitos",
     timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
     isActive: false,
   },
@@ -62,14 +62,7 @@ const mockConversations: ConversationData = {
     },
     {
       id: "1-2",
-      content: `Olá! De acordo com as diretrizes mais recentes da American Diabetes Association (ADA), os critérios para o diagnóstico de Diabetes Mellitus tipo 2 são:
-
-1. **Glicemia de Jejum:** ≥ 126 mg/dL.
-2. **Teste de Tolerância à Glicose:** Glicemia ≥ 200 mg/dL 2 horas após sobrecarga oral de 75g de glicose.
-3. **Hemoglobina Glicada (A1c):** ≥ 6.5%.
-4. **Glicemia Aleatória:** ≥ 200 mg/dL em um paciente com sintomas clássicos de hiperglicemia.
-
-Lembre-se que, na ausência de hiperglicemia inequívoca, o diagnóstico requer dois resultados de testes anormais da mesma amostra ou em duas amostras de teste separadas.`,
+      content: `Olá! De acordo com as diretrizes da ABNT NBR 8800, os principais critérios para a análise de segurança em vigas de aço envolvem a verificação dos Estados Limites Últimos (ELU) e dos Estados Limites de Serviço (ELS). Para ELU, deve-se verificar a resistência à flexão, ao cisalhamento e à flambagem lateral. Para ELS, a verificação principal é a de deslocamentos excessivos (flechas).`,
       isUser: false,
       timestamp: new Date(Date.now() - 9 * 60 * 1000),
     },
@@ -249,7 +242,7 @@ const AIChatPage = () => {
                 AI Chat de Engenharia com Mia
               </h1>
               <p className="text-xs sm:text-sm text-foreground-muted hidden sm:block">
-                Sua assistente médica especializada
+                Sua assistente de engenharia especializada
               </p>
             </div>
           </div>
@@ -348,7 +341,7 @@ const AIChatPage = () => {
                   <div className="text-center py-16 text-foreground-muted">
                     <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <h3 className="text-lg font-medium mb-2">Olá! Sou a Mia</h3>
-                    <p>Como posso ajudá-lo com questões médicas hoje?</p>
+                    <p>Como posso ajudá-lo com questões de engenharia hoje?</p>
                   </div>
                 ) : (
                   <>
@@ -429,7 +422,7 @@ const AIChatPage = () => {
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
                         onKeyDown={handleKeyPress}
-                        placeholder="Pergunte à Mia sobre critérios, tratamentos, artigos..."
+                        placeholder="Pergunte à Mia sobre normas, cálculos, análises..."
                         className="min-h-[40px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-2"
                         disabled={isLoading}
                       />
