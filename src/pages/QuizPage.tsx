@@ -9,50 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
-import { Link } from 'react-router-dom';
-
-// Quiz data structure
-const quizData = {
-  title: "Quiz de Fundamentos de Cardiologia",
-  description: "Teste seus conhecimentos sobre anatomia cardíaca e fisiologia cardiovascular",
-  totalQuestions: 4,
-  questions: [
-    {
-      id: 1,
-      type: "multiple-choice",
-      question: "Qual é a principal função do nó sinoatrial?",
-      options: [
-        "Bombear sangue para os pulmões",
-        "Gerar impulsos elétricos para iniciar o batimento cardíaco",
-        "Filtrar o sangue",
-        "Regular a pressão arterial"
-      ],
-      correctAnswer: 1,
-      explanation: "O nó sinoatrial é o marcapasso natural do coração, responsável por gerar os impulsos elétricos que iniciam cada batimento cardíaco."
-    },
-    {
-      id: 2,
-      type: "true-false",
-      question: "O nó sinoatrial está localizado no átrio direito e é considerado o marcapasso natural do coração.",
-      correctAnswer: true,
-      explanation: "Correto! O nó sinoatrial está localizado no átrio direito e é responsável por iniciar o impulso elétrico que controla o ritmo cardíaco."
-    },
-    {
-      id: 3,
-      type: "fill-blank",
-      question: "O ciclo cardíaco é dividido em duas fases principais: _______ (contração) e _______ (relaxamento).",
-      correctAnswers: ["sístole", "diástole"],
-      explanation: "O ciclo cardíaco consiste na sístole (contração do coração para bombear sangue) e diástole (relaxamento para permitir o enchimento)."
-    },
-    {
-      id: 4,
-      type: "short-answer",
-      question: "Explique brevemente o que acontece durante a diástole ventricular e por que esta fase é importante para a função cardíaca.",
-      expectedKeywords: ["relaxamento", "enchimento", "ventrículo", "sangue"],
-      explanation: "Durante a diástole ventricular, os ventrículos relaxam e se enchem de sangue. Esta fase é crucial pois permite que o coração se prepare para a próxima contração, garantindo volume adequado de sangue para ser bombeado."
-    }
-  ]
-};
+import { Link, useParams } from 'react-router-dom';
+import { engineeringQuizzes } from '@/data/engineeringModules';
 
 interface Answer {
   questionId: number;
@@ -66,6 +24,10 @@ const QuizPage = () => {
   const [showFeedback, setShowFeedback] = useState<{[key: number]: boolean}>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
+  
+  const { id } = useParams();
+  const quizId = parseInt(id || '1');
+  const quizData = engineeringQuizzes[quizId] || engineeringQuizzes[1];
 
   const progress = (currentQuestion / quizData.totalQuestions) * 100;
   const currentQuestionData = quizData.questions.find(q => q.id === currentQuestion);

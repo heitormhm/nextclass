@@ -21,54 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import MainLayout from '@/components/MainLayout';
 import { FlashcardModal } from '@/components/FlashcardModal';
-
-// Static lesson data
-const lessonData = {
-  id: 1,
-  title: "Cardiologia: Anatomia e Fisiologia",
-  description: "Neste módulo, você aprenderá sobre a estrutura anatômica do coração, suas câmaras, válvulas e a fisiologia do sistema cardiovascular. Compreenderemos como o coração funciona como uma bomba, os ciclos cardíacos e os mecanismos de regulação da pressão arterial.",
-  moduleProgress: 45,
-  currentLessonIndex: 2
-};
-
-const moduleContent = [
-  {
-    id: 1,
-    title: "Introdução à Cardiologia",
-    duration: "5 min",
-    status: "completed"
-  },
-  {
-    id: 2,
-    title: "Anatomia Cardíaca Básica",
-    duration: "12 min", 
-    status: "completed"
-  },
-  {
-    id: 3,
-    title: "Fisiologia do Coração",
-    duration: "15 min",
-    status: "current"
-  },
-  {
-    id: 4,
-    title: "Sistema de Condução",
-    duration: "10 min",
-    status: "locked"
-  },
-  {
-    id: 5,
-    title: "Ciclo Cardíaco",
-    duration: "18 min",
-    status: "locked"
-  },
-  {
-    id: 6,
-    title: "Regulação da Pressão Arterial",
-    duration: "20 min",
-    status: "locked"
-  }
-];
+import { engineeringModules, getModuleContent } from '@/data/engineeringModules';
 
 const additionalResources = [
   {
@@ -96,7 +49,9 @@ const LessonPlayerPage = () => {
   const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
   const { id } = useParams(); // Get the current lesson ID from the URL
   
-  console.log('LessonPlayerPage is rendering');
+  const moduleId = parseInt(id || '1');
+  const lessonData = engineeringModules[moduleId] || engineeringModules[1];
+  const moduleContent = getModuleContent(moduleId);
 
   const getLessonIcon = (status: string) => {
     switch (status) {
@@ -168,7 +123,7 @@ const LessonPlayerPage = () => {
                       <h1 className="text-2xl font-bold mb-2">{lessonData.title}</h1>
                       <div className="flex items-center gap-2 text-foreground-muted">
                         <BookOpen className="h-4 w-4" />
-                        <span className="text-sm">Módulo 1 • Cardiologia Básica</span>
+                        <span className="text-sm">Módulo {moduleId} • {lessonData.professor}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -318,7 +273,8 @@ const LessonPlayerPage = () => {
       {/* Flashcard Modal */}
       <FlashcardModal 
         open={isFlashcardModalOpen} 
-        onOpenChange={setIsFlashcardModalOpen} 
+        onOpenChange={setIsFlashcardModalOpen}
+        moduleId={moduleId}
       />
     </MainLayout>
   );

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { engineeringFlashcards } from '@/data/engineeringModules';
 
 interface Flashcard {
   id: string;
@@ -15,63 +16,54 @@ interface Flashcard {
 interface FlashcardModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  moduleId?: number;
 }
 
-const mockFlashcards: Flashcard[] = [
-  { 
-    id: 'fc1', 
-    question: 'Qual é a Lei de Ohm?', 
-    answer: 'V = I × R, onde V é a tensão (volts), I é a corrente (ampères) e R é a resistência (ohms).',
-    tags: ['Circuitos', 'Fundamentos'] 
-  },
-  { 
-    id: 'fc2', 
-    question: 'O que é momento fletor em uma viga?', 
-    answer: 'É o momento interno que causa flexão na viga, resultando em tensões de tração e compressão.',
-    tags: ['Estruturas', 'Análise Estrutural'] 
-  },
-  { 
-    id: 'fc3', 
-    question: 'Segunda Lei da Termodinâmica', 
-    answer: 'A entropia de um sistema isolado nunca diminui, sempre aumenta ou permanece constante.',
-    tags: ['Termodinâmica', 'Conceitos'] 
-  },
-  {
-    id: 'fc4',
-    question: 'Como calcular a frequência de ressonância de um circuito LC?',
-    answer: 'f = 1/(2π√(LC)), onde L é a indutância e C é a capacitância.',
-    tags: ['Circuitos', 'Análise de Frequência']
-  },
-  {
-    id: 'fc5',
-    question: 'Principais tipos de cargas estruturais',
-    answer: 'Cargas permanentes (peso próprio), cargas variáveis (sobrecarga) e cargas excepcionais (vento, sismos).',
-    tags: ['Estruturas', 'Dimensionamento']
-  }
-];
-
+// Updated tag colors for engineering themes
 const tagColors = {
+  'Termodinâmica': 'bg-red-100 text-red-800 border-red-200',
+  'Leis Fundamentais': 'bg-blue-100 text-blue-800 border-blue-200',
+  'Segunda Lei': 'bg-orange-100 text-orange-800 border-orange-200',
+  'Ciclo de Carnot': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  'Processos': 'bg-green-100 text-green-800 border-green-200',
+  'Trabalho': 'bg-purple-100 text-purple-800 border-purple-200',
   'Circuitos': 'bg-blue-100 text-blue-800 border-blue-200',
-  'Fundamentos': 'bg-green-100 text-green-800 border-green-200',
-  'Estruturas': 'bg-red-100 text-red-800 border-red-200',
-  'Análise Estrutural': 'bg-purple-100 text-purple-800 border-purple-200',
-  'Termodinâmica': 'bg-orange-100 text-orange-800 border-orange-200',
-  'Conceitos': 'bg-cyan-100 text-cyan-800 border-cyan-200',
-  'Análise de Frequência': 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  'Dimensionamento': 'bg-pink-100 text-pink-800 border-pink-200'
+  'Análise Nodal': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  'Série': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+  'Paralelo': 'bg-teal-100 text-teal-800 border-teal-200',
+  'Potência': 'bg-pink-100 text-pink-800 border-pink-200',
+  'Estruturas': 'bg-gray-100 text-gray-800 border-gray-200',
+  'Flexão': 'bg-red-100 text-red-800 border-red-200',
+  'Tensões': 'bg-orange-100 text-orange-800 border-orange-200',
+  'Carregamentos': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  'Treliças': 'bg-green-100 text-green-800 border-green-200',
+  'Esforços': 'bg-blue-100 text-blue-800 border-blue-200',
+  'Fluidos': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+  'Propriedades': 'bg-teal-100 text-teal-800 border-teal-200',
+  'Análise Dimensional': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  'Energia': 'bg-purple-100 text-purple-800 border-purple-200',
+  'Tipos de Escoamento': 'bg-pink-100 text-pink-800 border-pink-200',
+  'Perdas': 'bg-red-100 text-red-800 border-red-200',
+  'Controle': 'bg-green-100 text-green-800 border-green-200',
+  'Modelagem': 'bg-blue-100 text-blue-800 border-blue-200',
+  'Controladores': 'bg-purple-100 text-purple-800 border-purple-200',
+  'Estabilidade': 'bg-orange-100 text-orange-800 border-orange-200',
+  'Desempenho': 'bg-yellow-100 text-yellow-800 border-yellow-200'
 };
 
-export const FlashcardModal: React.FC<FlashcardModalProps> = ({ open, onOpenChange }) => {
+export const FlashcardModal: React.FC<FlashcardModalProps> = ({ open, onOpenChange, moduleId = 1 }) => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  
+  const flashcards = engineeringFlashcards[moduleId] || engineeringFlashcards[1];
 
   const handlePrevious = () => {
-    setCurrentCardIndex((prev) => (prev === 0 ? mockFlashcards.length - 1 : prev - 1));
+    setCurrentCardIndex((prev) => (prev === 0 ? flashcards.length - 1 : prev - 1));
     setIsFlipped(false);
   };
 
   const handleNext = () => {
-    setCurrentCardIndex((prev) => (prev === mockFlashcards.length - 1 ? 0 : prev + 1));
+    setCurrentCardIndex((prev) => (prev === flashcards.length - 1 ? 0 : prev + 1));
     setIsFlipped(false);
   };
 
@@ -91,7 +83,7 @@ export const FlashcardModal: React.FC<FlashcardModalProps> = ({ open, onOpenChan
 
   if (!open) return null;
 
-  const currentCard = mockFlashcards[currentCardIndex];
+  const currentCard = flashcards[currentCardIndex];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,7 +93,7 @@ export const FlashcardModal: React.FC<FlashcardModalProps> = ({ open, onOpenChan
           <div>
             <h2 className="text-xl sm:text-2xl font-bold">Flashcards Interativos</h2>
             <p className="text-sm text-muted-foreground">
-              Card {currentCardIndex + 1} de {mockFlashcards.length}
+              Card {currentCardIndex + 1} de {flashcards.length}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -248,7 +240,7 @@ export const FlashcardModal: React.FC<FlashcardModalProps> = ({ open, onOpenChan
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 p-4 sm:p-6 border-t bg-background/50">
           {/* Progress Dots */}
           <div className="flex items-center gap-2">
-            {mockFlashcards.map((_, index) => (
+            {flashcards.map((_, index) => (
               <button
                 key={index}
                 onClick={() => {
