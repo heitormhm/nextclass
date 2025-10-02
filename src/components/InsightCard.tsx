@@ -15,7 +15,7 @@ export const InsightCard = ({ type, title, description, actionLabel, actionRoute
   const navigate = useNavigate();
 
   return (
-    <Card className="p-4 bg-gray-900/40 backdrop-blur-lg border-gray-700">
+    <Card className="p-4 bg-gray-900/70 backdrop-blur-lg border-gray-700">
       <div className="flex gap-3">
         <div className={`p-2 rounded-lg h-fit ${type === 'alert' ? 'bg-red-500/10' : 'bg-green-500/10'}`}>
           {type === 'alert' ? (

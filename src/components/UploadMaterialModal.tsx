@@ -79,7 +79,7 @@ export const UploadMaterialModal = ({ isOpen, onClose, classes }: UploadMaterial
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Apostila de Mecânica dos Fluidos"
+              placeholder="Ex: Apostila de Resistência dos Materiais"
               className="bg-gray-800 border-gray-700"
             />
           </div>

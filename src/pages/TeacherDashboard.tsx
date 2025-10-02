@@ -116,9 +116,10 @@ const TeacherDashboard = () => {
   ];
 
   const upcomingEvents = [
-    { date: '10 Jan', title: 'Prova Final - Cardiologia', time: '14:00' },
-    { date: '12 Jan', title: 'Entrega de Projeto', time: '23:59' },
-    { date: '15 Jan', title: 'Reunião de Departamento', time: '10:00' },
+    { date: '10 Jan', title: 'Aula: Termodinâmica Aplicada', time: '14:00' },
+    { date: '12 Jan', title: 'Entrega de Projeto de Estruturas', time: '23:59' },
+    { date: '15 Jan', title: 'Laboratório de Circuitos Elétricos', time: '10:00' },
+    { date: '18 Jan', title: 'Reunião de Alinhamento de Projeto', time: '16:00' },
   ];
 
   return (
@@ -140,7 +141,7 @@ const TeacherDashboard = () => {
             {/* Left Column - Main Content */}
             <div className="space-y-6">
               {/* Quick Actions Bar with AI Co-pilot */}
-              <Card className="bg-gray-900/40 backdrop-blur-lg border-gray-700">
+              <Card className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-purple-400" />
@@ -191,7 +192,7 @@ const TeacherDashboard = () => {
                 {statCards.map((stat, index) => {
                   const Icon = stat.icon;
                   return (
-                    <Card key={index} className="bg-gray-900/40 backdrop-blur-lg border-gray-700">
+                    <Card key={index} className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-2">
                           <Icon className={`h-6 w-6 ${stat.color}`} />
@@ -206,7 +207,7 @@ const TeacherDashboard = () => {
               </div>
 
               {/* Insights Panel with Tabs */}
-              <Card className="bg-gray-900/40 backdrop-blur-lg border-gray-700">
+              <Card className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
                 <CardHeader>
                   <CardTitle className="text-white">Insights da Turma</CardTitle>
                 </CardHeader>
@@ -261,7 +262,7 @@ const TeacherDashboard = () => {
             {/* Right Column - Sidebar */}
             <div className="space-y-6">
               {/* Class Selector */}
-              <Card className="bg-gray-900/40 backdrop-blur-lg border-gray-700">
+              <Card className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
                 <CardHeader>
                   <CardTitle className="text-white text-lg">Turma Selecionada</CardTitle>
                 </CardHeader>
@@ -282,7 +283,7 @@ const TeacherDashboard = () => {
               </Card>
 
               {/* Upcoming Events */}
-              <Card className="bg-gray-900/40 backdrop-blur-lg border-gray-700">
+              <Card className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
                 <CardHeader>
                   <CardTitle className="text-white text-lg flex items-center justify-between">
                     Próximos Eventos
@@ -324,7 +325,7 @@ const TeacherDashboard = () => {
               </Card>
 
               {/* Quick Stats */}
-              <Card className="bg-gray-900/40 backdrop-blur-lg border-gray-700">
+              <Card className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
                 <CardHeader>
                   <CardTitle className="text-white text-lg">Estatísticas Rápidas</CardTitle>
                 </CardHeader>

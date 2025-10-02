@@ -69,7 +69,7 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
               id="topic"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="Ex: Leis de Newton"
+              placeholder="Ex: Leis de Kirchhoff"
               className="bg-gray-800 border-gray-700"
             />
           </div>
