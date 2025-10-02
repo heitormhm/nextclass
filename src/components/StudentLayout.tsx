@@ -7,22 +7,22 @@ interface StudentLayoutProps {
 
 export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   return (
-    <div className="relative min-h-screen bg-slate-50">
-      {/* Background Layer - z-0 */}
+    <main className="relative min-h-screen w-full overflow-hidden bg-white">
+      {/* Camada 0: Blobs de Gradiente */}
       <div className="absolute inset-0 z-0">
-        {/* Gradient Blobs */}
-        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full filter blur-3xl opacity-50" />
-        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50" />
-        <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40" />
-        
-        {/* Background Ripple Effect */}
+        <div className="absolute bottom-0 left-[-20%] right-0 top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(255,0,182,0.1),rgba(255,255,255,0))]"></div>
+        <div className="absolute bottom-[-80px] right-[-30px] h-[314px] w-[514px] -rotate-45 rounded-full bg-[radial-gradient(circle_farthest-side,rgba(150,0,255,0.1),rgba(255,255,255,0))]"></div>
+      </div>
+
+      {/* Camada 1: Efeito de Grid Interativo (Adaptado para Tema Claro) */}
+      <div className="absolute inset-0 z-10 [--cell-border-color:rgba(226,232,240,0.5)] [--cell-fill-color:transparent]">
         <BackgroundRippleEffect />
       </div>
-      
-      {/* Main Content - z-10 */}
-      <div className="relative z-10">
+
+      {/* Camada 2: Conteúdo da Página */}
+      <div className="relative z-20">
         {children}
       </div>
-    </div>
+    </main>
   );
 };
