@@ -28,9 +28,10 @@ const RecordScenario = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get patient and location data from navigation state
-  const patient = location.state?.patient;
-  const appointmentLocation = location.state?.location;
+  // Get context data from the setup page
+  const contextData = location.state as { internshipType?: string; location?: string };
+  const internshipType = contextData?.internshipType || 'Estágio';
+  const internshipLocation = contextData?.location || 'Local não especificado';
   
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -43,13 +44,11 @@ const RecordScenario = () => {
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Doctor info
-  const doctorName = 'Dra. Ana Silva';
+  // Session info for context
+  const sessionTitle = `${internshipType} - ${internshipLocation}`;
   
-  // Generate patient case description from patient and location data
-  const patientCase = patient 
-    ? `${appointmentLocation?.name || 'Consulta Cardiológica'} - Paciente ${patient.fullName}, ${patient.age} anos`
-    : 'Consulta Cardiológica - Paciente não identificado';
+  // Generate session case description
+  const sessionCase = `Sessão de ${internshipType} em ${internshipLocation}`;
 
   // Static transcript data for demonstration
   const staticTranscript: TranscriptEntry[] = [
@@ -235,48 +234,31 @@ const RecordScenario = () => {
           {/* Header */}
           <div className="text-center mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold mb-2">Modo Estágio</h1>
-            <p className="text-foreground-muted">{patientCase}</p>
+            <p className="text-foreground-muted">{sessionCase}</p>
           </div>
 
-          {/* Patient Information Header - Mobile optimized */}
-          {patient && (
-            <Card className="border-0 shadow-lg mb-6">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-center">Informações do Paciente</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
-                  <div className="flex justify-between sm:justify-start sm:gap-2">
-                    <span className="font-medium text-foreground-muted">Paciente:</span>
-                    <span className="text-foreground">{patient.fullName}</span>
-                  </div>
-                  
-                  <div className="flex justify-between sm:justify-start sm:gap-2">
-                    <span className="font-medium text-foreground-muted">Idade:</span>
-                    <span className="text-foreground">{patient.age} anos</span>
-                  </div>
-                  
-                  <div className="flex justify-between sm:justify-start sm:gap-2">
-                    <span className="font-medium text-foreground-muted">Gênero:</span>
-                    <span className="text-foreground">{patient.gender}</span>
-                  </div>
-                  
-                  <div className="flex justify-between sm:justify-start sm:gap-2">
-                    <span className="font-medium text-foreground-muted">CPF:</span>
-                    <span className="text-foreground">***.***.***-**</span>
-                  </div>
-                  
-                  <div className="flex justify-between sm:justify-start sm:gap-2 sm:col-span-2">
-                    <span className="font-medium text-foreground-muted">Local:</span>
-                    <span className="text-foreground text-right sm:text-left">{appointmentLocation?.name || 'Não informado'}</span>
-                  </div>
+          {/* Context Information Card */}
+          <Card className="border-0 shadow-lg mb-6 bg-white/60 backdrop-blur-xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg text-center">Contexto da Sessão</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
+                <div className="flex justify-between sm:justify-start sm:gap-2">
+                  <span className="font-medium text-foreground-muted">Estágio:</span>
+                  <span className="text-foreground">{internshipType}</span>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                
+                <div className="flex justify-between sm:justify-start sm:gap-2 sm:col-span-2">
+                  <span className="font-medium text-foreground-muted">Local:</span>
+                  <span className="text-foreground text-right sm:text-left">{internshipLocation}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
             {/* Recording Status Card */}
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg bg-white/60 backdrop-blur-xl">
               <CardContent className="p-8">
                 <div className="text-center space-y-6">
                   {/* Recording Status */}
@@ -300,12 +282,8 @@ const RecordScenario = () => {
                       )}
                     </div>
 
-                    {/* Doctor Name and Timer */}
+                    {/* Timer */}
                     <div className="space-y-2">
-                      <div className="flex items-center justify-center gap-2 text-foreground-muted">
-                        <User className="h-4 w-4" />
-                        <span>{doctorName}</span>
-                      </div>
                       <div className="flex items-center justify-center gap-2 text-2xl font-mono font-bold">
                         <Clock className="h-6 w-6 text-primary" />
                         <span>{formatTime(elapsedTime)}</span>

@@ -1,5 +1,6 @@
 // Internship Dashboard - Fixed Link import issue
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Heart, ChevronDown, ChevronLeft, ChevronRight, Eye, MapPin, Calendar, Briefcase, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
-import ProjectIntakeModal from '@/components/ProjectIntakeModal';
 
 interface Annotation {
   id: string;
@@ -24,6 +24,7 @@ interface Annotation {
 }
 
 const InternshipDashboard = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('all-dates');
   const [locationFilter, setLocationFilter] = useState('all-locations');
@@ -32,7 +33,6 @@ const InternshipDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<keyof Annotation>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   
   const itemsPerPage = 5;
 
@@ -214,7 +214,7 @@ const InternshipDashboard = () => {
               </div>
               <Button 
                 className="bg-primary hover:bg-primary-light"
-                onClick={() => setIsPatientModalOpen(true)}
+                onClick={() => navigate('/internship/setup')}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Gravar Novo Cenário
@@ -530,11 +530,6 @@ const InternshipDashboard = () => {
             )}
           </div>
         </div>
-      
-      <ProjectIntakeModal
-        isOpen={isPatientModalOpen}
-        onClose={() => setIsPatientModalOpen(false)}
-      />
     </MainLayout>
   );
 };
