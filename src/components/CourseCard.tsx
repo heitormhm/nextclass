@@ -23,8 +23,8 @@ interface CourseCardProps {
 }
 
 const CourseCard = ({ course, type = 'lesson' }: CourseCardProps) => {
-  // Determine navigation path based on type
-  const navigationPath = type === 'lecture' ? `/lecture/${course.id}` : `/lesson/${course.id}`;
+  // Navigate to course page
+  const navigationPath = `/course/${course.id}`;
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return 'bg-success';
     if (progress >= 50) return 'bg-primary';
@@ -41,7 +41,7 @@ const CourseCard = ({ course, type = 'lesson' }: CourseCardProps) => {
 
   return (
     <Link to={navigationPath} className="block no-underline">
-      <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm overflow-hidden">
+      <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm overflow-hidden bg-white/60 backdrop-blur-xl">
         {/* Thumbnail Section */}
         <div className="relative aspect-video overflow-hidden">
           {/* Background Image */}

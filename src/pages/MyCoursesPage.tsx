@@ -163,7 +163,7 @@ const MyCoursesPage = () => {
           </div>
 
           {/* Search and Filter Card */}
-          <Card className="mb-8 shadow-sm border-0">
+          <Card className="mb-8 shadow-sm border-0 bg-white/60 backdrop-blur-xl">
             <CardContent className="p-6">
               {/* Search Bar */}
               <div className="mb-6">
