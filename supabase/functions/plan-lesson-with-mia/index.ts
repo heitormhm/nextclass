@@ -49,6 +49,23 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
+    // Helper function to update progress
+    const updateProgress = async (step: string) => {
+      if (!lessonPlanId) return;
+      
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      await supabase
+        .from('lesson_plans')
+        .update({ progress_step: step })
+        .eq('id', lessonPlanId);
+      
+      console.log('Progress updated:', step);
+    };
+
     let systemPrompt = `Você é 'Mia', uma assistente de IA especialista em design curricular para o ensino superior de engenharia. A sua operação DEVE utilizar o modelo de linguagem de ponta mais recente e capaz disponível, otimizado para pesquisa aprofundada (deep search), raciocínio complexo e geração de documentos técnicos e explicativos. A sua principal diretriz é a precisão, a verificação de fontes e a excelência pedagógica.
 
 IMPORTANTE: Formate TODA a sua resposta usando apenas HTML simples:
@@ -83,8 +100,12 @@ ${existingPlan}
 Por favor, gere o plano de aula atualizado seguindo a mesma estrutura e formatação HTML.`;
     } else {
       // Criação de novo plano - realizar pesquisa profunda
+      await updateProgress('A iniciar a pesquisa sobre o tópico...');
       console.log('Performing deep search for topic:', topic);
       searchContext = await performDeepSearch(topic);
+      await updateProgress('A consultar fontes académicas de engenharia...');
+      
+      await updateProgress('A analisar os conceitos-chave e as suas aplicações práticas...');
       
       userPrompt = `Com base no tópico e informações abaixo, siga rigorosamente o processo de três fases para criar um plano de aula de excelência:
 
@@ -150,6 +171,8 @@ ESTRUTURA DO PLANO DE AULA (use formatação HTML):
 <p>Liste 3-5 referências bibliográficas reais e verificadas:</p>`;
     }
 
+    await updateProgress('A estruturar o roteiro didático com o método socrático...');
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -177,9 +200,16 @@ ESTRUTURA DO PLANO DE AULA (use formatação HTML):
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseKey);
         
+        const errorMsg = response.status === 429 
+          ? "Erro: A IA está ocupada. Por favor, tente novamente em alguns momentos." 
+          : "Erro: Não foi possível contactar a IA. Tente novamente.";
+        
         await supabase
           .from('lesson_plans')
-          .update({ status: 'failed' })
+          .update({ 
+            status: 'failed',
+            progress_step: errorMsg
+          })
           .eq('id', lessonPlanId);
       }
       
@@ -203,8 +233,12 @@ ESTRUTURA DO PLANO DE AULA (use formatação HTML):
       throw new Error('Resposta inválida da IA');
     }
     
+    await updateProgress('A verificar as referências bibliográficas...');
+    
     const lessonPlan = data.choices[0].message.content;
 
+    await updateProgress('A finalizar a formatação do seu plano de aula...');
+    
     console.log('Lesson plan generated successfully');
 
     // Update lesson plan in database if lessonPlanId is provided
@@ -219,6 +253,7 @@ ESTRUTURA DO PLANO DE AULA (use formatação HTML):
         .update({
           content: lessonPlan,
           status: 'completed',
+          progress_step: null,
           updated_at: new Date().toISOString()
         })
         .eq('id', lessonPlanId);
@@ -250,7 +285,10 @@ ESTRUTURA DO PLANO DE AULA (use formatação HTML):
         
         await supabase
           .from('lesson_plans')
-          .update({ status: 'failed' })
+          .update({ 
+            status: 'failed',
+            progress_step: `Erro: ${errorMessage}`
+          })
           .eq('id', lessonPlanId);
       } catch (updateError) {
         console.error('Failed to update lesson plan status:', updateError);

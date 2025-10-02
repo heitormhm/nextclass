@@ -33,6 +33,7 @@ const TeacherLessonPlanEditor = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [currentLoadingStep, setCurrentLoadingStep] = useState(0);
   const [lessonPlanId, setLessonPlanId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [isInitialSetup, setIsInitialSetup] = useState(true);
@@ -91,6 +92,68 @@ const TeacherLessonPlanEditor = () => {
       setMessages([greeting]);
     }
   }, [id]);
+
+  // Real-time subscription for progress updates
+  useEffect(() => {
+    if (!lessonPlanId || !isGenerating) return;
+
+    const channel = supabase
+      .channel(`lesson-plan-progress-${lessonPlanId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'lesson_plans',
+          filter: `id=eq.${lessonPlanId}`,
+        },
+        (payload) => {
+          const progressStep = payload.new.progress_step as string | null;
+          
+          if (progressStep) {
+            // Check if it's an error message
+            if (progressStep.startsWith('Erro:')) {
+              setIsGenerating(false);
+              setCurrentLoadingStep(0);
+              toast({
+                title: "Erro na geração",
+                description: progressStep,
+                variant: "destructive",
+              });
+              return;
+            }
+
+            // Find the matching step in loadingStates
+            const stepIndex = loadingStates.findIndex(
+              state => state.text === progressStep
+            );
+            
+            if (stepIndex !== -1) {
+              setCurrentLoadingStep(stepIndex);
+            }
+          }
+
+          // Check if generation is complete
+          if (payload.new.status === 'completed') {
+            setIsGenerating(false);
+            setCurrentLoadingStep(0);
+          } else if (payload.new.status === 'failed') {
+            setIsGenerating(false);
+            setCurrentLoadingStep(0);
+            toast({
+              title: "Erro",
+              description: "Falha ao gerar o plano de aula. Tente novamente.",
+              variant: "destructive",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [lessonPlanId, isGenerating]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -475,8 +538,10 @@ const TeacherLessonPlanEditor = () => {
       <MultiStepLoader
         loadingStates={loadingStates}
         loading={isGenerating}
+        currentState={currentLoadingStep}
         onClose={() => {
           setIsGenerating(false);
+          setCurrentLoadingStep(0);
           toast({
             title: "Cancelado",
             description: "Geração cancelada. Pode tentar novamente.",

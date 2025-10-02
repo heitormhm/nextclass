@@ -9,6 +9,7 @@ interface LoadingState {
 interface MultiStepLoaderProps {
   loadingStates: LoadingState[];
   loading: boolean;
+  currentState?: number;
   duration?: number;
   onClose?: () => void;
 }
@@ -16,34 +17,16 @@ interface MultiStepLoaderProps {
 export const MultiStepLoader = ({
   loadingStates,
   loading,
+  currentState = 0,
   duration = 2000,
   onClose,
 }: MultiStepLoaderProps) => {
-  const [currentState, setCurrentState] = useState(0);
-
-  useEffect(() => {
-    if (!loading) {
-      setCurrentState(0);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setCurrentState((prevState) => {
-        if (prevState >= loadingStates.length - 1) {
-          return prevState;
-        }
-        return prevState + 1;
-      });
-    }, duration);
-
-    return () => clearInterval(interval);
-  }, [loading, loadingStates.length, duration]);
 
   if (!loading) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-lg border border-border bg-card p-8 shadow-lg">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-xl">
+      <div className="relative w-full max-w-md rounded-lg border border-gray-700 bg-gray-900/40 p-8 shadow-2xl">
         {onClose && (
           <button
             onClick={onClose}
@@ -66,20 +49,20 @@ export const MultiStepLoader = ({
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
                   index === currentState
-                    ? "bg-pink-500/10 text-pink-500 dark:text-pink-400"
+                    ? "bg-pink-500/10 text-pink-400"
                     : index < currentState
-                    ? "text-muted-foreground/60"
-                    : "text-muted-foreground/40"
+                    ? "text-gray-400"
+                    : "text-gray-500"
                 )}
               >
                 <div
                   className={cn(
                     "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all",
                     index === currentState
-                      ? "border-pink-500 bg-pink-500 dark:border-pink-400 dark:bg-pink-400"
+                      ? "border-pink-500 bg-pink-500"
                       : index < currentState
                       ? "border-pink-500/60 bg-pink-500/60"
-                      : "border-muted-foreground/40"
+                      : "border-gray-600"
                   )}
                 >
                   {index < currentState ? (
@@ -99,7 +82,7 @@ export const MultiStepLoader = ({
                   ) : index === currentState ? (
                     <div className="h-2 w-2 animate-pulse rounded-full bg-white" />
                   ) : (
-                    <span className="text-xs text-muted-foreground/40">
+                    <span className="text-xs text-gray-500">
                       {index + 1}
                     </span>
                   )}

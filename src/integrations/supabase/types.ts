@@ -125,6 +125,7 @@ export type Database = {
           duration: string | null
           id: string
           notes: string | null
+          progress_step: string | null
           status: string
           teacher_id: string
           topic: string
@@ -136,6 +137,7 @@ export type Database = {
           duration?: string | null
           id?: string
           notes?: string | null
+          progress_step?: string | null
           status?: string
           teacher_id: string
           topic: string
@@ -147,6 +149,7 @@ export type Database = {
           duration?: string | null
           id?: string
           notes?: string | null
+          progress_step?: string | null
           status?: string
           teacher_id?: string
           topic?: string
