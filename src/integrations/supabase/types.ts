@@ -118,53 +118,6 @@ export type Database = {
         }
         Relationships: []
       }
-      lectures: {
-        Row: {
-          class_id: string | null
-          created_at: string
-          duration: number | null
-          id: string
-          raw_transcript: string
-          status: string
-          structured_content: Json | null
-          teacher_id: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          class_id?: string | null
-          created_at?: string
-          duration?: number | null
-          id?: string
-          raw_transcript: string
-          status?: string
-          structured_content?: Json | null
-          teacher_id: string
-          title?: string
-          updated_at?: string
-        }
-        Update: {
-          class_id?: string | null
-          created_at?: string
-          duration?: number | null
-          id?: string
-          raw_transcript?: string
-          status?: string
-          structured_content?: Json | null
-          teacher_id?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lectures_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       lesson_plans: {
         Row: {
           content: string | null
