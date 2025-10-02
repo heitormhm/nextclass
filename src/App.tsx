@@ -22,6 +22,7 @@ import LibraryPage from "./pages/LibraryPage";
 import GradesPage from "./pages/GradesPage";
 import SettingsPage from "./pages/SettingsPage";
 import AIChatPage from "./pages/AIChatPage";
+import ReviewPage from "./pages/ReviewPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import LiveLecture from "./pages/LiveLecture";
 import LectureTranscription from "./pages/LectureTranscription";
@@ -59,6 +60,7 @@ const App = () => (
           <Route path="/grades" element={<ProtectedRoute role="student"><GradesPage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute role="student"><SettingsPage /></ProtectedRoute>} />
           <Route path="/aichat" element={<ProtectedRoute role="student"><AIChatPage /></ProtectedRoute>} />
+          <Route path="/review" element={<ProtectedRoute role="student"><ReviewPage /></ProtectedRoute>} />
           
           {/* Teacher-only routes */}
           <Route path="/teacherdashboard" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />
