@@ -5,36 +5,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface Recommendation {
-  id: string;
-  title: string;
-  reason: string;
+  text: string;
+  link: string;
   priority: 'high' | 'medium' | 'low';
-  actionLabel: string;
-  actionLink: string;
 }
 
 const ProactiveRecommendationWidget = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate data fetching
-    const timer = setTimeout(() => {
-      setRecommendation({
-        id: '1',
-        title: 'Revisão Urgente: Termodinâmica',
-        reason: 'Seu desempenho em Leis de Termodinâmica caiu 15% no último quiz. Recomendamos revisar este tópico antes da próxima avaliação.',
-        priority: 'high',
-        actionLabel: 'Revisar Agora',
-        actionLink: '/courses'
-      });
-      setIsLoading(false);
-    }, 1200);
+    const fetchDashboardData = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-student-dashboard-data');
+        
+        if (error) throw error;
+        
+        if (data?.recommendation) {
+          setRecommendation(data.recommendation);
+        }
+      } catch (error) {
+        console.error('Error fetching recommendation:', error);
+        toast({
+          title: 'Erro ao carregar recomendação',
+          description: 'Não foi possível carregar a recomendação. Tente novamente.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
-  }, []);
+    fetchDashboardData();
+  }, [toast]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -86,17 +94,14 @@ const ProactiveRecommendationWidget = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            {recommendation.title}
-          </h4>
-          <p className="text-sm text-foreground-muted leading-relaxed">
-            {recommendation.reason}
+          <p className="text-sm text-foreground-muted leading-relaxed flex items-start gap-2">
+            <TrendingUp className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <span>{recommendation.text}</span>
           </p>
         </div>
-        <Link to={recommendation.actionLink}>
+        <Link to={recommendation.link}>
           <Button className="w-full group">
-            {recommendation.actionLabel}
+            Ver Detalhes
             <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </Button>
         </Link>

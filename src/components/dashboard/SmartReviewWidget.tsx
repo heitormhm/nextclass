@@ -1,38 +1,41 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Brain, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface ReviewItem {
-  id: string;
-  topic: string;
-  cardsReady: number;
-  totalCards: number;
-  nextReview: string;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const SmartReviewWidget = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [reviewData, setReviewData] = useState<ReviewItem | null>(null);
+  const [dueFlashcardsCount, setDueFlashcardsCount] = useState<number>(0);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate data fetching
-    const timer = setTimeout(() => {
-      setReviewData({
-        id: '1',
-        topic: 'Circuitos Elétricos',
-        cardsReady: 12,
-        totalCards: 12,
-        nextReview: 'agora'
-      });
-      setIsLoading(false);
-    }, 1400);
+    const fetchDashboardData = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-student-dashboard-data');
+        
+        if (error) throw error;
+        
+        if (data?.dueFlashcardsCount !== undefined) {
+          setDueFlashcardsCount(data.dueFlashcardsCount);
+        }
+      } catch (error) {
+        console.error('Error fetching flashcards data:', error);
+        toast({
+          title: 'Erro ao carregar flashcards',
+          description: 'Não foi possível carregar os flashcards pendentes. Tente novamente.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
-  }, []);
+    fetchDashboardData();
+  }, [toast]);
 
   if (isLoading) {
     return (
@@ -48,10 +51,6 @@ const SmartReviewWidget = () => {
       </Card>
     );
   }
-
-  if (!reviewData) return null;
-
-  const completionPercentage = (reviewData.cardsReady / reviewData.totalCards) * 100;
 
   return (
     <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in">
@@ -70,29 +69,24 @@ const SmartReviewWidget = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-semibold text-foreground">{reviewData.topic}</h4>
-              <p className="text-sm text-foreground-muted">
-                {reviewData.cardsReady} de {reviewData.totalCards} cards prontos
-              </p>
-            </div>
-            {completionPercentage === 100 && (
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-            )}
-          </div>
-          <Progress value={completionPercentage} className="h-2" />
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+          <div className="text-center py-4">
+            <div className="text-5xl font-bold text-primary mb-2">{dueFlashcardsCount}</div>
             <p className="text-sm text-foreground-muted">
-              Próxima revisão: <span className="font-medium text-foreground">{reviewData.nextReview}</span>
+              flashcards para revisar hoje
             </p>
           </div>
+          <p className="text-center text-sm text-foreground">
+            {dueFlashcardsCount > 0 
+              ? "Você tem flashcards aguardando revisão! Vamos começar." 
+              : "Parabéns! Você está em dia com suas revisões."}
+          </p>
         </div>
-        <Link to="/annotations">
-          <Button className="w-full group" variant="secondary">
-            Iniciar Revisão
-            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+        <Link to="/review">
+          <Button className="w-full group" variant="secondary" disabled={dueFlashcardsCount === 0}>
+            {dueFlashcardsCount > 0 ? 'Iniciar Revisão' : 'Nenhum Flashcard Pendente'}
+            {dueFlashcardsCount > 0 && (
+              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            )}
           </Button>
         </Link>
       </CardContent>
