@@ -10,7 +10,7 @@ const GamifiedProgressTracking = () => {
   const xpProgress = (currentXP / nextLevelXP) * 100;
 
   return (
-    <Card className="border-0 shadow-sm bg-white/20 backdrop-blur-xl animate-fade-in">
+    <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in">
       <CardHeader>
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">

@@ -51,7 +51,7 @@ const ProactiveRecommendationWidget = () => {
 
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-sm bg-white/20 backdrop-blur-xl animate-fade-in">
+      <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in">
         <CardHeader>
           <Skeleton className="h-6 w-48 mb-2" />
           <Skeleton className="h-4 w-64" />
@@ -67,7 +67,7 @@ const ProactiveRecommendationWidget = () => {
   if (!recommendation) return null;
 
   return (
-    <Card className="border-0 shadow-sm bg-white/20 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in">
+    <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in">
       <CardHeader>
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
