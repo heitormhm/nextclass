@@ -12,7 +12,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import Logo from "./Logo";
 import NotificationsPopup from "./NotificationsPopup";
 import { cn } from "@/lib/utils";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const studentNavigationItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -32,11 +34,37 @@ const teacherNavigationItems = [
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const { toast } = useToast();
   
   // Determine if we're in teacher mode based on current route
   const isTeacherMode = location.pathname.startsWith('/teacher') || location.pathname === '/livelecture' || location.pathname === '/lecturetranscription';
   const navigationItems = isTeacherMode ? teacherNavigationItems : studentNavigationItems;
+
+  const handleSignOut = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      toast({
+        title: "Logout realizado",
+        description: "Você saiu da sua conta com sucesso.",
+      });
+      navigate('/auth');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao sair",
+        description: "Não foi possível realizar o logout. Tente novamente.",
+      });
+    } finally {
+      setIsLoggingOut(false);
+      setIsOpen(false);
+    }
+  };
 
   const NavigationLinks = ({ mobile = false }: { mobile?: boolean }) => {
     if (mobile) {
@@ -145,8 +173,12 @@ const Navbar = () => {
             <Link to={isTeacherMode ? "/teacherconfigurations" : "/settings"} className="w-full">Configurações</Link>
           </DropdownMenuItem>
           <DropdownMenuItem>Ajuda</DropdownMenuItem>
-          <DropdownMenuItem className="text-destructive">
-            <Link to="/auth" className="w-full">Sair</Link>
+          <DropdownMenuItem 
+            className="text-destructive cursor-pointer"
+            onClick={handleSignOut}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut ? "Saindo..." : "Sair"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -234,8 +266,12 @@ const Navbar = () => {
                             <Link to={isTeacherMode ? "/teacherconfigurations" : "/settings"} className="w-full">Configurações</Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem>Ajuda</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            <Link to="/auth" className="w-full">Sair</Link>
+                          <DropdownMenuItem 
+                            className="text-destructive cursor-pointer"
+                            onClick={handleSignOut}
+                            disabled={isLoggingOut}
+                          >
+                            {isLoggingOut ? "Saindo..." : "Sair"}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
