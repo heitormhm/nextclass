@@ -1,0 +1,30 @@
+NEXTCLASS Global Design System
+
+This document defines the complete visual language of the NEXTCLASS platform.
+
+Primary Font: Manrope
+All text across the application must use this font family.
+
+Typographic Scale: Adhere to Tailwind CSS standard scale
+Examples:
+- text-5xl font-bold for H1
+- text-lg for body copy
+
+Student UI Panels: "Frosted Glass" Effect
+CSS class: 'bg-white/20 backdrop-blur-xl rounded-lg'
+This creates a semi-transparent, modern look that feels motivational and engaging.
+
+Teacher UI Panels: High-Contrast, Opaque, Professional Style
+CSS class: 'bg-white shadow-lg rounded-lg'
+This provides a data-rich, professional interface focused on actionable insights.
+
+Interactivity:
+All interactive elements (buttons, links) must have clear hover and focus states with smooth transitions.
+Buttons should have a subtle scale transform on hover (e.g., hover:scale-105).
+
+Animation:
+UI elements should load and transition with subtle, non-intrusive animations to enhance the user experience and provide visual feedback.
+Recommended animations:
+- fade-in: For content appearing
+- slide-up: For panels and cards
+- scale transforms: For interactive feedback
