@@ -380,7 +380,7 @@ const ProjectReviewPage = () => {
               {/* Tabs */}
               <CardContent className="px-6 pb-20">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-2 p-1 bg-muted">
                     <TabsTrigger value="projeto">Relatório do Projeto</TabsTrigger>
                     <TabsTrigger value="transcricao">Transcrição da Análise</TabsTrigger>
                   </TabsList>
