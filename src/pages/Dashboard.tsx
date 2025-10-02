@@ -1,26 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, BookOpen, Target, Award, Video, Briefcase, FileText, Library, Calendar, Play, Clock, Users, Brain, Sparkles } from 'lucide-react';
+import { Search, BookOpen, Video, Briefcase, FileText, Library, Calendar, Play, Clock, Users, Brain, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
-
-interface MetricCard {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ElementType;
-  trend: string;
-}
-
-interface QuickMenuItem {
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  href: string;
-}
+import ProactiveRecommendationWidget from '@/components/dashboard/ProactiveRecommendationWidget';
+import SmartReviewWidget from '@/components/dashboard/SmartReviewWidget';
+import GamifiedProgressTracking from '@/components/dashboard/GamifiedProgressTracking';
 
 interface LearningPathItem {
   id: string;
@@ -32,67 +19,8 @@ interface LearningPathItem {
 }
 
 const Dashboard = () => {
-  // Fixed: Use proper student name for student dashboard
   const currentUser = { name: 'Antônio' };
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const metrics: MetricCard[] = [
-    {
-      title: 'Módulos Concluídos',
-      value: '24',
-      description: '+12% em relação ao mês passado',
-      icon: BookOpen,
-      trend: 'up'
-    },
-    {
-      title: 'Meta Semanal',
-      value: '85%',
-      description: '17/20 objetivos atingidos',
-      icon: Target,
-      trend: 'up'
-    },
-    {
-      title: 'Projetos Finalizados',
-      value: '3',
-      description: '2 novos este mês',
-      icon: Award,
-      trend: 'up'
-    },
-    {
-      title: 'Horas Estudadas',
-      value: '127h',
-      description: 'Média de 4.2h por dia',
-      icon: Clock,
-      trend: 'steady'
-    }
-  ];
-
-  const quickMenuItems: QuickMenuItem[] = [
-    {
-      title: 'Biblioteca',
-      description: 'Acesse materiais e recursos',
-      icon: Library,
-      href: '/library'
-    },
-    {
-      title: 'Meus Cursos',
-      description: 'Continue onde parou',
-      icon: Video,
-      href: '/courses'
-    },
-    {
-      title: 'Calendário',
-      description: 'Aulas e eventos programados',
-      icon: Calendar,
-      href: '/calendar'
-    },
-    {
-      title: 'Modo Estágio',
-      description: 'Simule cenários reais',
-      icon: Briefcase,
-      href: '/internship'
-    }
-  ];
 
   const todaySchedule: LearningPathItem[] = [
     {
@@ -165,9 +93,9 @@ const Dashboard = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-6 sm:space-y-8">
         {/* Page Header */}
-        <div className="mb-6 sm:mb-8">
+        <div className="animate-fade-in">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">
             Bem-vindo de volta, <span className="text-primary">{currentUser.name}</span>!
           </h1>
@@ -176,41 +104,26 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Metrics Cards - Mobile-first 2x2 grid, then responsive */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          {metrics.map((metric) => (
-            <Card key={metric.title} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-foreground-muted">
-                      {metric.title}
-                    </p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {metric.value}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                    <metric.icon className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        {/* LAYER 1: Proactive Action Hub */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <ProactiveRecommendationWidget />
+          <SmartReviewWidget />
         </div>
 
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Main Content - Stacked on mobile */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1">
-            {/* Quick Menu */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl">Acesso Rápido</CardTitle>
-                <CardDescription>
-                  Navegue rapidamente para as principais seções
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+        {/* LAYER 2: Gamified Progress Tracking */}
+        <GamifiedProgressTracking />
+
+        {/* LAYER 3: Utility Modules */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          {/* Quick Menu */}
+          <Card className="border-0 shadow-sm bg-white/20 backdrop-blur-xl animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-xl">Acesso Rápido</CardTitle>
+              <CardDescription>
+                Navegue rapidamente para as principais seções
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
                 {/* Mobile: Single column list, Desktop: Grid */}
                 <div className="block md:hidden space-y-3">
                   <Link to="/courses">
@@ -459,54 +372,8 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Recent Activities */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl">Atividades Recentes</CardTitle>
-                <CardDescription>
-                  Seus últimos progressos e conquistas
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4 p-4 bg-background-secondary rounded-lg">
-                  <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center">
-                    <Award className="h-5 w-5 text-success" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">Projeto Finalizado</p>
-                    <p className="text-sm text-foreground-muted">Simulação de Ponte Treliçada - Nível 1</p>
-                  </div>
-                  <Badge variant="secondary">Hoje</Badge>
-                </div>
-
-                <div className="flex items-center gap-4 p-4 bg-background-secondary rounded-lg">
-                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">Módulo Concluído</p>
-                    <p className="text-sm text-foreground-muted">Fundamentos do Eletromagnetismo</p>
-                  </div>
-                  <Badge variant="secondary">Ontem</Badge>
-                </div>
-
-                <div className="flex items-center gap-4 p-4 bg-background-secondary rounded-lg">
-                  <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
-                    <Brain className="h-5 w-5 text-purple-500" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">Teste Realizado</p>
-                    <p className="text-sm text-foreground-muted">Circuitos Lógicos - 92% de acerto</p>
-                  </div>
-                  <Badge variant="secondary">2 dias</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar - Agenda appears first on mobile */}
-          <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
-            <Card className="border-0 shadow-sm">
+          {/* Today's Schedule */}
+          <Card className="border-0 shadow-sm bg-white/20 backdrop-blur-xl animate-fade-in">
               <CardHeader>
                 <CardTitle className="text-xl">Agenda de Hoje</CardTitle>
                 <CardDescription>
@@ -552,10 +419,9 @@ const Dashboard = () => {
                   <div className="text-center py-8 text-foreground-muted">
                     <p>Nenhuma atividade encontrada</p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            )}
+          </CardContent>
+        </Card>
         </div>
       </div>
     </MainLayout>
