@@ -40,13 +40,14 @@ const DivGrid: React.FC<DivGridProps> = ({ className, mouseX, mouseY }) => {
     const cols = Math.ceil(canvas.width / cellSize);
     const rows = Math.ceil(canvas.height / cellSize);
 
-    // Use CSS custom property for border color if available, otherwise fallback
+    // Use CSS custom property for border color if available
     const computedStyle = canvas.parentElement ? getComputedStyle(canvas.parentElement) : null;
-    const borderColor = computedStyle?.getPropertyValue('--cell-border-color') || 'rgba(226, 232, 240, 0.5)';
+    const borderColor = computedStyle?.getPropertyValue('--cell-border-color') || 'rgba(226, 232, 240, 0.8)';
     
     ctx.strokeStyle = borderColor.trim();
     ctx.lineWidth = 1;
 
+    // Draw grid lines
     for (let i = 0; i <= cols; i++) {
       ctx.beginPath();
       ctx.moveTo(i * cellSize, 0);
@@ -72,8 +73,8 @@ const DivGrid: React.FC<DivGridProps> = ({ className, mouseX, mouseY }) => {
 
           if (distance < maxDistance) {
             const opacity = 1 - distance / maxDistance;
-            // Subtle pink ripple effect
-            ctx.fillStyle = `rgba(236, 72, 153, ${opacity * 0.08})`;
+            // Pink ripple effect - more visible
+            ctx.fillStyle = `rgba(236, 72, 153, ${opacity * 0.2})`;
             ctx.fillRect(x, y, cellSize, cellSize);
           }
         }
