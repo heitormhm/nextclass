@@ -225,10 +225,10 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={handleClose} className="border-gray-700" disabled={isGenerating}>
+              <Button variant="outline" onClick={handleClose} className="border-gray-700 text-white hover:bg-gray-800" disabled={isGenerating}>
                 Cancelar
               </Button>
-              <Button onClick={handleGenerate} disabled={isGenerating}>
+              <Button onClick={handleGenerate} disabled={isGenerating} className="bg-purple-600 hover:bg-purple-700">
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -254,15 +254,15 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
 
             {/* Botões de Ação */}
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={handleCopy} className="border-gray-700">
+              <Button variant="outline" onClick={handleCopy} className="border-gray-700 text-white hover:bg-gray-800">
                 <Copy className="h-4 w-4 mr-2" />
                 Copiar Plano
               </Button>
-              <Button variant="outline" onClick={handleDownloadPDF} className="border-gray-700">
+              <Button variant="outline" onClick={handleDownloadPDF} className="border-gray-700 text-white hover:bg-gray-800">
                 <Download className="h-4 w-4 mr-2" />
                 Baixar PDF
               </Button>
-              <Button variant="outline" onClick={handleClose} className="border-gray-700">
+              <Button variant="outline" onClick={handleClose} className="border-gray-700 text-white hover:bg-gray-800">
                 Fechar
               </Button>
             </div>
