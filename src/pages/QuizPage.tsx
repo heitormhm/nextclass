@@ -52,7 +52,7 @@ const QuizPage = () => {
         const { data, error } = await supabase.functions.invoke('generate-quiz', {
           body: { 
             lectureId,
-            transcript: 'Sample lecture transcript about cardiovascular physiology and pathology'
+            transcript: 'Sample engineering lecture transcript about structural analysis, stress and strain calculations in steel beams, deflection limits, and load distribution in engineering design.'
           }
         });
 
@@ -151,37 +151,107 @@ const QuizPage = () => {
           </h3>
 
           {question.type === "multiple-choice" && (
-            <RadioGroup
-              value={userAnswer?.answer as string}
-              onValueChange={(value) => handleAnswer(question.id, value)}
-              className="space-y-3"
-            >
-              {question.options?.map((option, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <RadioGroupItem value={index.toString()} id={`option-${index}`} />
-                  <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
-                    {option}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+            <div className="space-y-3">
+              {question.options?.map((option, index) => {
+                const isSelected = userAnswer?.answer === index.toString();
+                const isCorrect = question.correctAnswer === index;
+                const showResult = showQuestionFeedback && userAnswer;
+                
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => !showQuestionFeedback && handleAnswer(question.id, index.toString())}
+                    disabled={showQuestionFeedback}
+                    className={`
+                      w-full p-4 text-left rounded-xl border-2 transition-all duration-200
+                      ${!showQuestionFeedback && !isSelected ? 'border-gray-200 bg-white hover:border-primary hover:bg-primary/5' : ''}
+                      ${!showQuestionFeedback && isSelected ? 'border-primary bg-primary/10' : ''}
+                      ${showResult && isCorrect ? 'border-green-500 bg-green-50' : ''}
+                      ${showResult && isSelected && !isCorrect ? 'border-red-500 bg-red-50' : ''}
+                      ${showResult && !isSelected && !isCorrect ? 'border-gray-200 bg-gray-50 opacity-60' : ''}
+                      ${!showQuestionFeedback ? 'cursor-pointer' : 'cursor-not-allowed'}
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`
+                        w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0
+                        ${!showQuestionFeedback && !isSelected ? 'border-gray-300' : ''}
+                        ${!showQuestionFeedback && isSelected ? 'border-primary bg-primary' : ''}
+                        ${showResult && isCorrect ? 'border-green-500 bg-green-500' : ''}
+                        ${showResult && isSelected && !isCorrect ? 'border-red-500 bg-red-500' : ''}
+                      `}>
+                        {((showQuestionFeedback && isCorrect) || (!showQuestionFeedback && isSelected)) && (
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        )}
+                        {showQuestionFeedback && isSelected && !isCorrect && (
+                          <XCircle className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                      <span className={`
+                        flex-1 text-sm
+                        ${showResult && isCorrect ? 'font-semibold text-green-700' : ''}
+                        ${showResult && isSelected && !isCorrect ? 'font-semibold text-red-700' : ''}
+                      `}>
+                        {option}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           )}
 
           {question.type === "true-false" && (
-            <RadioGroup
-              value={userAnswer?.answer?.toString()}
-              onValueChange={(value) => handleAnswer(question.id, value === "true")}
-              className="space-y-3"
-            >
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="true" id="true" />
-                <Label htmlFor="true" className="cursor-pointer">Verdadeiro</Label>
-              </div>
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="false" id="false" />
-                <Label htmlFor="false" className="cursor-pointer">Falso</Label>
-              </div>
-            </RadioGroup>
+            <div className="space-y-3">
+              {['true', 'false'].map((value) => {
+                const isSelected = userAnswer?.answer?.toString() === value;
+                const isCorrect = question.correctAnswer.toString() === value;
+                const showResult = showQuestionFeedback && userAnswer;
+                
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => !showQuestionFeedback && handleAnswer(question.id, value === "true")}
+                    disabled={showQuestionFeedback}
+                    className={`
+                      w-full p-4 text-left rounded-xl border-2 transition-all duration-200
+                      ${!showQuestionFeedback && !isSelected ? 'border-gray-200 bg-white hover:border-primary hover:bg-primary/5' : ''}
+                      ${!showQuestionFeedback && isSelected ? 'border-primary bg-primary/10' : ''}
+                      ${showResult && isCorrect ? 'border-green-500 bg-green-50' : ''}
+                      ${showResult && isSelected && !isCorrect ? 'border-red-500 bg-red-50' : ''}
+                      ${showResult && !isSelected && !isCorrect ? 'border-gray-200 bg-gray-50 opacity-60' : ''}
+                      ${!showQuestionFeedback ? 'cursor-pointer' : 'cursor-not-allowed'}
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`
+                        w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0
+                        ${!showQuestionFeedback && !isSelected ? 'border-gray-300' : ''}
+                        ${!showQuestionFeedback && isSelected ? 'border-primary bg-primary' : ''}
+                        ${showResult && isCorrect ? 'border-green-500 bg-green-500' : ''}
+                        ${showResult && isSelected && !isCorrect ? 'border-red-500 bg-red-500' : ''}
+                      `}>
+                        {((showQuestionFeedback && isCorrect) || (!showQuestionFeedback && isSelected)) && (
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        )}
+                        {showQuestionFeedback && isSelected && !isCorrect && (
+                          <XCircle className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                      <span className={`
+                        flex-1 text-sm font-medium
+                        ${showResult && isCorrect ? 'text-green-700' : ''}
+                        ${showResult && isSelected && !isCorrect ? 'text-red-700' : ''}
+                      `}>
+                        {value === 'true' ? 'Verdadeiro' : 'Falso'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           )}
 
           {question.type === "fill-blank" && (
@@ -204,33 +274,37 @@ const QuizPage = () => {
         </div>
 
         {showQuestionFeedback && userAnswer && (
-          <div className={`p-4 rounded-lg border ${
+          <div className={`p-5 rounded-xl border-2 ${
             userAnswer.isCorrect 
-              ? 'bg-success/10 border-success/20' 
-              : 'bg-destructive/10 border-destructive/20'
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-red-50 border-red-200'
           }`}>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               {userAnswer.isCorrect ? (
-                <CheckCircle className="h-5 w-5 text-success" />
+                <CheckCircle className="h-6 w-6 text-green-600" />
               ) : (
-                <XCircle className="h-5 w-5 text-destructive" />
+                <XCircle className="h-6 w-6 text-red-600" />
               )}
-              <span className={`font-semibold ${
-                userAnswer.isCorrect ? 'text-success' : 'text-destructive'
+              <span className={`font-bold text-lg ${
+                userAnswer.isCorrect ? 'text-green-700' : 'text-red-700'
               }`}>
                 {userAnswer.isCorrect ? 'Correto!' : 'Incorreto'}
               </span>
             </div>
-            <p className="text-sm text-foreground-muted">
+            <p className="text-sm text-gray-700 leading-relaxed">
               {question.explanation}
             </p>
           </div>
         )}
 
         {showQuestionFeedback && (
-          <div className="flex justify-end">
-            <Button onClick={nextQuestion} className="gap-2">
-              {currentQuestion === totalQuestions ? 'Finalizar Quiz' : 'Próxima Pergunta'}
+          <div className="flex justify-end pt-2">
+            <Button 
+              onClick={nextQuestion} 
+              className="gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+              size="lg"
+            >
+              {currentQuestion === totalQuestions ? 'Ver Resultados' : 'Próxima Pergunta'}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -268,32 +342,60 @@ const QuizPage = () => {
           <div className="container mx-auto px-4 py-8">
             <div className="max-w-3xl mx-auto space-y-6">
               {/* Score Card */}
-              <Card className="border-0 shadow-lg bg-white/60 backdrop-blur-xl">
-                <CardHeader className="text-center pb-6">
-                  <CardTitle className="text-2xl font-bold mb-2">Quiz Concluído!</CardTitle>
-                  <div className="space-y-4">
-                    <div className="text-6xl font-bold text-primary">{Math.round(score)}%</div>
-                    <Badge variant={score >= 70 ? "default" : "secondary"} className="text-lg px-4 py-2">
-                      {score >= 90 ? "Excelente!" : score >= 70 ? "Bom Trabalho!" : "Precisa Melhorar"}
-                    </Badge>
+              <Card className="border-0 shadow-lg bg-white/60 backdrop-blur-xl overflow-hidden">
+                <div className="bg-gradient-to-r from-pink-500 to-purple-500 p-1">
+                  <div className="bg-white/90 backdrop-blur-xl">
+                    <CardHeader className="text-center pb-6 pt-8">
+                      <CardTitle className="text-3xl font-bold mb-4 bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                        Quiz Concluído!
+                      </CardTitle>
+                      <div className="space-y-6">
+                        <div className="relative">
+                          <div className="text-7xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                            {Math.round(score)}%
+                          </div>
+                        </div>
+                        <Badge 
+                          variant={score >= 70 ? "default" : "secondary"} 
+                          className={`text-lg px-6 py-2 ${
+                            score >= 90 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                            score >= 70 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
+                            'bg-gradient-to-r from-orange-500 to-red-500'
+                          }`}
+                        >
+                          {score >= 90 ? "🎉 Excelente!" : score >= 70 ? "👍 Bom Trabalho!" : "📚 Continue Estudando"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="text-center space-y-6 pb-8">
+                      <div className="space-y-2">
+                        <p className="text-lg font-medium text-foreground">
+                          Você acertou {answers.filter(a => a.isCorrect).length} de {totalQuestions} perguntas
+                        </p>
+                        <p className="text-sm text-foreground-muted">
+                          {score >= 90 ? "Domínio excepcional do conteúdo!" :
+                           score >= 70 ? "Você está no caminho certo!" :
+                           "Revise os conceitos e tente novamente"}
+                        </p>
+                      </div>
+                      <div className="flex gap-4 justify-center flex-wrap">
+                        <Button variant="outline" asChild size="lg">
+                          <Link to="/courses">
+                            <ChevronLeft className="h-4 w-4 mr-2" />
+                            Voltar aos Cursos
+                          </Link>
+                        </Button>
+                        <Button 
+                          onClick={() => window.location.reload()}
+                          className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+                          size="lg"
+                        >
+                          Refazer Quiz
+                        </Button>
+                      </div>
+                    </CardContent>
                   </div>
-                </CardHeader>
-                <CardContent className="text-center space-y-6">
-                  <p className="text-foreground-muted">
-                    Você acertou {answers.filter(a => a.isCorrect).length} de {totalQuestions} perguntas.
-                  </p>
-                  <div className="flex gap-4 justify-center">
-                    <Button variant="outline" asChild>
-                      <Link to="/courses">
-                        <ChevronLeft className="h-4 w-4 mr-2" />
-                        Voltar aos Cursos
-                      </Link>
-                    </Button>
-                    <Button onClick={() => window.location.reload()}>
-                      Refazer Quiz
-                    </Button>
-                  </div>
-                </CardContent>
+                </div>
               </Card>
 
               {/* Remediation Section - Incorrect Answers Review */}
@@ -309,38 +411,55 @@ const QuizPage = () => {
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {incorrectAnswers.map(answer => {
+                     {incorrectAnswers.map(answer => {
                       const question = quizQuestions.find(q => q.id === answer.questionId);
                       if (!question) return null;
 
                       return (
-                        <div key={answer.questionId} className="p-4 border rounded-lg bg-white/40">
-                          <div className="space-y-3">
-                            <h4 className="font-semibold text-foreground">
-                              Pergunta {question.id}: {question.question}
-                            </h4>
-                            
-                            <div className="text-sm">
-                              <p className="text-foreground-muted mb-2">
-                                <span className="font-medium">Resposta correta: </span>
-                                {question.type === 'multiple-choice' 
-                                  ? question.options?.[question.correctAnswer as number]
-                                  : String(question.correctAnswer)}
-                              </p>
-                              <p className="text-foreground-muted">
-                                {question.explanation}
-                              </p>
+                        <div key={answer.questionId} className="p-5 border-2 border-orange-200 rounded-xl bg-orange-50/50">
+                          <div className="space-y-4">
+                            <div className="flex items-start gap-3">
+                              <div className="w-8 h-8 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span className="text-orange-700 font-bold text-sm">{question.id}</span>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-foreground text-lg mb-2">
+                                  {question.question}
+                                </h4>
+                              </div>
                             </div>
+                            
+                            <div className="ml-11 space-y-3">
+                              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <p className="text-sm font-medium text-green-800 mb-1">
+                                  ✓ Resposta Correta:
+                                </p>
+                                <p className="text-sm text-green-700">
+                                  {question.type === 'multiple-choice' 
+                                    ? question.options?.[question.correctAnswer as number]
+                                    : String(question.correctAnswer)}
+                                </p>
+                              </div>
+                              
+                              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p className="text-sm font-medium text-blue-800 mb-1">
+                                  💡 Explicação:
+                                </p>
+                                <p className="text-sm text-blue-700 leading-relaxed">
+                                  {question.explanation}
+                                </p>
+                              </div>
 
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleReviewInLecture(question.sourceTimestamp)}
-                              className="gap-2"
-                            >
-                              <BookOpen className="h-4 w-4" />
-                              Revisar na Aula ({question.sourceTimestamp})
-                            </Button>
+                              <Button
+                                variant="outline"
+                                size="default"
+                                onClick={() => handleReviewInLecture(question.sourceTimestamp)}
+                                className="gap-2 border-2 border-primary hover:bg-primary/10 w-full sm:w-auto"
+                              >
+                                <BookOpen className="h-4 w-4" />
+                                Revisar na Aula • {question.sourceTimestamp}
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -370,13 +489,18 @@ const QuizPage = () => {
             </div>
 
             <div className="mb-8">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium text-foreground-muted">Progresso do Quiz</span>
                 <span className="text-sm font-semibold">
                   Pergunta {currentQuestion} de {totalQuestions}
                 </span>
               </div>
-              <Progress value={progress} className="h-2" />
+              <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="absolute h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-500 transition-all duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
 
             <Card className="border-0 shadow-lg bg-white/60 backdrop-blur-xl">

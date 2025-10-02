@@ -13,34 +13,40 @@ serve(async (req) => {
 
   try {
     const { lectureId, transcript } = await req.json();
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     console.log(`Generating quiz for lecture ${lectureId}`);
 
-    // Call OpenAI to generate quiz questions
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Lovable AI Gateway to generate quiz questions
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini-2025-08-07',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
-            content: `You are an expert educational quiz generator. Generate a comprehensive quiz based on the lecture transcript provided. 
+            content: `You are an AI that creates educational quizzes for engineering students. Generate a comprehensive quiz based ONLY on the lecture transcript provided. 
+            
+            IMPORTANT: Questions must be technical and relevant to engineering concepts discussed in the lecture. Focus on:
+            - Engineering principles (thermodynamics, mechanics, circuits, structures, materials, etc.)
+            - Technical calculations and analysis
+            - Design principles and methodologies
+            - Engineering problem-solving approaches
             
             For each question, you MUST include:
-            1. The question text
+            1. The question text (focused on engineering concepts)
             2. The type (multiple-choice, true-false, fill-blank, or short-answer)
-            3. Options (for multiple-choice)
+            3. Options (for multiple-choice) - all options must be technically plausible
             4. The correct answer
-            5. An explanation
+            5. An explanation with technical reasoning
             6. A sourceTimestamp (in "MM:SS" format) pointing to where in the lecture this concept was discussed
             
             Return ONLY valid JSON in this exact format:
@@ -58,21 +64,28 @@ serve(async (req) => {
               ]
             }
             
-            Generate 8-10 questions with a good mix of question types.`
+            Generate 8-10 questions with a good mix of question types. Focus on testing understanding of engineering concepts, calculations, and applications.`
           },
           {
             role: 'user',
-            content: `Generate a quiz based on this lecture transcript:\n\n${transcript || 'Sample lecture about cardiovascular physiology, heart anatomy, and common cardiac pathologies.'}`
+            content: `Generate an engineering-focused quiz based on this lecture transcript:\n\n${transcript || 'Sample lecture about structural analysis, stress calculations in beams, and deflection limits in engineering design.'}`
           }
         ],
-        max_completion_tokens: 4000,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('Lovable AI Gateway error:', response.status, errorText);
+      
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a moment.');
+      }
+      if (response.status === 402) {
+        throw new Error('AI credits depleted. Please add funds to continue.');
+      }
+      
+      throw new Error(`AI Gateway error: ${response.status}`);
     }
 
     const data = await response.json();
