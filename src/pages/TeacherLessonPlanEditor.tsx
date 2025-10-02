@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { Sparkles, Send, Loader2, Copy, Download, ArrowLeft, Mic, MicOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -449,8 +449,8 @@ const TeacherLessonPlanEditor = () => {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full">
-            <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6" ref={scrollRef}>
               <div className="space-y-4 max-w-4xl mx-auto">
                 {messages.map((message, index) => (
                   <div
@@ -483,11 +483,11 @@ const TeacherLessonPlanEditor = () => {
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Input Area */}
             <div className="border-t border-gray-700/50 bg-gray-900/40 backdrop-blur-lg p-6">
-              <div className="max-w-4xl mx-auto">
+              <div className="w-full">
                 <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-4 border border-gray-700/50 shadow-xl">
                   <div className="flex gap-3 items-end">
                     <Button
@@ -495,10 +495,10 @@ const TeacherLessonPlanEditor = () => {
                       size="icon"
                       onClick={toggleVoiceInput}
                       disabled={isGenerating}
-                      className={`shrink-0 ${
+                      className={`shrink-0 rounded-full ${
                         isListening 
-                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 animate-pulse' 
-                          : 'text-gray-400 hover:text-purple-400 hover:bg-purple-500/10'
+                          ? 'bg-red-500/30 text-red-400 hover:bg-red-500/40 animate-pulse border-2 border-red-400/50' 
+                          : 'text-gray-400 hover:text-purple-400 hover:bg-purple-500/20 border-2 border-gray-600/30'
                       }`}
                     >
                       {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
