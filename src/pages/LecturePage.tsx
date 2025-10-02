@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Play, Pause, Volume2, Search, Share, PenTool, VolumeX, Settings, Clock, User, Calendar, BookOpen, Brain, Download, FolderOpen, FileText, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,7 @@ interface TranscriptItem {
 
 const LecturePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration] = useState(3600); // 60 minutes in seconds
@@ -31,6 +32,43 @@ const LecturePage = () => {
   const [isReferencesOpen, setIsReferencesOpen] = useState(false);
   const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
   const { id } = useParams(); // Get the current lecture ID from the URL
+  const transcriptRef = useRef<HTMLDivElement>(null);
+
+  // Convert timestamp string (MM:SS) to seconds
+  const timestampToSeconds = (timestamp: string): number => {
+    const parts = timestamp.split(':');
+    if (parts.length === 2) {
+      const minutes = parseInt(parts[0], 10);
+      const seconds = parseInt(parts[1], 10);
+      return minutes * 60 + seconds;
+    }
+    return 0;
+  };
+
+  // Handle timestamp navigation from quiz remediation
+  useEffect(() => {
+    const timestamp = searchParams.get('timestamp');
+    if (timestamp) {
+      const seconds = timestampToSeconds(timestamp);
+      
+      // Switch to transcript tab
+      setActiveTab('transcricao');
+      
+      // Set video time and highlight transcript
+      setCurrentTime(seconds);
+      setHighlightedTranscript(seconds);
+      
+      // Scroll to transcript after a short delay to ensure tab switch
+      setTimeout(() => {
+        if (transcriptRef.current) {
+          transcriptRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+      
+      // Show toast notification
+      toast.success(`Retomando a aula em ${timestamp}`);
+    }
+  }, [searchParams]);
 
   // Mock content for Material Aprimorado
   const materialAprimoradoContent = `
@@ -392,28 +430,33 @@ Distúrbios do ritmo cardíaco que podem ser:
                     {/* Transcript Tab */}
                     <TabsContent value="transcript" className="flex-1 p-0 m-0">
                       <div className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
-                        {transcript.map((item, index) => (
-                          <div
-                            key={index}
-                            className={`p-3 rounded-lg transition-all cursor-pointer hover:bg-accent/50 ${
-                              currentTime >= item.seconds && 
-                              (index === transcript.length - 1 || currentTime < transcript[index + 1].seconds)
-                                ? 'bg-primary/10 border-l-4 border-primary'
-                                : 'bg-background/50'
-                            }`}
-                            onClick={() => handleTimeJump(item.seconds)}
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="outline" className="text-xs">
-                                {item.timestamp}
-                              </Badge>
-                              <span className="text-xs font-medium text-foreground-muted">
-                                {item.speaker}
-                              </span>
+                        {transcript.map((item, index) => {
+                          const isHighlighted = currentTime >= item.seconds && 
+                            (index === transcript.length - 1 || currentTime < transcript[index + 1].seconds);
+                          
+                          return (
+                            <div
+                              key={index}
+                              ref={isHighlighted ? transcriptRef : null}
+                              className={`p-3 rounded-lg transition-all cursor-pointer hover:bg-accent/50 ${
+                                isHighlighted
+                                  ? 'bg-primary/10 border-l-4 border-primary'
+                                  : 'bg-background/50'
+                              }`}
+                              onClick={() => handleTimeJump(item.seconds)}
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {item.timestamp}
+                                </Badge>
+                                <span className="text-xs font-medium text-foreground-muted">
+                                  {item.speaker}
+                                </span>
+                              </div>
+                              <p className="text-sm leading-relaxed">{item.text}</p>
                             </div>
-                            <p className="text-sm leading-relaxed">{item.text}</p>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </TabsContent>
 
