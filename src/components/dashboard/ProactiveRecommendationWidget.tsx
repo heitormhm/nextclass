@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Lightbulb, ArrowRight, TrendingUp, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Lightbulb, ArrowRight, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -46,6 +46,23 @@ const ProactiveRecommendationWidget = () => {
     fetchDashboardData();
   }, []);
 
+  const getActionText = (text: string, link: string) => {
+    // Derive action text from recommendation content
+    if (text.toLowerCase().includes('flashcard') || link.includes('review')) {
+      return 'Revisar Flashcards Agora';
+    }
+    if (text.toLowerCase().includes('quiz') || link.includes('quiz')) {
+      return 'Fazer Quiz Agora';
+    }
+    if (text.toLowerCase().includes('aula') || link.includes('lecture') || link.includes('courses')) {
+      return 'Ver Aulas Agora';
+    }
+    if (text.toLowerCase().includes('grade') || link.includes('grades')) {
+      return 'Ver Notas Agora';
+    }
+    return 'Ver Agora';
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -61,14 +78,14 @@ const ProactiveRecommendationWidget = () => {
 
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in">
-        <CardHeader>
-          <Skeleton className="h-6 w-48 mb-2" />
+      <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in font-['Manrope']">
+        <CardHeader className="pb-4">
+          <Skeleton className="h-7 w-56 mb-2" />
           <Skeleton className="h-4 w-64" />
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-10 w-full" />
+        <CardContent className="space-y-5 pt-2">
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-lg" />
         </CardContent>
       </Card>
     );
@@ -77,21 +94,21 @@ const ProactiveRecommendationWidget = () => {
   // If error or no recommendation, show error state
   if (hasError || !recommendation) {
     return (
-      <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-              <Lightbulb className="h-5 w-5 text-primary" />
+      <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in font-['Manrope']">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center">
+              <Lightbulb className="h-6 w-6 text-pink-600" />
             </div>
             <div className="flex-1">
-              <CardTitle className="text-lg">Recomendação Inteligente</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-xl font-semibold">Recomendação Inteligente</CardTitle>
+              <p className="text-sm text-gray-400 mt-0.5">
                 Baseado no seu desempenho recente
-              </CardDescription>
+              </p>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-2">
           <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
             <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0" />
             <p className="text-sm text-muted-foreground">
@@ -104,34 +121,42 @@ const ProactiveRecommendationWidget = () => {
   }
 
   return (
-    <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-            <Lightbulb className="h-5 w-5 text-primary" />
+    <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in font-['Manrope']">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Lightbulb className="h-6 w-6 text-pink-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-xl font-semibold">Recomendação Inteligente</CardTitle>
+              <p className="text-sm text-gray-400 mt-0.5">
+                Baseado no seu desempenho recente
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <CardTitle className="text-lg">Recomendação Inteligente</CardTitle>
-            <CardDescription>
-              Baseado no seu desempenho recente
-            </CardDescription>
-          </div>
-          <Badge variant="outline" className={getPriorityColor(recommendation.priority)}>
-            {recommendation.priority === 'high' ? 'Urgente' : recommendation.priority === 'medium' ? 'Importante' : 'Sugestão'}
-          </Badge>
+          {recommendation.priority === 'high' && (
+            <Badge 
+              variant="outline" 
+              className="bg-red-500/5 text-red-600 border-red-200 text-xs px-2.5 py-0.5 rounded-full font-medium"
+            >
+              Urgente
+            </Badge>
+          )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <p className="text-sm text-foreground-muted leading-relaxed flex items-start gap-2">
-            <TrendingUp className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <span>{recommendation.text}</span>
+      <CardContent className="space-y-5 pt-2">
+        <div className="bg-gradient-to-br from-pink-50/50 to-purple-50/50 p-5 rounded-xl border border-pink-100/50">
+          <p className="text-base font-bold text-gray-800 leading-relaxed">
+            {recommendation.text}
           </p>
         </div>
-        <Link to={recommendation.link}>
-          <Button className="w-full group">
-            Ver Detalhes
-            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+        <Link to={recommendation.link} className="block">
+          <Button 
+            className="w-full group bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02] h-12"
+          >
+            {getActionText(recommendation.text, recommendation.link)}
+            <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Button>
         </Link>
       </CardContent>
