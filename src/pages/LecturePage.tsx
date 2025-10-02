@@ -252,122 +252,53 @@ Distúrbios do ritmo cardíaco que podem ser:
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Sidebar - Sticky */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-20 space-y-6">
-                {/* Class Information */}
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold text-foreground">
-                      Informações da Aula
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <BookOpen className="h-4 w-4 text-primary mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground-muted">Nome da Aula</p>
-                          <p className="text-sm font-semibold">{lectureData.title}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <User className="h-4 w-4 text-primary mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground-muted">Professor</p>
-                          <p className="text-sm font-semibold">{lectureData.professor}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <Calendar className="h-4 w-4 text-primary mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground-muted">Data</p>
-                          <p className="text-sm font-semibold">{lectureData.date}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <Clock className="h-4 w-4 text-primary mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground-muted">Duração</p>
-                          <p className="text-sm font-semibold">{lectureData.duration}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Transcription Summary */}
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold">Resumo da Transcrição</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-foreground-muted leading-relaxed">
-                      {lectureData.summary}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Discussed Topics */}
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold">Tópicos Discutidos</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {lectureData.topics.map((topic, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                        >
-                          {topic}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Audio Player */}
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold">Gravação da Aula</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Play Controls */}
-                    <div className="flex items-center gap-4">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handlePlayPause}
-                        className="h-10 w-10"
-                      >
-                        {isPlaying ? (
-                          <Pause className="h-4 w-4" />
-                        ) : (
-                          <Play className="h-4 w-4" />
-                        )}
-                      </Button>
-                      
-                      <div className="flex-1">
-                        <div className="text-xs text-foreground-muted mb-1">
-                          {formatTime(currentTime)} / {formatTime(duration)}
-                        </div>
-                        <Slider
-                          value={[currentTime]}
-                          max={duration}
-                          step={1}
-                          className="w-full"
-                          onValueChange={handleProgressChange}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Volume Control */}
+        {/* Two-Panel Layout */}
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+          {/* Left Panel - Video Player */}
+          <div className="xl:col-span-3 space-y-4">
+            {/* Video Container */}
+            <Card className="border-0 shadow-sm overflow-hidden bg-white/60 backdrop-blur-xl">
+              <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center relative">
+                <div className="absolute inset-0 bg-black/20"></div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handlePlayPause}
+                  className="h-20 w-20 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm z-10"
+                >
+                  {isPlaying ? (
+                    <Pause className="h-10 w-10 text-white" />
+                  ) : (
+                    <Play className="h-10 w-10 text-white ml-1" />
+                  )}
+                </Button>
+              </div>
+              
+              {/* Video Controls */}
+              <CardContent className="p-4 space-y-3">
+                <Slider
+                  value={[currentTime]}
+                  max={duration}
+                  step={1}
+                  className="w-full"
+                  onValueChange={handleProgressChange}
+                />
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handlePlayPause}
+                      className="h-8 w-8"
+                    >
+                      {isPlaying ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                    </Button>
+                    
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
@@ -376,324 +307,267 @@ Distúrbios do ritmo cardíaco que podem ser:
                         className="h-8 w-8"
                       >
                         {isMuted ? (
-                          <VolumeX className="h-3 w-3" />
+                          <VolumeX className="h-4 w-4" />
                         ) : (
-                          <Volume2 className="h-3 w-3" />
+                          <Volume2 className="h-4 w-4" />
                         )}
                       </Button>
                       <Slider
                         value={volume}
                         max={100}
                         step={1}
-                        className="flex-1"
+                        className="w-24"
                         onValueChange={setVolume}
                       />
                     </div>
-                  </CardContent>
-                </Card>
+                    
+                    <span className="text-sm text-foreground-muted ml-2">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                {/* Test Knowledge Button */}
-                <Button className="w-full bg-primary hover:bg-primary-light" asChild>
-                  <Link to={`/quiz/${id}`}>
-                    <Brain className="h-4 w-4 mr-2" />
-                    Iniciar Teste
-                  </Link>
-                </Button>
-              </div>
-            </div>
+            {/* Lecture Info */}
+            <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
+              <CardContent className="p-4">
+                <h1 className="text-2xl font-bold mb-2">{lectureData.title}</h1>
+                <div className="flex flex-wrap items-center gap-4 text-sm text-foreground-muted">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span>{lectureData.professor}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>{lectureData.date}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span>{lectureData.duration}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-            {/* Right Content Area */}
-            <div className="lg:col-span-3 pb-20 md:pb-6">
-              <Card className="border-0 shadow-sm">
+          {/* Right Panel - Tabs */}
+          <div className="xl:col-span-2">
+            <div className="xl:sticky xl:top-20">
+              <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
                 <CardContent className="p-0">
-                  <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
                     <div className="border-b">
                       <TabsList className="grid w-full grid-cols-3 bg-transparent h-auto p-0">
                         <TabsTrigger 
-                          value="material" 
-                          className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary flex flex-col md:flex-row items-center justify-center gap-2"
-                        >
-                          <FolderOpen className="h-4 w-4" />
-                          <span className="md:inline text-xs md:text-sm">
-                            {activeTab === 'material' ? 'Material Didático' : <span className="sr-only">Material Didático</span>}
-                          </span>
-                        </TabsTrigger>
-                        <TabsTrigger 
                           value="transcript"
-                          className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary flex flex-col md:flex-row items-center justify-center gap-2"
+                          className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary transition-all"
                         >
-                          <FileText className="h-4 w-4" />
-                          <span className="md:inline text-xs md:text-sm">
-                            {activeTab === 'transcript' ? 'Transcrição da Aula' : <span className="sr-only">Transcrição da Aula</span>}
-                          </span>
+                          <FileText className="h-4 w-4 mr-2" />
+                          <span className="text-sm">Transcrição</span>
                         </TabsTrigger>
                         <TabsTrigger 
-                          value="enhanced"
-                          className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary flex flex-col md:flex-row items-center justify-center gap-2"
+                          value="summary"
+                          className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary transition-all"
                         >
-                          <Sparkles className="h-4 w-4" />
-                          <span className="md:inline text-xs md:text-sm">
-                            {activeTab === 'enhanced' ? 'Material Aprimorado' : <span className="sr-only">Material Aprimorado</span>}
-                          </span>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          <span className="text-sm">Resumo</span>
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="material" 
+                          className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary transition-all"
+                        >
+                          <FolderOpen className="h-4 w-4 mr-2" />
+                          <span className="text-sm">Material</span>
                         </TabsTrigger>
                       </TabsList>
                     </div>
 
-                    <div className="p-8">
-                      <TabsContent value="material" className="mt-0">
-                        <div className="space-y-6">
-                          <div>
-                            <h2 className="text-xl md:text-2xl font-bold mb-4">Material Didático</h2>
-                            <p className="text-sm md:text-base text-foreground-muted mb-6">
-                              Slides e recursos utilizados durante a aula sobre fisiopatologia cardiovascular.
-                            </p>
-                          </div>
-                          
-                           <div className="grid gap-4">
-                             <Card className="p-4 md:p-4 hover:shadow-md transition-shadow cursor-pointer">
-                               <div className="flex items-center justify-between">
-                                 <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                                   <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                                     <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-                                   </div>
-                                   <div className="min-w-0 flex-1">
-                                     <h3 className="font-semibold text-base md:text-lg leading-tight">Slides da Apresentação</h3>
-                                     <p className="text-sm md:text-sm text-foreground-muted">45 slides • PDF</p>
-                                   </div>
-                                 </div>
-                                 <Button 
-                                   variant="outline" 
-                                   size="sm"
-                                   onClick={handleDownload}
-                                   className="flex items-center gap-2 ml-3 flex-shrink-0"
-                                 >
-                                   <Download className="h-4 w-4" />
-                                   <span className="hidden sm:inline">Download</span>
-                                 </Button>
-                               </div>
-                             </Card>
-                             
-                              <Dialog open={isReferencesOpen} onOpenChange={setIsReferencesOpen}>
-                                <DialogTrigger asChild>
-                                  <Card className="p-4 md:p-4 hover:shadow-md transition-shadow cursor-pointer">
-                                    <div className="flex items-center gap-3 md:gap-4">
-                                      <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <h3 className="font-semibold text-base md:text-lg leading-tight">Bibliografia Recomendada</h3>
-                                        <p className="text-sm md:text-sm text-foreground-muted">Lista de referências • PDF</p>
-                                      </div>
-                                    </div>
-                                  </Card>
-                                </DialogTrigger>
-                               <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                                 <DialogHeader>
-                                   <DialogTitle className="text-xl font-semibold">Referências Bibliográficas</DialogTitle>
-                                 </DialogHeader>
-                                 <div className="space-y-4 mt-4">
-                                   {bibliography.map((item, index) => (
-                                     <Card key={index} className="p-4 border-l-4 border-primary">
-                                       <div className="space-y-2">
-                                         <div className="flex items-center gap-2">
-                                           <Badge variant="secondary" className="text-xs">
-                                             {item.type}
-                                           </Badge>
-                                           <span className="text-xs text-foreground-muted">
-                                             {item.year}
-                                           </span>
-                                         </div>
-                                         <h4 className="font-semibold text-base leading-tight">
-                                           {item.title}
-                                         </h4>
-                                         <p className="text-sm text-foreground-muted">
-                                           {item.type === 'Link' ? (
-                                             <>
-                                               <span className="font-medium">{item.organization}</span>
-                                               <br />
-                                               <a 
-                                                 href={item.url} 
-                                                 target="_blank" 
-                                                 rel="noopener noreferrer"
-                                                 className="text-primary hover:underline"
-                                               >
-                                                 {item.url}
-                                               </a>
-                                             </>
-                                           ) : (
-                                             <>
-                                               <span className="font-medium">{item.authors}</span>
-                                               <br />
-                                               {item.edition && <span>{item.edition} • </span>}
-                                               {item.publisher && <span>{item.publisher}</span>}
-                                               {item.journal && <span>{item.journal}</span>}
-                                               {item.volume && <span> • {item.volume}</span>}
-                                             </>
-                                           )}
-                                         </p>
-                                       </div>
-                                     </Card>
-                                   ))}
-                                 </div>
-                               </DialogContent>
-                              </Dialog>
-
-                               <Card className="p-4 md:p-4 hover:shadow-md transition-shadow cursor-pointer">
-                                 <button 
-                                   onClick={() => setIsFlashcardModalOpen(true)}
-                                   className="flex items-center gap-3 md:gap-4 w-full text-left"
-                                 >
-                                   <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                     <Brain className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
-                                   </div>
-                                   <div className="min-w-0 flex-1">
-                                     <h3 className="font-semibold text-base md:text-lg leading-tight">Flashcards Interativos</h3>
-                                     <p className="text-sm md:text-sm text-foreground-muted">Cartões de revisão • Interativo</p>
-                                   </div>
-                                 </button>
-                               </Card>
+                    {/* Transcript Tab */}
+                    <TabsContent value="transcript" className="flex-1 p-0 m-0">
+                      <div className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
+                        {transcript.map((item, index) => (
+                          <div
+                            key={index}
+                            className={`p-3 rounded-lg transition-all cursor-pointer hover:bg-accent/50 ${
+                              currentTime >= item.seconds && 
+                              (index === transcript.length - 1 || currentTime < transcript[index + 1].seconds)
+                                ? 'bg-primary/10 border-l-4 border-primary'
+                                : 'bg-background/50'
+                            }`}
+                            onClick={() => handleTimeJump(item.seconds)}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className="text-xs">
+                                {item.timestamp}
+                              </Badge>
+                              <span className="text-xs font-medium text-foreground-muted">
+                                {item.speaker}
+                              </span>
                             </div>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="transcript" className="mt-0">
-                        <div className="space-y-6">
-                          <div>
-                            <h2 className="text-xl md:text-2xl font-bold mb-4">Transcrição da Aula</h2>
-                            <p className="text-sm md:text-base text-foreground-muted mb-6">
-                              Transcrição completa com timestamps clicáveis para navegação no áudio.
-                            </p>
+                            <p className="text-sm leading-relaxed">{item.text}</p>
                           </div>
+                        ))}
+                      </div>
+                    </TabsContent>
 
-                          <div className="space-y-4">
-                            {transcript.map((item, index) => (
-                              <div
-                                key={index}
-                                className={`p-4 rounded-lg border-l-4 transition-all ${
-                                  highlightedTranscript === item.seconds
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-border bg-background-secondary'
-                                }`}
-                              >
-                                <div className="flex items-start gap-4">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleTimeJump(item.seconds)}
-                                    className="text-primary hover:bg-primary/10"
-                                  >
-                                    {item.timestamp}
-                                  </Button>
-                                  <div className="flex-1">
-                                    <p className="font-medium text-sm text-foreground-muted mb-1">
-                                      {item.speaker}
-                                    </p>
-                                    <p className="text-foreground">{item.text}</p>
-                                  </div>
-                                </div>
+                    {/* Summary Tab */}
+                    <TabsContent value="summary" className="flex-1 p-0 m-0">
+                      <div className="p-4 max-h-[600px] overflow-y-auto">
+                        <div className="prose prose-sm max-w-none">
+                          <h3 className="text-lg font-semibold mb-3">Resumo Estruturado</h3>
+                          <p className="text-foreground-muted mb-4">{lectureData.summary}</p>
+                          
+                          <h4 className="text-base font-semibold mb-2">Tópicos Principais</h4>
+                          <ul className="space-y-2">
+                            {lectureData.topics.map((topic, index) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="text-primary mt-1">•</span>
+                                <span>{topic}</span>
+                              </li>
+                            ))}
+                          </ul>
+
+                          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/10">
+                            <h4 className="text-base font-semibold mb-2 flex items-center gap-2">
+                              <Brain className="h-4 w-4 text-primary" />
+                              Conceitos-Chave
+                            </h4>
+                            <div 
+                              className="text-sm"
+                              dangerouslySetInnerHTML={{ __html: materialAprimoradoContent }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    {/* Material Tab */}
+                    <TabsContent value="material" className="flex-1 p-0 m-0">
+                      <div className="p-4 space-y-4 max-h-[600px] overflow-y-auto">
+                        <h3 className="text-base font-semibold mb-3">Recursos para Download</h3>
+                        
+                        <div className="space-y-3">
+                          <Card 
+                            className="hover:shadow-md transition-all cursor-pointer border border-primary/20 hover:border-primary" 
+                            onClick={handleDownload}
+                          >
+                            <CardContent className="p-3 flex items-center gap-3">
+                              <Download className="h-5 w-5 text-primary shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm mb-0.5 truncate">Slides da Aula</h4>
+                                <p className="text-xs text-foreground-muted">PDF • 12.5 MB</p>
                               </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card 
+                            className="hover:shadow-md transition-all cursor-pointer border border-primary/20 hover:border-primary" 
+                            onClick={handleDownload}
+                          >
+                            <CardContent className="p-3 flex items-center gap-3">
+                              <Download className="h-5 w-5 text-primary shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm mb-0.5 truncate">Notas de Aula</h4>
+                                <p className="text-xs text-foreground-muted">PDF • 2.3 MB</p>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card 
+                            className="hover:shadow-md transition-all cursor-pointer border border-primary/20 hover:border-primary" 
+                            onClick={handleDownload}
+                          >
+                            <CardContent className="p-3 flex items-center gap-3">
+                              <Download className="h-5 w-5 text-primary shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm mb-0.5 truncate">Artigos Científicos</h4>
+                                <p className="text-xs text-foreground-muted">ZIP • 8.7 MB</p>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card 
+                            className="hover:shadow-md transition-all cursor-pointer border border-primary/20 hover:border-primary" 
+                            onClick={handleDownload}
+                          >
+                            <CardContent className="p-3 flex items-center gap-3">
+                              <Download className="h-5 w-5 text-primary shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm mb-0.5 truncate">Exercícios Práticos</h4>
+                                <p className="text-xs text-foreground-muted">PDF • 1.8 MB</p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        <div className="mt-6">
+                          <h3 className="text-base font-semibold mb-3">Bibliografia Recomendada</h3>
+                          <div className="space-y-3">
+                            {bibliography.map((ref, index) => (
+                              <Card key={index} className="border-primary/10">
+                                <CardContent className="p-3">
+                                  <Badge variant="secondary" className="text-xs mb-2">
+                                    {ref.type}
+                                  </Badge>
+                                  <h4 className="font-semibold text-sm mb-1">{ref.title}</h4>
+                                  <p className="text-xs text-foreground-muted">
+                                    {ref.authors || ref.organization}
+                                  </p>
+                                  <p className="text-xs text-foreground-muted">
+                                    {ref.publisher && `${ref.publisher} • `}
+                                    {ref.journal && `${ref.journal} • `}
+                                    {ref.year}
+                                  </p>
+                                </CardContent>
+                              </Card>
                             ))}
                           </div>
                         </div>
-                      </TabsContent>
+                      </div>
+                    </TabsContent>
 
-                      <TabsContent value="enhanced" className="mt-0">
-                        <div className="space-y-4">
-                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100">
-                            <h3 className="text-lg font-semibold text-blue-900 mb-2">Material Aprimorado por IA</h3>
-                            <p className="text-blue-700 text-sm">
-                              Conteúdo otimizado e expandido para melhor compreensão dos conceitos apresentados na aula.
-                            </p>
-                          </div>
-                          
-                          <div 
-                            className="prose prose-gray max-w-none bg-white p-6 rounded-lg shadow-sm"
-                            dangerouslySetInnerHTML={{ __html: materialAprimoradoContent }}
-                          />
-                        </div>
-                      </TabsContent>
+                    {/* Action Bar */}
+                    <div className="border-t p-4 bg-background/50">
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button 
+                          className="bg-primary hover:bg-primary/90 transition-all"
+                          asChild
+                        >
+                          <Link to={`/quiz/${id}`}>
+                            <Brain className="h-4 w-4 mr-2" />
+                            Fazer Quiz
+                          </Link>
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          className="hover:bg-accent transition-all"
+                          onClick={() => navigate(`/review?lectureId=${id}`)}
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Ver Flashcards
+                        </Button>
+                      </div>
                     </div>
                   </Tabs>
                 </CardContent>
               </Card>
-
-              {/* Floating Annotation Toolbar */}
-              <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-                <Card className="border-0 shadow-lg bg-background/95 backdrop-blur">
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-9 w-9">
-                            <Search className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Buscar</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-9 w-9">
-                            <Share className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Compartilhar</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="default" 
-                            size="icon" 
-                            className="h-9 w-9 bg-primary hover:bg-primary-light"
-                            onClick={handleAnnotate}
-                          >
-                            <PenTool className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Anotar</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-9 w-9">
-                            <Volume2 className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Text-to-Speech</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-9 w-9">
-                            <Settings className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Configurações</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
             </div>
           </div>
         </div>
 
-      {/* Flashcard Modal */}
-      <FlashcardModal 
-        open={isFlashcardModalOpen} 
-        onOpenChange={setIsFlashcardModalOpen} 
-      />
+        {/* Flashcard Modal */}
+        <FlashcardModal
+          open={isFlashcardModalOpen}
+          onOpenChange={setIsFlashcardModalOpen}
+        />
+      </div>
     </MainLayout>
   );
 };
