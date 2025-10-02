@@ -7,6 +7,7 @@ import { Sparkles, Plus, FileText, Clock, CheckCircle, Loader2 } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
 
 interface LessonPlan {
   id: string;
@@ -94,12 +95,22 @@ const TeacherLessonPlans = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-purple-900/20 to-gray-900">
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
+        {/* Animated Background */}
+        <BackgroundRippleEffect className="opacity-30" />
+        
+        {/* Gradient Blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto p-6 space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-purple-600/20 border border-purple-500/30">
+              <div className="p-3 rounded-xl bg-purple-600/20 border border-purple-500/30 backdrop-blur-sm">
                 <Sparkles className="h-6 w-6 text-purple-400" />
               </div>
               <div>
@@ -109,7 +120,7 @@ const TeacherLessonPlans = () => {
             </div>
             <Button
               onClick={handleCreateNew}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-purple-600 hover:bg-purple-700 text-white backdrop-blur-sm"
             >
               <Plus className="h-5 w-5 mr-2" />
               Criar Novo Plano de Aula
@@ -122,7 +133,7 @@ const TeacherLessonPlans = () => {
               <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
             </div>
           ) : lessonPlans.length === 0 ? (
-            <Card className="bg-gray-800/50 border-gray-700 p-12">
+            <Card className="bg-gray-900/40 backdrop-blur-lg border-gray-700/50 p-12">
               <div className="text-center">
                 <FileText className="h-16 w-16 text-gray-600 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">
@@ -146,13 +157,13 @@ const TeacherLessonPlans = () => {
                 {lessonPlans.map((plan) => (
                   <Card
                     key={plan.id}
-                    className="bg-gray-800/50 border-gray-700 p-6 hover:bg-gray-800/70 transition-all cursor-pointer"
+                    className="bg-gray-900/40 backdrop-blur-lg border-gray-700/50 p-6 hover:bg-gray-900/60 transition-all cursor-pointer group"
                     onClick={() => handleViewPlan(plan.id)}
                   >
                     <div className="space-y-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">
+                          <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2 group-hover:text-purple-400 transition-colors">
                             {plan.topic}
                           </h3>
                           {plan.duration && (
@@ -165,7 +176,7 @@ const TeacherLessonPlans = () => {
                         {getStatusIcon(plan.status)}
                       </div>
 
-                      <div className="pt-4 border-t border-gray-700">
+                      <div className="pt-4 border-t border-gray-700/50">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-400">
                             {new Date(plan.created_at).toLocaleDateString('pt-BR')}

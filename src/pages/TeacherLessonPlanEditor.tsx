@@ -4,9 +4,10 @@ import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, Send, Loader2, Copy, Download, ArrowLeft } from "lucide-react";
+import { Sparkles, Send, Loader2, Copy, Download, ArrowLeft, Mic, MicOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -25,13 +26,54 @@ const TeacherLessonPlanEditor = () => {
   const [lessonPlanId, setLessonPlanId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [isInitialSetup, setIsInitialSetup] = useState(true);
+  const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Initialize Speech Recognition
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'pt-BR';
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0])
+          .map((result: any) => result.transcript)
+          .join('');
+        
+        setCurrentMessage(transcript);
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        toast({
+          variant: "destructive",
+          title: "Erro no reconhecimento de voz",
+          description: "Não foi possível capturar a sua voz.",
+        });
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (id && id !== 'new') {
       loadLessonPlan(id);
     } else {
-      // New lesson plan - show initial greeting
       const greeting: Message = {
         role: 'assistant',
         content: '<p><strong>Olá! Sou a Mia, sua assistente para criação de planos de aula.</strong></p><p>Para começarmos, qual é o tópico da aula que você gostaria de planejar?</p>'
@@ -45,6 +87,38 @@ const TeacherLessonPlanEditor = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const toggleVoiceInput = () => {
+    if (!recognitionRef.current) {
+      toast({
+        variant: "destructive",
+        title: "Não suportado",
+        description: "Seu navegador não suporta reconhecimento de voz.",
+      });
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        toast({
+          title: "Ouvindo...",
+          description: "Fale agora para ditar sua mensagem.",
+        });
+      } catch (error) {
+        console.error('Error starting recognition:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não foi possível iniciar o reconhecimento de voz.",
+        });
+      }
+    }
+  };
 
   const loadLessonPlan = async (planId: string) => {
     try {
@@ -81,7 +155,6 @@ const TeacherLessonPlanEditor = () => {
 
       setMessages(messages);
 
-      // Subscribe to realtime updates for this specific plan
       const channel = supabase
         .channel(`lesson-plan-${planId}`)
         .on(
@@ -127,6 +200,11 @@ const TeacherLessonPlanEditor = () => {
   const handleSendMessage = async () => {
     if (!currentMessage.trim() || isGenerating) return;
 
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+
     const userMessage: Message = {
       role: 'user',
       content: currentMessage
@@ -138,10 +216,8 @@ const TeacherLessonPlanEditor = () => {
 
     try {
       if (isInitialSetup) {
-        // This is the initial topic setup
         await createNewLessonPlan(currentMessage);
       } else {
-        // This is a refinement request
         await refineLessonPlan(currentMessage);
       }
     } catch (error) {
@@ -160,7 +236,6 @@ const TeacherLessonPlanEditor = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Create lesson plan record
       const { data: newPlan, error: createError } = await supabase
         .from('lesson_plans')
         .insert({
@@ -178,13 +253,11 @@ const TeacherLessonPlanEditor = () => {
       setTopic(topicInput);
       setIsInitialSetup(false);
 
-      // Add generating message
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: '<p>Ótimo! Vou criar um plano de aula sobre <strong>' + topicInput + '</strong>. Isso pode levar alguns momentos...</p>'
       }]);
 
-      // Call edge function to generate
       const { error: functionError } = await supabase.functions.invoke('plan-lesson-with-mia', {
         body: {
           lessonPlanId: newPlan.id,
@@ -195,7 +268,6 @@ const TeacherLessonPlanEditor = () => {
 
       if (functionError) throw functionError;
 
-      // Navigate to the new plan's URL
       navigate(`/teacher/lesson-plans/${newPlan.id}`, { replace: true });
 
     } catch (error) {
@@ -312,122 +384,154 @@ const TeacherLessonPlanEditor = () => {
 
   return (
     <MainLayout>
-      <div className="h-screen flex flex-col bg-gradient-to-b from-gray-900 via-purple-900/20 to-gray-900">
-        {/* Header */}
-        <div className="border-b border-gray-700 bg-gray-900/50 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/teacher/lesson-plans')}
-                className="text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-600/20 border border-purple-500/30">
-                  <Sparkles className="h-5 w-5 text-purple-400" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-white">
-                    {topic || 'Novo Plano de Aula'}
-                  </h1>
-                  <p className="text-sm text-gray-400">Criando com Mia</p>
-                </div>
-              </div>
-            </div>
-
-            {messages.some(m => m.role === 'assistant' && !m.content.includes('Olá')) && (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopy}
-                  className="border-gray-700 text-white hover:bg-gray-800"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copiar
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadPDF}
-                  className="border-gray-700 text-white hover:bg-gray-800"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  PDF
-                </Button>
-              </div>
-            )}
-          </div>
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
+        {/* Animated Background */}
+        <BackgroundRippleEffect className="opacity-30" />
+        
+        {/* Gradient Blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl" />
         </div>
 
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full">
-          <ScrollArea className="flex-1 p-6" ref={scrollRef}>
-            <div className="space-y-4 max-w-4xl mx-auto">
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+        {/* Content */}
+        <div className="relative z-10 h-screen flex flex-col">
+          {/* Header */}
+          <div className="border-b border-gray-700/50 bg-gray-900/40 backdrop-blur-lg">
+            <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/teacher/lesson-plans')}
+                  className="text-gray-400 hover:text-white hover:bg-white/10"
                 >
-                  <div
-                    className={`max-w-[80%] rounded-lg p-4 ${
-                      message.role === 'user'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-800 text-white border border-gray-700'
-                    }`}
-                  >
-                    {message.role === 'assistant' ? (
-                      <div
-                        className="prose prose-invert prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: message.content }}
-                      />
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    )}
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Voltar
+                </Button>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-600/20 border border-purple-500/30">
+                    <Sparkles className="h-5 w-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-white">
+                      {topic || 'Novo Plano de Aula'}
+                    </h1>
+                    <p className="text-sm text-gray-400">Criando com Mia</p>
                   </div>
                 </div>
-              ))}
-              {isGenerating && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-800 text-white border border-gray-700 rounded-lg p-4">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  </div>
+              </div>
+
+              {messages.some(m => m.role === 'assistant' && !m.content.includes('Olá')) && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopy}
+                    className="border-gray-700 text-white hover:bg-white/10 bg-gray-900/40 backdrop-blur-sm"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copiar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadPDF}
+                    className="border-gray-700 text-white hover:bg-white/10 bg-gray-900/40 backdrop-blur-sm"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    PDF
+                  </Button>
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
-          {/* Input Area */}
-          <div className="border-t border-gray-700 bg-gray-900/50 backdrop-blur-sm p-6">
-            <div className="max-w-4xl mx-auto flex gap-2">
-              <Textarea
-                value={currentMessage}
-                onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder={
-                  isInitialSetup
-                    ? "Digite o tópico da aula..."
-                    : "Digite sua mensagem para ajustar o plano..."
-                }
-                className="bg-gray-800 border-gray-700 min-h-[60px] resize-none text-white"
-                disabled={isGenerating}
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={isGenerating || !currentMessage.trim()}
-                className="bg-purple-600 hover:bg-purple-700 self-end"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+          {/* Chat Area */}
+          <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full">
+            <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+              <div className="space-y-4 max-w-4xl mx-auto">
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-2xl p-4 ${
+                        message.role === 'user'
+                          ? 'bg-purple-600/80 backdrop-blur-lg text-white border border-purple-500/30'
+                          : 'bg-gray-900/40 backdrop-blur-lg text-white border border-gray-700/50'
+                      }`}
+                    >
+                      {message.role === 'assistant' ? (
+                        <div
+                          className="prose prose-invert prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: message.content }}
+                        />
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {isGenerating && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-900/40 backdrop-blur-lg text-white border border-gray-700/50 rounded-2xl p-4">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* Input Area */}
+            <div className="border-t border-gray-700/50 bg-gray-900/40 backdrop-blur-lg p-6">
+              <div className="max-w-4xl mx-auto">
+                <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-4 border border-gray-700/50 shadow-xl">
+                  <div className="flex gap-3 items-end">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleVoiceInput}
+                      disabled={isGenerating}
+                      className={`shrink-0 ${
+                        isListening 
+                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 animate-pulse' 
+                          : 'text-gray-400 hover:text-purple-400 hover:bg-purple-500/10'
+                      }`}
+                    >
+                      {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                    </Button>
+                    
+                    <Textarea
+                      value={currentMessage}
+                      onChange={(e) => setCurrentMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      placeholder={
+                        isInitialSetup
+                          ? "Digite o tópico da aula ou use o microfone..."
+                          : "Digite sua mensagem ou use o microfone..."
+                      }
+                      className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white placeholder:text-gray-500 min-h-[60px] resize-none"
+                      disabled={isGenerating || isListening}
+                    />
+                    
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={isGenerating || !currentMessage.trim() || isListening}
+                      className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

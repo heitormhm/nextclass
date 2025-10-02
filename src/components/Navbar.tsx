@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, ChevronDown, LayoutDashboard, Briefcase, BookOpen, StickyNote, Library, Calendar, Sparkles, Home, Mic, BarChart3 } from "lucide-react";
+import { Menu, X, ChevronDown, LayoutDashboard, Briefcase, BookOpen, StickyNote, Library, Calendar, Sparkles, Home, Mic, BarChart3, BookOpenCheck, BookPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,6 +30,8 @@ const teacherNavigationItems = [
   { label: "Home", href: "/teacherdashboard", icon: Home },
   { label: "Gravar Aula", href: "/livelecture", icon: Mic },
   { label: "Calendário", href: "/teachercalendar", icon: Calendar },
+  { label: "Novo Plano", href: "/teacher/lesson-plans/new", icon: BookPlus },
+  { label: "Meus Planos", href: "/teacher/lesson-plans", icon: BookOpenCheck },
 ];
 
 const Navbar = () => {
