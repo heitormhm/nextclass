@@ -1,1 +1,4 @@
 project_id = "txeixclpmtqdnfqudfbr"
+
+[functions.get-my-lectures]
+verify_jwt = true
