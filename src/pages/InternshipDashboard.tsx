@@ -402,7 +402,11 @@ const InternshipDashboard = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => navigate(`/internship/review/${annotation.id}`)}
+                          >
                             <Eye className="h-4 w-4 mr-1" />
                             Ver
                           </Button>
@@ -449,7 +453,11 @@ const InternshipDashboard = () => {
                             {annotation.location}
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => navigate(`/internship/review/${annotation.id}`)}
+                        >
                           <Eye className="h-4 w-4 mr-1" />
                           Ver
                         </Button>

@@ -12,6 +12,7 @@ import RecordScenario from "./pages/RecordScenario";
 import CalendarPage from "./pages/CalendarPage";
 import InternshipDashboard from "./pages/InternshipDashboard";
 import InternshipSetup from "./pages/InternshipSetup";
+import InternshipReviewPage from "./pages/InternshipReviewPage";
 import AuthPage from "./pages/AuthPage";
 import MyCoursesPage from "./pages/MyCoursesPage";
 import QuizPage from "./pages/QuizPage";
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/internship" element={<ProtectedRoute role="student"><InternshipDashboard /></ProtectedRoute>} />
           <Route path="/internship/setup" element={<ProtectedRoute role="student"><InternshipSetup /></ProtectedRoute>} />
           <Route path="/internship/record" element={<ProtectedRoute role="student"><RecordScenario /></ProtectedRoute>} />
+          <Route path="/internship/review/:id" element={<ProtectedRoute role="student"><InternshipReviewPage /></ProtectedRoute>} />
           <Route path="/record-scenario" element={<ProtectedRoute role="student"><RecordScenario /></ProtectedRoute>} />
           <Route path="/calendar" element={<ProtectedRoute role="student"><CalendarPage /></ProtectedRoute>} />
           <Route path="/courses" element={<ProtectedRoute role="student"><MyCoursesPage /></ProtectedRoute>} />
