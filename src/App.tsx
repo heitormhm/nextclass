@@ -33,6 +33,7 @@ import TeacherProfileSettings from "./pages/TeacherProfileSettings";
 import TeacherConfigurations from "./pages/TeacherConfigurations";
 import TeacherLessonPlans from "./pages/TeacherLessonPlans";
 import TeacherLessonPlanEditor from "./pages/TeacherLessonPlanEditor";
+import LectureTranscriptionPage from "./pages/LectureTranscriptionPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +76,7 @@ const App = () => (
           <Route path="/teacher/lesson-plans/:id" element={<ProtectedRoute role="teacher"><TeacherLessonPlanEditor /></ProtectedRoute>} />
           <Route path="/livelecture" element={<ProtectedRoute role="teacher"><LiveLecture /></ProtectedRoute>} />
           <Route path="/lecturetranscription" element={<ProtectedRoute role="teacher"><LectureTranscription /></ProtectedRoute>} />
+          <Route path="/lecturetranscription/:id" element={<ProtectedRoute role="teacher"><LectureTranscriptionPage /></ProtectedRoute>} />
           <Route path="/teachercalendar" element={<ProtectedRoute role="teacher"><TeacherCalendar /></ProtectedRoute>} />
           <Route path="/teacherprofilesettings" element={<ProtectedRoute role="teacher"><TeacherProfileSettings /></ProtectedRoute>} />
           <Route path="/teacherconfigurations" element={<ProtectedRoute role="teacher"><TeacherConfigurations /></ProtectedRoute>} />

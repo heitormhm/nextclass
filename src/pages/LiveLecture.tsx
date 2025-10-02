@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Mic, MicOff, Pause, Play, Square, Settings, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -11,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const LiveLecture = () => {
+  const navigate = useNavigate();
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -18,6 +20,7 @@ const LiveLecture = () => {
   const [selectedMicrophone, setSelectedMicrophone] = useState('default');
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -164,18 +167,54 @@ const LiveLecture = () => {
     setIsPaused(!isPaused);
   };
 
-  const handleStopRecording = () => {
+  const handleStopRecording = async () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
     setIsPaused(false);
-    setRecordingTime(0);
     
-    toast({
-      title: "Gravação finalizada",
-      description: "A transcrição está completa",
-    });
+    // Save lecture and redirect
+    try {
+      setIsSaving(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: lectureData, error: lectureError } = await supabase
+        .from('lectures')
+        .insert({
+          teacher_id: user.id,
+          raw_transcript: transcript,
+          duration: recordingTime,
+          status: 'processing'
+        })
+        .select()
+        .single();
+
+      if (lectureError) throw lectureError;
+
+      toast({
+        title: "Gravação finalizada",
+        description: "Redirecionando para publicação...",
+      });
+
+      // Redirect to transcription page
+      setTimeout(() => {
+        navigate(`/lecturetranscription/${lectureData.id}`);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error saving lecture:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar a gravação',
+      });
+      setRecordingTime(0);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const AudioWaveform = () => {
@@ -371,10 +410,11 @@ const LiveLecture = () => {
                   
                   <Button
                     onClick={handleStopRecording}
-                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-6 py-4 text-base font-semibold shadow-lg shadow-red-500/20 transition-all duration-300 hover:scale-105"
+                    disabled={isSaving}
+                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-6 py-4 text-base font-semibold shadow-lg shadow-red-500/20 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Square className="mr-2 h-4 w-4" />
-                    Finalizar
+                    {isSaving ? 'Salvando...' : 'Finalizar'}
                   </Button>
                 </>
               )}
