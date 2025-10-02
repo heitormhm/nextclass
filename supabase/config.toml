@@ -66,3 +66,6 @@ verify_jwt = true
 
 [functions.create-annotation-from-report]
 verify_jwt = true
+
+[functions.generate-study-materials]
+verify_jwt = true
