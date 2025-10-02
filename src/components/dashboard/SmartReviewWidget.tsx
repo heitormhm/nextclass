@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Brain, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 
 const SmartReviewWidget = () => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [dueFlashcardsCount, setDueFlashcardsCount] = useState<number>(0);
 
@@ -40,6 +41,10 @@ const SmartReviewWidget = () => {
 
     fetchDashboardData();
   }, []);
+
+  const handleStartReview = () => {
+    navigate('/review');
+  };
 
   if (isLoading) {
     return (
@@ -91,17 +96,16 @@ const SmartReviewWidget = () => {
             </p>
           </div>
         </div>
-        <Link to="/annotations" className="block">
-          <Button 
-            className="w-full group bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02] h-12 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            disabled={dueFlashcardsCount === 0}
-          >
-            {dueFlashcardsCount > 0 ? 'Iniciar Revisão Agora' : 'Nenhum Flashcard Pendente'}
-            {dueFlashcardsCount > 0 && (
-              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            )}
-          </Button>
-        </Link>
+        <Button 
+          onClick={handleStartReview}
+          className="w-full group bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02] h-12 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          disabled={dueFlashcardsCount === 0}
+        >
+          {dueFlashcardsCount > 0 ? 'Iniciar Revisão Agora' : 'Nenhum Flashcard Pendente'}
+          {dueFlashcardsCount > 0 && (
+            <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+          )}
+        </Button>
       </CardContent>
     </Card>
   );
