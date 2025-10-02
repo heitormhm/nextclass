@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 
 interface LoginFormData {
   email: string;
@@ -76,48 +77,26 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="flex flex-col lg:flex-row min-h-screen">
-        {/* Left Panel - Animated Gradient with Geometric Lines (Desktop only) */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-pink-500 via-purple-600 to-purple-800">
-          {/* Animated Geometric Lines Overlay */}
-          <svg 
-            className="absolute inset-0 w-full h-full opacity-30"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Diagonal lines */}
-            <line x1="0" y1="0" x2="100%" y2="100%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" className="animate-float" style={{ animationDelay: '0s' }} />
-            <line x1="100%" y1="0" x2="0" y2="100%" stroke="rgba(255,255,255,0.2)" strokeWidth="1" className="animate-float" style={{ animationDelay: '1s' }} />
-            
-            {/* Circuit-like patterns */}
-            <circle cx="20%" cy="20%" r="40" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1" className="animate-float" style={{ animationDelay: '2s' }} />
-            <circle cx="80%" cy="30%" r="60" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" className="animate-float" style={{ animationDelay: '3s' }} />
-            <circle cx="30%" cy="70%" r="50" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1" className="animate-float" style={{ animationDelay: '4s' }} />
-            <circle cx="70%" cy="80%" r="35" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" className="animate-float" style={{ animationDelay: '5s' }} />
-            
-            {/* Connecting lines */}
-            <path d="M 20% 20% L 30% 70%" stroke="rgba(255,255,255,0.2)" strokeWidth="1" className="animate-float" style={{ animationDelay: '1.5s' }} />
-            <path d="M 80% 30% L 70% 80%" stroke="rgba(255,255,255,0.15)" strokeWidth="1" className="animate-float" style={{ animationDelay: '2.5s' }} />
-            <path d="M 30% 70% L 70% 80%" stroke="rgba(255,255,255,0.2)" strokeWidth="1" className="animate-float" style={{ animationDelay: '3.5s' }} />
-            
-            {/* Grid pattern */}
-            <line x1="50%" y1="0" x2="50%" y2="100%" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-            <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          </svg>
-
-          {/* Glowing dots */}
-          <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_20px_rgba(255,255,255,0.8)]"></div>
-          <div className="absolute top-1/3 right-1/4 w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_20px_rgba(255,255,255,0.8)]" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute bottom-1/3 left-1/3 w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_20px_rgba(255,255,255,0.8)]" style={{ animationDelay: '2s' }}></div>
+        {/* Left Panel - Modern Interactive Background (Desktop only) */}
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-slate-50">
+          {/* Gradient Blobs */}
+          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full opacity-50 blur-3xl"></div>
+          <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full opacity-40 blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full opacity-30 blur-3xl"></div>
+          
+          {/* Background Ripple Effect */}
+          <BackgroundRippleEffect />
           
           {/* Content */}
-          <div className="relative z-10 flex flex-col justify-center items-start p-12 text-white animate-fade-in">
+          <div className="relative z-10 flex flex-col justify-center items-start p-12 text-slate-800 animate-fade-in">
             <div className="max-w-md">
-              <h1 className="text-6xl font-bold mb-6 drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-pink-100">NEXTCLASS</span>
+              <h1 className="text-6xl font-bold mb-6 drop-shadow-sm">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-purple-600">NEXTCLASS</span>
               </h1>
-              <p className="text-2xl font-medium mb-4 text-white/95">
+              <p className="text-2xl font-medium mb-4 text-slate-800">
                 Bem-vindo à NEXTCLASS
               </p>
-              <p className="text-lg text-white/80 leading-relaxed">
+              <p className="text-lg text-slate-700 leading-relaxed">
                 A plataforma de engenharia que transforma seu modo de aprender. O futuro começa agora.
               </p>
             </div>
