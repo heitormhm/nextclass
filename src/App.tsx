@@ -26,7 +26,6 @@ import LectureTranscription from "./pages/LectureTranscription";
 import TeacherCalendar from "./pages/TeacherCalendar";
 import TeacherProfileSettings from "./pages/TeacherProfileSettings";
 import TeacherConfigurations from "./pages/TeacherConfigurations";
-import MeusCursosPage from "./pages/MeusCursosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,7 +60,6 @@ const App = () => (
           <Route path="/teachercalendar" element={<TeacherCalendar />} />
           <Route path="/teacherprofilesettings" element={<TeacherProfileSettings />} />
           <Route path="/teacherconfigurations" element={<TeacherConfigurations />} />
-          <Route path="/meus-cursos" element={<MeusCursosPage />} />
           <Route path="/auth" element={<AuthPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
