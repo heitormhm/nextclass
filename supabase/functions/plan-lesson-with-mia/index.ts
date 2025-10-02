@@ -84,9 +84,14 @@ A sua resposta DEVE ser um único objeto JSON válido, sem nenhum texto adiciona
     "Objetivo 3"
   ],
   "conceitosChave": [
-    "Conceito 1: Definição clara e precisa",
-    "Conceito 2: Definição clara e precisa",
-    "Conceito 3: Definição clara e precisa"
+    {
+      "conceito": "Nome do conceito",
+      "definicao": "Definição clara e precisa"
+    },
+    {
+      "conceito": "Nome do conceito 2",
+      "definicao": "Definição clara e precisa"
+    }
   ],
   "roteiroDidatico": {
     "contextualizacao": "Cenário ou problema real da engenharia (2-3 parágrafos). Deve ser específico e relevante para a indústria.",
@@ -155,7 +160,7 @@ ${searchContext ? `RESULTADOS DA PESQUISA APROFUNDADA:\n${searchContext}\n\n` : 
 Gere um plano de aula completo seguindo EXATAMENTE a estrutura JSON especificada no prompt do sistema. Lembre-se:
 - A resposta deve ser APENAS JSON válido
 - Inclua 3-5 objetivos de aprendizagem
-- Inclua pelo menos 3 conceitos-chave com definições
+- Inclua pelo menos 3 conceitos-chave, cada um com "conceito" e "definicao" como campos separados
 - Crie 5-8 perguntas socráticas com respostas esperadas
 - Liste APENAS referências bibliográficas reais e verificáveis`;
     }
@@ -182,10 +187,13 @@ Gere um plano de aula completo seguindo EXATAMENTE a estrutura JSON especificada
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Lovable AI (Gemini) API error:', {
+      console.error('CRITICAL ERROR - Lovable AI (Gemini) API error:', {
         status: response.status,
         statusText: response.statusText,
-        body: errorText
+        body: errorText,
+        lessonPlanId,
+        topic,
+        duration
       });
       
       // Update lesson plan status to failed
@@ -263,7 +271,7 @@ ${jsonPlan.objetivosAprendizagem.map((obj: string) => `<li>${obj}</li>`).join('\
 
 <p><strong>2. CONCEITOS-CHAVE</strong></p>
 <ul>
-${jsonPlan.conceitosChave.map((conceito: string) => `<li>${conceito}</li>`).join('\n')}
+${jsonPlan.conceitosChave.map((item: any) => `<li><strong>${item.conceito}:</strong> ${item.definicao}</li>`).join('\n')}
 </ul>
 
 <p><strong>3. ROTEIRO DIDÁTICO (MÉTODO SOCRÁTICO)</strong></p>
@@ -339,7 +347,9 @@ ${jsonPlan.referenciasBibliograficas.map((ref: any) =>
       error,
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      lessonPlanId
+      lessonPlanId,
+      errorType: error?.constructor?.name,
+      errorDetails: JSON.stringify(error, null, 2)
     });
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
