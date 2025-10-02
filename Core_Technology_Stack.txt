@@ -1,0 +1,11 @@
+NEXTCLASS: Core Technology Stack
+
+This document lists the approved technologies for the NEXTCLASS platform.
+
+Frontend Framework: React
+
+CSS Library: Tailwind CSS
+
+Backend-as-a-Service (BaaS): Supabase (PostgreSQL, Auth, Edge Functions)
+
+AI Language Model API: OpenAI GPT-4o
