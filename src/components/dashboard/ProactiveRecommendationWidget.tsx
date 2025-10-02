@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lightbulb, ArrowRight, AlertCircle } from 'lucide-react';
+import { Sparkles, ArrowRight, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -103,16 +103,11 @@ const ProactiveRecommendationWidget = () => {
     return (
       <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in font-['Manrope']">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center">
-              <Lightbulb className="h-6 w-6 text-pink-600" />
-            </div>
-            <div className="flex-1">
-              <CardTitle className="text-xl font-semibold">Recomendação Inteligente</CardTitle>
-              <p className="text-sm text-gray-400 mt-0.5">
-                Baseado no seu desempenho recente
-              </p>
-            </div>
+          <div>
+            <CardTitle className="text-xl font-semibold">Recomendação Inteligente</CardTitle>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Baseado no seu desempenho recente
+            </p>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 pt-2">
@@ -131,21 +126,16 @@ const ProactiveRecommendationWidget = () => {
     <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in font-['Manrope'] flex flex-col min-h-[280px]">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Lightbulb className="h-6 w-6 text-pink-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-xl font-semibold">Recomendação Inteligente</CardTitle>
-              <p className="text-sm text-gray-400 mt-0.5">
-                Baseado no seu desempenho recente
-              </p>
-            </div>
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-xl font-semibold">Recomendação Inteligente</CardTitle>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Baseado no seu desempenho recente
+            </p>
           </div>
           {recommendation.priority === 'high' && (
             <Badge 
               variant="outline" 
-              className="bg-red-500/5 text-red-600 border-red-200 text-xs px-2.5 py-0.5 rounded-full font-medium"
+              className="bg-red-500/5 text-red-600 border-red-200 text-xs px-2.5 py-0.5 rounded-full font-medium flex-shrink-0"
             >
               Urgente
             </Badge>
@@ -153,10 +143,17 @@ const ProactiveRecommendationWidget = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-5 pt-2 flex flex-col justify-between flex-1">
-        <div className="bg-gradient-to-br from-pink-50/50 to-purple-50/50 p-5 rounded-xl border border-pink-100/50">
-          <p className="text-base font-bold text-gray-800 leading-relaxed">
-            {recommendation.text}
-          </p>
+        <div className="space-y-4">
+          <div className="flex justify-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-pink-100/80 to-purple-100/80 rounded-full flex items-center justify-center">
+              <Sparkles className="h-10 w-10 text-pink-500" />
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-pink-50/50 to-purple-50/50 p-5 rounded-xl border border-pink-100/50">
+            <p className="text-base font-bold text-gray-800 leading-relaxed text-center">
+              {recommendation.text}
+            </p>
+          </div>
         </div>
         <Button 
           onClick={handleNavigate}
