@@ -8,6 +8,7 @@ import { Sparkles, Send, Loader2, Copy, Download, ArrowLeft, Mic, MicOff } from 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
+import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -15,6 +16,15 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
+
+const loadingStates = [
+  { text: "A iniciar a pesquisa sobre o tópico..." },
+  { text: "A consultar fontes académicas de engenharia..." },
+  { text: "A analisar os conceitos-chave e as suas aplicações práticas..." },
+  { text: "A estruturar o roteiro didático com o método socrático..." },
+  { text: "A verificar as referências bibliográficas..." },
+  { text: "A finalizar a formatação do seu plano de aula..." },
+];
 
 const TeacherLessonPlanEditor = () => {
   const { id } = useParams();
@@ -234,7 +244,15 @@ const TeacherLessonPlanEditor = () => {
   const createNewLessonPlan = async (topicInput: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Precisa de estar autenticado.",
+        });
+        setIsGenerating(false);
+        return;
+      }
 
       const { data: newPlan, error: createError } = await supabase
         .from('lesson_plans')
@@ -247,7 +265,16 @@ const TeacherLessonPlanEditor = () => {
         .select()
         .single();
 
-      if (createError) throw createError;
+      if (createError) {
+        console.error('Create error:', createError);
+        setIsGenerating(false);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não foi possível criar o plano de aula.",
+        });
+        return;
+      }
 
       setLessonPlanId(newPlan.id);
       setTopic(topicInput);
@@ -258,7 +285,7 @@ const TeacherLessonPlanEditor = () => {
         content: '<p>Ótimo! Vou criar um plano de aula sobre <strong>' + topicInput + '</strong>. Isso pode levar alguns momentos...</p>'
       }]);
 
-      const { error: functionError } = await supabase.functions.invoke('plan-lesson-with-mia', {
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('plan-lesson-with-mia', {
         body: {
           lessonPlanId: newPlan.id,
           topic: topicInput,
@@ -266,46 +293,107 @@ const TeacherLessonPlanEditor = () => {
         }
       });
 
-      if (functionError) throw functionError;
+      if (functionError) {
+        console.error('Function error:', functionError);
+        setIsGenerating(false);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Erro ao contactar a IA. Tente novamente.",
+        });
+        return;
+      }
+
+      if (functionData?.error) {
+        console.error('AI error:', functionData.error);
+        setIsGenerating(false);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: functionData.error,
+        });
+        return;
+      }
 
       navigate(`/teacher/lesson-plans/${newPlan.id}`, { replace: true });
 
     } catch (error) {
       console.error('Error creating lesson plan:', error);
-      throw error;
+      setIsGenerating(false);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao criar o plano de aula.",
+      });
     }
   };
 
   const refineLessonPlan = async (instruction: string) => {
+    if (!lessonPlanId) {
+      setIsGenerating(false);
+      return;
+    }
+
     try {
       const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
 
-      const { data, error } = await supabase.functions.invoke('plan-lesson-with-mia', {
+      if (!lastAssistantMessage) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não há plano de aula para refinar.",
+        });
+        setIsGenerating(false);
+        return;
+      }
+
+      await supabase
+        .from('lesson_plans')
+        .update({ status: 'generating' })
+        .eq('id', lessonPlanId);
+
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('plan-lesson-with-mia', {
         body: {
           lessonPlanId,
-          existingPlan: lastAssistantMessage?.content,
+          existingPlan: lastAssistantMessage.content,
           adjustmentInstruction: instruction
         }
       });
 
-      if (error) throw error;
+      if (functionError) {
+        console.error('Function error:', functionError);
+        setIsGenerating(false);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Erro ao contactar a IA. Tente novamente.",
+        });
+        return;
+      }
 
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.lessonPlan
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
+      if (functionData?.error) {
+        console.error('AI error:', functionData.error);
+        setIsGenerating(false);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: functionData.error,
+        });
+        return;
+      }
 
       toast({
-        title: "Plano ajustado",
-        description: "Mia atualizou o plano conforme solicitado.",
+        title: "Refinamento em andamento",
+        description: "A Mia está a refinar o plano de aula.",
       });
     } catch (error) {
       console.error('Error refining lesson plan:', error);
-      throw error;
-    } finally {
       setIsGenerating(false);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao refinar o plano de aula.",
+      });
     }
   };
 
@@ -384,6 +472,17 @@ const TeacherLessonPlanEditor = () => {
 
   return (
     <MainLayout>
+      <MultiStepLoader
+        loadingStates={loadingStates}
+        loading={isGenerating}
+        onClose={() => {
+          setIsGenerating(false);
+          toast({
+            title: "Cancelado",
+            description: "Geração cancelada. Pode tentar novamente.",
+          });
+        }}
+      />
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
         {/* Animated Background */}
         <BackgroundRippleEffect className="opacity-30" />

@@ -36,8 +36,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let lessonPlanId: string | undefined;
+
   try {
-    const { lessonPlanId, topic, duration, notes, existingPlan, adjustmentInstruction } = await req.json();
+    const body = await req.json();
+    lessonPlanId = body.lessonPlanId;
+    const { topic, duration, notes, existingPlan, adjustmentInstruction } = body;
 
     console.log('Planning lesson with Mia:', { topic, duration, hasExistingPlan: !!existingPlan });
 
@@ -165,10 +169,40 @@ ESTRUTURA DO PLANO DE AULA (use formatação HTML):
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      
+      // Update lesson plan status to failed
+      if (lessonPlanId) {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        await supabase
+          .from('lesson_plans')
+          .update({ status: 'failed' })
+          .eq('id', lessonPlanId);
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          error: response.status === 429 
+            ? "A IA está ocupada. Por favor, tente novamente em alguns momentos." 
+            : "Não foi possível contactar a IA. Tente novamente." 
+        }),
+        {
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const data = await response.json();
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid response from OpenAI:', data);
+      throw new Error('Resposta inválida da IA');
+    }
+    
     const lessonPlan = data.choices[0].message.content;
 
     console.log('Lesson plan generated successfully');
@@ -205,8 +239,30 @@ ESTRUTURA DO PLANO DE AULA (use formatação HTML):
   } catch (error) {
     console.error('Error in plan-lesson-with-mia function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    // Update lesson plan status to failed if we have an ID
+    if (lessonPlanId) {
+      try {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        await supabase
+          .from('lesson_plans')
+          .update({ status: 'failed' })
+          .eq('id', lessonPlanId);
+      } catch (updateError) {
+        console.error('Failed to update lesson plan status:', updateError);
+      }
+    }
+    
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: errorMessage === 'OpenAI API key not configured'
+          ? 'Serviço de IA não configurado. Contacte o administrador.'
+          : 'Ocorreu um erro ao gerar o plano de aula. Tente novamente.'
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
