@@ -12,7 +12,7 @@ import MainLayout from '@/components/MainLayout';
 interface TranscriptEntry {
   id: string;
   timestamp: string;
-  speaker: 'Paciente' | 'Doutora';
+  speaker: 'Estagiário' | 'Supervisor';
   text: string;
   isEditing?: boolean;
 }
@@ -55,67 +55,67 @@ const RecordScenario = () => {
     {
       id: '1',
       timestamp: '00:32',
-      speaker: 'Doutora',
-      text: 'Bom dia! Como está se sentindo hoje?'
+      speaker: 'Supervisor',
+      text: 'Bom dia! Vamos analisar a estrutura deste projeto?'
     },
     {
       id: '2', 
       timestamp: '00:45',
-      speaker: 'Paciente',
-      text: 'Bom dia, doutora. Tenho sentido algumas dores no peito, principalmente quando faço esforço.'
+      speaker: 'Estagiário',
+      text: 'Bom dia, engenheiro. Identifiquei algumas tensões elevadas nas vigas principais, principalmente quando consideramos a carga móvel.'
     },
     {
       id: '3',
       timestamp: '01:15',
-      speaker: 'Doutora',
-      text: 'Entendo. Há quanto tempo você tem sentido essas dores? Pode me descrever melhor como são?'
+      speaker: 'Supervisor',
+      text: 'Entendo. Quais são os valores das tensões? E a deflexão está dentro do limite?'
     },
     {
       id: '4',
       timestamp: '01:32',
-      speaker: 'Paciente',
-      text: 'Começou há cerca de duas semanas. É uma dor que aperta, como se fosse uma pressão no peito.'
+      speaker: 'Estagiário',
+      text: 'A tensão máxima está em 280 MPa, próximo ao limite de escoamento. A deflexão está em L/350, dentro do aceitável.'
     },
     {
       id: '5',
       timestamp: '02:10',
-      speaker: 'Doutora',
-      text: 'Vou fazer um exame físico agora. Vou auscultar seu coração e pulmões.'
+      speaker: 'Supervisor',
+      text: 'Vou revisar os cálculos agora. Precisamos verificar também a fadiga para essa estrutura.'
     },
     {
       id: '6',
       timestamp: '03:45',
-      speaker: 'Doutora',
-      text: 'Sua pressão arterial está um pouco elevada - 150 por 90. Vamos precisar investigar melhor.'
+      speaker: 'Supervisor',
+      text: 'Os valores estão próximos do limite. Vamos precisar considerar um reforço estrutural ou redimensionar as vigas.'
     }
   ];
 
   // Static AI summary data
   const aiSummary: ConsultationSummary = {
     chiefComplaint: [
-      'Dor torácica aos esforços',
-      'Início há aproximadamente 2 semanas',
-      'Característica: dor em aperto/pressão'
+      'Tensões elevadas nas vigas principais',
+      'Análise iniciada há 1 semana',
+      'Característica: tensão próxima ao limite de escoamento'
     ],
     historyOfPresentIllness: [
-      'Paciente relata dor torácica de início há 2 semanas',
-      'Dor tipo pressão/aperto no peito',
-      'Precipitada por esforço físico',
-      'Sem irradiação relatada',
-      'Nega dispneia associada'
+      'Estrutura em análise há 1 semana',
+      'Tensões tipo tração/compressão nas vigas',
+      'Provocada por cargas móveis',
+      'Deflexão dentro dos limites (L/350)',
+      'Sem sinais de falha estrutural prévia'
     ],
     physicalExamination: [
-      'Pressão arterial: 150/90 mmHg',
-      'Ausculta cardíaca: ritmo regular, sem sopros',
-      'Ausculta pulmonar: murmúrio vesicular presente bilateralmente',
-      'Paciente consciente, orientado, corado'
+      'Tensão máxima: 280 MPa',
+      'Análise estrutural: momento fletor elevado no meio do vão',
+      'Verificação de soldas: integridade mantida',
+      'Estrutura estável, sem deformações visíveis'
     ],
     assessmentAndPlan: [
-      'Hipótese diagnóstica: Síndrome coronariana crônica',
-      'Investigação: ECG, ecocardiograma, teste ergométrico',
-      'Controle pressórico: iniciar anti-hipertensivo',
-      'Orientações: dieta hipossódica, atividade física leve',
-      'Retorno em 15 dias com resultados'
+      'Hipótese técnica: Necessidade de reforço estrutural',
+      'Análises adicionais: Estudo de fadiga, análise não-linear',
+      'Intervenção: Reforço com chapas de aço ou redimensionamento',
+      'Recomendações: Monitoramento contínuo, inspeção periódica',
+      'Revisão em 15 dias com resultados das análises'
     ]
   };
 
@@ -323,14 +323,14 @@ const RecordScenario = () => {
                                 className="px-4 sm:px-6 py-3 min-h-[48px]"
                               >
                                 <Square className="h-5 w-5 mr-2" />
-                                Encerrar Consulta
+                                Encerrar Sessão
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent className="max-w-[95vw] sm:max-w-lg w-full mx-2 sm:mx-0">
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Confirmar Encerramento</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Tem certeza que deseja encerrar a consulta? Esta ação irá parar a gravação e gerar o resumo com IA.
+                                  Tem certeza que deseja encerrar a sessão? Esta ação irá parar a gravação e gerar o resumo com IA.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
@@ -367,7 +367,7 @@ const RecordScenario = () => {
                       <div key={entry.id} className="group">
                         <div className="flex items-start gap-3 sm:gap-4">
                           <Badge 
-                            variant={entry.speaker === 'Doutora' ? 'default' : 'secondary'}
+                            variant={entry.speaker === 'Supervisor' ? 'default' : 'secondary'}
                             className="min-w-fit text-xs px-2 py-1"
                           >
                             {entry.speaker}
@@ -429,10 +429,10 @@ const RecordScenario = () => {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Chief Complaint */}
+                  {/* Problem Identification */}
                   <div>
                     <h3 className="text-lg font-bold mb-3 text-foreground">
-                      Queixa Principal
+                      Problema Identificado
                     </h3>
                     <ul className="space-y-2">
                       {aiSummary.chiefComplaint.map((item, index) => (
@@ -446,10 +446,10 @@ const RecordScenario = () => {
 
                   <Separator />
 
-                  {/* History of Present Illness */}
+                  {/* Project Context */}
                   <div>
                     <h3 className="text-lg font-bold mb-3 text-foreground">
-                      História da Doença Atual
+                      Contexto do Projeto
                     </h3>
                     <ul className="space-y-2">
                       {aiSummary.historyOfPresentIllness.map((item, index) => (
@@ -463,10 +463,10 @@ const RecordScenario = () => {
 
                   <Separator />
 
-                  {/* Physical Examination */}
+                  {/* Technical Analysis */}
                   <div>
                     <h3 className="text-lg font-bold mb-3 text-foreground">
-                      Exame Físico
+                      Análise Técnica
                     </h3>
                     <ul className="space-y-2">
                       {aiSummary.physicalExamination.map((item, index) => (
@@ -480,10 +480,10 @@ const RecordScenario = () => {
 
                   <Separator />
 
-                  {/* Assessment and Plan */}
+                  {/* Recommendations and Plan */}
                   <div>
                     <h3 className="text-lg font-bold mb-3 text-foreground">
-                      Avaliação e Plano
+                      Recomendações e Plano
                     </h3>
                     <ul className="space-y-2">
                       {aiSummary.assessmentAndPlan.map((item, index) => (

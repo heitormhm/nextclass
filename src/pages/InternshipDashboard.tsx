@@ -41,89 +41,89 @@ const InternshipDashboard = () => {
     {
       id: '1',
       date: '2024-03-15',
-      case: 'Análise de tensão em estrutura jovem',
-      annotation: 'Estrutura apresentou tensões críticas no ponto central, verificação normal. Investigar cargas não previstas.',
-      location: 'Hospital Universitário',
-      specialty: 'Cardiologia',
+      case: 'Análise de tensão em viga metálica',
+      annotation: 'Estrutura apresentou tensões críticas no ponto central (280 MPa). Verificação de deflexão L/350 atendida. Recomenda-se reforço nas soldas.',
+      location: 'Construtora Alfa - Setor de Estruturas',
+      specialty: 'Engenharia Civil',
       isFavorite: true,
-      patientAge: 28,
+      patientAge: 0,
       patientGender: 'M'
     },
     {
       id: '2',
       date: '2024-03-12',
-      case: 'Sistema de pressão descontrolado',
-      annotation: 'Pressão 18 bar, sem sinais de falha no sistema. Ajuste de válvulas necessário.',
-      location: 'UBS Central',
-      specialty: 'Clínica Geral',
+      case: 'Sistema hidráulico sob pressão elevada',
+      annotation: 'Pressão de 18 bar detectada no sistema, acima do projeto (15 bar). Válvulas de alívio ajustadas. Sistema operacional.',
+      location: 'Indústria TechFlow',
+      specialty: 'Engenharia Mecânica',
       isFavorite: false,
-      patientAge: 55,
+      patientAge: 0,
       patientGender: 'F'
     },
     {
       id: '3',
       date: '2024-03-10',
-      case: 'Vibração em equipamento antigo',
-      annotation: 'Oscilação de frequência detectada. Sistema em monitoramento contínuo. Avaliar necessidade de substituição.',
-      location: 'Hospital Cardiológico',
-      specialty: 'Cardiologia',
+      case: 'Vibração em equipamento rotativo',
+      annotation: 'Oscilação de 8mm/s detectada em motor principal. Sistema em monitoramento contínuo. Avaliar necessidade de balanceamento.',
+      location: 'Usina Hidrelétrica Delta',
+      specialty: 'Engenharia Mecânica',
       isFavorite: true,
-      patientAge: 72,
+      patientAge: 0,
       patientGender: 'M'
     },
     {
       id: '4',
       date: '2024-03-08',
-      case: 'Falha crítica em sistema principal',
-      annotation: 'STEMI no subsistema principal, manutenção de urgência realizada. Substituição de componente em CD. Evolução favorável.',
-      location: 'Hospital de Emergência',
-      specialty: 'Cardiologia',
+      case: 'Falha em circuito de controle',
+      annotation: 'Curto-circuito no sistema de controle principal. Manutenção de urgência realizada. Substituição de componente CD. Sistema restabelecido.',
+      location: 'Fábrica AutoParts',
+      specialty: 'Engenharia Elétrica',
       isFavorite: true,
-      patientAge: 61,
+      patientAge: 0,
       patientGender: 'M'
     },
     {
       id: '5',
       date: '2024-03-05',
-      case: 'Diabetes mellitus descompensado',
-      annotation: 'HbA1c elevada (12.5%), sintomas de poliúria e polidipsia. Início de insulinoterapia.',
-      location: 'UBS Vila Nova',
-      specialty: 'Endocrinologia',
+      case: 'Análise de eficiência energética',
+      annotation: 'Consumo energético 25% acima do previsto. Identificado problema no isolamento térmico. Recomendada substituição de isolantes.',
+      location: 'Edifício Comercial Centro',
+      specialty: 'Engenharia Civil',
       isFavorite: false,
-      patientAge: 48,
+      patientAge: 0,
       patientGender: 'F'
     },
     {
       id: '6',
       date: '2024-03-03',
-      case: 'Insuficiência cardíaca congestiva',
-      annotation: 'Classe funcional III, fração de ejeção reduzida (35%). Otimização de terapia medicamentosa.',
-      location: 'Hospital Universitário',
-      specialty: 'Cardiologia',
+      case: 'Inspeção de fundações profundas',
+      annotation: 'Capacidade de carga verificada (800 kN). Recalques dentro do previsto (12mm). Necessário monitoramento contínuo.',
+      location: 'Construtora Mega Towers',
+      specialty: 'Engenharia Civil',
       isFavorite: false,
-      patientAge: 67,
+      patientAge: 0,
       patientGender: 'F'
     },
     {
       id: '7',
       date: '2024-03-01',
-      case: 'Pneumonia adquirida na comunidade',
-      annotation: 'Paciente com tosse produtiva e febre. RX tórax com consolidação em LID. Antibioticoterapia iniciada.',
-      location: 'UBS Jardim América',
-      specialty: 'Pneumologia',
+      case: 'Análise de processo químico',
+      annotation: 'Taxa de conversão 78%, abaixo da meta (85%). Temperatura de reator ajustada. Catalisador em substituição programada.',
+      location: 'Indústria Química Polimex',
+      specialty: 'Engenharia Química',
       isFavorite: false,
-      patientAge: 34,
+      patientAge: 0,
       patientGender: 'M'
     },
     {
       id: '8',
       date: '2024-02-28',
-      case: 'Crise hipertensiva',
-      annotation: 'PA 210x120, cefaleia intensa. Administrado captopril sublingual com boa resposta.',
-      location: 'Pronto Socorro',
-      specialty: 'Clínica Geral',
+      case: 'Falha em transformador elétrico',
+      annotation: 'Sobreaquecimento detectado (95°C), limite 80°C. Carga redistribuída. Transformador em manutenção preventiva.',
+      location: 'Subestação Industrial Norte',
+      specialty: 'Engenharia Elétrica',
       isFavorite: true,
-      patientAge: 59,
+      patientAge: 0,
       patientGender: 'F'
     }
   ];
@@ -292,7 +292,7 @@ const InternshipDashboard = () => {
                           <SelectValue placeholder="Especialidade" />
                         </SelectTrigger>
                         <SelectContent className="bg-background border shadow-lg z-50">
-                          <SelectItem value="all-specialties">Todas as especialidades</SelectItem>
+                          <SelectItem value="all-specialties">Todas as áreas</SelectItem>
                           {uniqueSpecialties.map(specialty => (
                             <SelectItem key={specialty} value={specialty}>
                               {specialty}

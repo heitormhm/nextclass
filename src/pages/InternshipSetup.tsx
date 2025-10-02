@@ -69,14 +69,14 @@ const InternshipSetup = () => {
                 </Label>
                 <Input
                   id="internshipType"
-                  placeholder="Ex: Estágio em Engenharia Mecânica, Residência Médica, etc."
+                  placeholder="Ex: Estágio em Engenharia Civil, Engenharia Mecânica, Engenharia Elétrica, etc."
                   value={internshipType}
                   onChange={(e) => setInternshipType(e.target.value)}
                   className="text-base"
                   autoFocus
                 />
                 <p className="text-xs text-foreground-muted">
-                  Informe o tipo de estágio ou programa que você está cursando
+                  Informe o tipo de estágio ou programa de engenharia que você está cursando
                 </p>
               </div>
 
@@ -87,13 +87,13 @@ const InternshipSetup = () => {
                 </Label>
                 <Textarea
                   id="location"
-                  placeholder="Ex: Hospital Universitário - Setor de Cardiologia, Escritório de Projetos Estruturais, etc."
+                  placeholder="Ex: Construtora XYZ - Setor de Estruturas, Indústria ABC - Departamento de Manutenção, Escritório de Projetos Elétricos, etc."
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   className="min-h-[100px] text-base resize-none"
                 />
                 <p className="text-xs text-foreground-muted">
-                  Descreva o local e o contexto da sessão que você vai gravar
+                  Descreva o local (empresa/escritório) e o contexto da sessão que você vai gravar
                 </p>
               </div>
 

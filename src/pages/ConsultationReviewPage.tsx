@@ -24,16 +24,18 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { EngineeringConductModal } from '@/components/EngineeringConductModal';
 
-// Mock project analysis database
+// Mock engineering analysis database
 const mockAnalysis = [
-  'P10 - Análise de tensão estrutural',
+  'A10 - Análise de tensão estrutural',
   'E11 - Cálculo de eficiência energética', 
-  'C45 - Análise de circuitos AC/DC',
+  'C45 - Análise de circuitos elétricos',
   'F06 - Estudo de fluxo de fluidos',
   'T20 - Análise termodinâmica',
-  'M21 - Avaliação de materiais',
-  'S25 - Simulação computacional',
-  'R18 - Análise de resistência'
+  'M21 - Ensaio de materiais',
+  'S25 - Simulação computacional (FEA)',
+  'R18 - Análise de resistência mecânica',
+  'D30 - Dimensionamento de fundações',
+  'V12 - Análise de vibrações'
 ];
 
 const ProjectReviewPage = () => {
@@ -157,11 +159,11 @@ const ProjectReviewPage = () => {
   };
 
   const handleEngineeringConductSave = (data: any) => {
-    // Format the medical conduct data and append to anamnesis
-    let conductSection = '\n\n<div>\n<h3 class="font-semibold text-gray-800 mb-2">CONDUTA MÉDICA</h3>\n';
+    // Format the engineering conduct data and append to project report
+    let conductSection = '\n\n<div>\n<h3 class="font-semibold text-gray-800 mb-2">RECOMENDAÇÕES TÉCNICAS</h3>\n';
     
     if (data.exams.length > 0) {
-      conductSection += '<div class="mb-4">\n<h4 class="font-medium text-gray-800 mb-1">Exames solicitados:</h4>\n<ul class="text-gray-700 ml-4 list-disc">\n';
+      conductSection += '<div class="mb-4">\n<h4 class="font-medium text-gray-800 mb-1">Análises complementares:</h4>\n<ul class="text-gray-700 ml-4 list-disc">\n';
       data.exams.forEach((exam: string) => {
         conductSection += `<li>${exam}</li>\n`;
       });
@@ -169,7 +171,7 @@ const ProjectReviewPage = () => {
     }
 
     if (data.medications.length > 0) {
-      conductSection += '<div class="mb-4">\n<h4 class="font-medium text-gray-800 mb-1">Medicações prescritas:</h4>\n<ul class="text-gray-700 ml-4 list-disc">\n';
+      conductSection += '<div class="mb-4">\n<h4 class="font-medium text-gray-800 mb-1">Intervenções recomendadas:</h4>\n<ul class="text-gray-700 ml-4 list-disc">\n';
       data.medications.forEach((med: any) => {
         const medText = med.dosage ? `${med.name} - ${med.dosage}` : med.name;
         conductSection += `<li>${medText}</li>\n`;
@@ -178,7 +180,7 @@ const ProjectReviewPage = () => {
     }
 
     if (data.orientations) {
-      conductSection += `<div class="mb-4">\n<h4 class="font-medium text-gray-800 mb-1">Orientações ao paciente:</h4>\n<p class="text-gray-700">${data.orientations}</p>\n</div>\n`;
+      conductSection += `<div class="mb-4">\n<h4 class="font-medium text-gray-800 mb-1">Observações gerais:</h4>\n<p class="text-gray-700">${data.orientations}</p>\n</div>\n`;
     }
 
     conductSection += '</div>';
@@ -186,7 +188,7 @@ const ProjectReviewPage = () => {
     setProjectContent(prev => prev + conductSection);
     setShowEngineeringConductModal(false);
     setEngineeringConductAdded(true);
-    toast.success("Conduta médica adicionada ao documento!");
+    toast.success("Recomendações técnicas adicionadas ao documento!");
   };
 
   return (
@@ -195,23 +197,23 @@ const ProjectReviewPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Information & Actions Panel */}
           <div className="lg:col-span-4 space-y-6">
-            {/* Consultation Info Card */}
+            {/* Session Info Card */}
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center space-x-2">
                   <Calendar className="h-5 w-5 text-primary" />
-                  <span>Informações da Consulta</span>
+                  <span>Informações da Sessão</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Queixa Principal</p>
+                  <p className="text-sm font-medium text-foreground">Problema Principal</p>
                   <p className="text-sm text-foreground-muted mt-1">
-                    "Dor no peito e falta de ar há 3 dias"
+                    "Tensões elevadas em vigas estruturais"
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-foreground">Data da Consulta</p>
+                  <p className="text-sm font-medium text-foreground">Data da Sessão</p>
                   <p className="text-sm text-foreground-muted mt-1">
                     15 de março de 2024, 14:30
                   </p>
@@ -249,10 +251,10 @@ const ProjectReviewPage = () => {
                       <SelectValue placeholder="Selecionar tipo..." />
                     </SelectTrigger>
                     <SelectContent className="bg-background border shadow-lg z-50">
-                      <SelectItem value="exame-laboratorial">Exame Laboratorial</SelectItem>
-                      <SelectItem value="exame-imagem">Exame de Imagem</SelectItem>
-                      <SelectItem value="receita-medica">Receita Médica</SelectItem>
-                      <SelectItem value="atestado">Atestado Médico</SelectItem>
+                      <SelectItem value="relatorio-tecnico">Relatório Técnico</SelectItem>
+                      <SelectItem value="calculo-estrutural">Cálculo Estrutural</SelectItem>
+                      <SelectItem value="memorial-descritivo">Memorial Descritivo</SelectItem>
+                      <SelectItem value="laudo-tecnico">Laudo Técnico</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -283,14 +285,14 @@ const ProjectReviewPage = () => {
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center space-x-2">
-                  <Stethoscope className="h-5 w-5 text-primary" />
+                  <FileText className="h-5 w-5 text-primary" />
                   <span>Próximos Passos</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">
-                    Hipótese de Análise
+                    Análises Complementares
                   </label>
                   <div className="relative">
                     <Input
@@ -331,32 +333,32 @@ const ProjectReviewPage = () => {
             </Card>
           </div>
 
-          {/* Right Column - Medical Document Editor */}
+          {/* Right Column - Technical Document Editor */}
           <div className="lg:col-span-8">
             <Card className="border-0 shadow-sm relative">
-              {/* Header with Patient Info */}
+              {/* Header with Project Info */}
               <CardHeader className="pb-4">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
                     <div>
-                      <p className="font-medium text-foreground">Paciente</p>
-                      <p className="text-foreground-muted">Maria Silva</p>
+                      <p className="font-medium text-foreground">Projeto</p>
+                      <p className="text-foreground-muted">Ponte Rio Grande</p>
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Idade</p>
-                      <p className="text-foreground-muted">45 anos</p>
+                      <p className="font-medium text-foreground">Vão</p>
+                      <p className="text-foreground-muted">45 metros</p>
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Gênero</p>
-                      <p className="text-foreground-muted">Feminino</p>
+                      <p className="font-medium text-foreground">Tipo</p>
+                      <p className="text-foreground-muted">Estrutura Mista</p>
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">CPF</p>
-                      <p className="text-foreground-muted">***.***.***-**</p>
+                      <p className="font-medium text-foreground">Localização</p>
+                      <p className="text-foreground-muted">São Paulo/SP</p>
                     </div>
                     <div>
                       <p className="font-medium text-foreground">Histórico</p>
-                      <p className="text-foreground-muted">HAS</p>
+                      <p className="text-foreground-muted">Em análise</p>
                     </div>
                   </div>
                   
