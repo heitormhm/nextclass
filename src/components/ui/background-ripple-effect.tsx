@@ -40,14 +40,14 @@ const DivGrid: React.FC<DivGridProps> = ({ className, mouseX, mouseY }) => {
     const cols = Math.ceil(canvas.width / cellSize);
     const rows = Math.ceil(canvas.height / cellSize);
 
-    // Use CSS custom property for border color if available
+    // Use CSS custom property for border color - more visible default
     const computedStyle = canvas.parentElement ? getComputedStyle(canvas.parentElement) : null;
-    const borderColor = computedStyle?.getPropertyValue('--cell-border-color') || 'rgba(226, 232, 240, 0.8)';
+    const borderColor = computedStyle?.getPropertyValue('--cell-border-color')?.trim() || 'rgba(200, 200, 220, 0.6)';
     
-    ctx.strokeStyle = borderColor.trim();
+    ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1;
 
-    // Draw grid lines
+    // Draw visible grid lines
     for (let i = 0; i <= cols; i++) {
       ctx.beginPath();
       ctx.moveTo(i * cellSize, 0);
@@ -62,7 +62,7 @@ const DivGrid: React.FC<DivGridProps> = ({ className, mouseX, mouseY }) => {
       ctx.stroke();
     }
 
-    // Draw ripple effect around mouse
+    // Draw ripple effect around mouse - more visible
     if (mouseX >= 0 && mouseY >= 0) {
       const maxDistance = 150;
       for (let i = 0; i <= cols; i++) {
@@ -73,8 +73,8 @@ const DivGrid: React.FC<DivGridProps> = ({ className, mouseX, mouseY }) => {
 
           if (distance < maxDistance) {
             const opacity = 1 - distance / maxDistance;
-            // Pink ripple effect - more visible
-            ctx.fillStyle = `rgba(236, 72, 153, ${opacity * 0.2})`;
+            // Pink ripple effect - visible
+            ctx.fillStyle = `rgba(236, 72, 153, ${opacity * 0.25})`;
             ctx.fillRect(x, y, cellSize, cellSize);
           }
         }
