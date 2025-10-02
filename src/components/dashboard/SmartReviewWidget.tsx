@@ -5,37 +5,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 const SmartReviewWidget = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [dueFlashcardsCount, setDueFlashcardsCount] = useState<number>(0);
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('get-student-dashboard-data');
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching flashcards data:', error);
+          // Gracefully default to 0 on error
+          setDueFlashcardsCount(0);
+          return;
+        }
         
-        if (data?.dueFlashcardsCount !== undefined) {
-          setDueFlashcardsCount(data.dueFlashcardsCount);
+        // Robust data handling - default to 0 if data is invalid
+        const count = data?.dueFlashcardsCount;
+        if (typeof count === 'number' && !isNaN(count) && count >= 0) {
+          setDueFlashcardsCount(count);
+        } else {
+          setDueFlashcardsCount(0);
         }
       } catch (error) {
         console.error('Error fetching flashcards data:', error);
-        toast({
-          title: 'Erro ao carregar flashcards',
-          description: 'Não foi possível carregar os flashcards pendentes. Tente novamente.',
-          variant: 'destructive'
-        });
+        // Gracefully default to 0 on error
+        setDueFlashcardsCount(0);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, [toast]);
+  }, []);
 
   if (isLoading) {
     return (
@@ -81,7 +85,7 @@ const SmartReviewWidget = () => {
               : "Parabéns! Você está em dia com suas revisões."}
           </p>
         </div>
-        <Link to="/review">
+        <Link to="/annotations">
           <Button className="w-full group" variant="secondary" disabled={dueFlashcardsCount === 0}>
             {dueFlashcardsCount > 0 ? 'Iniciar Revisão' : 'Nenhum Flashcard Pendente'}
             {dueFlashcardsCount > 0 && (

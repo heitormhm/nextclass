@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Lightbulb, ArrowRight, TrendingUp } from 'lucide-react';
+import { Lightbulb, ArrowRight, TrendingUp, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface Recommendation {
   text: string;
@@ -17,32 +16,35 @@ interface Recommendation {
 const ProactiveRecommendationWidget = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
-  const { toast } = useToast();
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('get-student-dashboard-data');
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching recommendation:', error);
+          setHasError(true);
+          return;
+        }
         
         if (data?.recommendation) {
           setRecommendation(data.recommendation);
+          setHasError(false);
+        } else {
+          setHasError(true);
         }
       } catch (error) {
         console.error('Error fetching recommendation:', error);
-        toast({
-          title: 'Erro ao carregar recomendação',
-          description: 'Não foi possível carregar a recomendação. Tente novamente.',
-          variant: 'destructive'
-        });
+        setHasError(true);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, [toast]);
+  }, []);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -72,7 +74,34 @@ const ProactiveRecommendationWidget = () => {
     );
   }
 
-  if (!recommendation) return null;
+  // If error or no recommendation, show error state
+  if (hasError || !recommendation) {
+    return (
+      <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Lightbulb className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="text-lg">Recomendação Inteligente</CardTitle>
+              <CardDescription>
+                Baseado no seu desempenho recente
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+            <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0" />
+            <p className="text-sm text-muted-foreground">
+              Não foi possível carregar sua recomendação no momento.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in">
