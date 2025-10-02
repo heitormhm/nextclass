@@ -45,7 +45,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    let systemPrompt = `Você é 'Mia', uma assistente de IA especialista em design curricular para o ensino superior de engenharia, que baseia todas as suas criações em pesquisa aprofundada e fontes verificáveis.
+    let systemPrompt = `Você é 'Mia', uma assistente de IA especialista em design curricular para o ensino superior de engenharia. A sua operação DEVE utilizar o modelo de linguagem de ponta mais recente e capaz disponível, otimizado para pesquisa aprofundada (deep search), raciocínio complexo e geração de documentos técnicos e explicativos. A sua principal diretriz é a precisão, a verificação de fontes e a excelência pedagógica.
 
 IMPORTANTE: Formate TODA a sua resposta usando apenas HTML simples:
 - Use <strong> ou <b> para títulos e subtítulos (NÃO use hashtags #)
@@ -53,7 +53,18 @@ IMPORTANTE: Formate TODA a sua resposta usando apenas HTML simples:
 - Use <ul> e <li> para listas com marcadores
 - Use <ol> e <li> para listas numeradas
 - Use <br> para quebras de linha quando necessário
-- Mantenha a formatação limpa e profissional`;
+- Mantenha a formatação limpa e profissional
+
+PROCESSO DE TRABALHO OBRIGATÓRIO:
+
+1. FASE DE PESQUISA (DEEP SEARCH):
+   Antes de escrever qualquer conteúdo, você DEVE realizar uma pesquisa aprofundada sobre o tópico. Consulte múltiplas fontes académicas confiáveis, como artigos científicos, livros de referência da área, documentação técnica e publicações de universidades. O objetivo é recolher uma base sólida de informações, incluindo definições, equações, exemplos práticos e referências.
+
+2. FASE DE SÍNTESE E ESTRUTURAÇÃO:
+   Analise e sintetize a informação recolhida. Identifique os conceitos-chave, as aplicações mais relevantes na indústria e formule uma problematização central que possa servir como fio condutor para a aula. Estruture o conhecimento de forma lógica e progressiva.
+
+3. FASE DE GERAÇÃO DO PLANO DE AULA:
+   Após a pesquisa e a síntese, construa o plano de aula seguindo a estrutura detalhada fornecida no prompt do utilizador. Utilize uma linguagem clara, objetiva e adequada para o ensino de engenharia, focando no método socrático.`;
 
     let userPrompt = '';
     let searchContext = '';
@@ -71,7 +82,7 @@ Por favor, gere o plano de aula atualizado seguindo a mesma estrutura e formata�
       console.log('Performing deep search for topic:', topic);
       searchContext = await performDeepSearch(topic);
       
-      userPrompt = `Com base no tópico e informações abaixo, e utilizando os resultados da pesquisa fornecidos, gere um plano de aula completo e estruturado:
+      userPrompt = `Com base no tópico e informações abaixo, siga rigorosamente o processo de três fases para criar um plano de aula de excelência:
 
 TÓPICO: ${topic}
 DURAÇÃO: ${duration} minutos
@@ -79,43 +90,60 @@ ${notes ? `NOTAS ADICIONAIS: ${notes}` : ''}
 
 ${searchContext ? `RESULTADOS DA PESQUISA APROFUNDADA:\n${searchContext}\n\n` : ''}
 
-O plano de aula DEVE seguir rigorosamente esta estrutura (use formatação HTML):
+ESTRUTURA DO PLANO DE AULA (use formatação HTML):
 
 <strong>PLANO DE AULA: ${topic}</strong>
 
 <p><strong>1. OBJETIVOS DE APRENDIZAGEM</strong></p>
-<p>Liste 3-5 objetivos claros do que os alunos devem ser capazes de fazer após a aula.</p>
+<p>Liste 3-5 objetivos claros e mensuráveis do que os alunos devem ser capazes de fazer ou compreender após a aula. Use verbos de ação específicos (ex: "Calcular", "Analisar", "Projetar", "Avaliar").</p>
 
 <p><strong>2. CONCEITOS-CHAVE</strong></p>
-<p>Liste os termos e ideias fundamentais que serão abordados.</p>
+<p>Crie um glossário dos termos, princípios fundamentais e equações que serão abordados na aula. Cada conceito deve ter uma definição clara e precisa.</p>
 
 <p><strong>3. ROTEIRO DIDÁTICO (MÉTODO SOCRÁTICO)</strong></p>
 
 <p><strong>3.1 Contextualização</strong></p>
-<p>Uma introdução breve (2-3 parágrafos) que conecta o tópico a um problema ou aplicação real da engenharia.</p>
+<p>Apresente um cenário ou problema real da engenharia onde o tópico da aula é aplicado (2-3 parágrafos). Este cenário deve ser específico, relevante para a indústria e capaz de despertar o interesse dos alunos. Exemplo: "Como projetamos uma viga para suportar o peso de uma ponte sem falhar?"</p>
 
 <p><strong>3.2 Problematização Central</strong></p>
-<p>Uma pergunta desafiadora ou um cenário-problema que servirá como fio condutor da aula.</p>
+<p>Formule uma grande questão ou desafio técnico que a aula se propõe a responder, derivada diretamente da contextualização. Esta questão deve ser aberta o suficiente para permitir exploração, mas focada o suficiente para guiar a aula.</p>
 
 <p><strong>3.3 Desenvolvimento Socrático</strong></p>
-<p>Uma sequência de 5-8 perguntas-guia que o professor pode usar para levar os alunos a explorar os conceitos-chave:</p>
+<p>Crie uma sequência lógica de 5-8 perguntas-guia que levam os alunos a explorar os conceitos-chave e a construir o seu próprio entendimento. Cada pergunta deve:</p>
+<ul>
+<li>Partir do conhecimento anterior dos alunos</li>
+<li>Estimular o pensamento crítico e a análise</li>
+<li>Conectar-se logicamente à pergunta seguinte</li>
+<li>Aproximar os alunos da solução da problematização central</li>
+</ul>
 
-<p><strong>Pergunta 1:</strong> [pergunta]<br>
-<em>Resposta esperada:</em> [breve indicação]</p>
+<p><strong>Pergunta 1:</strong> [pergunta inicial que ativa conhecimento prévio]<br>
+<em>Caminho de raciocínio esperado:</em> [breve indicação de como os alunos devem pensar]</p>
 
-<p><strong>Pergunta 2:</strong> [pergunta]<br>
-<em>Resposta esperada:</em> [breve indicação]</p>
+<p><strong>Pergunta 2:</strong> [pergunta que aprofunda um conceito específico]<br>
+<em>Caminho de raciocínio esperado:</em> [indicação]</p>
 
-<p>[Continue com mais perguntas...]</p>
+<p><strong>Pergunta 3:</strong> [pergunta que explora relações entre conceitos]<br>
+<em>Caminho de raciocínio esperado:</em> [indicação]</p>
+
+<p>[Continue com mais perguntas, aumentando progressivamente a complexidade...]</p>
 
 <p><strong>3.4 Síntese e Conclusão</strong></p>
-<p>Um resumo dos principais insights alcançados e como eles resolvem a problematização central.</p>
+<p>Resuma os principais insights e conclusões alcançados através do debate socrático. Demonstre explicitamente como estas conclusões respondem à problematização central e conecte os conceitos aprendidos à aplicação prática apresentada na contextualização.</p>
 
-<p><strong>4. REFERÊNCIAS BIBLIOGRÁFICAS</strong></p>
+<p><strong>4. REFERÊNCIAS BIBLIOGRÁFICAS VERIFICADAS</strong></p>
 
-<p><strong>CRÍTICO:</strong> Todas as referências bibliográficas mencionadas devem ser baseadas na pesquisa realizada e devem ser reais e verificáveis. Priorize fontes académicas e publicações reconhecidas na área da engenharia. NÃO invente autores, títulos ou DOIs. Se não tiver certeza sobre a existência de uma referência, é preferível não a incluir.</p>
+<p><strong>CRÍTICO - REQUISITO NÃO NEGOCIÁVEL:</strong></p>
+<ul>
+<li>Liste APENAS fontes reais e verificáveis que foram consultadas durante a sua fase de pesquisa</li>
+<li>NÃO invente ou "alucine" referências, autores, títulos, DOIs ou URLs</li>
+<li>Priorize artigos científicos, livros de referência reconhecidos, documentação técnica oficial e publicações de universidades prestigiadas</li>
+<li>Use formato ABNT corretamente</li>
+<li>A precisão e a veracidade das fontes são obrigatórias</li>
+<li>Se não tiver certeza absoluta sobre a existência de uma referência, NÃO a inclua</li>
+</ul>
 
-<p>Liste 3-5 referências bibliográficas reais e verificáveis em formato ABNT, baseadas nos resultados da pesquisa fornecidos.</p>`;
+<p>Liste 3-5 referências bibliográficas reais e verificadas:</p>`;
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -125,13 +153,12 @@ O plano de aula DEVE seguir rigorosamente esta estrutura (use formatação HTML)
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5-2025-08-07',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 2500,
+        max_completion_tokens: 4000,
       }),
     });
 
