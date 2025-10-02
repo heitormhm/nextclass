@@ -46,7 +46,7 @@ const LectureTranscriptionPage = () => {
   const loadLectureData = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('lectures')
         .select('*')
         .eq('id', id)
@@ -55,11 +55,11 @@ const LectureTranscriptionPage = () => {
       if (error) throw error;
 
       setLecture(data);
-      setLectureTitle(data.title || 'Nova Aula');
+      setLectureTitle(data?.title || 'Nova Aula');
 
-      if (data.structured_content) {
+      if (data?.structured_content) {
         setStructuredContent(data.structured_content as StructuredContent);
-      } else if (data.status === 'processing') {
+      } else if (data?.status === 'processing' && data?.raw_transcript) {
         // Trigger AI processing
         processTranscript(data.raw_transcript);
       }
@@ -143,7 +143,7 @@ const LectureTranscriptionPage = () => {
     try {
       setIsPublishing(true);
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('lectures')
         .update({
           title: lectureTitle,

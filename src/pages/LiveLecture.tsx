@@ -181,7 +181,7 @@ const LiveLecture = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data: lectureData, error: lectureError } = await supabase
+      const { data: lectureData, error: lectureError } = await (supabase as any)
         .from('lectures')
         .insert({
           teacher_id: user.id,
