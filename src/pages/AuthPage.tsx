@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginFormData {
   email: string;
@@ -28,6 +32,9 @@ interface SignupFormData {
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [selectedRole, setSelectedRole] = useState<'student' | 'teacher'>('student');
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
   
   const loginForm = useForm<LoginFormData>();
   const signupForm = useForm<SignupFormData>({
@@ -35,6 +42,13 @@ const AuthPage = () => {
       course: 'Engenharia'
     }
   });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,17 +62,51 @@ const AuthPage = () => {
     return true;
   };
 
-  const onLoginSubmit = (data: LoginFormData) => {
-    console.log('Login attempt:', data, 'Role:', selectedRole);
-    // Redirect based on selected role
-    if (selectedRole === 'teacher') {
-      window.location.href = '/teacherdashboard';
-    } else {
-      window.location.href = '/dashboard';
+  const onLoginSubmit = async (data: LoginFormData) => {
+    setIsLoading(true);
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Email ou senha incorretos');
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
+
+      // Get user role from database
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (userError) {
+        toast.error('Erro ao buscar dados do usuário');
+        return;
+      }
+
+      // Redirect based on actual user role from database
+      if (userData.role === 'teacher') {
+        navigate('/teacherdashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+
+      toast.success('Login realizado com sucesso!');
+    } catch (error: any) {
+      toast.error('Erro ao fazer login. Tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const onSignupSubmit = (data: SignupFormData) => {
+  const onSignupSubmit = async (data: SignupFormData) => {
     if (data.password !== data.confirmPassword) {
       signupForm.setError('confirmPassword', { message: 'Senhas não coincidem' });
       return;
@@ -69,8 +117,51 @@ const AuthPage = () => {
       return;
     }
     
-    console.log('Signup attempt:', { ...data, role: selectedRole });
-    // TODO: Implement registration logic with Supabase
+    setIsLoading(true);
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: data.fullName,
+            phone: data.phone,
+            university: data.university,
+            city: data.city,
+            course: data.course,
+            period: data.period || '',
+            role: selectedRole,
+          }
+        }
+      });
+
+      if (error) {
+        if (error.message.includes('already registered')) {
+          toast.error('Este email já está cadastrado');
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
+
+      toast.success('Cadastro realizado com sucesso! Redirecionando...');
+      
+      // Redirect based on selected role
+      setTimeout(() => {
+        if (selectedRole === 'teacher') {
+          navigate('/teacherdashboard', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+      }, 1000);
+    } catch (error: any) {
+      toast.error('Erro ao criar conta. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
 
@@ -203,9 +294,10 @@ const AuthPage = () => {
 
                     <Button 
                       type="submit" 
+                      disabled={isLoading}
                       className="w-full bg-primary hover:bg-primary-light text-primary-foreground font-medium py-2.5 transition-all duration-200"
                     >
-                      Entrar
+                      {isLoading ? 'Entrando...' : 'Entrar'}
                     </Button>
                   </form>
                 ) : (
@@ -384,9 +476,10 @@ const AuthPage = () => {
 
                     <Button 
                       type="submit" 
+                      disabled={isLoading}
                       className="w-full bg-primary hover:bg-primary-light text-primary-foreground font-medium py-2.5 transition-all duration-200"
                     >
-                      Cadastrar
+                      {isLoading ? 'Cadastrando...' : 'Cadastrar'}
                     </Button>
                   </form>
                 )}
