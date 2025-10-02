@@ -69,3 +69,9 @@ verify_jwt = true
 
 [functions.generate-study-materials]
 verify_jwt = true
+
+[functions.get-teacher-dashboard-insights]
+verify_jwt = true
+
+[functions.upload-library-material]
+verify_jwt = true

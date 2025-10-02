@@ -47,6 +47,115 @@ export type Database = {
         }
         Relationships: []
       }
+      class_insights: {
+        Row: {
+          action_label: string | null
+          action_route: string | null
+          class_id: string
+          created_at: string | null
+          description: string
+          id: string
+          insight_type: string
+          title: string
+        }
+        Insert: {
+          action_label?: string | null
+          action_route?: string | null
+          class_id: string
+          created_at?: string | null
+          description: string
+          id?: string
+          insight_type: string
+          title: string
+        }
+        Update: {
+          action_label?: string | null
+          action_route?: string | null
+          class_id?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          insight_type?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_insights_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          course: string
+          created_at: string | null
+          id: string
+          name: string
+          period: string
+          teacher_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          course: string
+          created_at?: string | null
+          id?: string
+          name: string
+          period: string
+          teacher_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          course?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          period?: string
+          teacher_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      library_materials: {
+        Row: {
+          class_id: string
+          created_at: string | null
+          file_type: string
+          file_url: string
+          id: string
+          teacher_id: string
+          title: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string | null
+          file_type: string
+          file_url: string
+          id?: string
+          teacher_id: string
+          title: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          teacher_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_materials_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           city: string | null
