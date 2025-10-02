@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -170,14 +169,6 @@ const AuthPage = () => {
       <div className="flex flex-col lg:flex-row min-h-screen">
         {/* Left Panel - Modern Interactive Background (Desktop only) */}
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-slate-50">
-          {/* Gradient Blobs */}
-          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full opacity-50 blur-3xl"></div>
-          <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full opacity-40 blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full opacity-30 blur-3xl"></div>
-          
-          {/* Background Ripple Effect */}
-          <BackgroundRippleEffect />
-          
           {/* Content */}
           <div className="relative z-10 flex flex-col justify-center items-start p-12 text-slate-800 animate-fade-in">
             <div className="max-w-md">
