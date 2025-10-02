@@ -8,7 +8,6 @@ import MainLayout from '@/components/MainLayout';
 import ProactiveRecommendationWidget from '@/components/dashboard/ProactiveRecommendationWidget';
 import SmartReviewWidget from '@/components/dashboard/SmartReviewWidget';
 import GamifiedProgressTracking from '@/components/dashboard/GamifiedProgressTracking';
-import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 
 interface LearningPathItem {
   id: string;
@@ -94,26 +93,16 @@ const Dashboard = () => {
 
   return (
     <MainLayout>
-      <div className="relative min-h-screen bg-slate-50">
-        {/* Gradient Blobs */}
-        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full filter blur-3xl opacity-50" />
-        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50" />
-        <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40" />
-        
-        {/* Background Ripple Effect */}
-        <BackgroundRippleEffect />
-        
-        {/* Main Content */}
-        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-6 sm:space-y-8">
-          {/* Page Header */}
-          <div className="animate-fade-in">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2">
-              Bem-vindo de volta, <span className="text-primary">{currentUser.name}</span>!
-            </h1>
-            <p className="text-sm sm:text-base text-slate-700">
-              Continue sua jornada em engenharia. Você está fazendo um ótimo progresso!
-            </p>
-          </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-6 sm:space-y-8">
+        {/* Page Header */}
+        <div className="animate-fade-in">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2">
+            Bem-vindo de volta, <span className="text-primary">{currentUser.name}</span>!
+          </h1>
+          <p className="text-sm sm:text-base text-slate-700">
+            Continue sua jornada em engenharia. Você está fazendo um ótimo progresso!
+          </p>
+        </div>
 
         {/* LAYER 1: Proactive Action Hub */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -433,7 +422,6 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
-        </div>
         </div>
       </div>
     </MainLayout>

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { StudentLayout } from "@/components/StudentLayout";
 import Dashboard from "./pages/Dashboard";
 import LecturePage from "./pages/LecturePage";
 import LessonPlayerPage from "./pages/LessonPlayerPage";
@@ -42,23 +43,23 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           
-          {/* Student-only routes */}
-          <Route path="/dashboard" element={<ProtectedRoute role="student"><Dashboard /></ProtectedRoute>} />
-          <Route path="/lecture/:id" element={<ProtectedRoute role="student"><LecturePage /></ProtectedRoute>} />
-          <Route path="/lesson/:id" element={<ProtectedRoute role="student"><LessonPlayerPage /></ProtectedRoute>} />
-          <Route path="/internship" element={<ProtectedRoute role="student"><InternshipDashboard /></ProtectedRoute>} />
-          <Route path="/record-scenario" element={<ProtectedRoute role="student"><RecordScenario /></ProtectedRoute>} />
-          <Route path="/calendar" element={<ProtectedRoute role="student"><CalendarPage /></ProtectedRoute>} />
-          <Route path="/courses" element={<ProtectedRoute role="student"><MyCoursesPage /></ProtectedRoute>} />
-          <Route path="/quiz/:id" element={<ProtectedRoute role="student"><QuizPage /></ProtectedRoute>} />
-          <Route path="/quiz-performance" element={<ProtectedRoute role="student"><QuizPerformanceDashboard /></ProtectedRoute>} />
-          <Route path="/annotation/:id" element={<ProtectedRoute role="student"><AnnotationPage /></ProtectedRoute>} />
-          <Route path="/annotations" element={<ProtectedRoute role="student"><MyAnnotationsPage /></ProtectedRoute>} />
-          <Route path="/consultation-review/:id" element={<ProtectedRoute role="student"><ConsultationReviewPage /></ProtectedRoute>} />
-          <Route path="/library" element={<ProtectedRoute role="student"><LibraryPage /></ProtectedRoute>} />
-          <Route path="/grades" element={<ProtectedRoute role="student"><GradesPage /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute role="student"><SettingsPage /></ProtectedRoute>} />
-          <Route path="/aichat" element={<ProtectedRoute role="student"><AIChatPage /></ProtectedRoute>} />
+          {/* Student-only routes - wrapped in StudentLayout for consistent animated background */}
+          <Route path="/dashboard" element={<ProtectedRoute role="student"><StudentLayout><Dashboard /></StudentLayout></ProtectedRoute>} />
+          <Route path="/lecture/:id" element={<ProtectedRoute role="student"><StudentLayout><LecturePage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/lesson/:id" element={<ProtectedRoute role="student"><StudentLayout><LessonPlayerPage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/internship" element={<ProtectedRoute role="student"><StudentLayout><InternshipDashboard /></StudentLayout></ProtectedRoute>} />
+          <Route path="/record-scenario" element={<ProtectedRoute role="student"><StudentLayout><RecordScenario /></StudentLayout></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute role="student"><StudentLayout><CalendarPage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/courses" element={<ProtectedRoute role="student"><StudentLayout><MyCoursesPage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/quiz/:id" element={<ProtectedRoute role="student"><StudentLayout><QuizPage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/quiz-performance" element={<ProtectedRoute role="student"><StudentLayout><QuizPerformanceDashboard /></StudentLayout></ProtectedRoute>} />
+          <Route path="/annotation/:id" element={<ProtectedRoute role="student"><StudentLayout><AnnotationPage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/annotations" element={<ProtectedRoute role="student"><StudentLayout><MyAnnotationsPage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/consultation-review/:id" element={<ProtectedRoute role="student"><StudentLayout><ConsultationReviewPage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/library" element={<ProtectedRoute role="student"><StudentLayout><LibraryPage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/grades" element={<ProtectedRoute role="student"><StudentLayout><GradesPage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute role="student"><StudentLayout><SettingsPage /></StudentLayout></ProtectedRoute>} />
+          <Route path="/aichat" element={<ProtectedRoute role="student"><StudentLayout><AIChatPage /></StudentLayout></ProtectedRoute>} />
           
           {/* Teacher-only routes */}
           <Route path="/teacherdashboard" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />
