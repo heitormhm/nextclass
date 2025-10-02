@@ -8,7 +8,7 @@ import MainLayout from '@/components/MainLayout';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { InsightCard } from '@/components/InsightCard';
 import { UploadMaterialModal } from '@/components/UploadMaterialModal';
-import { LessonPlanModal } from '@/components/LessonPlanModal';
+import { LessonPlanFloatingIndicator } from '@/components/LessonPlanFloatingIndicator';
 import UniversalSchedulingModal from '@/components/UniversalSchedulingModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +36,6 @@ const TeacherDashboard = () => {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isLessonPlanModalOpen, setIsLessonPlanModalOpen] = useState(false);
   const [isSchedulingModalOpen, setIsSchedulingModalOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -164,7 +163,7 @@ const TeacherDashboard = () => {
                     Gravar Nova Aula
                   </Button>
                   <Button
-                    onClick={() => setIsLessonPlanModalOpen(true)}
+                    onClick={() => navigate('/teacher/lesson-plans/new')}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     <Brain className="h-4 w-4 mr-2" />
@@ -361,10 +360,9 @@ const TeacherDashboard = () => {
           onClose={() => setIsUploadModalOpen(false)}
           classes={classes}
         />
-        <LessonPlanModal
-          isOpen={isLessonPlanModalOpen}
-          onClose={() => setIsLessonPlanModalOpen(false)}
-        />
+        
+        <LessonPlanFloatingIndicator />
+        
         <UniversalSchedulingModal
           open={isSchedulingModalOpen}
           onOpenChange={setIsSchedulingModalOpen}

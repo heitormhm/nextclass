@@ -37,7 +37,7 @@ serve(async (req) => {
   }
 
   try {
-    const { topic, duration, notes, existingPlan, adjustmentInstruction } = await req.json();
+    const { lessonPlanId, topic, duration, notes, existingPlan, adjustmentInstruction } = await req.json();
 
     console.log('Planning lesson with Mia:', { topic, duration, hasExistingPlan: !!existingPlan });
 
@@ -145,6 +145,29 @@ O plano de aula DEVE seguir rigorosamente esta estrutura (use formatação HTML)
     const lessonPlan = data.choices[0].message.content;
 
     console.log('Lesson plan generated successfully');
+
+    // Update lesson plan in database if lessonPlanId is provided
+    if (lessonPlanId) {
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { error: updateError } = await supabase
+        .from('lesson_plans')
+        .update({
+          content: lessonPlan,
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', lessonPlanId);
+
+      if (updateError) {
+        console.error('Error updating lesson plan:', updateError);
+      } else {
+        console.log('Lesson plan updated in database');
+      }
+    }
 
     return new Response(
       JSON.stringify({ lessonPlan }),

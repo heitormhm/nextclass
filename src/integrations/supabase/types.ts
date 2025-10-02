@@ -118,6 +118,42 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_plans: {
+        Row: {
+          content: string | null
+          created_at: string
+          duration: string | null
+          id: string
+          notes: string | null
+          status: string
+          teacher_id: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          duration?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          teacher_id: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          duration?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          teacher_id?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       library_materials: {
         Row: {
           class_id: string
