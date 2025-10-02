@@ -81,3 +81,6 @@ verify_jwt = true
 
 [functions.upload-library-material]
 verify_jwt = true
+
+[functions.process-lecture-transcript]
+verify_jwt = true

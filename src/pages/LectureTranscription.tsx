@@ -1,383 +1,583 @@
-import React, { useState } from 'react';
-import { Upload, FileText, Image, Video, AudioLines, Clock, User, Edit2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  CheckCircle2, 
+  AlertCircle, 
+  Loader2, 
+  Sparkles, 
+  BookOpen, 
+  FileText,
+  Users,
+  Clock,
+  ChevronRight
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger, 
-  DialogClose 
-} from '@/components/ui/dialog';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import MainLayout from '@/components/MainLayout';
+import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface StructuredContent {
+  titulo_aula: string;
+  resumo: string;
+  topicos_principais: Array<{
+    conceito: string;
+    definicao: string;
+  }>;
+  referencias_externas: Array<{
+    titulo: string;
+    url: string;
+    tipo: string;
+  }>;
+  perguntas_revisao: Array<{
+    pergunta: string;
+    opcoes: string[];
+    resposta_correta: string;
+  }>;
+  flashcards: Array<{
+    termo: string;
+    definicao: string;
+  }>;
+}
+
+interface Lecture {
+  id: string;
+  title: string;
+  raw_transcript: string;
+  structured_content: StructuredContent | null;
+  status: 'processing' | 'ready' | 'published';
+  class_id: string | null;
+  duration: number;
+  created_at: string;
+}
 
 const LectureTranscription = () => {
-  const [lectureTitle, setLectureTitle] = useState('Análise de Circuitos - Fundamentos de Eletrônica');
-  const [lectureStatus, setLectureStatus] = useState<'draft' | 'review' | 'published'>('draft');
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{id: string, name: string, type: string}>>([]);
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
 
-  const rawTranscript = `[00:00:15] Professor: Bom dia, turma. Hoje vamos abordar um dos temas mais fundamentais da eletrônica: a análise de circuitos.
+  const [lecture, setLecture] = useState<Lecture | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<string>('');
+  const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
 
-[00:00:28] Professor: A análise de circuitos compreende todos os métodos utilizados para determinar tensões e correntes em um circuito elétrico.
+  useEffect(() => {
+    fetchLecture();
+    fetchClasses();
+  }, [id]);
 
-[00:00:45] Professor: Podemos dividir os métodos de análise em duas categorias principais: análise nodal e análise de malhas.
+  const fetchLecture = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('lectures')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-[00:01:02] Professor: Na análise nodal, aplicamos a Lei de Kirchhoff das Correntes (LKC) em cada nó do circuito.
+      if (error) throw error;
 
-[00:01:18] Professor: Já na análise de malhas, utilizamos a Lei de Kirchhoff das Tensões (LKT) em cada malha independente.
+      const lectureData: Lecture = {
+        id: data.id,
+        title: data.title,
+        raw_transcript: data.raw_transcript,
+        structured_content: data.structured_content ? data.structured_content as unknown as StructuredContent : null,
+        status: data.status as 'processing' | 'ready' | 'published',
+        class_id: data.class_id,
+        duration: data.duration,
+        created_at: data.created_at
+      };
 
-[00:01:35] Professor: É importante entender que esses métodos são complementares e podem ser aplicados conforme a complexidade do circuito.`;
+      setLecture(lectureData);
 
-  const structuredContent = `# Análise de Circuitos - Fundamentos de Eletrônica
-
-## Introdução
-A análise de circuitos é um processo fundamental que permite determinar o comportamento elétrico de qualquer sistema.
-
-## Definição
-A análise de circuitos compreende todos os métodos utilizados para determinar tensões e correntes em um circuito elétrico.
-
-## Métodos de Análise
-
-### 1. Análise Nodal
-- **Base:** Lei de Kirchhoff das Correntes (LKC)
-- **Processo:** Aplicação da LKC em cada nó
-- **Função:** Determinação das tensões nodais
-
-### 2. Análise de Malhas  
-- **Base:** Lei de Kirchhoff das Tensões (LKT)
-- **Processo:** Aplicação da LKT em malhas independentes
-- **Função:** Determinação das correntes de malha
-
-## Considerações Importantes
-- Os métodos são complementares
-- A escolha depende da complexidade do circuito
-- Sempre verificar se o circuito está em regime permanente
-
-## Pontos-Chave para Memorização
-1. Análise Nodal = LKC = Tensões
-2. Análise de Malhas = LKT = Correntes
-3. Ambos baseados nas Leis de Kirchhoff`;
-
-  const aiSummary = `Esta aula abordou os conceitos fundamentais da análise de circuitos, focando na distinção entre análise nodal e análise de malhas. Os principais pontos discutidos incluem:
-
-• Definição completa da análise de circuitos
-• Métodos de análise nodal (LKC - tensões nodais)
-• Métodos de análise de malhas (LKT - correntes de malha)
-• Complementaridade dos métodos conforme complexidade
-
-Recomendação: Adicionar material visual (diagramas de circuitos, simulações) para melhor compreensão dos conceitos.`;
-
-  const handleFileUpload = (type: string) => {
-    // Simulate file upload
-    const newFile = {
-      id: Date.now().toString(),
-      name: `material_${type}_${Date.now()}.${type === 'pdf' ? 'pdf' : type === 'image' ? 'jpg' : type === 'video' ? 'mp4' : 'mp3'}`,
-      type
-    };
-    setUploadedFiles(prev => [...prev, newFile]);
-  };
-
-  const handlePublish = () => {
-    setLectureStatus('published');
-    // Here you would typically save to backend and redirect
-    alert('Aula publicada com sucesso!');
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'bg-yellow-100 text-yellow-800';
-      case 'review': return 'bg-blue-100 text-blue-800';
-      case 'published': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      // If lecture is still processing and no structured content, trigger AI processing
+      if (lectureData.status === 'processing' && !lectureData.structured_content) {
+        processTranscript();
+      }
+    } catch (error) {
+      console.error('Error fetching lecture:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível carregar a aula",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'draft': return 'Rascunho';
-      case 'review': return 'Em Revisão';
-      case 'published': return 'Publicado';
-      default: return 'Desconhecido';
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
     }
   };
+
+  const processTranscript = async () => {
+    if (!lecture || !user) return;
+
+    setIsProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('process-lecture-transcript', {
+        body: {
+          lectureId: lecture.id,
+          transcript: lecture.raw_transcript,
+          topic: lecture.title
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.structuredContent) {
+        setLecture(prev => prev ? {
+          ...prev,
+          structured_content: data.structuredContent,
+          status: 'ready'
+        } : null);
+
+        toast({
+          title: "Processamento concluído!",
+          description: "O material didático foi gerado pela IA",
+        });
+      }
+    } catch (error) {
+      console.error('Error processing transcript:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro no processamento",
+        description: "Não foi possível processar a transcrição com IA",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!lecture || !selectedClass) {
+      toast({
+        variant: "destructive",
+        title: "Campos obrigatórios",
+        description: "Selecione uma turma antes de publicar",
+      });
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const { error } = await supabase
+        .from('lectures')
+        .update({
+          status: 'published',
+          class_id: selectedClass
+        })
+        .eq('id', lecture.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Aula publicada!",
+        description: "Os alunos já podem acessar o conteúdo",
+      });
+
+      navigate('/teacher/dashboard');
+    } catch (error) {
+      console.error('Error publishing lecture:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao publicar",
+        description: "Não foi possível publicar a aula",
+      });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}min ${secs}s`;
+  };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+          <div className="absolute inset-0 z-0">
+            <BackgroundRippleEffect className="opacity-30" />
+          </div>
+          <div className="relative z-10 text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-purple-400 mx-auto mb-4" />
+            <p className="text-white text-lg">Carregando aula...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!lecture) {
+    return (
+      <MainLayout>
+        <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+          <div className="absolute inset-0 z-0">
+            <BackgroundRippleEffect className="opacity-30" />
+          </div>
+          <div className="relative z-10 text-center">
+            <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+            <p className="text-white text-lg">Aula não encontrada</p>
+            <Button 
+              onClick={() => navigate('/teacher/dashboard')}
+              className="mt-4 bg-purple-600 hover:bg-purple-700"
+            >
+              Voltar ao Dashboard
+            </Button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-600">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-          {/* Header - Mobile optimized */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-8 mb-6 sm:mb-8">
-            <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
-                Revisão e Publicação
-              </h1>
-              <p className="text-sm sm:text-base lg:text-lg text-white/80">
-                Revise o conteúdo transcrito e publique sua aula
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-              <Badge className={getStatusColor(lectureStatus)}>
-                Status: {getStatusText(lectureStatus)}
-              </Badge>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button 
-                    className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto min-h-[44px]"
-                    disabled={lectureStatus === 'published'}
-                  >
-                    {lectureStatus === 'published' ? 'Publicado' : 'Publicar Aula'}
-                  </Button>
-                </DialogTrigger>
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4">
+        {/* Background effect */}
+        <div className="absolute inset-0 z-0">
+          <BackgroundRippleEffect className="opacity-30" />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2">
+                  Centro de Publicação Inteligente
+                </h1>
+                <p className="text-slate-400">
+                  Revise, edite e publique o material gerado pela IA
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Badge 
+                  variant="outline" 
+                  className={`
+                    ${lecture.status === 'processing' ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400' : ''}
+                    ${lecture.status === 'ready' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : ''}
+                    ${lecture.status === 'published' ? 'bg-green-500/20 border-green-500/30 text-green-400' : ''}
+                  `}
+                >
+                  {lecture.status === 'processing' && 'Processando'}
+                  {lecture.status === 'ready' && 'Pronto para Publicar'}
+                  {lecture.status === 'published' && 'Publicado'}
+                </Badge>
                 
-                <DialogContent className="bg-white max-w-sm sm:max-w-md w-[95vw] sm:w-full">
-                  <DialogHeader>
-                    <DialogTitle>Finalizar e Publicar Aula</DialogTitle>
-                    <DialogDescription>
-                      Selecione a turma e matéria antes de publicar sua aula
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="publish-class">Selecionar a Turma</Label>
-                      <select className="w-full p-3 border border-gray-300 rounded-md min-h-[44px] text-base">
-                        <option>Eletrônica - 2025/2</option>
-                        <option>Estruturas - 2025/1</option>
-                        <option>Termodinâmica - 2025/2</option>
-                      </select>
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="publish-subject">Selecionar a Matéria</Label>
-                      <select className="w-full p-3 border border-gray-300 rounded-md min-h-[44px] text-base">
-                        <option>Fundamentos de Eletrônica</option>
-                        <option>Análise de Estruturas</option>
-                        <option>Processos Termodinâmicos</option>
-                      </select>
-                    </div>
-                    
-                    <div className="flex gap-2 pt-4">
-                      <Button 
-                        className="flex-1 bg-green-600 hover:bg-green-700 min-h-[44px]"
-                        onClick={handlePublish}
-                      >
-                        Confirmar e Publicar
-                      </Button>
-                      <DialogClose asChild>
-                        <Button variant="outline" className="min-h-[44px]">Cancelar</Button>
-                      </DialogClose>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                {lecture.duration && (
+                  <Badge variant="outline" className="bg-slate-700/50 border-slate-600 text-slate-300">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {formatDuration(lecture.duration)}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Main Content - Full width on mobile */}
-            <div className="lg:col-span-2 order-2 lg:order-1">
-              {/* Material Didático - Moved to top */}
-              <Card className="bg-white shadow-lg mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Generated Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Processing State */}
+              {isProcessing && (
+                <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4">
+                      <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+                      <div>
+                        <h3 className="text-white font-semibold mb-1">
+                          Processando com IA...
+                        </h3>
+                        <p className="text-sm text-slate-400">
+                          A Gemini 2.5 Pro está analisando a transcrição e gerando material didático estruturado
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Structured Content Display */}
+              {lecture.structured_content && (
+                <>
+                  {/* Title */}
+                  <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <BookOpen className="h-5 w-5 text-purple-400" />
+                        Título da Aula
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Input
+                        value={lecture.structured_content.titulo_aula}
+                        className="bg-slate-900/50 border-slate-600 text-white text-lg font-semibold"
+                        readOnly
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Summary */}
+                  <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-purple-400" />
+                        Resumo da Aula
+                      </CardTitle>
+                      <CardDescription className="text-slate-400">
+                        Síntese gerada automaticamente pela IA
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                        <p className="text-slate-300 leading-relaxed">
+                          {lecture.structured_content.resumo}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Main Topics */}
+                  <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-purple-400" />
+                        Conceitos Fundamentais
+                      </CardTitle>
+                      <CardDescription className="text-slate-400">
+                        Tópicos principais identificados pela IA
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-96">
+                        <div className="space-y-4 pr-4">
+                          {lecture.structured_content.topicos_principais.map((topico, idx) => (
+                            <div 
+                              key={idx}
+                              className="bg-slate-900/50 rounded-lg p-4 border border-slate-700"
+                            >
+                              <h4 className="text-purple-300 font-semibold mb-2">
+                                {topico.conceito}
+                              </h4>
+                              <p className="text-slate-300 text-sm leading-relaxed">
+                                {topico.definicao}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+
+                  {/* References */}
+                  {lecture.structured_content.referencias_externas.length > 0 && (
+                    <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-white">
+                          Referências Sugeridas
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {lecture.structured_content.referencias_externas.map((ref, idx) => (
+                            <a
+                              key={idx}
+                              href={ref.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 bg-slate-900/50 rounded-lg p-3 border border-slate-700 hover:border-purple-500 transition-colors group"
+                            >
+                              <Badge variant="outline" className="bg-purple-500/20 border-purple-500/30 text-purple-400">
+                                {ref.tipo}
+                              </Badge>
+                              <span className="text-slate-300 group-hover:text-purple-400 transition-colors flex-1">
+                                {ref.titulo}
+                              </span>
+                              <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-purple-400" />
+                            </a>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Quiz Questions */}
+                  <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white">
+                        Perguntas de Revisão
+                      </CardTitle>
+                      <CardDescription className="text-slate-400">
+                        {lecture.structured_content.perguntas_revisao.length} perguntas práticas geradas
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-96">
+                        <div className="space-y-6 pr-4">
+                          {lecture.structured_content.perguntas_revisao.map((pergunta, idx) => (
+                            <div 
+                              key={idx}
+                              className="bg-slate-900/50 rounded-lg p-4 border border-slate-700"
+                            >
+                              <p className="text-white font-medium mb-3">
+                                {idx + 1}. {pergunta.pergunta}
+                              </p>
+                              <div className="space-y-2">
+                                {pergunta.opcoes.map((opcao, optIdx) => (
+                                  <div 
+                                    key={optIdx}
+                                    className={`p-2 rounded border ${
+                                      opcao === pergunta.resposta_correta
+                                        ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                                        : 'bg-slate-800/50 border-slate-600 text-slate-300'
+                                    }`}
+                                  >
+                                    {opcao}
+                                    {opcao === pergunta.resposta_correta && (
+                                      <CheckCircle2 className="h-4 w-4 inline ml-2" />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+
+                  {/* Flashcards */}
+                  <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white">
+                        Flashcards Gerados
+                      </CardTitle>
+                      <CardDescription className="text-slate-400">
+                        {lecture.structured_content.flashcards.length} flashcards para memorização
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {lecture.structured_content.flashcards.map((card, idx) => (
+                          <div 
+                            key={idx}
+                            className="bg-slate-900/50 rounded-lg p-4 border border-slate-700"
+                          >
+                            <h4 className="text-purple-300 font-semibold mb-2 text-sm">
+                              {card.termo}
+                            </h4>
+                            <p className="text-slate-400 text-xs leading-relaxed">
+                              {card.definicao}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </div>
+
+            {/* Right Column - Actions */}
+            <div className="space-y-6">
+              {/* Publication Settings */}
+              <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700 sticky top-4">
                 <CardHeader>
-                  <CardTitle className="text-lg">Material Didático</CardTitle>
-                  <CardDescription>
-                    Adicione arquivos complementares à sua aula
-                  </CardDescription>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Users className="h-5 w-5 text-purple-400" />
+                    Configurações de Publicação
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Single Upload Button */}
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-primary cursor-pointer transition-colors">
-                        <div className="text-center">
-                          <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                          <p className="text-sm text-gray-600 font-medium">Adicionar Arquivos</p>
-                          <p className="text-xs text-gray-400">Clique para selecionar arquivos</p>
-                        </div>
-                      </div>
-                    </DialogTrigger>
-                    
-                    <DialogContent className="bg-white max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Adicionar Material Didático</DialogTitle>
-                        <DialogDescription>
-                          Selecione os arquivos que deseja anexar à aula
-                        </DialogDescription>
-                      </DialogHeader>
-                      
-                      <div className="space-y-4">
-                        {/* Upload Area */}
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                          <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                          <p className="text-sm font-medium mb-2">Arraste arquivos aqui ou clique para selecionar</p>
-                          <p className="text-xs text-gray-500">PDFs, imagens, vídeos e áudios são aceitos</p>
-                        </div>
-                        
-                        {/* Simulated File List */}
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-gray-700">Arquivos selecionados:</h4>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
-                              <FileText className="h-4 w-4 text-red-500" />
-                              <span className="flex-1">Apresentacao_Eletronica.pdf</span>
-                              <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded">PDF</span>
-                            </div>
-                            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
-                              <Image className="h-4 w-4 text-blue-500" />
-                              <span className="flex-1">Circuito_Exemplo.png</span>
-                              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">Imagem</span>
-                            </div>
-                            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
-                              <AudioLines className="h-4 w-4 text-green-500" />
-                              <span className="flex-1">Teste_Audio_Circuito.mp3</span>
-                              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">Áudio</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Actions */}
-                        <div className="flex gap-2 pt-4">
-                          <Button 
-                            className="flex-1 bg-primary hover:bg-primary/90"
-                            onClick={() => {
-                              // Simulate adding files to the main list
-                              const newFiles = [
-                                 { id: '1', name: 'Apresentacao_Eletronica.pdf', type: 'pdf' },
-                                 { id: '2', name: 'Circuito_Exemplo.png', type: 'image' },
-                                 { id: '3', name: 'Teste_Audio_Circuito.mp3', type: 'audio' }
-                              ];
-                              setUploadedFiles(prev => [...prev, ...newFiles]);
-                            }}
+                  <div className="space-y-2">
+                    <Label htmlFor="class-select" className="text-slate-300">
+                      Selecionar Turma *
+                    </Label>
+                    <Select value={selectedClass} onValueChange={setSelectedClass}>
+                      <SelectTrigger 
+                        id="class-select"
+                        className="bg-slate-900/50 border-slate-600 text-white"
+                      >
+                        <SelectValue placeholder="Escolha uma turma" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        {classes.map((cls) => (
+                          <SelectItem 
+                            key={cls.id} 
+                            value={cls.id}
+                            className="text-white focus:bg-slate-700"
                           >
-                            Anexar Arquivos
-                          </Button>
-                          <DialogClose asChild>
-                            <Button variant="outline">Cancelar</Button>
-                          </DialogClose>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                            {cls.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                  {/* Uploaded Files List */}
-                  {uploadedFiles.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-gray-700">Arquivos Carregados:</h4>
-                      {uploadedFiles.map((file) => (
-                        <div key={file.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
-                          {file.type === 'pdf' && <FileText className="h-4 w-4 text-red-500" />}
-                          {file.type === 'image' && <Image className="h-4 w-4 text-green-500" />}
-                          {file.type === 'video' && <Video className="h-4 w-4 text-blue-500" />}
-                          {file.type === 'audio' && <AudioLines className="h-4 w-4 text-purple-500" />}
-                          <span className="flex-1 truncate">{file.name}</span>
-                        </div>
-                      ))}
-                    </div>
+                  <Button
+                    onClick={handlePublish}
+                    disabled={
+                      isPublishing || 
+                      lecture.status === 'published' || 
+                      lecture.status === 'processing' ||
+                      !selectedClass
+                    }
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-lg shadow-green-500/20 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    {isPublishing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Publicando...
+                      </>
+                    ) : lecture.status === 'published' ? (
+                      <>
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Publicado
+                      </>
+                    ) : (
+                      'Publicar Aula'
+                    )}
+                  </Button>
+
+                  {lecture.status === 'processing' && (
+                    <p className="text-xs text-yellow-400 text-center">
+                      Aguarde o processamento da IA concluir
+                    </p>
                   )}
                 </CardContent>
               </Card>
-
-              <Card className="bg-white shadow-lg">
-                <CardHeader>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Label htmlFor="lecture-title">Título da Aula</Label>
-                  </div>
-                  <Input
-                    id="lecture-title"
-                    value={lectureTitle}
-                    onChange={(e) => setLectureTitle(e.target.value)}
-                    className="text-lg font-semibold"
-                  />
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="raw" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 h-auto p-1">
-                      <TabsTrigger value="raw" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm whitespace-nowrap">
-                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-                        <span className="text-center truncate">Transcrição</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="structured" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm whitespace-nowrap">
-                        <FileText className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-                        <span className="text-center truncate">Estruturado</span>
-                      </TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="raw" className="mt-6">
-                      <div className="space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-600 mb-4">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4" />
-                            <span>Transcrição com timestamps e identificação de falante</span>
-                          </div>
-                          <Button variant="ghost" size="sm" className="self-start sm:self-auto">
-                            <Edit2 className="h-4 w-4 mr-1" />
-                            Editar
-                          </Button>
-                        </div>
-                        <div className="p-4 border border-gray-200 rounded-lg">
-                          <Textarea
-                            value={rawTranscript}
-                            className="min-h-[300px] sm:min-h-[400px] font-mono text-sm border-0 p-0 resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                            placeholder="A transcrição aparecerá aqui..."
-                          />
-                        </div>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="structured" className="mt-6">
-                      <div className="space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-600 mb-4">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            <span>Conteúdo organizado automaticamente pela IA</span>
-                          </div>
-                          <Button variant="ghost" size="sm" className="self-start sm:self-auto">
-                            <Edit2 className="h-4 w-4 mr-1" />
-                            Editar
-                          </Button>
-                        </div>
-                        <div className="p-4 border border-gray-200 rounded-lg">
-                          <Textarea
-                            value={structuredContent}
-                            className="min-h-[300px] sm:min-h-[400px] text-sm border-0 p-0 resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                            placeholder="O conteúdo estruturado aparecerá aqui..."
-                          />
-                        </div>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Sidebar - Below main content on mobile */}
-            <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
-              {/* AI Summary */}
-              <Card className="bg-white shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-lg">Resumo da IA</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {aiSummary}
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Material section removed as it's now at the top */}
             </div>
           </div>
         </div>
-        
-        {/* Add bottom padding to prevent content being hidden by floating menus */}
-        <div className="h-20 sm:h-16"></div>
       </div>
     </MainLayout>
   );
