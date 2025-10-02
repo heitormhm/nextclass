@@ -121,7 +121,7 @@ const ProactiveRecommendationWidget = () => {
   }
 
   return (
-    <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in font-['Manrope']">
+    <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in font-['Manrope'] flex flex-col min-h-[280px]">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 flex-1">
@@ -145,7 +145,7 @@ const ProactiveRecommendationWidget = () => {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-5 pt-2">
+      <CardContent className="space-y-5 pt-2 flex flex-col justify-between flex-1">
         <div className="bg-gradient-to-br from-pink-50/50 to-purple-50/50 p-5 rounded-xl border border-pink-100/50">
           <p className="text-base font-bold text-gray-800 leading-relaxed">
             {recommendation.text}

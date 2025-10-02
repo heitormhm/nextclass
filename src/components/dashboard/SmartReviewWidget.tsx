@@ -57,7 +57,7 @@ const SmartReviewWidget = () => {
   }
 
   return (
-    <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in font-['Manrope']">
+    <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in font-['Manrope'] flex flex-col min-h-[280px]">
       <CardHeader className="pb-4">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -71,23 +71,25 @@ const SmartReviewWidget = () => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-5 pt-2">
-        <div className="bg-gradient-to-br from-pink-50/50 to-purple-50/50 p-6 rounded-xl border border-pink-100/50">
-          <div className="text-center space-y-2">
-            <div className="text-6xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-              {dueFlashcardsCount}
+      <CardContent className="space-y-5 pt-2 flex flex-col justify-between flex-1">
+        <div className="space-y-4">
+          <div className="bg-gradient-to-br from-pink-50/50 to-purple-50/50 p-6 rounded-xl border border-pink-100/50">
+            <div className="text-center space-y-2">
+              <div className="text-6xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                {dueFlashcardsCount}
+              </div>
+              <p className="text-base font-medium text-gray-600">
+                flashcards para revisar hoje
+              </p>
             </div>
-            <p className="text-base font-medium text-gray-600">
-              flashcards para revisar hoje
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-gray-500">
+              {dueFlashcardsCount > 0 
+                ? "Você tem flashcards aguardando revisão! Vamos começar." 
+                : "Parabéns! Você está em dia com suas revisões."}
             </p>
           </div>
-        </div>
-        <div className="text-center">
-          <p className="text-sm text-gray-500">
-            {dueFlashcardsCount > 0 
-              ? "Você tem flashcards aguardando revisão! Vamos começar." 
-              : "Parabéns! Você está em dia com suas revisões."}
-          </p>
         </div>
         <Link to="/annotations" className="block">
           <Button 
