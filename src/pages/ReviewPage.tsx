@@ -36,7 +36,12 @@ const ReviewPage = () => {
       setIsLoading(true);
       const { data, error } = await supabase.functions.invoke('get-due-reviews');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error from edge function:', error);
+        toast.error('Erro ao carregar flashcards para revisão');
+        setIsCompleted(true); // Show completion screen on error
+        return;
+      }
 
       if (data?.reviews && data.reviews.length > 0) {
         setReviews(data.reviews);
@@ -46,6 +51,7 @@ const ReviewPage = () => {
     } catch (error) {
       console.error('Error fetching reviews:', error);
       toast.error('Erro ao carregar flashcards para revisão');
+      setIsCompleted(true); // Show completion screen on error
     } finally {
       setIsLoading(false);
     }
@@ -153,6 +159,47 @@ const ReviewPage = () => {
 
   const currentReview = reviews[currentIndex];
   const progress = ((currentIndex + 1) / reviews.length) * 100;
+
+  // Safety check - if no current review, show completion screen
+  if (!currentReview) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className="max-w-lg w-full border-0 shadow-lg bg-white/60 backdrop-blur-xl">
+            <CardContent className="p-8 text-center">
+              <div className="mb-6">
+                <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="h-10 w-10 text-success" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">Tudo pronto!</h2>
+                <p className="text-foreground-muted">
+                  Você não tem flashcards para revisar no momento.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  <Home className="h-4 w-4 mr-2" />
+                  Dashboard
+                </Button>
+                <Button
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                  onClick={() => navigate('/courses')}
+                >
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Ver Cursos
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
