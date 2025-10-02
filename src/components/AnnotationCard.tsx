@@ -1,32 +1,33 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Eye, Share2, Trash2 } from "lucide-react";
+import { FileText, Eye, ExternalLink, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 interface AnnotationCardProps {
   id: string;
   title: string;
-  source: string;
-  createdAt?: string;
-  preview?: string;
-  onDelete: (id: string) => void;
-  onShare: (id: string) => void;
+  course: string;
+  lectureId: string;
+  lectureTitle: string;
+  timestamp: string;
+  tags: string[];
+  createdAt: string;
+  preview: string;
 }
 
-const AnnotationCard = ({ id, title, source, createdAt, preview, onDelete, onShare }: AnnotationCardProps) => {
+const AnnotationCard = ({ 
+  id, 
+  title, 
+  course, 
+  lectureId, 
+  lectureTitle, 
+  timestamp, 
+  tags, 
+  createdAt, 
+  preview 
+}: AnnotationCardProps) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -34,53 +35,41 @@ const AnnotationCard = ({ id, title, source, createdAt, preview, onDelete, onSha
     navigate(`/annotation/${id}`);
   };
 
-  const handleDelete = () => {
-    onDelete(id);
+  const handleSourceClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Navigate to lecture page with timestamp query parameter
+    navigate(`/lecture/${lectureId}?timestamp=${timestamp}`);
   };
 
-  const handleShare = () => {
-    onShare(id);
-  };
-
-  const getSourceColor = (source: string) => {
-    switch (source) {
-      case 'Workshop Prático':
-        return 'bg-blue-500/10 text-blue-700 border-blue-200';
-      case 'Curso Online':
-        return 'bg-green-500/10 text-green-700 border-green-200';
-      case 'Estudo de Caso':
-        return 'bg-purple-500/10 text-purple-700 border-purple-200';
-      default:
-        return 'bg-gray-500/10 text-gray-700 border-gray-200';
-    }
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '';
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return `Atualizado em ${date.toLocaleDateString('pt-BR')}`;
+    return date.toLocaleDateString('pt-BR', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric' 
+    });
   };
 
   return (
     <Card 
-      className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50 cursor-pointer"
+      className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50 cursor-pointer bg-white/60 backdrop-blur-xl border-0"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleOpen}
     >
       <CardContent className="p-5">
-        {/* Source Badge at top */}
+        {/* Course Badge */}
         <div className="flex justify-between items-start mb-3">
           <Badge 
-            variant="outline" 
-            className={`text-xs px-2 py-1 border ${getSourceColor(source)}`}
+            variant="secondary" 
+            className="text-xs px-2 py-1"
           >
-            {source}
+            {course}
           </Badge>
           
-          {/* Action Buttons - Appear on hover */}
+          {/* View Button - Appears on hover */}
           <div 
-            className={`flex gap-1 transition-all duration-300 ${
+            className={`transition-all duration-300 ${
               isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -93,41 +82,6 @@ const AnnotationCard = ({ id, title, source, createdAt, preview, onDelete, onSha
             >
               <Eye className="h-3 w-3" />
             </Button>
-            
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleShare}
-              className="h-7 w-7 p-0 hover:bg-secondary hover:text-secondary-foreground"
-            >
-              <Share2 className="h-3 w-3" />
-            </Button>
-            
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Excluir anotação</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tem certeza que deseja excluir "{title}"? Esta ação não pode ser desfeita.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Excluir
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
         </div>
 
@@ -142,19 +96,42 @@ const AnnotationCard = ({ id, title, source, createdAt, preview, onDelete, onSha
             </h3>
             
             {/* Content Preview */}
-            {preview && (
-              <p className="text-sm text-foreground-muted leading-relaxed line-clamp-2 mb-3">
-                {preview}
-              </p>
-            )}
-            
-            {/* Last Modified Date */}
-            {createdAt && (
-              <p className="text-xs text-foreground-muted font-medium">
-                {formatDate(createdAt)}
-              </p>
-            )}
+            <p className="text-sm text-foreground-muted leading-relaxed line-clamp-2 mb-3">
+              {preview}
+            </p>
           </div>
+        </div>
+
+        {/* Tags */}
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {tags.map(tag => (
+              <Badge 
+                key={tag} 
+                variant="outline" 
+                className="text-xs px-2 py-0.5 bg-background/50"
+              >
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        {/* Footer with back-link and date */}
+        <div className="flex items-center justify-between pt-3 border-t">
+          <button
+            onClick={handleSourceClick}
+            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors group/link"
+          >
+            <Clock className="h-3 w-3" />
+            <span className="font-medium">Fonte: {lectureTitle}</span>
+            <span className="text-foreground-muted">• {timestamp}</span>
+            <ExternalLink className="h-3 w-3 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+          </button>
+          
+          <p className="text-xs text-foreground-muted">
+            {formatDate(createdAt)}
+          </p>
         </div>
       </CardContent>
     </Card>
