@@ -163,7 +163,7 @@ const TeacherDashboard = () => {
                     Gravar Nova Aula
                   </Button>
                   <Button
-                    onClick={() => navigate('/teacher/lesson-plans/new')}
+                    onClick={() => navigate('/teacher/lesson-plans')}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     <Brain className="h-4 w-4 mr-2" />

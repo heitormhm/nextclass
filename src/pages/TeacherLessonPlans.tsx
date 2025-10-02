@@ -114,7 +114,7 @@ const TeacherLessonPlans = () => {
                 <Sparkles className="h-6 w-6 text-purple-400" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">Meus Planos de Aula</h1>
+                <h1 className="text-3xl font-bold text-white">Planos de Aula</h1>
                 <p className="text-gray-400">Criados com a assistência da Mia</p>
               </div>
             </div>
