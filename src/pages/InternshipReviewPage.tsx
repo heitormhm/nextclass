@@ -165,18 +165,12 @@ const InternshipReviewPage = () => {
               </CardHeader>
               <CardContent className="p-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <div className="border-b px-6">
-                    <TabsList className="bg-transparent border-0 w-full justify-start">
-                      <TabsTrigger 
-                        value="report"
-                        className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                      >
+                  <div className="px-6 pt-6">
+                    <TabsList className="w-full justify-start">
+                      <TabsTrigger value="report">
                         Relatório do Projeto
                       </TabsTrigger>
-                      <TabsTrigger 
-                        value="transcription"
-                        className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                      >
+                      <TabsTrigger value="transcription">
                         Transcrição da Análise
                       </TabsTrigger>
                     </TabsList>
