@@ -6,7 +6,8 @@ import {
   Edit3, 
   Calendar,
   MapPin,
-  Briefcase
+  Briefcase,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,11 +15,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const InternshipReviewPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('report');
+  const [isCreatingAnnotation, setIsCreatingAnnotation] = useState(false);
 
   // Mock data - in real app, fetch from database using the id
   const scenarioData = {
@@ -88,8 +91,53 @@ const InternshipReviewPage = () => {
     toast.success('Relatório exportado com sucesso!');
   };
 
-  const handleEdit = () => {
-    toast.info('Funcionalidade de edição em desenvolvimento');
+  const handleEdit = async () => {
+    setIsCreatingAnnotation(true);
+    
+    try {
+      // Get the current user session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        toast.error('Você precisa estar autenticado para criar anotações');
+        setIsCreatingAnnotation(false);
+        return;
+      }
+
+      // Prepare the title and content for the annotation
+      const annotationTitle = `Anotações sobre: ${scenarioData.case}`;
+      const annotationContent = scenarioData.reportContent;
+
+      // Call the edge function to create the annotation
+      const { data, error } = await supabase.functions.invoke('create-annotation-from-report', {
+        body: {
+          title: annotationTitle,
+          content: annotationContent,
+          sourceType: 'internship_report',
+          sourceId: id,
+        },
+      });
+
+      if (error) {
+        console.error('Error creating annotation:', error);
+        toast.error('Erro ao criar anotação. Tente novamente.');
+        setIsCreatingAnnotation(false);
+        return;
+      }
+
+      if (data?.id) {
+        toast.success('Anotação criada com sucesso!');
+        // Redirect to the annotation edit page
+        navigate(`/annotation/${data.id}`);
+      } else {
+        toast.error('Erro ao criar anotação. Tente novamente.');
+        setIsCreatingAnnotation(false);
+      }
+    } catch (error) {
+      console.error('Unexpected error creating annotation:', error);
+      toast.error('Erro inesperado. Tente novamente.');
+      setIsCreatingAnnotation(false);
+    }
   };
 
   return (
@@ -208,10 +256,20 @@ const InternshipReviewPage = () => {
                   <Button
                     variant="outline"
                     onClick={handleEdit}
+                    disabled={isCreatingAnnotation}
                     className="gap-2"
                   >
-                    <Edit3 className="h-4 w-4" />
-                    Editar Relatório
+                    {isCreatingAnnotation ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Criando Anotação...
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="h-4 w-4" />
+                        Criar Anotação
+                      </>
+                    )}
                   </Button>
                   <Button
                     onClick={handleExport}

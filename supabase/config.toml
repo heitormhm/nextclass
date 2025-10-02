@@ -63,3 +63,6 @@ verify_jwt = true
 
 [functions.generate-quiz]
 verify_jwt = true
+
+[functions.create-annotation-from-report]
+verify_jwt = true

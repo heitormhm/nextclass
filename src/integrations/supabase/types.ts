@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      annotations: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          source_id: string | null
+          source_type: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          source_id?: string | null
+          source_type?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          source_id?: string | null
+          source_type?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           city: string | null
