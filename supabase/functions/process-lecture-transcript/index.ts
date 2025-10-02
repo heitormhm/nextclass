@@ -35,29 +35,30 @@ serve(async (req) => {
     const systemPrompt = `Você é um assistente de IA pedagógico, especialista em transformar transcrições de aulas de engenharia em material de estudo didático e envolvente para estudantes universitários.
 
 DIRETRIZES:
-1. Filtre hesitações, palavras de preenchimento ("uhm", "então...", "tipo assim"), repetições e conversas fora do tópico
-2. Crie um resumo conciso destacando objetivos de aprendizagem e conclusões principais
-3. Identifique conceitos fundamentais com definições claras extraídas do conteúdo
-4. Sugira 2-3 referências externas válidas e de alta qualidade (artigos acadêmicos, documentação oficial, vídeos educacionais)
-5. Formule 9 a 11 perguntas de múltipla escolha práticas que exijam aplicação dos conceitos
-6. Crie flashcards (termo e definição) baseados nos conceitos-chave
+1. GERE UM TÍTULO AUTOMÁTICO: Analise os temas centrais da transcrição e crie um título conciso e descritivo
+2. Filtre hesitações, palavras de preenchimento ("uhm", "então...", "tipo assim"), repetições e conversas fora do tópico
+3. Crie um resumo conciso destacando objetivos de aprendizagem e conclusões principais
+4. Identifique conceitos fundamentais com definições claras extraídas do conteúdo
+5. Sugira 2-3 referências externas VÁLIDAS e de alta qualidade (priorize artigos científicos, livros de referência e documentação técnica oficial)
+6. Formule 9 a 11 perguntas de múltipla escolha que apresentem cenários práticos ou problemas que exijam aplicação dos conceitos
+7. Crie flashcards (termo e definição) baseados nos conceitos-chave
 
 IMPORTANTE: Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
-    const userPrompt = `Analise esta transcrição de aula sobre ${topic} e gere material didático estruturado:
+    const userPrompt = `Analise esta transcrição de aula e gere material didático estruturado:
 
 TRANSCRIÇÃO:
 ${transcript}
 
 Retorne um JSON com esta estrutura exata:
 {
-  "titulo_aula": "string",
+  "titulo_aula": "string (gere automaticamente com base no conteúdo)",
   "resumo": "string",
   "topicos_principais": [
     { "conceito": "string", "definicao": "string" }
   ],
   "referencias_externas": [
-    { "titulo": "string", "url": "string", "tipo": "artigo/vídeo/documentação" }
+    { "titulo": "string", "url": "string (URL válida)", "tipo": "artigo/livro/documentação" }
   ],
   "perguntas_revisao": [
     { "pergunta": "string", "opcoes": ["A", "B", "C", "D"], "resposta_correta": "string" }
