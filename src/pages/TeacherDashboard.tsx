@@ -125,8 +125,15 @@ const TeacherDashboard = () => {
   return (
     <MainLayout>
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
-        {/* Animated Background */}
+        {/* Animated Background with Ripple Effect */}
         <BackgroundRippleEffect className="opacity-30" />
+        
+        {/* Gradient Blobs for Depth */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl" />
+        </div>
 
         {/* Main Content */}
         <div className="relative z-10 p-6 max-w-[1600px] mx-auto">
