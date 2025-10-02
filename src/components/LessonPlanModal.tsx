@@ -1,14 +1,20 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Copy, Download, Loader2 } from "lucide-react";
+import { Sparkles, Copy, Download, Loader2, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 interface LessonPlanModalProps {
   isOpen: boolean;
@@ -20,9 +26,17 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
   const [duration, setDuration] = useState("");
   const [notes, setNotes] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [lessonPlan, setLessonPlan] = useState<string | null>(null);
-  const [adjustmentInstruction, setAdjustmentInstruction] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [currentMessage, setCurrentMessage] = useState("");
+  const [showInitialForm, setShowInitialForm] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const handleGenerate = async () => {
     if (!topic) {
@@ -34,7 +48,15 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
       return;
     }
 
+    const userMessage: Message = {
+      role: 'user',
+      content: `Tópico: ${topic}\nDuração: ${duration || 'Não especificada'}\nNotas: ${notes || 'Nenhuma'}`
+    };
+
+    setMessages([userMessage]);
+    setShowInitialForm(false);
     setIsGenerating(true);
+
     try {
       const { data, error } = await supabase.functions.invoke('plan-lesson-with-mia', {
         body: { topic, duration, notes }
@@ -42,7 +64,12 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
 
       if (error) throw error;
       
-      setLessonPlan(data.lessonPlan);
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.lessonPlan
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
       
       toast({
         title: "Plano de aula gerado",
@@ -60,29 +87,36 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
     }
   };
 
-  const handleAdjust = async () => {
-    if (!adjustmentInstruction.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Campo obrigatório",
-        description: "Por favor, insira uma instrução de ajuste.",
-      });
-      return;
-    }
+  const handleSendMessage = async () => {
+    if (!currentMessage.trim() || isGenerating) return;
 
+    const userMessage: Message = {
+      role: 'user',
+      content: currentMessage
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setCurrentMessage("");
     setIsGenerating(true);
+
     try {
+      const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
+      
       const { data, error } = await supabase.functions.invoke('plan-lesson-with-mia', {
         body: { 
-          existingPlan: lessonPlan, 
-          adjustmentInstruction 
+          existingPlan: lastAssistantMessage?.content, 
+          adjustmentInstruction: currentMessage 
         }
       });
 
       if (error) throw error;
       
-      setLessonPlan(data.lessonPlan);
-      setAdjustmentInstruction("");
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.lessonPlan
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
       
       toast({
         title: "Plano ajustado",
@@ -101,8 +135,11 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
   };
 
   const handleCopy = () => {
-    if (lessonPlan) {
-      navigator.clipboard.writeText(lessonPlan);
+    const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
+    if (lastAssistantMessage) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = lastAssistantMessage.content;
+      navigator.clipboard.writeText(tempDiv.innerText);
       toast({
         title: "Copiado!",
         description: "O plano de aula foi copiado para a área de transferência.",
@@ -111,7 +148,8 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
   };
 
   const handleDownloadPDF = async () => {
-    if (!lessonPlan) return;
+    const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
+    if (!lastAssistantMessage) return;
 
     try {
       const tempDiv = document.createElement('div');
@@ -122,7 +160,7 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
       tempDiv.style.backgroundColor = 'white';
       tempDiv.style.color = 'black';
       tempDiv.style.fontFamily = 'Arial, sans-serif';
-      tempDiv.innerHTML = lessonPlan.replace(/\n/g, '<br>');
+      tempDiv.innerHTML = lastAssistantMessage.content;
       document.body.appendChild(tempDiv);
 
       const canvas = await html2canvas(tempDiv, {
@@ -173,14 +211,15 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
     setTopic("");
     setDuration("");
     setNotes("");
-    setLessonPlan(null);
-    setAdjustmentInstruction("");
+    setMessages([]);
+    setCurrentMessage("");
+    setShowInitialForm(true);
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-6xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-400" />
@@ -188,7 +227,7 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
           </DialogTitle>
         </DialogHeader>
         
-        {!lessonPlan ? (
+        {showInitialForm ? (
           <div className="space-y-4">
             <div>
               <Label htmlFor="topic">Tópico da Aula</Label>
@@ -241,61 +280,79 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Plano de Aula Gerado */}
-            <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-              <div 
-                className="prose prose-invert max-w-none whitespace-pre-wrap text-sm"
-                style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-              >
-                {lessonPlan}
+          <div className="flex flex-col flex-1 min-h-0 space-y-4">
+            {/* Chat Messages Area */}
+            <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
+              <div className="space-y-4">
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg p-4 ${
+                        message.role === 'user'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-800 text-white border border-gray-700'
+                      }`}
+                    >
+                      {message.role === 'assistant' ? (
+                        <div 
+                          className="prose prose-invert prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: message.content }}
+                        />
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {isGenerating && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-800 text-white border border-gray-700 rounded-lg p-4">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+            </ScrollArea>
 
-            {/* Botões de Ação */}
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={handleCopy} className="border-gray-700 text-white hover:bg-gray-800">
-                <Copy className="h-4 w-4 mr-2" />
-                Copiar Plano
-              </Button>
-              <Button variant="outline" onClick={handleDownloadPDF} className="border-gray-700 text-white hover:bg-gray-800">
-                <Download className="h-4 w-4 mr-2" />
-                Baixar PDF
-              </Button>
-              <Button variant="outline" onClick={handleClose} className="border-gray-700 text-white hover:bg-gray-800">
-                Fechar
-              </Button>
-            </div>
-
-            {/* Copiloto de IA */}
-            <div className="border-t border-gray-700 pt-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-400" />
-                Ajustar com o Copiloto de IA
-              </h3>
-              <div className="space-y-3">
-                <Textarea
-                  value={adjustmentInstruction}
-                  onChange={(e) => setAdjustmentInstruction(e.target.value)}
-                  placeholder="Ex: Torne o esboço mais detalhado ou Adicione uma atividade prática"
-                  className="bg-gray-800 border-gray-700 min-h-[80px]"
-                  disabled={isGenerating}
-                />
-                <Button 
-                  onClick={handleAdjust} 
-                  disabled={isGenerating}
-                  className="w-full bg-purple-600 hover:bg-purple-700"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Ajustando...
-                    </>
-                  ) : (
-                    "Ajustar Plano"
-                  )}
+            {/* Action Buttons */}
+            {messages.some(m => m.role === 'assistant') && (
+              <div className="flex gap-2 justify-end border-t border-gray-700 pt-4">
+                <Button variant="outline" onClick={handleCopy} className="border-gray-700 text-white hover:bg-gray-800">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar Plano
+                </Button>
+                <Button variant="outline" onClick={handleDownloadPDF} className="border-gray-700 text-white hover:bg-gray-800">
+                  <Download className="h-4 w-4 mr-2" />
+                  Baixar PDF
                 </Button>
               </div>
+            )}
+
+            {/* Chat Input */}
+            <div className="flex gap-2">
+              <Textarea
+                value={currentMessage}
+                onChange={(e) => setCurrentMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                placeholder="Digite sua mensagem para ajustar o plano de aula..."
+                className="bg-gray-800 border-gray-700 min-h-[60px] resize-none"
+                disabled={isGenerating}
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={isGenerating || !currentMessage.trim()}
+                className="bg-purple-600 hover:bg-purple-700 self-end"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         )}
