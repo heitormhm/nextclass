@@ -10,6 +10,7 @@ import { InsightCard } from '@/components/InsightCard';
 import { UploadMaterialModal } from '@/components/UploadMaterialModal';
 import { LessonPlanFloatingIndicator } from '@/components/LessonPlanFloatingIndicator';
 import UniversalSchedulingModal from '@/components/UniversalSchedulingModal';
+import AnnouncementModal from '@/components/AnnouncementModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -37,6 +38,7 @@ const TeacherDashboard = () => {
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSchedulingModalOpen, setIsSchedulingModalOpen] = useState(false);
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -184,7 +186,7 @@ const TeacherDashboard = () => {
                     Agendar Evento
                   </Button>
                   <Button
-                    onClick={() => toast({ title: "Em breve", description: "Funcionalidade em desenvolvimento" })}
+                    onClick={() => setIsAnnouncementModalOpen(true)}
                     className="bg-pink-600 hover:bg-pink-700"
                   >
                     <Megaphone className="h-4 w-4 mr-2" />
@@ -366,6 +368,12 @@ const TeacherDashboard = () => {
         <UniversalSchedulingModal
           open={isSchedulingModalOpen}
           onOpenChange={setIsSchedulingModalOpen}
+        />
+        
+        <AnnouncementModal
+          open={isAnnouncementModalOpen}
+          onOpenChange={setIsAnnouncementModalOpen}
+          classes={classes}
         />
       </div>
     </MainLayout>
