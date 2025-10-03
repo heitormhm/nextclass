@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
 import UniversalSchedulingModal from '@/components/UniversalSchedulingModal';
+import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 
 interface CalendarEvent {
   id: string;
@@ -84,13 +85,13 @@ const TeacherCalendar = () => {
   const getEventTypeColor = (type: string) => {
     switch (type) {
       case 'deadline':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-500/20 text-red-300 border-red-500/30';
       case 'meeting':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
       case 'lecture':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-500/20 text-green-300 border-green-500/30';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
     }
   };
 
@@ -141,14 +142,24 @@ const TeacherCalendar = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-600">
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
+        {/* Animated Background with Ripple Effect */}
+        <BackgroundRippleEffect className="opacity-30" />
+        
+        {/* Gradient Blobs for Depth */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 py-8 animate-in fade-in-0 duration-500">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-white mb-2">
               Calendário Acadêmico
             </h1>
-            <p className="text-white/80 text-lg">
+            <p className="text-slate-400 text-lg">
               Gerencie suas aulas, prazos e compromissos acadêmicos
             </p>
           </div>
@@ -156,10 +167,10 @@ const TeacherCalendar = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Calendar */}
             <div className="lg:col-span-2">
-              <Card className="bg-white shadow-lg">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-2xl">
+                    <CardTitle className="text-2xl text-slate-100">
                       {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                     </CardTitle>
                     <div className="flex gap-2">
@@ -167,6 +178,7 @@ const TeacherCalendar = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => navigateMonth('prev')}
+                        className="bg-slate-900 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-100"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
@@ -174,6 +186,7 @@ const TeacherCalendar = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => navigateMonth('next')}
+                        className="bg-slate-900 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-100"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>
@@ -187,7 +200,7 @@ const TeacherCalendar = () => {
                     {dayNames.map((day) => (
                       <div
                         key={day}
-                        className="p-2 text-center font-semibold text-gray-600 text-sm"
+                        className="p-2 text-center font-semibold text-slate-400 text-sm"
                       >
                         {day}
                       </div>
@@ -195,7 +208,7 @@ const TeacherCalendar = () => {
                     
                     {/* Empty cells for days before month start */}
                     {Array.from({ length: firstDayOfMonth }, (_, index) => (
-                      <div key={`empty-${index}`} className="p-2 h-24" />
+                      <div key={`empty-${index}`} className="p-2 h-24 bg-slate-900/30" />
                     ))}
                     
                     {/* Days of the month */}
@@ -209,12 +222,16 @@ const TeacherCalendar = () => {
                       return (
                         <div
                           key={day}
-                          className={`p-2 h-24 border border-gray-200 cursor-pointer transition-colors relative overflow-hidden ${
-                            isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-gray-50'
-                          } ${isToday ? 'bg-blue-50 border-blue-300' : ''}`}
+                          className={`p-2 h-24 border cursor-pointer transition-all duration-200 relative overflow-hidden ${
+                            isSelected 
+                              ? 'bg-purple-600/30 border-purple-500 shadow-lg shadow-purple-500/20' 
+                              : 'bg-slate-900/30 border-slate-700 hover:bg-slate-800/50 hover:border-slate-600'
+                          } ${isToday ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-slate-800' : ''}`}
                           onClick={() => setSelectedDate(selectedDate === dateKey ? null : dateKey)}
                         >
-                          <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : ''}`}>
+                          <div className={`text-sm font-medium ${
+                            isToday ? 'text-purple-400 font-bold' : 'text-slate-200'
+                          }`}>
                             {day}
                           </div>
                           {dayEvents.length > 0 && (
@@ -222,13 +239,13 @@ const TeacherCalendar = () => {
                               {dayEvents.slice(0, 2).map((event) => (
                                 <div
                                   key={event.id}
-                                  className={`text-xs p-1 rounded truncate ${getEventTypeColor(event.type)}`}
+                                  className={`text-xs p-1 rounded truncate border ${getEventTypeColor(event.type)}`}
                                 >
                                   {event.title}
                                 </div>
                               ))}
                               {dayEvents.length > 2 && (
-                                <div className="text-xs text-gray-600">
+                                <div className="text-xs text-slate-400 font-medium">
                                   +{dayEvents.length - 2} mais
                                 </div>
                               )}
@@ -245,12 +262,12 @@ const TeacherCalendar = () => {
             {/* Events Sidebar */}
             <div className="space-y-6">
               {/* Today's Events or Selected Date Events */}
-              <Card className="bg-white shadow-lg">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="text-lg">
+                  <CardTitle className="text-lg text-slate-100">
                     {selectedDate ? 'Eventos do Dia Selecionado' : 'Próximos Eventos'}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-slate-400">
                     {selectedDate 
                       ? `Eventos para ${new Date(selectedDate).toLocaleDateString('pt-BR')}`
                       : 'Seus compromissos mais próximos'
@@ -265,26 +282,26 @@ const TeacherCalendar = () => {
                     
                     if (displayEvents.length === 0) {
                       return (
-                        <p className="text-sm text-gray-500 text-center py-4">
+                        <p className="text-sm text-slate-500 text-center py-4">
                           {selectedDate ? 'Nenhum evento neste dia' : 'Nenhum evento próximo'}
                         </p>
                       );
                     }
                     
                     return displayEvents.map((event) => (
-                      <div key={event.id} className="border-l-4 border-primary pl-4 pb-4">
+                      <div key={event.id} className="border-l-4 border-purple-500 pl-4 pb-4 bg-slate-900/30 p-3 rounded-r-lg">
                         <div className="flex items-start gap-2 mb-2">
-                          <Badge className={getEventTypeColor(event.type)}>
+                          <Badge className={`${getEventTypeColor(event.type)} border`}>
                             {getEventTypeIcon(event.type)}
                             <span className="ml-1">{getEventTypeName(event.type)}</span>
                           </Badge>
                         </div>
-                        <h4 className="font-semibold text-sm mb-1">{event.title}</h4>
-                        <p className="text-xs text-gray-600 mb-2">
+                        <h4 className="font-semibold text-sm mb-1 text-slate-200">{event.title}</h4>
+                        <p className="text-xs text-slate-400 mb-2">
                           {new Date(event.date).toLocaleDateString('pt-BR')} às {event.time}
                         </p>
                         {event.description && (
-                          <p className="text-xs text-gray-500">{event.description}</p>
+                          <p className="text-xs text-slate-500">{event.description}</p>
                         )}
                       </div>
                     ));
@@ -293,35 +310,35 @@ const TeacherCalendar = () => {
               </Card>
 
               {/* Calendar Legend */}
-              <Card className="bg-white shadow-lg">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="text-lg">Legenda</CardTitle>
+                  <CardTitle className="text-lg text-slate-100">Legenda</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-red-100 border border-red-200 rounded"></div>
-                    <span className="text-sm">Prazos</span>
+                    <div className="w-4 h-4 bg-red-500/20 border border-red-500/30 rounded"></div>
+                    <span className="text-sm text-slate-300">Prazos</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-blue-100 border border-blue-200 rounded"></div>
-                    <span className="text-sm">Reuniões</span>
+                    <div className="w-4 h-4 bg-blue-500/20 border border-blue-500/30 rounded"></div>
+                    <span className="text-sm text-slate-300">Reuniões</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-100 border border-green-200 rounded"></div>
-                    <span className="text-sm">Aulas</span>
+                    <div className="w-4 h-4 bg-green-500/20 border border-green-500/30 rounded"></div>
+                    <span className="text-sm text-slate-300">Aulas</span>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Quick Actions - Unified Button */}
-              <Card className="bg-white shadow-lg">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="text-lg">Ações Rápidas</CardTitle>
+                  <CardTitle className="text-lg text-slate-100">Ações Rápidas</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Button 
                     onClick={() => setIsSchedulingModalOpen(true)}
-                    className="w-full justify-start"
+                    className="w-full justify-start bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium transition-all duration-200 hover:scale-105"
                   >
                     <Calendar className="mr-2 h-4 w-4" />
                     + Agendar Novo Evento
