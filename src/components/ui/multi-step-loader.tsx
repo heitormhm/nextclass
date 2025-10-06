@@ -25,14 +25,14 @@ export const MultiStepLoader = ({
   if (!loading) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-xl">
-      <div className="relative w-full max-w-md rounded-lg border border-gray-700 bg-gray-900/40 p-8 shadow-2xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-md">
+      <div className="relative w-full max-w-md rounded-lg border border-border bg-white/90 backdrop-blur-lg p-8 shadow-2xl">
         {onClose && (
           <button
             onClick={onClose}
             className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 text-foreground" />
             <span className="sr-only">Fechar</span>
           </button>
         )}
@@ -49,10 +49,10 @@ export const MultiStepLoader = ({
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
                   index === currentState
-                    ? "bg-pink-500/10 text-pink-400"
+                    ? "bg-pink-500/10 text-pink-500"
                     : index < currentState
-                    ? "text-gray-400"
-                    : "text-gray-500"
+                    ? "text-muted-foreground"
+                    : "text-muted-foreground/60"
                 )}
               >
                 <div
@@ -61,8 +61,8 @@ export const MultiStepLoader = ({
                     index === currentState
                       ? "border-pink-500 bg-pink-500"
                       : index < currentState
-                      ? "border-pink-500/60 bg-pink-500/60"
-                      : "border-gray-600"
+                      ? "border-pink-500 bg-pink-500"
+                      : "border-border"
                   )}
                 >
                   {index < currentState ? (
@@ -82,7 +82,7 @@ export const MultiStepLoader = ({
                   ) : index === currentState ? (
                     <div className="h-2 w-2 animate-pulse rounded-full bg-white" />
                   ) : (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {index + 1}
                     </span>
                   )}

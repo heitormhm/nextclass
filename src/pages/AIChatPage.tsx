@@ -462,6 +462,35 @@ const AIChatPage = () => {
     };
   }, []);
 
+  // Subscribe to deep search progress updates
+  useEffect(() => {
+    if (!deepSearchSessionId) return;
+
+    const channel = supabase
+      .channel(`deep-search-${deepSearchSessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'deep_search_sessions',
+          filter: `id=eq.${deepSearchSessionId}`
+        },
+        (payload: any) => {
+          const progressStep = payload.new.progress_step;
+          const stepIndex = deepSearchSteps.findIndex(step => step.text === progressStep);
+          if (stepIndex !== -1) {
+            setDeepSearchProgress(stepIndex);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [deepSearchSessionId]);
+
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

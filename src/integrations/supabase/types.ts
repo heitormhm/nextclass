@@ -118,6 +118,39 @@ export type Database = {
         }
         Relationships: []
       }
+      deep_search_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          progress_step: string | null
+          query: string
+          result: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          progress_step?: string | null
+          query: string
+          result?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          progress_step?: string | null
+          query?: string
+          result?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       flashcard_reviews: {
         Row: {
           correct_count: number
