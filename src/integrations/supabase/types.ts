@@ -118,6 +118,53 @@ export type Database = {
         }
         Relationships: []
       }
+      lectures: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          duration: number | null
+          id: string
+          raw_transcript: string
+          status: string
+          structured_content: Json | null
+          teacher_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          duration?: number | null
+          id?: string
+          raw_transcript: string
+          status?: string
+          structured_content?: Json | null
+          teacher_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          duration?: number | null
+          id?: string
+          raw_transcript?: string
+          status?: string
+          structured_content?: Json | null
+          teacher_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lectures_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_plans: {
         Row: {
           content: string | null
@@ -194,6 +241,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      turma_enrollments: {
+        Row: {
+          aluno_id: string
+          enrolled_at: string
+          id: string
+          turma_id: string
+        }
+        Insert: {
+          aluno_id: string
+          enrolled_at?: string
+          id?: string
+          turma_id: string
+        }
+        Update: {
+          aluno_id?: string
+          enrolled_at?: string
+          id?: string
+          turma_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turma_enrollments_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turma_enrollments_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      turmas: {
+        Row: {
+          cidade: string
+          created_at: string
+          curso: string
+          faculdade: string
+          id: string
+          nome_turma: string
+          periodo: string
+          updated_at: string
+        }
+        Insert: {
+          cidade?: string
+          created_at?: string
+          curso?: string
+          faculdade?: string
+          id?: string
+          nome_turma: string
+          periodo: string
+          updated_at?: string
+        }
+        Update: {
+          cidade?: string
+          created_at?: string
+          curso?: string
+          faculdade?: string
+          id?: string
+          nome_turma?: string
+          periodo?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {

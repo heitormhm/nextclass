@@ -39,7 +39,9 @@ const AuthPage = () => {
   const loginForm = useForm<LoginFormData>();
   const signupForm = useForm<SignupFormData>({
     defaultValues: {
-      course: 'Engenharia'
+      course: 'Engenharia',
+      university: 'Unifip-Moc',
+      city: 'Montes Claros - MG'
     }
   });
 
@@ -147,6 +149,18 @@ const AuthPage = () => {
         return;
       }
 
+      // Auto-enroll student in turma
+      if (selectedRole === 'student' && authData.user) {
+        try {
+          await supabase.functions.invoke('auto-enroll-student', {
+            body: { userId: authData.user.id }
+          });
+        } catch (enrollError) {
+          console.error('Error auto-enrolling student:', enrollError);
+          // Don't block registration if enrollment fails
+        }
+      }
+
       toast.success('Cadastro realizado com sucesso! Redirecionando...');
       
       // Redirect based on selected role
@@ -203,7 +217,7 @@ const AuthPage = () => {
               <p className="text-sm sm:text-base text-foreground-muted">Plataforma de engenharia com IA</p>
             </div>
 
-            <Card className="shadow-lg border-0 bg-card">
+            <Card className="shadow-2xl border-0 bg-gradient-to-br from-pink-100/60 via-purple-100/60 to-pink-100/60 backdrop-blur-lg">
               <CardHeader className="space-y-4 pb-6">
                 {/* Role Selection Tabs - Only shown during signup */}
                 {!isLogin && (
@@ -370,17 +384,11 @@ const AuthPage = () => {
                       <Input
                         id="signup-university"
                         type="text"
-                        placeholder="Nome da instituição"
-                        {...signupForm.register('university', {
-                          required: 'Faculdade é obrigatória'
-                        })}
-                        className="transition-all duration-200 focus:ring-primary focus:border-primary"
+                        value="Unifip-Moc"
+                        disabled
+                        {...signupForm.register('university')}
+                        className="transition-all duration-200 bg-muted"
                       />
-                      {signupForm.formState.errors.university && (
-                        <p className="text-sm text-destructive">
-                          {signupForm.formState.errors.university.message}
-                        </p>
-                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -388,17 +396,11 @@ const AuthPage = () => {
                       <Input
                         id="signup-city"
                         type="text"
-                        placeholder="Cidade"
-                        {...signupForm.register('city', {
-                          required: 'Cidade é obrigatória'
-                        })}
-                        className="transition-all duration-200 focus:ring-primary focus:border-primary"
+                        value="Montes Claros - MG"
+                        disabled
+                        {...signupForm.register('city')}
+                        className="transition-all duration-200 bg-muted"
                       />
-                      {signupForm.formState.errors.city && (
-                        <p className="text-sm text-destructive">
-                          {signupForm.formState.errors.city.message}
-                        </p>
-                      )}
                     </div>
 
                     <div className="space-y-2">
