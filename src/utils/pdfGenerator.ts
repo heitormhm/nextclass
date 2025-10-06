@@ -23,22 +23,19 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
   // Helper function to add header (only on first page with logo)
   const addHeader = (isFirstPage: boolean = false) => {
     if (isFirstPage) {
-      // Add NextClass logo at top of first page
-      doc.setFillColor(110, 89, 165); // Purple
-      const logoWidth = 50;
-      const logoHeight = 8;
-      const logoX = (pageWidth - logoWidth) / 2;
+      // Add NextClass branding at top of first page
+      doc.setFillColor(110, 89, 165); // Purple background
+      doc.rect(0, 10, pageWidth, 18, 'F');
       
-      doc.rect(logoX - 5, 12, logoWidth + 10, logoHeight + 4, 'F');
-      
+      // Add NextClass text logo
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(18);
+      doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
-      doc.text('NextClass', pageWidth / 2, 18, { align: 'center' });
+      doc.text('NextClass', pageWidth / 2, 19, { align: 'center' });
       
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.text('Pesquisa Aprofundada com IA', pageWidth / 2, 22, { align: 'center' });
+      doc.text('Pesquisa Aprofundada com IA', pageWidth / 2, 24, { align: 'center' });
     }
   };
 
@@ -69,16 +66,20 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
   let isFirstPage = true;
   addHeader(isFirstPage);
 
-  // Add title on first page
+  // Add title on first page with proper wrapping
   doc.setTextColor(110, 89, 165); // Purple color
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
   yPosition = 45;
   
-  const titleLines = doc.splitTextToSize(title, contentWidth);
+  // Use maxWidth to ensure proper line breaking
+  const titleLines = doc.splitTextToSize(title, contentWidth - 20);
   titleLines.forEach((line: string) => {
-    doc.text(line, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 12;
+    doc.text(line, pageWidth / 2, yPosition, { 
+      align: 'center',
+      maxWidth: contentWidth - 20 
+    });
+    yPosition += 10;
   });
 
   // Add decorative line under title
@@ -104,14 +105,14 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
       yPosition = margin + 5;
     }
 
-    // Handle markdown headers with improved styling
+    // Handle markdown headers with improved styling and proper wrapping
     if (line.startsWith('###')) {
       yPosition += 3; // Extra spacing before subsection
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(110, 89, 165);
       const headerText = line.replace(/^###\s*/, '');
-      doc.text(headerText, margin, yPosition);
+      doc.text(headerText, margin, yPosition, { maxWidth: contentWidth });
       yPosition += 8;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
@@ -122,7 +123,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(110, 89, 165);
       const headerText = line.replace(/^##\s*/, '');
-      doc.text(headerText, margin, yPosition);
+      doc.text(headerText, margin, yPosition, { maxWidth: contentWidth });
       // Add subtle underline for sections
       doc.setDrawColor(236, 72, 153);
       doc.setLineWidth(0.5);
@@ -137,7 +138,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(110, 89, 165);
       const headerText = line.replace(/^#\s*/, '');
-      doc.text(headerText, margin, yPosition);
+      doc.text(headerText, margin, yPosition, { maxWidth: contentWidth });
       yPosition += 12;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Paperclip, Plus, MessageCircle, X, FileText, Image as ImageIcon, Music, FileDown } from "lucide-react";
+import { Send, Sparkles, Mic, Paperclip, Plus, MessageCircle, X, FileText, Image as ImageIcon, Music, FileDown, Trash2, Pin } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,120 +39,13 @@ interface ConversationData {
   [key: string]: Message[];
 }
 
-const mockChatHistory: ChatHistory[] = [
-  {
-    id: "1",
-    title: "Critérios de Análise Estrutural",
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    isActive: true,
-  },
-  {
-    id: "2", 
-    title: "Protocolo de Análise de Falhas",
-    timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    isActive: false,
-  },
-  {
-    id: "3",
-    title: "Diferenciais de Vibração Mecânica", 
-    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    isActive: false,
-  },
-  {
-    id: "4",
-    title: "Manejo de Sobrecarga em Circuitos",
-    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    isActive: false,
-  },
-];
+interface Conversation {
+  id: string;
+  title: string;
+  created_at: string;
+  is_pinned: boolean;
+}
 
-const mockConversations: ConversationData = {
-  "1": [
-    {
-      id: "1-1",
-      content: "Quais são os critérios atuais para análise de segurança estrutural em vigas de aço, de acordo com as normas brasileiras?",
-      isUser: true,
-      timestamp: new Date(Date.now() - 10 * 60 * 1000),
-    },
-    {
-      id: "1-2",
-      content: `Olá! De acordo com as diretrizes da ABNT NBR 8800, os principais critérios para a análise de segurança em vigas de aço envolvem a verificação dos Estados Limites Últimos (ELU) e dos Estados Limites de Serviço (ELS). Para ELU, deve-se verificar a resistência à flexão, ao cisalhamento e à flambagem lateral. Para ELS, a verificação principal é a de deslocamentos excessivos (flechas).`,
-      isUser: false,
-      timestamp: new Date(Date.now() - 9 * 60 * 1000),
-    },
-    {
-      id: "1-3",
-      content: "Excelente. E sobre o dimensionamento inicial para uma estrutura de aço sem cargas excepcionais significativas?",
-      isUser: true,
-      timestamp: new Date(Date.now() - 5 * 60 * 1000),
-    },
-    {
-      id: "1-4",
-      content: `Para dimensionamento inicial de estruturas de aço sem cargas excepcionais, é recomendado partir de pré-dimensionamento baseado em índices de esbeltez. Para vigas, uma altura inicial pode ser estimada como L/20 a L/15 do vão. É importante considerar as combinações de cargas conforme ABNT NBR 8681 e verificar se não há cargas dinâmicas significativas.`,
-      isUser: false,
-      timestamp: new Date(Date.now() - 4 * 60 * 1000),
-    },
-  ],
-  "2": [
-    {
-      id: "2-1",
-      content: "Qual o protocolo de análise inicial para um projeto com suspeita de instabilidade lateral em vigas?",
-      isUser: true,
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    },
-    {
-      id: "2-2",
-      content: `É fundamental avaliar rapidamente os 4 modos de falha principais que representam risco imediato:
-
-1. **Flambagem:** Instabilidade por compressão.
-2. **Fadiga:** Falha por carregamento cíclico.
-3. **Fratura Frágil:** Ocorre subitamente sem deformação plástica.
-4. **Escoamento:** Deformação plástica excessiva.
-
-A avaliação inicial deve focar em estabilidade estrutural e realizar análises direcionadas como verificação de tensões e, se necessário, modelagem computacional.`,
-      isUser: false,
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000 + 2 * 60 * 1000),
-    },
-  ],
-  "3": [
-    {
-      id: "3-1",
-      content: "Recebi um projeto com falha estrutural aparente na análise. Quais são os tipos de falhas que representam risco estrutural imediato?",
-      isUser: true,
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
-    },
-    {
-      id: "3-2",
-      content: `O protocolo inicial para instabilidade por vibração inclui:
-
-1. **Análise de Frequência Natural:** Para evitar ressonância.
-2. **Verificação de Amortecimento:** Avaliar a capacidade da estrutura de dissipar energia.
-3. **Análise de Cargas Dinâmicas:** Identificar fontes de excitação, como vento ou tráfego.
-
-A avaliação inicial deve focar em estabilidade hemodinâmica e realizar ECG, troponina e, se necessário, ecocardiograma.`,
-      isUser: false,
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000 + 3 * 60 * 1000),
-    },
-  ],
-  "4": [
-    {
-      id: "4-1",
-      content: "Qual a diferença entre urgência e emergência hipertensiva e como abordar uma emergência?",
-      isUser: true,
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-    },
-    {
-      id: "4-2",
-      content: `A distinção é a magnitude e duração:
-
-**Sobrecorrente:** Corrente acima do valor nominal, geralmente por sobrecarga. Proteção por disjuntores térmicos.
-
-**Curto-circuito:** Contato de baixíssima impedância, resultando em correntes altíssimas e instantâneas. Exige interrupção imediata por disjuntores magnéticos ou fusíveis ultrarrápidos.`,
-      isUser: false,
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000 + 2 * 60 * 1000),
-    },
-  ],
-};
 
 const AIChatPage = () => {
   const { toast } = useToast();
@@ -163,13 +56,13 @@ const AIChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isDeepSearch, setIsDeepSearch] = useState(false);
   const [deepSearchSessionId, setDeepSearchSessionId] = useState<string | null>(null);
   const [deepSearchProgress, setDeepSearchProgress] = useState(0);
   const [isListening, setIsListening] = useState(false);
   const [showMobileHistory, setShowMobileHistory] = useState(false);
-  const [activeConversationId, setActiveConversationId] = useState("1");
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
 
@@ -281,6 +174,7 @@ const AIChatPage = () => {
             fileType: currentFile?.type,
             fileName: currentFile?.name,
             isDeepSearch: false,
+            conversationId: activeConversationId,
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -292,13 +186,20 @@ const AIChatPage = () => {
         }
 
         const aiResponse: Message = {
-          id: `${activeConversationId}-${Date.now() + 1}`,
+          id: `${Date.now() + 1}`,
           content: response.data.response || "Desculpe, não consegui processar sua solicitação.",
           isUser: false,
           timestamp: new Date(),
         };
 
         setMessages(prev => [...prev, aiResponse]);
+
+        // Update active conversation ID if this was a new conversation
+        if (response.data.conversationId) {
+          setActiveConversationId(response.data.conversationId);
+          // Refresh conversations list to show new title
+          loadConversations();
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -517,31 +418,119 @@ const AIChatPage = () => {
   };
 
   const handleNewConversation = () => {
-    const newChat: ChatHistory = {
-      id: Date.now().toString(),
-      title: "Nova Conversa",
-      timestamp: new Date(),
-      isActive: true,
-    };
-    
-    setChatHistory(prev => [
-      newChat,
-      ...prev.map(chat => ({ ...chat, isActive: false }))
-    ]);
     setMessages([]);
-    setActiveConversationId(newChat.id);
+    setActiveConversationId(null);
+    setShowMobileHistory(false);
   };
 
-  const handleSelectChat = (chatId: string) => {
-    setChatHistory(prev => 
-      prev.map(chat => ({ ...chat, isActive: chat.id === chatId }))
-    );
+  const handleSelectChat = async (conversationId: string) => {
+    try {
+      // Load messages for this conversation
+      const { data: messagesData, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      const loadedMessages: Message[] = messagesData.map((msg) => ({
+        id: msg.id,
+        content: msg.content,
+        isUser: msg.role === 'user',
+        timestamp: new Date(msg.created_at),
+      }));
+
+      setMessages(loadedMessages);
+      setActiveConversationId(conversationId);
+      setShowMobileHistory(false);
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar conversa",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteConversation = async (conversationId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     
-    // Load the corresponding conversation messages
-    const conversationMessages = mockConversations[chatId] || [];
-    setMessages(conversationMessages);
-    setActiveConversationId(chatId);
-    setShowMobileHistory(false);
+    if (!confirm('Tem certeza que deseja apagar esta conversa?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId);
+
+      if (error) throw error;
+
+      // If deleted conversation was active, create a new one
+      if (activeConversationId === conversationId) {
+        setMessages([]);
+        setActiveConversationId(null);
+      }
+
+      // Refresh conversations list
+      loadConversations();
+
+      toast({
+        title: "Conversa apagada",
+        description: "A conversa foi removida com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao apagar conversa",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTogglePin = async (conversationId: string, currentPinState: boolean, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .update({ is_pinned: !currentPinState })
+        .eq('id', conversationId);
+
+      if (error) throw error;
+
+      // Refresh conversations list
+      loadConversations();
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao fixar conversa",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadConversations = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setConversations(data || []);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
   };
 
   // Cleanup on unmount
@@ -549,6 +538,11 @@ const AIChatPage = () => {
     return () => {
       stopListening();
     };
+  }, []);
+
+  // Load conversations on mount
+  useEffect(() => {
+    loadConversations();
   }, []);
 
   // Subscribe to deep search progress updates
@@ -687,42 +681,67 @@ const AIChatPage = () => {
               </Button>
 
               {/* Chat History List */}
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-2 overflow-y-auto">
                 <h3 className="text-sm font-medium text-foreground-muted px-2">Conversas Recentes</h3>
                 
-                {chatHistory.length === 0 ? (
+                {conversations.length === 0 ? (
                   <div className="text-center py-8 text-foreground-muted">
                     <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">Suas conversas com a Mia aparecerão aqui.</p>
                   </div>
                 ) : (
-                  <ScrollArea className="flex-1">
-                    <div className="space-y-1">
-                      {chatHistory.map((chat) => (
-                        <button
-                          key={chat.id}
-                          onClick={() => handleSelectChat(chat.id)}
-                          className={`
-                            w-full text-left p-3 rounded-lg transition-all duration-200 hover:bg-white/50
-                            ${chat.isActive 
-                              ? 'bg-primary/10 border border-primary/20 text-primary' 
-                              : 'text-foreground hover:text-foreground'
-                            }
-                          `}
-                        >
-                          <div className="font-medium text-sm truncate">{chat.title}</div>
-                          <div className="text-xs text-foreground-muted mt-1">
-                            {chat.timestamp.toLocaleDateString("pt-BR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                  <div className="space-y-1">
+                    {conversations.map((conversation) => (
+                      <div
+                        key={conversation.id}
+                        className={cn(
+                          "group relative w-full text-left p-3 rounded-lg transition-all duration-200 hover:bg-white/50 cursor-pointer",
+                          activeConversationId === conversation.id
+                            ? 'bg-primary/10 border border-primary/20 text-primary'
+                            : 'text-foreground hover:text-foreground'
+                        )}
+                        onClick={() => handleSelectChat(conversation.id)}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate flex items-center gap-1">
+                              {conversation.is_pinned && (
+                                <Pin className="w-3 h-3 shrink-0 text-primary fill-primary" />
+                              )}
+                              {conversation.title}
+                            </div>
+                            <div className="text-xs text-foreground-muted mt-1">
+                              {new Date(conversation.created_at).toLocaleDateString("pt-BR", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </div>
                           </div>
-                        </button>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                            <button
+                              onClick={(e) => handleTogglePin(conversation.id, conversation.is_pinned, e)}
+                              className="p-1 hover:bg-background/50 rounded transition-colors"
+                              title={conversation.is_pinned ? "Desafixar" : "Fixar"}
+                            >
+                              <Pin className={cn(
+                                "w-3.5 h-3.5",
+                                conversation.is_pinned ? "text-primary fill-primary" : "text-foreground-muted"
+                              )} />
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                              className="p-1 hover:bg-destructive/10 rounded transition-colors"
+                              title="Apagar"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

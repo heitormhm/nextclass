@@ -13,8 +13,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, fileData, fileType, fileName, isDeepSearch, deepSearchSessionId } = await req.json();
-    console.log('Received request:', { message, fileType, fileName, isDeepSearch, deepSearchSessionId });
+    const { message, fileData, fileType, fileName, isDeepSearch, deepSearchSessionId, conversationId } = await req.json();
+    console.log('Received request:', { message, fileType, fileName, isDeepSearch, deepSearchSessionId, conversationId });
 
     // Get authenticated user
     const authHeader = req.headers.get('Authorization');
@@ -280,6 +280,103 @@ ${performanceContext}`;
       throw new Error('Resposta inválida da IA');
     }
 
+    // Handle conversation history
+    let activeConversationId = conversationId;
+    let conversationTitle = '';
+    
+    if (!conversationId) {
+      // Create new conversation
+      const { data: newConversation, error: convError } = await supabaseAdmin
+        .from('conversations')
+        .insert({
+          user_id: user.id,
+          title: 'Nova Conversa'
+        })
+        .select()
+        .single();
+      
+      if (convError) {
+        console.error('Error creating conversation:', convError);
+      } else {
+        activeConversationId = newConversation.id;
+      }
+    }
+
+    // Save messages to database
+    if (activeConversationId) {
+      try {
+        // Save user message
+        await supabaseAdmin
+          .from('messages')
+          .insert({
+            conversation_id: activeConversationId,
+            role: 'user',
+            content: message
+          });
+
+        // Save assistant message
+        await supabaseAdmin
+          .from('messages')
+          .insert({
+            conversation_id: activeConversationId,
+            role: 'assistant',
+            content: assistantMessage
+          });
+
+        // Check if this is the first exchange (generate title)
+        const { data: messageCount } = await supabaseAdmin
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('conversation_id', activeConversationId);
+
+        if (messageCount && messageCount.length <= 2) {
+          // Generate title for the conversation using Gemini
+          const titlePrompt = `Com base na seguinte conversa, gere um título curto e descritivo com no máximo 5 palavras:
+
+Pergunta: ${message}
+Resposta: ${assistantMessage.substring(0, 200)}...`;
+
+          const titleResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'Você gera títulos curtos e descritivos para conversas. Responda apenas com o título, sem aspas ou pontuação adicional.'
+                },
+                {
+                  role: 'user',
+                  content: titlePrompt
+                }
+              ],
+              temperature: 0.7,
+              max_tokens: 50,
+            }),
+          });
+
+          if (titleResponse.ok) {
+            const titleData = await titleResponse.json();
+            conversationTitle = titleData.choices?.[0]?.message?.content?.trim() || 'Nova Conversa';
+            
+            // Update conversation title
+            await supabaseAdmin
+              .from('conversations')
+              .update({ title: conversationTitle })
+              .eq('id', activeConversationId);
+            
+            console.log('Generated conversation title:', conversationTitle);
+          }
+        }
+      } catch (error) {
+        console.error('Error saving messages:', error);
+      }
+    }
+
     // Update deep search session as completed
     if (isDeepSearch && deepSearchSessionId) {
       try {
@@ -300,6 +397,8 @@ ${performanceContext}`;
     return new Response(
       JSON.stringify({ 
         response: assistantMessage,
+        conversationId: activeConversationId,
+        conversationTitle: conversationTitle,
         success: true 
       }),
       { 
