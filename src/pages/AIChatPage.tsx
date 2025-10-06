@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -161,10 +162,20 @@ const AIChatPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [isDeepSearch, setIsDeepSearch] = useState(false);
+  const [deepSearchSessionId, setDeepSearchSessionId] = useState<string | null>(null);
+  const [deepSearchProgress, setDeepSearchProgress] = useState(0);
   const [isListening, setIsListening] = useState(false);
   const [showMobileHistory, setShowMobileHistory] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState("1");
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
+
+  const deepSearchSteps = [
+    { text: "Analisando a sua pergunta..." },
+    { text: "Pesquisando fontes académicas..." },
+    { text: "Verificando referências..." },
+    { text: "Sintetizando informação..." },
+    { text: "Preparando resposta detalhada..." },
+  ];
 
   const handleSendMessage = async () => {
     if ((!inputMessage.trim() && !attachedFile) || isLoading) return;
@@ -184,10 +195,31 @@ const AIChatPage = () => {
     setAttachedFile(null);
     setIsLoading(true);
 
+    let sessionId: string | null = null;
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Não autenticado');
+      }
+
+      // Create deep search session if enabled
+      if (isDeepSearch) {
+        const { data: searchSession, error: searchError } = await supabase
+          .from('deep_search_sessions')
+          .insert({
+            user_id: session.user.id,
+            query: currentMessage,
+            progress_step: deepSearchSteps[0].text,
+            status: 'in_progress'
+          })
+          .select()
+          .single();
+
+        if (searchError) throw searchError;
+        sessionId = searchSession.id;
+        setDeepSearchSessionId(sessionId);
+        setDeepSearchProgress(0);
       }
 
       const response = await supabase.functions.invoke('mia-student-chat', {
@@ -196,7 +228,8 @@ const AIChatPage = () => {
           fileData: currentFile?.data,
           fileType: currentFile?.type,
           fileName: currentFile?.name,
-          includePerformance: isDeepSearch,
+          isDeepSearch: isDeepSearch,
+          deepSearchSessionId: sessionId,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -227,6 +260,8 @@ const AIChatPage = () => {
       setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
+      setDeepSearchSessionId(null);
+      setDeepSearchProgress(0);
     }
   };
 
@@ -828,6 +863,15 @@ const AIChatPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Multi-Step Loader for Deep Search */}
+      {isDeepSearch && isLoading && deepSearchSessionId && (
+        <MultiStepLoader
+          loadingStates={deepSearchSteps}
+          loading={isLoading}
+          currentState={deepSearchProgress}
+        />
+      )}
     </MainLayout>
   );
 };

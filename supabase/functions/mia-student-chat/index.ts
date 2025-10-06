@@ -13,8 +13,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, fileData, fileType, fileName, includePerformance } = await req.json();
-    console.log('Received request:', { message, fileType, fileName, includePerformance });
+    const { message, fileData, fileType, fileName, isDeepSearch, deepSearchSessionId } = await req.json();
+    console.log('Received request:', { message, fileType, fileName, isDeepSearch, deepSearchSessionId });
 
     // Get authenticated user
     const authHeader = req.headers.get('Authorization');
@@ -42,6 +42,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Helper function to update deep search progress
+    const updateProgress = async (progressStep: string) => {
+      if (!isDeepSearch || !deepSearchSessionId) return;
+      
+      try {
+        await supabaseAdmin
+          .from('deep_search_sessions')
+          .update({ progress_step: progressStep })
+          .eq('id', deepSearchSessionId);
+        console.log('Updated progress:', progressStep);
+      } catch (error) {
+        console.error('Error updating progress:', error);
+      }
+    };
+
+    // Update initial progress
+    await updateProgress("Analisando a sua pergunta...");
 
     // Fetch last 5 quiz attempts
     const { data: quizAttempts, error: quizError } = await supabaseAdmin
@@ -87,6 +105,8 @@ serve(async (req) => {
       performanceContext += '- Se perceber padrões de dificuldade, sugira revisão focada nesses tópicos.\n';
     }
 
+    await updateProgress("Pesquisando fontes académicas...");
+
     // Build the content array for Gemini
     const contentParts: any[] = [
       {
@@ -120,8 +140,39 @@ serve(async (req) => {
       }
     }
 
-    // Master prompt for Mia with performance context
-    const systemPrompt = `Você é 'Mia', uma assistente de IA especialista em engenharia para estudantes universitários brasileiros. A sua função é ser uma tutora pessoal, proativa e personalizada.
+    await updateProgress("Verificando referências...");
+
+    // Master prompt - different for deep search
+    let systemPrompt = '';
+    
+    if (isDeepSearch) {
+      systemPrompt = `Você é 'Mia', uma assistente de IA especialista em pesquisa académica para engenharia, potencializada pelo Gemini. A sua principal diretriz é a precisão e a verificação de fontes.
+
+**PERSONA:**
+- Você é uma pesquisadora académica rigorosa e meticulosa
+- Você fala em português do Brasil de forma técnica mas clara
+- Você prioriza fontes académicas confiáveis e verificáveis
+- Você se refere a normas técnicas brasileiras (ABNT) e internacionais
+
+**PROCESSO DE PESQUISA APROFUNDADA:**
+1. Analise a pergunta do aluno em profundidade
+2. Consulte múltiplas fontes académicas sobre o tópico
+3. Sintetize a informação num documento explicativo claro e didático
+4. Inclua uma secção de "Referências Bibliográficas" ao final
+
+**RESTRIÇÃO CRÍTICA - ANTI-ALUCINAÇÃO:**
+Para a secção 'Referências Bibliográficas', você DEVE gerar apenas referências a livros, artigos e publicações que existem de facto. NÃO invente autores, títulos ou DOIs. Verifique a plausibilidade das suas fontes. Se não tiver a certeza sobre a existência de uma referência, é preferível não a incluir ou indicar que são "Fontes Sugeridas" em vez de referências verificadas.
+
+**FORMATO DA RESPOSTA:**
+1. **Introdução:** Contexto breve do tópico
+2. **Desenvolvimento:** Explicação detalhada e técnica
+3. **Aplicações Práticas:** Exemplos do contexto brasileiro
+4. **Conclusão:** Síntese e próximos passos
+5. **Referências Bibliográficas:** Apenas fontes verificáveis (ou indique como "Fontes Sugeridas")
+
+${performanceContext}`;
+    } else {
+      systemPrompt = `Você é 'Mia', uma assistente de IA especialista em engenharia para estudantes universitários brasileiros. A sua função é ser uma tutora pessoal, proativa e personalizada.
 
 **PERSONA:**
 - Você é amigável, paciente e encorajadora
@@ -149,12 +200,17 @@ serve(async (req) => {
 - Se não tiver certeza sobre algo, seja honesto e sugira recursos adicionais
 
 ${performanceContext}`;
+    }
+
+    await updateProgress("Sintetizando informação...");
 
     // Call Lovable AI Gateway with Gemini
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
+
+    await updateProgress("Preparando resposta detalhada...");
 
     console.log('Calling Lovable AI Gateway...');
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -164,7 +220,7 @@ ${performanceContext}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: isDeepSearch ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -176,7 +232,7 @@ ${performanceContext}`;
           }
         ],
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: isDeepSearch ? 4000 : 2000,
       }),
     });
 
@@ -200,6 +256,23 @@ ${performanceContext}`;
     const assistantMessage = aiData.choices?.[0]?.message?.content;
     if (!assistantMessage) {
       throw new Error('Resposta inválida da IA');
+    }
+
+    // Update deep search session as completed
+    if (isDeepSearch && deepSearchSessionId) {
+      try {
+        await supabaseAdmin
+          .from('deep_search_sessions')
+          .update({ 
+            status: 'completed',
+            result: assistantMessage,
+            progress_step: 'Concluído'
+          })
+          .eq('id', deepSearchSessionId);
+        console.log('Deep search session marked as completed');
+      } catch (error) {
+        console.error('Error updating session completion:', error);
+      }
     }
 
     return new Response(
