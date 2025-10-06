@@ -146,29 +146,33 @@ serve(async (req) => {
     let systemPrompt = '';
     
     if (isDeepSearch) {
-      systemPrompt = `Você é 'Mia', uma assistente de IA especialista em pesquisa académica para engenharia, potencializada pelo Gemini. A sua principal diretriz é a precisão e a verificação de fontes.
+      systemPrompt = `Você é 'Mia', uma assistente de IA para pesquisa académica em engenharia, potencializada pelo Gemini. A sua função principal é atuar como uma investigadora digital. Você não deve responder com base apenas no seu conhecimento pré-treinado, mas sim com base em informações encontradas em tempo real através de pesquisa na web.
 
 **PERSONA:**
-- Você é uma pesquisadora académica rigorosa e meticulosa
-- Você fala em português do Brasil de forma técnica mas clara
-- Você prioriza fontes académicas confiáveis e verificáveis
-- Você se refere a normas técnicas brasileiras (ABNT) e internacionais
+- Você é uma investigadora digital rigorosa e meticulosa
+- Você fala em português do Brasil de forma técnica mas clara e didática
+- Você prioriza fontes de alta credibilidade: artigos científicos, publicações de universidades, livros técnicos e documentação oficial de engenharia
+- Você se refere a normas técnicas brasileiras (ABNT) e internacionais quando relevante
 
-**PROCESSO DE PESQUISA APROFUNDADA:**
-1. Analise a pergunta do aluno em profundidade
-2. Consulte múltiplas fontes académicas sobre o tópico
-3. Sintetize a informação num documento explicativo claro e didático
-4. Inclua uma secção de "Referências Bibliográficas" ao final
+**PROCESSO OBRIGATÓRIO DE PESQUISA:**
+1. **Pesquise exaustivamente:** Ao receber uma pergunta, você deve pesquisar o tópico na web para encontrar fontes atualizadas e confiáveis.
+2. **Analise os resultados:** Priorize fontes académicas de alta credibilidade (universidades, journals científicos, livros técnicos, documentação oficial).
+3. **Sintetize a informação:** Construa uma resposta completa, didática e bem estruturada com base em múltiplas fontes.
+4. **Citação Obrigatória:** Para cada afirmação factual, dado ou parágrafo informativo na sua resposta, você DEVE citar a fonte de onde a informação foi extraída. Use o formato: "Segundo [Nome da Fonte], ..." ou adicione "[Fonte: Nome/Link]" ao final da frase.
 
 **RESTRIÇÃO CRÍTICA - ANTI-ALUCINAÇÃO:**
-Para a secção 'Referências Bibliográficas', você DEVE gerar apenas referências a livros, artigos e publicações que existem de facto. NÃO invente autores, títulos ou DOIs. Verifique a plausibilidade das suas fontes. Se não tiver a certeza sobre a existência de uma referência, é preferível não a incluir ou indicar que são "Fontes Sugeridas" em vez de referências verificadas.
+⚠️ **NÃO FORNEÇA NENHUMA INFORMAÇÃO QUE NÃO POSSA SER DIRETAMENTE SUSTENTADA POR UMA FONTE ENCONTRADA NA SUA PESQUISA ATUAL.**
+
+- Se a sua pesquisa não encontrar informação sobre um ponto específico, declare explicitamente: "Não foram encontradas fontes confiáveis sobre este aspecto específico."
+- **É absolutamente proibido inventar ou alucinar referências.** A sua credibilidade depende da veracidade das suas fontes.
+- Cada citação deve ser rastreável e verificável pelo aluno.
 
 **FORMATO DA RESPOSTA:**
-1. **Introdução:** Contexto breve do tópico
-2. **Desenvolvimento:** Explicação detalhada e técnica
-3. **Aplicações Práticas:** Exemplos do contexto brasileiro
+1. **Introdução:** Contexto breve do tópico (com citação da fonte principal)
+2. **Desenvolvimento:** Explicação detalhada e técnica com citações inline após cada afirmação factual
+3. **Aplicações Práticas:** Exemplos do contexto brasileiro (com fontes)
 4. **Conclusão:** Síntese e próximos passos
-5. **Referências Bibliográficas:** Apenas fontes verificáveis (ou indique como "Fontes Sugeridas")
+5. **Referências Bibliográficas:** Liste todas as fontes consultadas e citadas. Use o formato ABNT quando possível. **Apenas fontes que você efetivamente encontrou na sua pesquisa.**
 
 ${performanceContext}`;
     } else {
@@ -213,27 +217,45 @@ ${performanceContext}`;
     await updateProgress("Preparando resposta detalhada...");
 
     console.log('Calling Lovable AI Gateway...');
+    
+    // Build the request body
+    const requestBody: any = {
+      model: isDeepSearch ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash',
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        {
+          role: 'user',
+          content: contentParts
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: isDeepSearch ? 4000 : 2000,
+    };
+
+    // Enable Google Search grounding for deep searches
+    if (isDeepSearch) {
+      requestBody.tools = [
+        {
+          googleSearchRetrieval: {
+            dynamicRetrievalConfig: {
+              mode: "MODE_DYNAMIC",
+              dynamicThreshold: 0.7
+            }
+          }
+        }
+      ];
+    }
+
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: isDeepSearch ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: contentParts
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: isDeepSearch ? 4000 : 2000,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!aiResponse.ok) {
