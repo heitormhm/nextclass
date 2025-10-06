@@ -175,6 +175,7 @@ const AIChatPage = () => {
     { text: "Verificando referências..." },
     { text: "Sintetizando informação..." },
     { text: "Preparando resposta detalhada..." },
+    { text: "Concluído" },
   ];
 
   const handleSendMessage = async () => {
@@ -258,10 +259,15 @@ const AIChatPage = () => {
       
       // Remove user message on error
       setMessages(prev => prev.slice(0, -1));
+      
+      // Reset deep search state on error
+      if (isDeepSearch) {
+        setDeepSearchSessionId(null);
+        setDeepSearchProgress(0);
+      }
     } finally {
       setIsLoading(false);
-      setDeepSearchSessionId(null);
-      setDeepSearchProgress(0);
+      // Don't reset deepSearchSessionId here - let the subscription handle it
     }
   };
 
@@ -485,14 +491,9 @@ const AIChatPage = () => {
     setShowMobileHistory(false);
   };
 
-  // Auto-start listening when component mounts
+  // Cleanup on unmount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      startListening();
-    }, 1000);
-
     return () => {
-      clearTimeout(timer);
       stopListening();
     };
   }, []);
@@ -513,9 +514,20 @@ const AIChatPage = () => {
         },
         (payload: any) => {
           const progressStep = payload.new.progress_step;
+          const status = payload.new.status;
+          
+          // Update progress
           const stepIndex = deepSearchSteps.findIndex(step => step.text === progressStep);
           if (stepIndex !== -1) {
             setDeepSearchProgress(stepIndex);
+          }
+          
+          // If completed, reset after a brief delay to show final state
+          if (status === 'completed') {
+            setTimeout(() => {
+              setDeepSearchSessionId(null);
+              setDeepSearchProgress(0);
+            }, 1000);
           }
         }
       )
