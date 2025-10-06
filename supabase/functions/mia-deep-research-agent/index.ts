@@ -58,9 +58,9 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Step 1: Decompose the question
+    // Step 1: Decompose the question with Gemini 2.5 Pro
     await updateProgress("A decompor a pergunta em tópicos...");
-    console.log('Step 1: Decomposing question');
+    console.log('Step 1: Decomposing question with Gemini 2.5 Pro');
 
     const decomposeResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -69,27 +69,25 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro',
         messages: [
           {
-            role: 'system',
-            content: `Você é um especialista em decomposição de perguntas académicas para o campo da engenharia. 
+            role: 'user',
+            content: `Você é um assistente de IA especialista em engenharia.
 
-**TAREFA:** Analise a pergunta do utilizador e divida-a em sub-perguntas específicas e lógicas que devem ser pesquisadas para responder à pergunta original de forma completa.
+**TÓPICO DO ALUNO:** "${query}"
+
+**TAREFA:** Decomponha o tópico em até 15 perguntas-chave que explorem as suas aplicações práticas na engenharia.
 
 **REGRAS:**
-- Gere entre 3 a 5 sub-perguntas focadas nos pontos mais importantes
-- Cada sub-pergunta deve ser específica e cobrir um aspecto essencial
-- Priorize definições fundamentais, aplicações práticas e conceitos-chave
+- Gere entre 8 a 15 sub-perguntas focadas nos aspectos mais relevantes
+- Cada sub-pergunta deve explorar aplicações práticas, conceitos fundamentais ou implicações na engenharia
+- Priorize perguntas que levem a informação técnica detalhada e academicamente relevante
 - Retorne apenas as perguntas, uma por linha, numeradas (ex: "1. ...", "2. ...", etc.)`
-          },
-          {
-            role: 'user',
-            content: query
           }
         ],
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 1200,
       }),
     });
 
@@ -105,7 +103,13 @@ serve(async (req) => {
     await updateProgress("A executar buscas na web...");
     console.log('Step 2: Executing web searches');
 
-    const researchResults: string[] = [];
+    interface ResearchResult {
+      question: string;
+      content: string;
+      sources: string[];
+    }
+
+    const researchResults: ResearchResult[] = [];
 
     for (const subQuestion of subQuestions) {
       console.log('Researching:', subQuestion);
@@ -157,7 +161,13 @@ serve(async (req) => {
           const researchData = await researchResponse.json();
           const result = researchData.choices?.[0]?.message?.content;
           if (result) {
-            researchResults.push(`\n### ${subQuestion}\n\n${result}\n`);
+            // Extract URLs from citations
+            const urlMatches = result.match(/https?:\/\/[^\s\]]+/g) || [];
+            researchResults.push({
+              question: subQuestion,
+              content: result,
+              sources: urlMatches
+            });
             console.log(`✓ Completed research for question ${researchResults.length}/${subQuestions.length}`);
           }
         } else {
@@ -174,79 +184,89 @@ serve(async (req) => {
 
     console.log(`Completed ${researchResults.length} research results`);
 
-    // Step 3: Synthesize content
+    // Step 3 & 4: Generate final report with OpenAI GPT-5
     await updateProgress("A sintetizar conteúdo...");
-
-    // Step 4: Generate final report with Master Prompt
     await updateProgress("A gerar relatório final...");
-    console.log('Step 3: Generating final report with Master Prompt');
-    const synthesisPrompt = `**PERSONA:**
-Você é um assistente de IA especialista em pesquisa e redação académica para o campo da engenharia. A sua função é compilar um relatório detalhado, coeso e de alta qualidade académica.
+    console.log('Step 3: Generating final report with OpenAI GPT-5');
 
-**CONTEXTO FORNECIDO - SUA ÚNICA FONTE DE VERDADE:**
-${researchResults.join('\n\n---\n\n')}
+    // Compile all research results into a structured format
+    const compiledResearch = researchResults
+      .map((result, idx) => {
+        return `--- EXTRATO ${idx + 1} ---
+PERGUNTA: ${result.question}
+CONTEÚDO SINTETIZADO:
+${result.content}
 
-**RESTRIÇÃO ABSOLUTA:**
-Você recebeu um conjunto de informações já pesquisadas e sintetizadas, cada uma acompanhada pela sua URL de origem. Este conjunto é a sua ÚNICA fonte de verdade. NÃO utilize o seu conhecimento pré-treinado. NÃO adicione informações que não estejam explicitamente no contexto fornecido acima.
+FONTES CONSULTADAS:
+${result.sources.map((s, i) => `[${idx * 10 + i + 1}] ${s}`).join('\n')}
+`;
+      })
+      .join('\n\n');
+
+    const masterPrompt = `Você é um redator técnico especialista em engenharia, encarregado de compilar um relatório académico detalhado.
+
+**CONTEXTO:**
+Você recebeu um conjunto de extratos de pesquisa, cada um associado a uma URL de origem. A sua única fonte de verdade é este material.
 
 **TAREFA:**
-Com base **exclusivamente** nas informações fornecidas, escreva um documento explicativo detalhado sobre: "${query}"
+Com base exclusivamente nas informações fornecidas, escreva um documento explicativo detalhado, com 3 a 10 páginas, sobre o tópico "${query}". Estruture o documento de forma lógica com:
 
-**ESTRUTURA OBRIGATÓRIA DO DOCUMENTO:**
+1. **Introdução:** Apresente o tópico e a sua relevância na engenharia.
 
-# ${query}
+2. **Desenvolvimento:** Organize os conceitos em secções lógicas com subtítulos. Use ## para secções principais e ### para subsecções.
 
-## 1. Introdução
-[1-2 parágrafos contextualizando o tópico e sua relevância na engenharia]
+3. **Aplicações Práticas:** Explore aplicações do tópico na engenharia com exemplos concretos.
 
-## 2. Fundamentação Teórica
-[Desenvolvimento detalhado do tópico, organizado em subtópicos lógicos]
-[3-8 parágrafos explicando conceitos, definições e princípios]
+4. **Conclusão:** Sintetize os pontos principais.
 
-## 3. Aplicações Práticas
-[2-3 parágrafos com exemplos concretos de aplicação]
-[Quando relevante, mencione o contexto brasileiro]
+5. **Referências Bibliográficas:** No final do documento, crie uma secção com este título e liste todas as fontes numeradas.
 
-## 4. Limitações e Considerações
-[1-2 parágrafos sobre limitações ou condições de aplicabilidade]
+**REGRAS DE CITAÇÃO (OBRIGATÓRIAS):**
+- Para cada citação ou informação usada, insira um número de referência entre parêntesis retos no texto (ex: [1], [2], [3]).
+- Pode usar múltiplas referências no mesmo parágrafo (ex: [1][2]).
+- Na secção "Referências Bibliográficas", liste cada fonte com o seu número e URL completo.
+- Formato: [1] https://exemplo.com/artigo
 
-## 5. Conclusão
-[1-2 parágrafos sintetizando os pontos principais]
+**RESTRIÇÃO CRÍTICA:**
+NÃO INVENTE INFORMAÇÕES OU REFERÊNCIAS. A sua principal diretriz é a fidelidade absoluta às fontes fornecidas. Se a informação for insuficiente, declare isso explicitamente.
 
-## 6. Referências Bibliográficas
-[Liste todas as URLs citadas no documento]
+**FORMATAÇÃO:**
+- Use markdown para estruturar o documento
+- Use # para o título principal
+- Use ## para secções
+- Use ### para subsecções
+- Mantenha tom formal e académico
 
-**REGRAS CRÍTICAS DE CITAÇÃO:**
-- É OBRIGATÓRIO citar a URL de origem no final de CADA parágrafo ou secção que contenha informação factual
-- Formato da citação: [Fonte: URL_COMPLETA]
-- NUNCA invente URLs ou referências
-- Se uma afirmação não tiver fonte no contexto fornecido, NÃO a inclua
+---
 
-**REGRAS CRÍTICAS DE CONTEÚDO:**
-- NÃO INVENTE INFORMAÇÕES, TÓPICOS OU REFERÊNCIAS BIBLIOGRÁFICAS
-- Se a informação fornecida não for suficiente para criar um relatório com o mínimo de 3 páginas, declare isso explicitamente no início do documento
-- Use linguagem técnica mas clara e acessível
-- Mantenha fidelidade absoluta às fontes fornecidas
-- O documento deve ter entre 3-10 páginas (estimado: 2000-6000 palavras)
+**MATERIAL DE PESQUISA FORNECIDO:**
 
-**SUA DIRETRIZ PRINCIPAL:** Fidelidade absoluta às fontes. Prefira um relatório mais curto mas preciso a um relatório longo com informações inventadas.`;
+${compiledResearch}
 
-    const reportResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+---
+
+Agora, escreva o relatório final seguindo todas as diretrizes acima.`;
+
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
+
+    const reportResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-5',
         messages: [
           {
             role: 'user',
-            content: synthesisPrompt
+            content: masterPrompt
           }
         ],
-        temperature: 0.3,
-        max_tokens: 8000,
+        max_completion_tokens: 16000,
       }),
     });
 
