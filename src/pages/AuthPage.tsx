@@ -205,31 +205,33 @@ const AuthPage = () => {
 
             <Card className="shadow-lg border-0 bg-card">
               <CardHeader className="space-y-4 pb-6">
-                {/* Role Selection Tabs - Touch-friendly */}
-                <div className="flex border border-border rounded-lg p-1 bg-background">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRole('student')}
-                    className={`flex-1 py-3 px-4 text-sm sm:text-base font-medium rounded-md transition-all duration-200 min-h-[44px] ${
-                      selectedRole === 'student'
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-foreground-muted hover:text-foreground hover:bg-accent'
-                    }`}
-                  >
-                    Sou Aluno
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRole('teacher')}
-                    className={`flex-1 py-3 px-4 text-sm sm:text-base font-medium rounded-md transition-all duration-200 min-h-[44px] ${
-                      selectedRole === 'teacher'
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-foreground-muted hover:text-foreground hover:bg-accent'
-                    }`}
-                  >
-                    Sou Professor
-                  </button>
-                </div>
+                {/* Role Selection Tabs - Only shown during signup */}
+                {!isLogin && (
+                  <div className="flex border border-border rounded-lg p-1 bg-background">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRole('student')}
+                      className={`flex-1 py-3 px-4 text-sm sm:text-base font-medium rounded-md transition-all duration-200 min-h-[44px] ${
+                        selectedRole === 'student'
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-foreground-muted hover:text-foreground hover:bg-accent'
+                      }`}
+                    >
+                      Sou Aluno
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRole('teacher')}
+                      className={`flex-1 py-3 px-4 text-sm sm:text-base font-medium rounded-md transition-all duration-200 min-h-[44px] ${
+                        selectedRole === 'teacher'
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-foreground-muted hover:text-foreground hover:bg-accent'
+                      }`}
+                    >
+                      Sou Professor
+                    </button>
+                  </div>
+                )}
 
                 <CardTitle className="text-2xl font-bold text-center">
                   {isLogin ? 'Fazer Login' : 'Criar Conta'}
