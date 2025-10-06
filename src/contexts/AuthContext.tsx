@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   role: UserRole;
   loading: boolean;
+  firstName: string;
   signOut: () => Promise<void>;
 }
 
@@ -19,6 +20,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
+  const [firstName, setFirstName] = useState<string>('');
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -27,6 +29,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Extract first name from user metadata
+        const fullName = session?.user?.user_metadata?.full_name || '';
+        const extractedFirstName = fullName ? fullName.split(' ')[0] : '';
+        setFirstName(extractedFirstName);
+        
         // Defer role fetching to avoid blocking auth state updates
         if (session?.user) {
           setTimeout(() => {
@@ -34,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }, 0);
         } else {
           setRole(null);
+          setFirstName('');
           setLoading(false);
         }
       }
@@ -43,6 +51,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Extract first name from user metadata
+      const fullName = session?.user?.user_metadata?.full_name || '';
+      const extractedFirstName = fullName ? fullName.split(' ')[0] : '';
+      setFirstName(extractedFirstName);
       
       if (session?.user) {
         fetchUserRole(session.user.id);
@@ -91,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setSession(null);
       setRole(null);
+      setFirstName('');
     } catch (error) {
       console.error('Failed to sign out:', error);
       throw error;
@@ -102,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     role,
     loading,
+    firstName,
     signOut,
   };
 

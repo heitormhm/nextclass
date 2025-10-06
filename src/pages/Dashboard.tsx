@@ -4,11 +4,13 @@ import { Search, BookOpen, Video, Briefcase, FileText, Library, Calendar, Play, 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import MainLayout from '@/components/MainLayout';
 import ProactiveRecommendationWidget from '@/components/dashboard/ProactiveRecommendationWidget';
 import SmartReviewWidget from '@/components/dashboard/SmartReviewWidget';
 import GamifiedProgressTracking from '@/components/dashboard/GamifiedProgressTracking';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LearningPathItem {
   id: string;
@@ -20,7 +22,7 @@ interface LearningPathItem {
 }
 
 const Dashboard = () => {
-  const currentUser = { name: 'Antônio' };
+  const { firstName, loading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
 
   const todaySchedule: LearningPathItem[] = [
@@ -107,12 +109,21 @@ const Dashboard = () => {
         <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-6 sm:space-y-8">
           {/* Page Header */}
           <div className="animate-fade-in">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2">
-              Bem-vindo de volta, <span className="text-primary">{currentUser.name}</span>!
-            </h1>
-            <p className="text-sm sm:text-base text-slate-700">
-              Continue sua jornada em engenharia. Você está fazendo um ótimo progresso!
-            </p>
+            {authLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-3/4" />
+                <Skeleton className="h-5 w-full max-w-md" />
+              </div>
+            ) : (
+              <>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2">
+                  Bem-vindo de volta, <span className="text-primary">{firstName || 'Utilizador'}</span>!
+                </h1>
+                <p className="text-sm sm:text-base text-slate-700">
+                  Continue sua jornada em engenharia. Você está fazendo um ótimo progresso!
+                </p>
+              </>
+            )}
           </div>
 
         {/* LAYER 1: Proactive Action Hub */}
