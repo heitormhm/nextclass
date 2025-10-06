@@ -171,6 +171,7 @@ const AIChatPage = () => {
   const [showMobileHistory, setShowMobileHistory] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState("1");
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
+  const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
 
   const deepSearchSteps = [
     { text: "A decompor a pergunta em tópicos..." },
@@ -223,33 +224,29 @@ const AIChatPage = () => {
         sessionId = searchSession.id;
         setDeepSearchSessionId(sessionId);
         setDeepSearchProgress(0);
+        setIsDeepSearchLoading(true);
 
-        // Call the deep research agent
-        const response = await supabase.functions.invoke('mia-deep-research-agent', {
-          body: {
+        // Call deep research agent (fire-and-forget - result will come via subscription)
+        supabase.functions.invoke('mia-deep-research-agent', {
+          body: { 
             query: currentMessage,
-            deepSearchSessionId: sessionId,
-          },
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            deepSearchSessionId: sessionId 
+          }
+        }).then(({ error: invokeError }) => {
+          if (invokeError) {
+            console.error('Error invoking deep research:', invokeError);
+            toast({
+              title: "Erro",
+              description: "Falha ao iniciar pesquisa aprofundada.",
+              variant: "destructive",
+            });
+            setIsDeepSearchLoading(false);
+            setDeepSearchSessionId(null);
+            setDeepSearchProgress(0);
           }
         });
 
-        if (response.error) {
-          throw response.error;
-        }
-
-        // Add report preview message
-        const aiResponse: Message = {
-          id: `${activeConversationId}-${Date.now() + 1}`,
-          content: response.data.report || "Desculpe, não consegui processar sua solicitação.",
-          isUser: false,
-          timestamp: new Date(),
-          isReport: true,
-          reportTitle: currentMessage,
-        };
-
-        setMessages(prev => [...prev, aiResponse]);
+        // Don't wait for response - it will come via realtime subscription
       } else {
         // Standard chat
         const response = await supabase.functions.invoke('mia-student-chat', {
@@ -293,6 +290,7 @@ const AIChatPage = () => {
       if (isDeepSearch) {
         setDeepSearchSessionId(null);
         setDeepSearchProgress(0);
+        setIsDeepSearchLoading(false);
       }
     } finally {
       setIsLoading(false);
@@ -544,19 +542,47 @@ const AIChatPage = () => {
         (payload: any) => {
           const progressStep = payload.new.progress_step;
           const status = payload.new.status;
+          const result = payload.new.result;
           
-          // Update progress
+          console.log('Deep search update:', { progressStep, status, hasResult: !!result });
+          
+          // Update progress based on step
           const stepIndex = deepSearchSteps.findIndex(step => step.text === progressStep);
           if (stepIndex !== -1) {
             setDeepSearchProgress(stepIndex);
           }
           
-          // If completed, reset after a brief delay to show final state
-          if (status === 'completed') {
+          // If completed, add the report message
+          if (status === 'completed' && result) {
+            console.log('Deep search completed with result');
+            
+            const reportMessage: Message = {
+              id: `${activeConversationId}-${Date.now()}`,
+              content: result,
+              isUser: false,
+              timestamp: new Date(),
+              isReport: true,
+              reportTitle: payload.new.query
+            };
+            
+            setMessages(prev => [...prev, reportMessage]);
+            
+            // Delay closing the loader to show the final step
             setTimeout(() => {
               setDeepSearchSessionId(null);
               setDeepSearchProgress(0);
+              setIsDeepSearchLoading(false);
             }, 1000);
+          } else if (status === 'error') {
+            console.log('Deep search failed');
+            toast({
+              title: "Erro",
+              description: progressStep || 'Erro na pesquisa aprofundada',
+              variant: "destructive",
+            });
+            setDeepSearchSessionId(null);
+            setDeepSearchProgress(0);
+            setIsDeepSearchLoading(false);
           }
         }
       )
@@ -565,7 +591,7 @@ const AIChatPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [deepSearchSessionId]);
+  }, [deepSearchSessionId, activeConversationId, toast]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -940,10 +966,10 @@ const AIChatPage = () => {
       </div>
 
       {/* Multi-Step Loader for Deep Search */}
-      {isDeepSearch && isLoading && deepSearchSessionId && (
+      {isDeepSearchLoading && (
         <MultiStepLoader
           loadingStates={deepSearchSteps}
-          loading={isLoading}
+          loading={isDeepSearchLoading}
           currentState={deepSearchProgress}
         />
       )}

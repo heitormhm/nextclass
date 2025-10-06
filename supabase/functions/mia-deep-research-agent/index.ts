@@ -171,6 +171,8 @@ Com base **exclusivamente** nas informações fornecidas acima, escreva um docum
 - Mantenha fidelidade absoluta às fontes fornecidas
 - O documento deve ter entre 3-10 páginas (estimado: 1500-5000 palavras)`;
 
+    console.log('Generating final synthesis...');
+
     await updateProgress("A gerar relatório final...");
     console.log('Step 4: Generating final report');
 
@@ -189,7 +191,7 @@ Com base **exclusivamente** nas informações fornecidas acima, escreva um docum
           }
         ],
         temperature: 0.7,
-        max_tokens: 8000,
+        max_tokens: 16000,
       }),
     });
 
@@ -206,7 +208,7 @@ Com base **exclusivamente** nas informações fornecidas acima, escreva um docum
 
     // Update session as completed with report
     await updateProgress("Concluído");
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('deep_search_sessions')
       .update({
         status: 'completed',
@@ -214,6 +216,11 @@ Com base **exclusivamente** nas informações fornecidas acima, escreva um docum
         progress_step: 'Concluído'
       })
       .eq('id', deepSearchSessionId);
+
+    if (updateError) {
+      console.error('Error updating session:', updateError);
+      throw new Error('Failed to save report');
+    }
 
     console.log('Deep research completed successfully');
 
@@ -229,6 +236,28 @@ Com base **exclusivamente** nas informações fornecidas acima, escreva um docum
 
   } catch (error) {
     console.error('Error in deep research agent:', error);
+    
+    // Try to update session with error
+    try {
+      const { deepSearchSessionId } = await req.json();
+      if (deepSearchSessionId) {
+        const supabaseAdmin = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        
+        await supabaseAdmin
+          .from('deep_search_sessions')
+          .update({
+            status: 'error',
+            progress_step: 'Erro na pesquisa. Por favor tente novamente.'
+          })
+          .eq('id', deepSearchSessionId);
+      }
+    } catch (updateError) {
+      console.error('Failed to update error status:', updateError);
+    }
+    
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Unknown error',
