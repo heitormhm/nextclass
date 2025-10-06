@@ -179,8 +179,7 @@ serve(async (req) => {
 
     // Step 4: Generate final report with Master Prompt
     await updateProgress("A gerar relatório final...");
-    console.log('Step 4: Generating final report with Master Prompt');
-
+    console.log('Step 3: Generating final report with Master Prompt');
     const synthesisPrompt = `**PERSONA:**
 Você é um assistente de IA especialista em pesquisa e redação académica para o campo da engenharia. A sua função é compilar um relatório detalhado, coeso e de alta qualidade académica.
 

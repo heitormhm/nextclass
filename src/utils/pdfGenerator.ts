@@ -22,15 +22,21 @@ export const generateReportPDF = ({ content, title, logoSvg }: PDFOptions): void
 
   // Helper function to add header with logo to each page
   const addHeader = (pageNumber: number) => {
-    // Add logo (simplified as text for now - SVG rendering in jsPDF requires additional setup)
-    doc.setFontSize(16);
-    doc.setTextColor(23, 15, 73); // NextClass brand color
+    // Add NextClass branding
+    doc.setFontSize(18);
+    doc.setTextColor(139, 92, 246); // Purple brand color
     doc.setFont('helvetica', 'bold');
-    doc.text('NextClass', margin, 15);
+    doc.text('NextClass', margin, 12);
+    
+    // Add subtitle
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Pesquisa Aprofundada com IA', margin, 17);
     
     // Add decorative line
-    doc.setDrawColor(255, 70, 130); // Pink brand color
-    doc.setLineWidth(0.5);
+    doc.setDrawColor(236, 72, 153); // Pink brand color
+    doc.setLineWidth(0.8);
     doc.line(margin, headerHeight - 5, pageWidth - margin, headerHeight - 5);
   };
 
@@ -38,8 +44,8 @@ export const generateReportPDF = ({ content, title, logoSvg }: PDFOptions): void
   const addFooter = (pageNumber: number, totalPages: number) => {
     const footerY = pageHeight - 10;
     
-    // Pink footer bar
-    doc.setFillColor(255, 113, 160); // Pink brand color
+    // Pink footer bar with gradient effect
+    doc.setFillColor(236, 72, 153); // Pink brand color
     doc.rect(0, pageHeight - footerHeight, pageWidth, footerHeight, 'F');
     
     // Page number
@@ -54,7 +60,9 @@ export const generateReportPDF = ({ content, title, logoSvg }: PDFOptions): void
     );
     
     // NextClass branding
-    doc.text('Gerado por NextClass', pageWidth - margin, footerY, { align: 'right' });
+    doc.setFontSize(8);
+    doc.text('Gerado por NextClass AI', margin, footerY);
+    doc.text(new Date().toLocaleDateString('pt-BR'), pageWidth - margin, footerY, { align: 'right' });
   };
 
   // Parse content and format
@@ -65,13 +73,19 @@ export const generateReportPDF = ({ content, title, logoSvg }: PDFOptions): void
   // Add first page header
   addHeader(pageNumber);
 
-  // Add title
-  doc.setFontSize(18);
-  doc.setTextColor(23, 15, 73);
+  // Add title with gradient-like effect
+  doc.setFontSize(20);
+  doc.setTextColor(139, 92, 246); // Purple
   doc.setFont('helvetica', 'bold');
   const titleLines = doc.splitTextToSize(title, contentWidth);
   doc.text(titleLines, margin, currentY);
-  currentY += titleLines.length * 8 + 10;
+  currentY += titleLines.length * 9 + 5;
+  
+  // Add subtitle line
+  doc.setDrawColor(236, 72, 153); // Pink
+  doc.setLineWidth(0.5);
+  doc.line(margin, currentY, margin + 40, currentY);
+  currentY += 10;
 
   // Process content
   doc.setFontSize(11);
