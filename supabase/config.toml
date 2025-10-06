@@ -3,6 +3,9 @@ project_id = "kzupylvyamjaaobongvm"
 [functions.mia-student-chat]
 verify_jwt = true
 
+[functions.mia-deep-research-agent]
+verify_jwt = true
+
 [functions.plan-lesson-with-mia]
 verify_jwt = false
 

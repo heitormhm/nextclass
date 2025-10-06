@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Paperclip, Plus, MessageCircle, X, FileText, Image as ImageIcon, Music } from "lucide-react";
+import { Send, Sparkles, Mic, Paperclip, Plus, MessageCircle, X, FileText, Image as ImageIcon, Music, FileDown } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { generateReportPDF } from "@/utils/pdfGenerator";
 
 interface AttachedFile {
   name: string;
@@ -23,6 +24,8 @@ interface Message {
   isUser: boolean;
   timestamp: Date;
   file?: AttachedFile;
+  isReport?: boolean;
+  reportTitle?: string;
 }
 
 interface ChatHistory {
@@ -170,11 +173,10 @@ const AIChatPage = () => {
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
 
   const deepSearchSteps = [
-    { text: "Analisando a sua pergunta..." },
-    { text: "Pesquisando fontes académicas..." },
-    { text: "Verificando referências..." },
-    { text: "Sintetizando informação..." },
-    { text: "Preparando resposta detalhada..." },
+    { text: "A decompor a pergunta em tópicos..." },
+    { text: "A pesquisar fontes académicas..." },
+    { text: "A sintetizar informação..." },
+    { text: "A gerar relatório final..." },
     { text: "Concluído" },
   ];
 
@@ -221,34 +223,61 @@ const AIChatPage = () => {
         sessionId = searchSession.id;
         setDeepSearchSessionId(sessionId);
         setDeepSearchProgress(0);
-      }
 
-      const response = await supabase.functions.invoke('mia-student-chat', {
-        body: {
-          message: currentMessage,
-          fileData: currentFile?.data,
-          fileType: currentFile?.type,
-          fileName: currentFile?.name,
-          isDeepSearch: isDeepSearch,
-          deepSearchSessionId: sessionId,
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
+        // Call the deep research agent
+        const response = await supabase.functions.invoke('mia-deep-research-agent', {
+          body: {
+            query: currentMessage,
+            deepSearchSessionId: sessionId,
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          }
+        });
+
+        if (response.error) {
+          throw response.error;
         }
-      });
 
-      if (response.error) {
-        throw response.error;
+        // Add report preview message
+        const aiResponse: Message = {
+          id: `${activeConversationId}-${Date.now() + 1}`,
+          content: response.data.report || "Desculpe, não consegui processar sua solicitação.",
+          isUser: false,
+          timestamp: new Date(),
+          isReport: true,
+          reportTitle: currentMessage,
+        };
+
+        setMessages(prev => [...prev, aiResponse]);
+      } else {
+        // Standard chat
+        const response = await supabase.functions.invoke('mia-student-chat', {
+          body: {
+            message: currentMessage,
+            fileData: currentFile?.data,
+            fileType: currentFile?.type,
+            fileName: currentFile?.name,
+            isDeepSearch: false,
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          }
+        });
+
+        if (response.error) {
+          throw response.error;
+        }
+
+        const aiResponse: Message = {
+          id: `${activeConversationId}-${Date.now() + 1}`,
+          content: response.data.response || "Desculpe, não consegui processar sua solicitação.",
+          isUser: false,
+          timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, aiResponse]);
       }
-
-      const aiResponse: Message = {
-        id: `${activeConversationId}-${Date.now() + 1}`,
-        content: response.data.response || "Desculpe, não consegui processar sua solicitação.",
-        isUser: false,
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -694,9 +723,43 @@ const AIChatPage = () => {
                               )}
                             </div>
                           )}
-                          <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                          
+                          {message.isReport && (
+                            <div className="mb-3 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
+                              <div className="flex items-center gap-2 mb-2">
+                                <FileText className="w-5 h-5 text-purple-600" />
+                                <span className="font-bold text-sm">Relatório de Pesquisa Aprofundada</span>
+                              </div>
+                              <p className="text-xs text-foreground-muted">
+                                Pré-visualização do relatório gerado. Clique no botão abaixo para gerar o PDF formatado.
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="whitespace-pre-wrap text-sm leading-relaxed max-h-96 overflow-y-auto">
                             {message.content}
                           </div>
+
+                          {message.isReport && (
+                            <Button
+                              onClick={() => {
+                                generateReportPDF({
+                                  content: message.content,
+                                  title: message.reportTitle || 'Relatório de Pesquisa',
+                                  logoSvg: '', // Will be handled in the PDF generator
+                                });
+                                toast({
+                                  title: "PDF Gerado",
+                                  description: "O relatório foi gerado e o download iniciou.",
+                                });
+                              }}
+                              className="mt-4 w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                            >
+                              <FileDown className="w-4 h-4 mr-2" />
+                              Gerar PDF do Relatório
+                            </Button>
+                          )}
+
                           <div
                             className={`text-xs mt-2 opacity-70 ${
                               message.isUser ? "text-primary-foreground" : "text-foreground-muted"
