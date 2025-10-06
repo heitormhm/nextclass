@@ -209,6 +209,7 @@ const AIChatPage = () => {
 
       // Create deep search session if enabled
       if (isDeepSearch) {
+        console.log('Creating deep search session for user:', session.user.id);
         const { data: searchSession, error: searchError } = await supabase
           .from('deep_search_sessions')
           .insert({
@@ -220,13 +221,24 @@ const AIChatPage = () => {
           .select()
           .single();
 
-        if (searchError) throw searchError;
+        if (searchError) {
+          console.error('Error creating deep search session:', searchError);
+          throw new Error(`Falha ao criar sessão de pesquisa: ${searchError.message}`);
+        }
+        
+        if (!searchSession) {
+          console.error('No session data returned');
+          throw new Error('Falha ao criar sessão de pesquisa: Nenhuma sessão retornada');
+        }
+
+        console.log('Deep search session created:', searchSession.id);
         sessionId = searchSession.id;
         setDeepSearchSessionId(sessionId);
         setDeepSearchProgress(0);
         setIsDeepSearchLoading(true);
 
         // Call deep research agent (fire-and-forget - result will come via subscription)
+        console.log('Invoking mia-deep-research-agent with session:', sessionId);
         supabase.functions.invoke('mia-deep-research-agent', {
           body: { 
             query: currentMessage,
@@ -235,15 +247,28 @@ const AIChatPage = () => {
         }).then(({ error: invokeError }) => {
           if (invokeError) {
             console.error('Error invoking deep research:', invokeError);
+            console.error('Error details:', JSON.stringify(invokeError, null, 2));
             toast({
-              title: "Erro",
-              description: "Falha ao iniciar pesquisa aprofundada.",
+              title: "Erro na Invocação",
+              description: `Falha ao iniciar pesquisa: ${invokeError.message || 'Erro desconhecido'}`,
               variant: "destructive",
             });
             setIsDeepSearchLoading(false);
             setDeepSearchSessionId(null);
             setDeepSearchProgress(0);
+          } else {
+            console.log('Deep research agent invoked successfully');
           }
+        }).catch((err) => {
+          console.error('Unexpected error invoking deep research:', err);
+          toast({
+            title: "Erro Inesperado",
+            description: `Erro ao invocar pesquisa: ${err.message || 'Erro desconhecido'}`,
+            variant: "destructive",
+          });
+          setIsDeepSearchLoading(false);
+          setDeepSearchSessionId(null);
+          setDeepSearchProgress(0);
         });
 
         // Don't wait for response - it will come via realtime subscription
@@ -277,8 +302,9 @@ const AIChatPage = () => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
       toast({
-        title: "Erro",
+        title: "Erro ao Enviar",
         description: error instanceof Error ? error.message : "Falha ao enviar mensagem",
         variant: "destructive",
       });
