@@ -97,5 +97,8 @@ verify_jwt = true
 [functions.upload-library-material]
 verify_jwt = true
 
+[functions.get-student-classes]
+verify_jwt = true
+
 [functions.auto-enroll-student]
 verify_jwt = false

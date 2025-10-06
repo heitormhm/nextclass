@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
 interface Course {
-  id: number;
+  id: number | string;
   lessonNumber: string;
   title: string;
   instructor: string;
@@ -41,14 +41,18 @@ const CourseCard = ({ course, type = 'lesson' }: CourseCardProps) => {
 
   return (
     <Link to={navigationPath} className="block no-underline">
-      <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm overflow-hidden bg-white/60 backdrop-blur-xl">
+      <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm overflow-hidden bg-white/60 backdrop-blur-xl h-auto min-h-[400px] flex flex-col">
         {/* Thumbnail Section */}
-        <div className="relative aspect-video overflow-hidden">
+        <div className="relative aspect-video overflow-hidden flex-shrink-0">
           {/* Background Image */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${course.thumbnail})` }}
-          />
+          {course.thumbnail ? (
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${course.thumbnail})` }}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
+          )}
           
           {/* Semi-transparent overlay for text readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10" />
@@ -77,18 +81,18 @@ const CourseCard = ({ course, type = 'lesson' }: CourseCardProps) => {
         </div>
 
         {/* Card Content */}
-        <CardContent className="p-5">
+        <CardContent className="p-5 flex-1 flex flex-col">
           {/* Lesson Number */}
-          <Badge variant="outline" className="mb-3 text-xs font-medium">
+          <Badge variant="outline" className="mb-3 text-xs font-medium w-fit">
             {course.lessonNumber}
           </Badge>
 
           {/* Title and Instructor */}
-          <div className="mb-4">
-            <h3 className="font-bold text-lg leading-tight mb-2 group-hover:text-primary transition-colors">
+          <div className="mb-4 flex-1">
+            <h3 className="font-bold text-lg leading-tight mb-2 group-hover:text-primary transition-colors break-words">
               {course.title}
             </h3>
-            <p className="text-foreground-muted text-sm">
+            <p className="text-foreground-muted text-sm break-words">
               {course.instructor}
             </p>
           </div>
