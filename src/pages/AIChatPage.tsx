@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, Mic, Paperclip, Plus, MessageCircle, X, FileText, Image as ImageIcon, Music } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -153,12 +153,15 @@ A avaliação inicial deve focar em estabilidade hemodinâmica e realizar ECG, t
 const AIChatPage = () => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [isDeepSearch, setIsDeepSearch] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [showMobileHistory, setShowMobileHistory] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState("1");
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
@@ -234,9 +237,129 @@ const AIChatPage = () => {
     }
   };
 
+  const startListening = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast({
+        title: "Não suportado",
+        description: "O seu navegador não suporta reconhecimento de voz.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'pt-PT';
+
+      recognitionRef.current.onstart = () => {
+        setIsListening(true);
+        toast({
+          title: "A ouvir...",
+          description: "Fale naturalmente. A transcrição aparecerá em tempo real.",
+        });
+      };
+
+      recognitionRef.current.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + ' ';
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        // Update input with interim results
+        if (interimTranscript) {
+          setInputMessage(interimTranscript);
+        }
+
+        // If we have final results, clear the silence timer and set a new one
+        if (finalTranscript) {
+          setInputMessage(finalTranscript.trim());
+          
+          // Clear existing timer
+          if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+          }
+
+          // Set new timer for auto-submit after 2 seconds of silence
+          silenceTimerRef.current = setTimeout(() => {
+            if (finalTranscript.trim()) {
+              handleSendMessage();
+            }
+          }, 2000);
+        }
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        
+        if (event.error === 'not-allowed') {
+          toast({
+            title: "Permissão negada",
+            description: "Por favor, permita o acesso ao microfone nas definições do navegador.",
+            variant: "destructive",
+          });
+        } else if (event.error !== 'no-speech') {
+          toast({
+            title: "Erro",
+            description: "Ocorreu um erro no reconhecimento de voz. Tente novamente.",
+            variant: "destructive",
+          });
+        }
+        
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        // Restart if we're still supposed to be listening
+        if (isListening) {
+          try {
+            recognitionRef.current.start();
+          } catch (error) {
+            console.error('Error restarting recognition:', error);
+            setIsListening(false);
+          }
+        }
+      };
+
+      recognitionRef.current.start();
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível iniciar o reconhecimento de voz.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+    }
+  };
+
   const handleVoiceToggle = () => {
-    setIsRecording(!isRecording);
-    // Voice recording logic would go here
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
   };
 
   const handleFileAttachment = () => {
@@ -326,6 +449,23 @@ const AIChatPage = () => {
     setActiveConversationId(chatId);
     setShowMobileHistory(false);
   };
+
+  // Auto-start listening when component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      startListening();
+    }, 1000);
+
+    return () => {
+      clearTimeout(timer);
+      stopListening();
+    };
+  }, []);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   return (
     <MainLayout>
@@ -568,11 +708,21 @@ const AIChatPage = () => {
                       variant="ghost"
                       size="icon"
                       onClick={handleVoiceToggle}
-                      className={`shrink-0 h-10 w-10 ${
-                        isRecording ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'text-foreground-muted hover:text-foreground'
-                      }`}
+                      className={cn(
+                        "shrink-0 h-10 w-10 relative hover:bg-primary/10",
+                        isListening && "text-primary"
+                      )}
                     >
-                      <Mic className="w-5 h-5" />
+                      <Mic className={cn(
+                        "w-5 h-5",
+                        isListening && "animate-pulse"
+                      )} />
+                      {isListening && (
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                        </span>
+                      )}
                     </Button>
 
                     {/* File Attachment Button */}
