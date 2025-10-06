@@ -35,16 +35,56 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Fetch performance data if requested
-    let performanceContext = '';
-    if (includePerformance || message.toLowerCase().includes('desempenho') || 
-        message.toLowerCase().includes('notas') || message.toLowerCase().includes('feedback')) {
-      
-      console.log('Fetching performance data for user:', user.id);
-      
-      // This is a placeholder - you'll need to implement these tables
-      // For now, we'll just note that performance analysis was requested
-      performanceContext = `\n\nNOTA: O aluno solicitou análise de desempenho. Quando os dados estiverem disponíveis, você poderá fornecer feedback personalizado baseado em quizzes e flashcard reviews.`;
+    // Always fetch student performance data for context
+    console.log('Fetching performance data for user:', user.id);
+    
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Fetch last 5 quiz attempts
+    const { data: quizAttempts, error: quizError } = await supabaseAdmin
+      .from('quiz_attempts')
+      .select('topic, percentage, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    // Fetch last 5 flashcard reviews
+    const { data: flashcardReviews, error: flashcardError } = await supabaseAdmin
+      .from('flashcard_reviews')
+      .select('topic, percentage, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    // Build performance context
+    let performanceContext = '\n\n**CONTEXTO DE DESEMPENHO DO ALUNO:**\n';
+    
+    if (quizAttempts && quizAttempts.length > 0) {
+      performanceContext += '\nÚltimos Quizzes:\n';
+      quizAttempts.forEach((attempt, index) => {
+        const date = new Date(attempt.created_at).toLocaleDateString('pt-BR');
+        performanceContext += `  ${index + 1}. ${attempt.topic}: ${attempt.percentage}% (${date})\n`;
+      });
+    }
+
+    if (flashcardReviews && flashcardReviews.length > 0) {
+      performanceContext += '\nÚltimas Revisões de Flashcards:\n';
+      flashcardReviews.forEach((review, index) => {
+        const date = new Date(review.created_at).toLocaleDateString('pt-BR');
+        performanceContext += `  ${index + 1}. ${review.topic}: ${review.percentage}% de acertos (${date})\n`;
+      });
+    }
+
+    if ((!quizAttempts || quizAttempts.length === 0) && (!flashcardReviews || flashcardReviews.length === 0)) {
+      performanceContext += '\nO aluno ainda não possui histórico de quizzes ou flashcards. Este é um bom momento para encorajá-lo a testar seus conhecimentos!\n';
+    } else {
+      performanceContext += '\n**INSTRUÇÕES:** Use este contexto para personalizar suas respostas:\n';
+      performanceContext += '- Se o aluno perguntar sobre um tópico onde teve dificuldades (nota < 70%), seja mais detalhada e paciente.\n';
+      performanceContext += '- Se ele teve bom desempenho (nota > 85%), pode sugerir tópicos mais avançados.\n';
+      performanceContext += '- Se perceber padrões de dificuldade, sugira revisão focada nesses tópicos.\n';
     }
 
     // Build the content array for Gemini
@@ -80,26 +120,31 @@ serve(async (req) => {
       }
     }
 
-    // Master prompt for Mia
-    const systemPrompt = `Você é 'Mia', uma assistente de IA especialista em engenharia para estudantes universitários brasileiros. A sua função é ser uma tutora pessoal e proativa.
+    // Master prompt for Mia with performance context
+    const systemPrompt = `Você é 'Mia', uma assistente de IA especialista em engenharia para estudantes universitários brasileiros. A sua função é ser uma tutora pessoal, proativa e personalizada.
 
 **PERSONA:**
 - Você é amigável, paciente e encorajadora
 - Você fala em português do Brasil de forma natural e clara
 - Você usa exemplos práticos e aplicáveis ao contexto brasileiro
 - Você se refere a normas técnicas brasileiras (ABNT) quando relevante
+- Você conhece o histórico de desempenho do aluno e usa isso para personalizar suas respostas
 
 **CAPACIDADES:**
 - Explicar conceitos complexos de engenharia de forma simples
 - Analisar diagramas, esquemas e documentos técnicos
-- Responder dúvidas sobre cálculos estruturais, circuitos elétricos, mecânica, etc.
-- Fornecer feedback construtivo e sugestões de estudo personalizadas
+- Responder dúvidas sobre cálculos estruturais, circuitos elétricos, mecânica, termodinâmica, etc.
+- Fornecer feedback construtivo e sugestões de estudo personalizadas baseadas no desempenho real
 - Ajudar na preparação para provas e trabalhos
+- Identificar padrões de dificuldade e sugerir revisões focadas
 
 **DIRETRIZES:**
-- Use pesquisa profunda quando necessário para fornecer informações precisas e atualizadas
+- Use o contexto de desempenho abaixo para personalizar TODAS as suas respostas
+- Se o aluno perguntar sobre um tópico onde teve dificuldades, seja mais detalhada e didática
+- Se ele teve bom desempenho, reconheça isso e desafie-o com conceitos mais avançados
+- Quando relevante, mencione de forma sutil que você notou o desempenho dele (ex: "Percebi que esse tema foi desafiador no último quiz...")
+- Use pesquisa profunda quando necessário para fornecer informações precisas
 - Quando analisar imagens técnicas, seja detalhado e preciso
-- Se dados de desempenho do aluno forem fornecidos, analise-os para identificar pontos fracos e fortes
 - Sempre sugira próximos passos ou tópicos relacionados para aprofundamento
 - Se não tiver certeza sobre algo, seja honesto e sugira recursos adicionais
 

@@ -118,6 +118,47 @@ export type Database = {
         }
         Relationships: []
       }
+      flashcard_reviews: {
+        Row: {
+          correct_count: number
+          created_at: string
+          id: string
+          lecture_id: string | null
+          percentage: number | null
+          topic: string
+          total_count: number
+          user_id: string
+        }
+        Insert: {
+          correct_count: number
+          created_at?: string
+          id?: string
+          lecture_id?: string | null
+          percentage?: number | null
+          topic: string
+          total_count: number
+          user_id: string
+        }
+        Update: {
+          correct_count?: number
+          created_at?: string
+          id?: string
+          lecture_id?: string | null
+          percentage?: number | null
+          topic?: string
+          total_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcard_reviews_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lectures: {
         Row: {
           class_id: string | null
@@ -238,6 +279,47 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          lecture_id: string | null
+          max_score: number
+          percentage: number | null
+          score: number
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lecture_id?: string | null
+          max_score: number
+          percentage?: number | null
+          score: number
+          topic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lecture_id?: string | null
+          max_score?: number
+          percentage?: number | null
+          score?: number
+          topic?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
             referencedColumns: ["id"]
           },
         ]
