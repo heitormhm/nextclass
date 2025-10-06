@@ -175,9 +175,8 @@ const AIChatPage = () => {
 
   const deepSearchSteps = [
     { text: "A decompor a pergunta em tópicos..." },
-    { text: "A gerar consultas de pesquisa..." },
     { text: "A executar buscas na web..." },
-    { text: "A extrair e sintetizar conteúdo..." },
+    { text: "A sintetizar conteúdo..." },
     { text: "A gerar relatório final..." },
     { text: "Concluído" },
   ];

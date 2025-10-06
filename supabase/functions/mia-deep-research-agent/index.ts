@@ -78,9 +78,9 @@ serve(async (req) => {
 **TAREFA:** Analise a pergunta do utilizador e divida-a em sub-perguntas específicas e lógicas que devem ser pesquisadas para responder à pergunta original de forma completa.
 
 **REGRAS:**
-- Gere entre 8 a 15 sub-perguntas, dependendo da complexidade do tópico
-- Cada sub-pergunta deve ser específica e focada
-- As perguntas devem cobrir definições, aplicações, limitações e contexto histórico quando relevante
+- Gere entre 5 a 8 sub-perguntas focadas nos pontos mais importantes
+- Cada sub-pergunta deve ser específica e cobrir um aspecto essencial
+- Priorize definições fundamentais, aplicações práticas e conceitos-chave
 - Retorne apenas as perguntas, uma por linha, numeradas (ex: "1. ...", "2. ...", etc.)`
           },
           {
@@ -89,7 +89,7 @@ serve(async (req) => {
           }
         ],
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 800,
       }),
     });
 
@@ -99,118 +99,87 @@ serve(async (req) => {
 
     const decomposeData = await decomposeResponse.json();
     const subQuestions = decomposeData.choices?.[0]?.message?.content?.split('\n').filter((q: string) => q.trim());
-    console.log('Sub-questions:', subQuestions);
+    console.log(`Generated ${subQuestions?.length || 0} sub-questions`);
 
-    // Step 2: Generate search queries for each sub-question
-    await updateProgress("A gerar consultas de pesquisa...");
-    console.log('Step 2: Generating search queries');
-
-    const searchQueries: Array<{ subQuestion: string; queries: string[] }> = [];
-
-    for (const subQuestion of subQuestions) {
-      const queryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            {
-              role: 'system',
-              content: 'Gere 2-3 consultas de busca otimizadas para encontrar informação académica sobre a pergunta. Retorne apenas as consultas, uma por linha.'
-            },
-            {
-              role: 'user',
-              content: subQuestion
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 200,
-        }),
-      });
-
-      if (queryResponse.ok) {
-        const queryData = await queryResponse.json();
-        const queries = queryData.choices?.[0]?.message?.content?.split('\n').filter((q: string) => q.trim());
-        searchQueries.push({ subQuestion, queries });
-      }
-    }
-
-    // Step 3: Execute searches using Google Search grounding
+    // Step 2: Execute searches using Google Search grounding
     await updateProgress("A executar buscas na web...");
-    console.log('Step 3: Executing web searches');
+    console.log('Step 2: Executing web searches');
 
     const researchResults: string[] = [];
 
-    for (const { subQuestion, queries } of searchQueries) {
+    for (const subQuestion of subQuestions) {
       console.log('Researching:', subQuestion);
       
-      // Use the most relevant query for searching
-      const mainQuery = queries[0];
-      
-      const researchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-pro',
-          messages: [
-            {
-              role: 'system',
-              content: `Você é um investigador académico especializado em engenharia.
+      try {
+        const researchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-pro',
+            messages: [
+              {
+                role: 'system',
+                content: `Você é um investigador académico especializado em engenharia.
 
 **TAREFA:** Pesquise informação académica e técnica sobre a pergunta usando fontes reais da web.
 
 **REGRAS CRÍTICAS:**
 - Use APENAS informação de fontes reais encontradas na pesquisa
 - Cite SEMPRE a URL completa de cada fonte no formato [Fonte: URL]
-- Organize a informação de forma clara e estruturada
-- Inclua dados técnicos, definições e aplicações práticas quando disponíveis
+- Seja conciso mas completo, foque nos pontos essenciais
+- Inclua dados técnicos e definições quando disponíveis
 - NÃO invente informações ou referências`
-            },
-            {
-              role: 'user',
-              content: `Pergunta: ${subQuestion}\n\nConsulta de busca: ${mainQuery}`
-            }
-          ],
-          tools: [
-            {
-              googleSearchRetrieval: {
-                dynamicRetrievalConfig: {
-                  mode: "MODE_DYNAMIC",
-                  dynamicThreshold: 0.7
+              },
+              {
+                role: 'user',
+                content: subQuestion
+              }
+            ],
+            tools: [
+              {
+                googleSearchRetrieval: {
+                  dynamicRetrievalConfig: {
+                    mode: "MODE_DYNAMIC",
+                    dynamicThreshold: 0.7
+                  }
                 }
               }
-            }
-          ],
-          temperature: 0.5,
-          max_tokens: 3000,
-        }),
-      });
+            ],
+            temperature: 0.5,
+            max_tokens: 2000,
+          }),
+        });
 
-      if (researchResponse.ok) {
-        const researchData = await researchResponse.json();
-        const result = researchData.choices?.[0]?.message?.content;
-        if (result) {
-          researchResults.push(`\n### ${subQuestion}\n\n${result}\n`);
+        if (researchResponse.ok) {
+          const researchData = await researchResponse.json();
+          const result = researchData.choices?.[0]?.message?.content;
+          if (result) {
+            researchResults.push(`\n### ${subQuestion}\n\n${result}\n`);
+            console.log(`✓ Completed research for question ${researchResults.length}/${subQuestions.length}`);
+          }
+        } else {
+          console.warn(`Failed to research: ${subQuestion}`);
         }
+      } catch (error) {
+        console.error(`Error researching question:`, error);
+        // Continue with next question instead of failing completely
       }
 
-      // Add small delay to avoid rate limits
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Small delay to avoid rate limits
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-    // Step 4: Extract and synthesize content
-    await updateProgress("A extrair e sintetizar conteúdo...");
-    console.log('Step 4: Extracting and synthesizing content');
+    console.log(`Completed ${researchResults.length} research results`);
 
-    // Step 5: Generate final report with Master Prompt
+    // Step 3: Synthesize content
+    await updateProgress("A sintetizar conteúdo...");
+
+    // Step 4: Generate final report with Master Prompt
     await updateProgress("A gerar relatório final...");
-    console.log('Step 5: Generating final report with Master Prompt');
+    console.log('Step 4: Generating final report with Master Prompt');
 
     const synthesisPrompt = `**PERSONA:**
 Você é um assistente de IA especialista em pesquisa e redação académica para o campo da engenharia. A sua função é compilar um relatório detalhado, coeso e de alta qualidade académica.
@@ -283,6 +252,8 @@ Com base **exclusivamente** nas informações fornecidas, escreva um documento e
     });
 
     if (!reportResponse.ok) {
+      const errorText = await reportResponse.text();
+      console.error('Report generation failed:', errorText);
       throw new Error('Failed to generate report');
     }
 
@@ -293,22 +264,29 @@ Com base **exclusivamente** nas informações fornecidas, escreva um documento e
       throw new Error('No report generated');
     }
 
+    console.log('Report generated successfully, length:', finalReport.length);
+
     // Update session as completed with report
     await updateProgress("Concluído");
-    const { error: updateError } = await supabaseAdmin
+    console.log('Updating session with completed status...');
+    
+    const { data: updateData, error: updateError } = await supabaseAdmin
       .from('deep_search_sessions')
       .update({
         status: 'completed',
         result: finalReport,
-        progress_step: 'Concluído'
+        progress_step: 'Concluído',
+        updated_at: new Date().toISOString()
       })
-      .eq('id', deepSearchSessionId);
+      .eq('id', deepSearchSessionId)
+      .select();
 
     if (updateError) {
       console.error('Error updating session:', updateError);
-      throw new Error('Failed to save report');
+      throw new Error(`Failed to save report: ${updateError.message}`);
     }
 
+    console.log('Session updated successfully:', updateData);
     console.log('Deep research completed successfully');
 
     return new Response(
