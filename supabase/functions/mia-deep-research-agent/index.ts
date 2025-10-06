@@ -78,7 +78,7 @@ serve(async (req) => {
 **TAREFA:** Analise a pergunta do utilizador e divida-a em sub-perguntas específicas e lógicas que devem ser pesquisadas para responder à pergunta original de forma completa.
 
 **REGRAS:**
-- Gere entre 5 a 8 sub-perguntas focadas nos pontos mais importantes
+- Gere entre 3 a 5 sub-perguntas focadas nos pontos mais importantes
 - Cada sub-pergunta deve ser específica e cobrir um aspecto essencial
 - Priorize definições fundamentais, aplicações práticas e conceitos-chave
 - Retorne apenas as perguntas, uma por linha, numeradas (ex: "1. ...", "2. ...", etc.)`
@@ -89,7 +89,7 @@ serve(async (req) => {
           }
         ],
         temperature: 0.7,
-        max_tokens: 800,
+        max_tokens: 500,
       }),
     });
 
@@ -118,7 +118,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-pro',
+            model: 'google/gemini-2.5-flash',
             messages: [
               {
                 role: 'system',
@@ -149,7 +149,7 @@ serve(async (req) => {
               }
             ],
             temperature: 0.5,
-            max_tokens: 2000,
+            max_tokens: 1500,
           }),
         });
 
@@ -169,7 +169,7 @@ serve(async (req) => {
       }
 
       // Small delay to avoid rate limits
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
 
     console.log(`Completed ${researchResults.length} research results`);
@@ -238,15 +238,15 @@ Com base **exclusivamente** nas informações fornecidas, escreva um documento e
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'user',
             content: synthesisPrompt
           }
         ],
-        temperature: 0.3, // Lower temperature for more focused output
-        max_tokens: 16000,
+        temperature: 0.3,
+        max_tokens: 8000,
       }),
     });
 
