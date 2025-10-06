@@ -1,17 +1,27 @@
-import { useState } from "react";
-import { Send, Sparkles, Mic, Paperclip, Plus, MessageCircle } from "lucide-react";
+import { useState, useRef } from "react";
+import { Send, Sparkles, Mic, Paperclip, Plus, MessageCircle, X, FileText, Image as ImageIcon, Music } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+
+interface AttachedFile {
+  name: string;
+  type: string;
+  data: string; // base64
+  preview?: string;
+}
 
 interface Message {
   id: string;
   content: string;
   isUser: boolean;
   timestamp: Date;
+  file?: AttachedFile;
 }
 
 interface ChatHistory {
@@ -141,40 +151,80 @@ A avaliação inicial deve focar em estabilidade hemodinâmica e realizar ECG, t
 };
 
 const AIChatPage = () => {
-  const [messages, setMessages] = useState<Message[]>(mockConversations["1"]);
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>(mockChatHistory);
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [isDeepSearch, setIsDeepSearch] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [showMobileHistory, setShowMobileHistory] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState("1");
+  const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+    if ((!inputMessage.trim() && !attachedFile) || isLoading) return;
 
     const userMessage: Message = {
       id: `${activeConversationId}-${Date.now()}`,
-      content: inputMessage,
+      content: inputMessage || "Arquivo anexado",
       isUser: true,
       timestamp: new Date(),
+      file: attachedFile || undefined,
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentMessage = inputMessage;
+    const currentFile = attachedFile;
     setInputMessage("");
+    setAttachedFile(null);
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Não autenticado');
+      }
+
+      const response = await supabase.functions.invoke('mia-student-chat', {
+        body: {
+          message: currentMessage,
+          fileData: currentFile?.data,
+          fileType: currentFile?.type,
+          fileName: currentFile?.name,
+          includePerformance: isDeepSearch,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        }
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
       const aiResponse: Message = {
         id: `${activeConversationId}-${Date.now() + 1}`,
-        content: "Desculpe, esta é uma demonstração. A funcionalidade completa da Mia estará disponível em breve!",
+        content: response.data.response || "Desculpe, não consegui processar sua solicitação.",
         isUser: false,
         timestamp: new Date(),
       };
+
       setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Falha ao enviar mensagem",
+        variant: "destructive",
+      });
+      
+      // Remove user message on error
+      setMessages(prev => prev.slice(0, -1));
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -190,8 +240,63 @@ const AIChatPage = () => {
   };
 
   const handleFileAttachment = () => {
-    // File attachment logic would go here
-    console.log("File attachment clicked");
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'audio/mpeg', 'audio/wav', 'audio/webm'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Tipo de arquivo inválido",
+        description: "Apenas imagens, PDFs e áudios são suportados.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "O arquivo deve ter no máximo 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = e.target?.result as string;
+        setAttachedFile({
+          name: file.name,
+          type: file.type,
+          data: data,
+          preview: file.type.startsWith('image/') ? data : undefined,
+        });
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao processar o arquivo",
+        variant: "destructive",
+      });
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachedFile = () => {
+    setAttachedFile(null);
   };
 
   const handleNewConversation = () => {
@@ -351,6 +456,28 @@ const AIChatPage = () => {
                               : "bg-muted text-foreground"
                           }`}
                         >
+                          {message.file && (
+                            <div className="mb-3">
+                              {message.file.preview ? (
+                                <img 
+                                  src={message.file.preview} 
+                                  alt={message.file.name}
+                                  className="max-w-full h-auto rounded-lg mb-2"
+                                />
+                              ) : (
+                                <div className="flex items-center gap-2 p-2 bg-background/20 rounded-lg mb-2">
+                                  {message.file.type === 'application/pdf' ? (
+                                    <FileText className="w-5 h-5" />
+                                  ) : message.file.type.startsWith('audio/') ? (
+                                    <Music className="w-5 h-5" />
+                                  ) : (
+                                    <Paperclip className="w-5 h-5" />
+                                  )}
+                                  <span className="text-xs truncate">{message.file.name}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                           <div className="whitespace-pre-wrap text-sm leading-relaxed">
                             {message.content}
                           </div>
@@ -387,7 +514,55 @@ const AIChatPage = () => {
             <div className="p-3 sm:p-4 lg:p-6 pt-0">
               <div className="max-w-4xl mx-auto">
                 <div className="frost-white rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg">
+                  {/* File Preview */}
+                  {attachedFile && (
+                    <div className="mb-3 p-2 bg-background/50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        {attachedFile.preview ? (
+                          <img 
+                            src={attachedFile.preview} 
+                            alt={attachedFile.name}
+                            className="w-16 h-16 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 flex items-center justify-center bg-muted rounded">
+                            {attachedFile.type === 'application/pdf' ? (
+                              <FileText className="w-8 h-8 text-foreground-muted" />
+                            ) : attachedFile.type.startsWith('audio/') ? (
+                              <Music className="w-8 h-8 text-foreground-muted" />
+                            ) : (
+                              <Paperclip className="w-8 h-8 text-foreground-muted" />
+                            )}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{attachedFile.name}</p>
+                          <p className="text-xs text-foreground-muted">
+                            {attachedFile.type.split('/')[1].toUpperCase()}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={removeAttachedFile}
+                          className="shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-end gap-2 sm:gap-3">
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/*,application/pdf,audio/*"
+                      onChange={handleFileChange}
+                    />
+
                     {/* Voice Recording Button */}
                     <Button
                       variant="ghost"
