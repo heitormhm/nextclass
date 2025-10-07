@@ -7,52 +7,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+// Background task processor
+async function processDeepResearch(
+  query: string,
+  deepSearchSessionId: string,
+  userId: string
+) {
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  // Helper to update progress
+  const updateProgress = async (step: string) => {
+    try {
+      await supabaseAdmin
+        .from('deep_search_sessions')
+        .update({ progress_step: step, updated_at: new Date().toISOString() })
+        .eq('id', deepSearchSessionId);
+      console.log('Progress:', step);
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    }
+  };
 
   try {
-    const { query, deepSearchSessionId } = await req.json();
-    console.log('Deep research request:', { query, deepSearchSessionId });
-
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (userError || !user) {
-      throw new Error('Unauthorized');
-    }
-
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Helper to update progress
-    const updateProgress = async (step: string) => {
-      if (!deepSearchSessionId) return;
-      try {
-        await supabaseAdmin
-          .from('deep_search_sessions')
-          .update({ progress_step: step })
-          .eq('id', deepSearchSessionId);
-        console.log('Progress:', step);
-      } catch (error) {
-        console.error('Error updating progress:', error);
-      }
-    };
-
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
@@ -308,10 +287,68 @@ Agora, escreva o relatório final seguindo todas as diretrizes acima.`;
     console.log('Session updated successfully:', updateData);
     console.log('Deep research completed successfully');
 
+  } catch (error) {
+    console.error('Error in background task:', error);
+    
+    // Update session with error
+    try {
+      await supabaseAdmin
+        .from('deep_search_sessions')
+        .update({
+          status: 'error',
+          progress_step: 'Erro na pesquisa. Por favor tente novamente.',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', deepSearchSessionId);
+    } catch (updateError) {
+      console.error('Failed to update error status:', updateError);
+    }
+  }
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { query, deepSearchSessionId } = await req.json();
+    console.log('Deep research request:', { query, deepSearchSessionId });
+
+    if (!query || !deepSearchSessionId) {
+      throw new Error('Missing query or deepSearchSessionId');
+    }
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (userError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    // Start background task (fire and forget)
+    console.log('Starting background task for deep research...');
+    processDeepResearch(query, deepSearchSessionId, user.id).catch((error) => {
+      console.error('Background task failed:', error);
+    });
+
+    // Return immediately - processing will continue in background
     return new Response(
       JSON.stringify({
         success: true,
-        report: finalReport,
+        message: 'Pesquisa iniciada. Acompanhe o progresso na interface.',
+        sessionId: deepSearchSessionId,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -321,34 +358,13 @@ Agora, escreva o relatório final seguindo todas as diretrizes acima.`;
   } catch (error) {
     console.error('Error in deep research agent:', error);
     
-    // Try to update session with error
-    try {
-      const { deepSearchSessionId } = await req.json();
-      if (deepSearchSessionId) {
-        const supabaseAdmin = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        );
-        
-        await supabaseAdmin
-          .from('deep_search_sessions')
-          .update({
-            status: 'error',
-            progress_step: 'Erro na pesquisa. Por favor tente novamente.'
-          })
-          .eq('id', deepSearchSessionId);
-      }
-    } catch (updateError) {
-      console.error('Failed to update error status:', updateError);
-    }
-    
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Unknown error',
         success: false,
       }),
       {
-        status: 500,
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
