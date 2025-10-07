@@ -146,63 +146,84 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     }
     // Handle regular text with bold support and citations
     else if (line.trim()) {
-      // Process bold text (**text**) and citations [1]
-      const parts = line.split(/(\*\*.*?\*\*|\[\d+\])/g);
-      let xPosition = margin;
+      // Check if line has formatting (bold or citations)
+      const hasFormatting = /(\*\*.*?\*\*|\[\d+\])/.test(line);
       
-      parts.forEach((part) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          doc.setFont('helvetica', 'bold');
-          const boldText = part.replace(/\*\*/g, '');
-          const textLines = doc.splitTextToSize(boldText, contentWidth - (xPosition - margin));
-          textLines.forEach((textLine: string, index: number) => {
-            if (yPosition > pageHeight - footerHeight - 20) {
-              addFooter(pageCount, 0);
-              doc.addPage();
-              pageCount++;
-              isFirstPage = false;
-              yPosition = margin + 5;
-              xPosition = margin;
-            }
-            doc.text(textLine, xPosition, yPosition);
-            if (index < textLines.length - 1) {
-              yPosition += 7; // Line spacing
-              xPosition = margin;
+      if (!hasFormatting) {
+        // Simple text without formatting - use full width wrapping
+        const wrappedLines = doc.splitTextToSize(line, contentWidth);
+        wrappedLines.forEach((wrappedLine: string) => {
+          if (yPosition > pageHeight - footerHeight - 20) {
+            addFooter(pageCount, 0);
+            doc.addPage();
+            pageCount++;
+            isFirstPage = false;
+            yPosition = margin + 5;
+          }
+          doc.text(wrappedLine, margin, yPosition);
+          yPosition += 7;
+        });
+      } else {
+        // Text with formatting - wrap first, then apply formatting per line
+        // Remove formatting temporarily to get proper text wrapping
+        const plainText = line.replace(/\*\*/g, '');
+        const wrappedLines = doc.splitTextToSize(plainText, contentWidth);
+        
+        // Now apply formatting to each wrapped line
+        wrappedLines.forEach((wrappedLine: string) => {
+          if (yPosition > pageHeight - footerHeight - 20) {
+            addFooter(pageCount, 0);
+            doc.addPage();
+            pageCount++;
+            isFirstPage = false;
+            yPosition = margin + 5;
+          }
+          
+          // Find which parts of the original line are in this wrapped line
+          // Split by formatting markers
+          const parts = line.split(/(\*\*.*?\*\*|\[\d+\])/g);
+          let currentPos = 0;
+          let xPosition = margin;
+          
+          parts.forEach((part) => {
+            if (!part) return;
+            
+            if (part.startsWith('**') && part.endsWith('**')) {
+              const boldText = part.replace(/\*\*/g, '');
+              // Check if this bold text appears in current wrapped line
+              const plainLinePos = plainText.indexOf(boldText, currentPos);
+              if (plainLinePos >= 0 && plainLinePos < currentPos + wrappedLine.length) {
+                doc.setFont('helvetica', 'bold');
+                doc.text(boldText, xPosition, yPosition);
+                xPosition += doc.getTextWidth(boldText);
+                doc.setFont('helvetica', 'normal');
+                currentPos = plainLinePos + boldText.length;
+              }
+            } else if (part.match(/\[\d+\]/)) {
+              // Citations - render in smaller superscript style
+              doc.setFontSize(9);
+              doc.setTextColor(110, 89, 165);
+              doc.text(part, xPosition, yPosition - 1);
+              xPosition += doc.getTextWidth(part) + 1;
+              doc.setFontSize(12);
+              doc.setTextColor(50, 50, 50);
             } else {
-              xPosition += doc.getTextWidth(textLine);
+              // Regular text segment
+              const plainPart = part.trim();
+              if (plainPart) {
+                const plainLinePos = plainText.indexOf(plainPart, currentPos);
+                if (plainLinePos >= 0 && plainLinePos < currentPos + wrappedLine.length) {
+                  doc.text(plainPart, xPosition, yPosition);
+                  xPosition += doc.getTextWidth(plainPart);
+                  currentPos = plainLinePos + plainPart.length;
+                }
+              }
             }
           });
-          doc.setFont('helvetica', 'normal');
-        } else if (part.match(/\[\d+\]/)) {
-          // Style citations in a smaller, superscript-like format
-          doc.setFontSize(9);
-          doc.setTextColor(110, 89, 165);
-          doc.text(part, xPosition, yPosition - 1); // Slightly raised
-          xPosition += doc.getTextWidth(part) + 1;
-          doc.setFontSize(12);
-          doc.setTextColor(50, 50, 50);
-        } else if (part.trim()) {
-          const textLines = doc.splitTextToSize(part, contentWidth - (xPosition - margin));
-          textLines.forEach((textLine: string, index: number) => {
-            if (yPosition > pageHeight - footerHeight - 20) {
-              addFooter(pageCount, 0);
-              doc.addPage();
-              pageCount++;
-              isFirstPage = false;
-              yPosition = margin + 5;
-              xPosition = margin;
-            }
-            doc.text(textLine, xPosition, yPosition);
-            if (index < textLines.length - 1) {
-              yPosition += 7; // Line spacing
-              xPosition = margin;
-            } else {
-              xPosition += doc.getTextWidth(textLine);
-            }
-          });
-        }
-      });
-      yPosition += 7; // Paragraph spacing
+          
+          yPosition += 7;
+        });
+      }
     }
     // Empty line
     else {
