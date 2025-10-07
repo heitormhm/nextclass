@@ -28,17 +28,6 @@ interface Message {
   reportTitle?: string;
 }
 
-interface ChatHistory {
-  id: string;
-  title: string;
-  timestamp: Date;
-  isActive: boolean;
-}
-
-interface ConversationData {
-  [key: string]: Message[];
-}
-
 interface Conversation {
   id: string;
   title: string;
