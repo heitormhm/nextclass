@@ -305,6 +305,15 @@ ${performanceContext}`;
     // Save messages to database
     if (activeConversationId) {
       try {
+        // Check message count BEFORE inserting new messages
+        const { count: messageCountBefore, error: countError } = await supabaseAdmin
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', activeConversationId);
+
+        console.log('Message count before insert:', messageCountBefore);
+        const isFirstExchange = !countError && (messageCountBefore === null || messageCountBefore === 0);
+
         // Save user message
         await supabaseAdmin
           .from('messages')
@@ -323,15 +332,10 @@ ${performanceContext}`;
             content: assistantMessage
           });
 
-        // Check if this is the first exchange (generate title)
-        const { count: messageCount, error: countError } = await supabaseAdmin
-          .from('messages')
-          .select('*', { count: 'exact', head: false })
-          .eq('conversation_id', activeConversationId);
-
-        console.log('Message count for conversation:', messageCount);
-
-        if (!countError && messageCount !== null && messageCount <= 2) {
+        // Generate title only for the first exchange
+        if (isFirstExchange) {
+          console.log('First exchange detected, generating conversation title...');
+          
           try {
             // Generate title for the conversation using Gemini
             const titlePrompt = `Com base na seguinte conversa sobre engenharia, gere um título curto e descritivo com no máximo 5 palavras em português brasileiro. O título deve capturar o tópico principal discutido. NÃO use títulos genéricos como "Nova Conversa".
@@ -339,6 +343,8 @@ ${performanceContext}`;
 Pergunta do estudante: ${message}
 Resposta: ${assistantMessage.substring(0, 300)}...`;
 
+            console.log('Calling AI for title generation...');
+            
             const titleResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -361,28 +367,40 @@ Resposta: ${assistantMessage.substring(0, 300)}...`;
               }),
             });
 
+            console.log('Title generation response status:', titleResponse.status);
+
             if (titleResponse.ok) {
               const titleData = await titleResponse.json();
               const generatedTitle = titleData.choices?.[0]?.message?.content?.trim();
               
-              if (generatedTitle && generatedTitle !== 'Nova Conversa') {
+              console.log('Raw generated title:', generatedTitle);
+              
+              if (generatedTitle && generatedTitle.toLowerCase() !== 'nova conversa') {
                 conversationTitle = generatedTitle;
                 
                 // Update conversation title
-                await supabaseAdmin
+                const { error: updateError } = await supabaseAdmin
                   .from('conversations')
                   .update({ title: conversationTitle })
                   .eq('id', activeConversationId);
                 
-                console.log('Generated conversation title:', conversationTitle);
+                if (updateError) {
+                  console.error('Error updating conversation title:', updateError);
+                } else {
+                  console.log('Successfully updated conversation title to:', conversationTitle);
+                }
               } else {
-                console.log('Title generation returned generic title, keeping default');
+                console.log('Title generation returned generic or empty title, keeping default');
+                conversationTitle = 'Nova Conversa';
               }
             } else {
-              console.error('Title generation failed:', titleResponse.status);
+              const errorText = await titleResponse.text();
+              console.error('Title generation failed:', titleResponse.status, errorText);
+              conversationTitle = 'Nova Conversa';
             }
           } catch (titleError) {
             console.error('Error generating conversation title:', titleError);
+            conversationTitle = 'Nova Conversa';
           }
         }
       } catch (error) {
