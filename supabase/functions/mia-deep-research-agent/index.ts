@@ -196,25 +196,17 @@ Example for "Thermodynamics Laws":
                 {
                   role: 'system',
                   content: `CONTEXT:
-You are a meticulous AI research assistant for the NextClass engineering platform. Your primary function is to gather high-quality, verifiable information from multiple distinct sources to answer a specific academic question. Failure to find sufficient sources is not an option; you must be resourceful.
+You are a meticulous AI research assistant for the NextClass engineering platform. Your function is to gather high-quality, verifiable information from multiple distinct sources to answer a specific academic question.
 
 TASK:
-For the specific question "${currentQuery}", you must conduct a targeted Google Search to find a minimum of THREE (3) distinct and reputable sources.
+Conduct a targeted Google Search for the query: "${currentQuery}". Your goal is to find at least THREE (3) distinct and reputable sources that directly answer this query.
 
 CONSTRAINTS:
-1. **Source Quota (Strict):** You MUST return at least THREE different sources. If your initial search query does not yield enough results, you are required to automatically rephrase your query and search again. For example, if "First Law of Thermodynamics for open systems" fails, try "enthalpy in steady-flow energy equation" or "control volume energy balance engineering".
+1. **Source Quality:** Prioritize sources from academic journals, university websites (.edu), reputable engineering organizations (.org), and official technical documentation. You must critically evaluate and AVOID sources like forums, personal blogs, or Q&A sites.
 
-2. **Source Quality:** Prioritize sources from:
-   - Academic journals and publishers
-   - University websites (.edu)
-   - Reputable engineering organizations (.org)
-   - Government technical agencies (.gov)
-   - Well-regarded technical documentation
-   Avoid: forums, blog posts, Q&A sites, or low-quality content mills.
+2. **Content Extraction:** For each valid source found, extract the most relevant paragraphs or sections that directly answer the query. The snippet must be substantial (2-3 paragraphs minimum).
 
-3. **Content Extraction:** For each source found, you must extract the most relevant paragraphs or sections that directly answer the question. The extracted text should be comprehensive enough to be useful in a detailed academic report (2-3 paragraphs minimum per source).
-
-4. **Output Format:** Structure your response as:
+3. **Output Format:** Structure your response as:
 [SOURCE 1]
 URL: [full URL]
 Content: [extracted relevant text - 2-3 paragraphs]
@@ -227,7 +219,7 @@ Content: [extracted relevant text - 2-3 paragraphs]
 URL: [full URL]
 Content: [extracted relevant text - 2-3 paragraphs]
 
-**CRITICAL:** You MUST find and cite at least 3 different sources from different domains. Use ONLY real information from actual web searches. Do NOT fabricate sources or content.`
+**CRITICAL:** Use ONLY real information from actual web searches. Do NOT fabricate sources or content. If you cannot find high-quality sources, return what you find with accurate citations.`
                 },
                 {
                   role: 'user',
@@ -254,6 +246,9 @@ Content: [extracted relevant text - 2-3 paragraphs]
             const result = researchData.choices?.[0]?.message?.content;
             
             if (result) {
+              console.log(`  ⤷ API response length: ${result.length} characters`);
+              console.log(`  ⤷ Response preview: ${result.substring(0, 200)}...`);
+              
               // Parse structured sources from [SOURCE N] format
               const rawSources: Array<{ url: string; snippet: string }> = [];
               const sourceMatches = result.matchAll(/\[SOURCE \d+\]\s*URL:\s*(https?:\/\/[^\s\n]+)\s*Content:\s*([^[]*?)(?=\[SOURCE \d+\]|$)/gs);
@@ -263,6 +258,26 @@ Content: [extracted relevant text - 2-3 paragraphs]
                 const snippet = match[2].trim();
                 if (url && snippet && snippet.length > 100) {  // Ensure substantial content
                   rawSources.push({ url, snippet });
+                }
+              }
+              
+              // If no sources found with [SOURCE N] format, try parsing as JSON
+              if (rawSources.length === 0) {
+                try {
+                  const jsonMatch = result.match(/\[[\s\S]*\]/);
+                  if (jsonMatch) {
+                    const jsonSources = JSON.parse(jsonMatch[0]);
+                    if (Array.isArray(jsonSources)) {
+                      jsonSources.forEach((src: any) => {
+                        if (src.url && src.snippet && src.snippet.length > 100) {
+                          rawSources.push({ url: src.url, snippet: src.snippet });
+                        }
+                      });
+                      console.log(`  ⤷ Parsed ${rawSources.length} sources from JSON format`);
+                    }
+                  }
+                } catch (e) {
+                  console.log(`  ⤷ Could not parse JSON format either`);
                 }
               }
               
@@ -284,12 +299,58 @@ Content: [extracted relevant text - 2-3 paragraphs]
                 break;
               } else if (attempt < MAX_RETRIES) {
                 console.log(`  ⚠️ Only ${finalSources.length} sources so far, will retry with reformulated query...`);
-                // Let Gemini reformulate in next iteration by keeping the same query
-                // The AI will naturally try different search strategies
+                
+                // Use Gemini to reformulate the query for better results
+                try {
+                  const reformulateResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      model: 'google/gemini-2.5-flash',
+                      messages: [{
+                        role: 'user',
+                        content: `Reformulate this academic search query to be broader and more likely to find academic sources. Keep it focused on engineering/science education: "${currentQuery}". Return ONLY the reformulated query, nothing else.`
+                      }],
+                      max_tokens: 100,
+                      temperature: 0.7,
+                    }),
+                  });
+                  
+                  if (reformulateResponse.ok) {
+                    const reformData = await reformulateResponse.json();
+                    const reformulatedQuery = reformData.choices?.[0]?.message?.content?.trim();
+                    if (reformulatedQuery && reformulatedQuery.length > 0) {
+                      currentQuery = reformulatedQuery;
+                      console.log(`  ⤷ Reformulated query: "${currentQuery}"`);
+                    } else {
+                      // Fallback: programmatic reformulation
+                      currentQuery = attempt === 0 
+                        ? `${subQuestion} engineering fundamentals`
+                        : `${subQuestion.split(' ').slice(0, 5).join(' ')} applications`;
+                      console.log(`  ⤷ Fallback reformulated query: "${currentQuery}"`);
+                    }
+                  } else {
+                    // Fallback: programmatic reformulation
+                    currentQuery = attempt === 0 
+                      ? `${subQuestion} engineering fundamentals`
+                      : `${subQuestion.split(' ').slice(0, 5).join(' ')} applications`;
+                    console.log(`  ⤷ Fallback reformulated query: "${currentQuery}"`);
+                  }
+                } catch (reformError) {
+                  console.log(`  ⤷ Error reformulating, using fallback approach`);
+                  currentQuery = attempt === 0 
+                    ? `${subQuestion} engineering fundamentals`
+                    : `${subQuestion.split(' ').slice(0, 5).join(' ')} applications`;
+                  console.log(`  ⤷ Fallback reformulated query: "${currentQuery}"`);
+                }
               }
             }
           } else {
-            console.warn(`  ✗ API request failed (attempt ${attempt + 1})`);
+            const errorText = await researchResponse.text();
+            console.warn(`  ✗ API request failed (attempt ${attempt + 1}):`, errorText);
           }
         } catch (error) {
           console.error(`  ✗ Error in attempt ${attempt + 1}:`, error);
