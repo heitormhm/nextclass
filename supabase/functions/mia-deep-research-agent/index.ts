@@ -187,7 +187,11 @@ ${result.sources.map((s, i) => `[${idx * 10 + i + 1}] ${s}`).join('\n')}
 Você recebeu um conjunto de extratos de pesquisa, cada um associado a uma URL de origem. A sua única fonte de verdade é este material.
 
 **TAREFA:**
-Com base exclusivamente nas informações fornecidas, escreva um documento explicativo detalhado, com 3 a 10 páginas, sobre o tópico "${query}". Estruture o documento de forma lógica com:
+Com base exclusivamente nas informações fornecidas, escreva um documento explicativo detalhado, com 3 a 10 páginas, sobre o tópico "${query}".
+
+**NÍVEL DO PÚBLICO:** O relatório destina-se a um estudante de engenharia de nível superior. Adapte a profundidade técnica e os exemplos para serem desafiadores e educativos, mas evite jargões excessivamente especializados sem explicação. O objetivo é a clareza e a aplicação prática do conhecimento.
+
+Estruture o documento de forma lógica com:
 
 1. **Introdução:** Apresente o tópico e a sua relevância na engenharia.
 
