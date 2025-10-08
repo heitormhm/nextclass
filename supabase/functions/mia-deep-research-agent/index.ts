@@ -173,13 +173,13 @@ Example for "Thermodynamics Laws":
         });
       };
       
-      // Retry logic for insufficient sources
+      // Retry logic for insufficient sources with guaranteed termination
       const MAX_RETRIES = 2;
-      let attempt = 0;
       let finalSources: Array<{ url: string; snippet: string }> = [];
       let currentQuery = subQuestion;
+      const originalSubQuestion = subQuestion;
       
-      while (attempt <= MAX_RETRIES && finalSources.length < 3) {
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         const attemptLabel = attempt === 0 ? 'initial' : `retry ${attempt}`;
         console.log(`  Attempt ${attempt + 1}/${MAX_RETRIES + 1} (${attemptLabel}): "${currentQuery}"`);
         
@@ -296,7 +296,7 @@ Content: [extracted relevant text - 2-3 paragraphs]
               
               if (finalSources.length >= 3) {
                 console.log(`  ✓ Success! Found ${finalSources.length} quality sources`);
-                break;
+                break; // Exit the for loop - we have enough sources
               } else if (attempt < MAX_RETRIES) {
                 console.log(`  ⚠️ Only ${finalSources.length} sources so far, will retry with reformulated query...`);
                 
@@ -328,24 +328,27 @@ Content: [extracted relevant text - 2-3 paragraphs]
                     } else {
                       // Fallback: programmatic reformulation
                       currentQuery = attempt === 0 
-                        ? `${subQuestion} engineering fundamentals`
-                        : `${subQuestion.split(' ').slice(0, 5).join(' ')} applications`;
+                        ? `${originalSubQuestion} engineering applications education`
+                        : `${originalSubQuestion.split(' ').slice(0, 4).join(' ')} fundamentals`;
                       console.log(`  ⤷ Fallback reformulated query: "${currentQuery}"`);
                     }
                   } else {
                     // Fallback: programmatic reformulation
                     currentQuery = attempt === 0 
-                      ? `${subQuestion} engineering fundamentals`
-                      : `${subQuestion.split(' ').slice(0, 5).join(' ')} applications`;
+                      ? `${originalSubQuestion} engineering applications education`
+                      : `${originalSubQuestion.split(' ').slice(0, 4).join(' ')} fundamentals`;
                     console.log(`  ⤷ Fallback reformulated query: "${currentQuery}"`);
                   }
                 } catch (reformError) {
                   console.log(`  ⤷ Error reformulating, using fallback approach`);
                   currentQuery = attempt === 0 
-                    ? `${subQuestion} engineering fundamentals`
-                    : `${subQuestion.split(' ').slice(0, 5).join(' ')} applications`;
+                    ? `${originalSubQuestion} engineering applications education`
+                    : `${originalSubQuestion.split(' ').slice(0, 4).join(' ')} fundamentals`;
                   console.log(`  ⤷ Fallback reformulated query: "${currentQuery}"`);
                 }
+              } else {
+                // LAST ATTEMPT: Log that we're proceeding with what we have
+                console.warn(`  ⚠️ Max retries reached for "${originalSubQuestion}". Proceeding with ${finalSources.length} sources.`);
               }
             }
           } else {
@@ -354,12 +357,15 @@ Content: [extracted relevant text - 2-3 paragraphs]
           }
         } catch (error) {
           console.error(`  ✗ Error in attempt ${attempt + 1}:`, error);
+          // If it's the last attempt and it fails, break to avoid further issues
+          if (attempt >= MAX_RETRIES) {
+            console.error(`  ✗ Breaking loop after final attempt failed for "${originalSubQuestion}"`);
+            break;
+          }
         }
         
-        attempt++;
-        
-        // Small delay between retries to avoid rate limits
-        if (attempt <= MAX_RETRIES && finalSources.length < 3) {
+        // Small delay between retries to avoid rate limits (skip delay after last attempt)
+        if (attempt < MAX_RETRIES && finalSources.length < 3) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
