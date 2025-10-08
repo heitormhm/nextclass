@@ -142,103 +142,189 @@ Example for "Thermodynamics Laws":
     for (const subQuestion of subQuestions) {
       console.log('Researching:', subQuestion);
       
-      try {
-        const researchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-pro',
-            messages: [
-              {
-                role: 'system',
-                content: `You are an academic research specialist for engineering education.
+      // Helper function to validate and filter sources
+      const validateSources = (sources: Array<{ url: string; snippet: string }>) => {
+        const seenDomains = new Set<string>();
+        const lowQualityDomains = ['quora.com', 'reddit.com', 'answers.yahoo.com', 'stackoverflow.com'];
+        
+        return sources.filter(source => {
+          try {
+            const url = new URL(source.url);
+            const domain = url.hostname.replace('www.', '');
+            
+            // Check for duplicate domains
+            if (seenDomains.has(domain)) {
+              console.log(`  ⤷ Rejected duplicate domain: ${domain}`);
+              return false;
+            }
+            
+            // Check for low-quality domains
+            if (lowQualityDomains.some(lq => domain.includes(lq))) {
+              console.log(`  ⤷ Rejected low-quality domain: ${domain}`);
+              return false;
+            }
+            
+            seenDomains.add(domain);
+            return true;
+          } catch {
+            console.log(`  ⤷ Rejected invalid URL: ${source.url}`);
+            return false;
+          }
+        });
+      };
+      
+      // Retry logic for insufficient sources
+      const MAX_RETRIES = 2;
+      let attempt = 0;
+      let finalSources: Array<{ url: string; snippet: string }> = [];
+      let currentQuery = subQuestion;
+      
+      while (attempt <= MAX_RETRIES && finalSources.length < 3) {
+        const attemptLabel = attempt === 0 ? 'initial' : `retry ${attempt}`;
+        console.log(`  Attempt ${attempt + 1}/${MAX_RETRIES + 1} (${attemptLabel}): "${currentQuery}"`);
+        
+        try {
+          const researchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-pro',
+              messages: [
+                {
+                  role: 'system',
+                  content: `CONTEXT:
+You are a meticulous AI research assistant for the NextClass engineering platform. Your primary function is to gather high-quality, verifiable information from multiple distinct sources to answer a specific academic question. Failure to find sufficient sources is not an option; you must be resourceful.
 
-TASK: For the question "${subQuestion}", search the web and find information from at least 3 different reputable sources.
+TASK:
+For the specific question "${currentQuery}", you must conduct a targeted Google Search to find a minimum of THREE (3) distinct and reputable sources.
 
-SOURCE REQUIREMENTS:
-- Minimum 3 distinct sources (scientific articles, university websites, official documentation)
-- Each source must be from a different domain
-- Prioritize: .edu, .org, academic publishers, government sites, technical documentation
+CONSTRAINTS:
+1. **Source Quota (Strict):** You MUST return at least THREE different sources. If your initial search query does not yield enough results, you are required to automatically rephrase your query and search again. For example, if "First Law of Thermodynamics for open systems" fails, try "enthalpy in steady-flow energy equation" or "control volume energy balance engineering".
 
-OUTPUT FORMAT:
-For each source, provide:
-1. Full URL
-2. 2-3 most relevant paragraphs that directly answer the question
+2. **Source Quality:** Prioritize sources from:
+   - Academic journals and publishers
+   - University websites (.edu)
+   - Reputable engineering organizations (.org)
+   - Government technical agencies (.gov)
+   - Well-regarded technical documentation
+   Avoid: forums, blog posts, Q&A sites, or low-quality content mills.
 
-Format your response as:
+3. **Content Extraction:** For each source found, you must extract the most relevant paragraphs or sections that directly answer the question. The extracted text should be comprehensive enough to be useful in a detailed academic report (2-3 paragraphs minimum per source).
+
+4. **Output Format:** Structure your response as:
 [SOURCE 1]
 URL: [full URL]
-Content: [relevant paragraphs]
+Content: [extracted relevant text - 2-3 paragraphs]
 
 [SOURCE 2]
 URL: [full URL]
-Content: [relevant paragraphs]
+Content: [extracted relevant text - 2-3 paragraphs]
 
 [SOURCE 3]
 URL: [full URL]
-Content: [relevant paragraphs]
+Content: [extracted relevant text - 2-3 paragraphs]
 
-CRITICAL: You MUST find and cite at least 3 different sources. Use ONLY real information from actual web searches.`
-              },
-              {
-                role: 'user',
-                content: subQuestion
-              }
-            ],
-            tools: [
-              {
-                googleSearchRetrieval: {
-                  dynamicRetrievalConfig: {
-                    mode: "MODE_DYNAMIC",
-                    dynamicThreshold: 0.7
+**CRITICAL:** You MUST find and cite at least 3 different sources from different domains. Use ONLY real information from actual web searches. Do NOT fabricate sources or content.`
+                },
+                {
+                  role: 'user',
+                  content: currentQuery
+                }
+              ],
+              tools: [
+                {
+                  googleSearchRetrieval: {
+                    dynamicRetrievalConfig: {
+                      mode: "MODE_DYNAMIC",
+                      dynamicThreshold: 0.5  // More aggressive retrieval
+                    }
                   }
                 }
-              }
-            ],
-            temperature: 0.5,
-            max_tokens: 1500,
-          }),
-        });
+              ],
+              temperature: 0.5,
+              max_tokens: 2000,
+            }),
+          });
 
-        if (researchResponse.ok) {
-          const researchData = await researchResponse.json();
-          const result = researchData.choices?.[0]?.message?.content;
-          if (result) {
-            // Parse structured sources from [SOURCE N] format
-            const sources: Array<{ url: string; snippet: string }> = [];
-            const sourceMatches = result.matchAll(/\[SOURCE \d+\]\s*URL:\s*(https?:\/\/[^\s\n]+)\s*Content:\s*([^[]*?)(?=\[SOURCE \d+\]|$)/gs);
+          if (researchResponse.ok) {
+            const researchData = await researchResponse.json();
+            const result = researchData.choices?.[0]?.message?.content;
             
-            for (const match of sourceMatches) {
-              const url = match[1].trim();
-              const snippet = match[2].trim();
-              if (url && snippet) {
-                sources.push({ url, snippet });
+            if (result) {
+              // Parse structured sources from [SOURCE N] format
+              const rawSources: Array<{ url: string; snippet: string }> = [];
+              const sourceMatches = result.matchAll(/\[SOURCE \d+\]\s*URL:\s*(https?:\/\/[^\s\n]+)\s*Content:\s*([^[]*?)(?=\[SOURCE \d+\]|$)/gs);
+              
+              for (const match of sourceMatches) {
+                const url = match[1].trim();
+                const snippet = match[2].trim();
+                if (url && snippet && snippet.length > 100) {  // Ensure substantial content
+                  rawSources.push({ url, snippet });
+                }
+              }
+              
+              console.log(`  ⤷ Raw sources found: ${rawSources.length}`);
+              
+              // Validate and filter sources
+              const validSources = validateSources(rawSources);
+              console.log(`  ⤷ Valid sources after filtering: ${validSources.length}`);
+              
+              // Merge with any sources from previous attempts
+              for (const source of validSources) {
+                if (!finalSources.some(s => s.url === source.url)) {
+                  finalSources.push(source);
+                }
+              }
+              
+              if (finalSources.length >= 3) {
+                console.log(`  ✓ Success! Found ${finalSources.length} quality sources`);
+                break;
+              } else if (attempt < MAX_RETRIES) {
+                console.log(`  ⚠️ Only ${finalSources.length} sources so far, will retry with reformulated query...`);
+                // Let Gemini reformulate in next iteration by keeping the same query
+                // The AI will naturally try different search strategies
               }
             }
-            
-            if (sources.length >= 3) {
-              researchResults.push({
-                question: subQuestion,
-                sources
-              });
-              console.log(`✓ Completed research for question ${researchResults.length}/${subQuestions.length} with ${sources.length} sources`);
-            } else {
-              console.warn(`⚠️ Only found ${sources.length} sources (minimum 3 required) for: ${subQuestion}`);
-            }
+          } else {
+            console.warn(`  ✗ API request failed (attempt ${attempt + 1})`);
           }
-        } else {
-          console.warn(`Failed to research: ${subQuestion}`);
+        } catch (error) {
+          console.error(`  ✗ Error in attempt ${attempt + 1}:`, error);
         }
-      } catch (error) {
-        console.error(`Error researching question:`, error);
-        // Continue with next question instead of failing completely
+        
+        attempt++;
+        
+        // Small delay between retries to avoid rate limits
+        if (attempt <= MAX_RETRIES && finalSources.length < 3) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      // Final assessment
+      if (finalSources.length >= 3) {
+        researchResults.push({
+          question: subQuestion,
+          sources: finalSources.slice(0, 5)  // Limit to top 5 sources
+        });
+        console.log(`✓ Completed research for question ${researchResults.length}/${subQuestions.length} with ${finalSources.length} sources`);
+      } else {
+        console.warn(`⚠️ INSUFFICIENT SOURCES: Only found ${finalSources.length} sources after ${MAX_RETRIES + 1} attempts for: ${subQuestion}`);
+        console.warn(`  ⤷ Continuing with available sources to avoid blocking entire research`);
+        
+        // Include partial results if any sources were found
+        if (finalSources.length > 0) {
+          researchResults.push({
+            question: subQuestion,
+            sources: finalSources
+          });
+        }
       }
 
-      // Small delay to avoid rate limits
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Delay between questions to avoid rate limits
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
     console.log(`Completed ${researchResults.length} research results`);
