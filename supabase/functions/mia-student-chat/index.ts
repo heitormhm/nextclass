@@ -324,52 +324,65 @@ ${performanceContext}`;
           });
 
         // Check if this is the first exchange (generate title)
-        const { data: messageCount } = await supabaseAdmin
+        const { count: messageCount, error: countError } = await supabaseAdmin
           .from('messages')
-          .select('id', { count: 'exact', head: true })
+          .select('*', { count: 'exact', head: false })
           .eq('conversation_id', activeConversationId);
 
-        if (messageCount && messageCount.length <= 2) {
-          // Generate title for the conversation using Gemini
-          const titlePrompt = `Com base na seguinte conversa, gere um título curto e descritivo com no máximo 5 palavras:
+        console.log('Message count for conversation:', messageCount);
 
-Pergunta: ${message}
-Resposta: ${assistantMessage.substring(0, 200)}...`;
+        if (!countError && messageCount !== null && messageCount <= 2) {
+          try {
+            // Generate title for the conversation using Gemini
+            const titlePrompt = `Com base na seguinte conversa sobre engenharia, gere um título curto e descritivo com no máximo 5 palavras em português brasileiro. O título deve capturar o tópico principal discutido. NÃO use títulos genéricos como "Nova Conversa".
 
-          const titleResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-flash',
-              messages: [
-                {
-                  role: 'system',
-                  content: 'Você gera títulos curtos e descritivos para conversas. Responda apenas com o título, sem aspas ou pontuação adicional.'
-                },
-                {
-                  role: 'user',
-                  content: titlePrompt
-                }
-              ],
-              temperature: 0.7,
-              max_tokens: 50,
-            }),
-          });
+Pergunta do estudante: ${message}
+Resposta: ${assistantMessage.substring(0, 300)}...`;
 
-          if (titleResponse.ok) {
-            const titleData = await titleResponse.json();
-            conversationTitle = titleData.choices?.[0]?.message?.content?.trim() || 'Nova Conversa';
-            
-            // Update conversation title
-            await supabaseAdmin
-              .from('conversations')
-              .update({ title: conversationTitle })
-              .eq('id', activeConversationId);
-            
-            console.log('Generated conversation title:', conversationTitle);
+            const titleResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-flash',
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'Você é um assistente especializado em criar títulos descritivos para conversas sobre engenharia. Gere títulos curtos (máximo 5 palavras) que capturem o tema principal. Responda APENAS com o título, sem aspas, pontuação adicional ou explicações. Use português brasileiro.'
+                  },
+                  {
+                    role: 'user',
+                    content: titlePrompt
+                  }
+                ],
+                max_tokens: 50,
+              }),
+            });
+
+            if (titleResponse.ok) {
+              const titleData = await titleResponse.json();
+              const generatedTitle = titleData.choices?.[0]?.message?.content?.trim();
+              
+              if (generatedTitle && generatedTitle !== 'Nova Conversa') {
+                conversationTitle = generatedTitle;
+                
+                // Update conversation title
+                await supabaseAdmin
+                  .from('conversations')
+                  .update({ title: conversationTitle })
+                  .eq('id', activeConversationId);
+                
+                console.log('Generated conversation title:', conversationTitle);
+              } else {
+                console.log('Title generation returned generic title, keeping default');
+              }
+            } else {
+              console.error('Title generation failed:', titleResponse.status);
+            }
+          } catch (titleError) {
+            console.error('Error generating conversation title:', titleError);
           }
         }
       } catch (error) {
