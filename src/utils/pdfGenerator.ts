@@ -146,84 +146,141 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     }
     // Handle regular text with bold support and citations
     else if (line.trim()) {
-      // Check if line has formatting (bold or citations)
-      const hasFormatting = /(\*\*.*?\*\*|\[\d+\])/.test(line);
-      
-      if (!hasFormatting) {
-        // Simple text without formatting - use full width wrapping
-        const wrappedLines = doc.splitTextToSize(line, contentWidth);
-        wrappedLines.forEach((wrappedLine: string) => {
-          if (yPosition > pageHeight - footerHeight - 20) {
-            addFooter(pageCount, 0);
-            doc.addPage();
-            pageCount++;
-            isFirstPage = false;
-            yPosition = margin + 5;
-          }
-          doc.text(wrappedLine, margin, yPosition);
-          yPosition += 7;
-        });
-      } else {
-        // Text with formatting - wrap first, then apply formatting per line
-        // Remove formatting temporarily to get proper text wrapping
-        const plainText = line.replace(/\*\*/g, '');
-        const wrappedLines = doc.splitTextToSize(plainText, contentWidth);
-        
-        // Now apply formatting to each wrapped line
-        wrappedLines.forEach((wrappedLine: string) => {
-          if (yPosition > pageHeight - footerHeight - 20) {
-            addFooter(pageCount, 0);
-            doc.addPage();
-            pageCount++;
-            isFirstPage = false;
-            yPosition = margin + 5;
-          }
-          
-          // Find which parts of the original line are in this wrapped line
-          // Split by formatting markers
-          const parts = line.split(/(\*\*.*?\*\*|\[\d+\])/g);
-          let currentPos = 0;
-          let xPosition = margin;
-          
-          parts.forEach((part) => {
-            if (!part) return;
-            
-            if (part.startsWith('**') && part.endsWith('**')) {
-              const boldText = part.replace(/\*\*/g, '');
-              // Check if this bold text appears in current wrapped line
-              const plainLinePos = plainText.indexOf(boldText, currentPos);
-              if (plainLinePos >= 0 && plainLinePos < currentPos + wrappedLine.length) {
-                doc.setFont('helvetica', 'bold');
-                doc.text(boldText, xPosition, yPosition);
-                xPosition += doc.getTextWidth(boldText);
-                doc.setFont('helvetica', 'normal');
-                currentPos = plainLinePos + boldText.length;
-              }
-            } else if (part.match(/\[\d+\]/)) {
-              // Citations - render in smaller superscript style
-              doc.setFontSize(9);
-              doc.setTextColor(110, 89, 165);
-              doc.text(part, xPosition, yPosition - 1);
-              xPosition += doc.getTextWidth(part) + 1;
-              doc.setFontSize(12);
-              doc.setTextColor(50, 50, 50);
-            } else {
-              // Regular text segment
-              const plainPart = part.trim();
-              if (plainPart) {
-                const plainLinePos = plainText.indexOf(plainPart, currentPos);
-                if (plainLinePos >= 0 && plainLinePos < currentPos + wrappedLine.length) {
-                  doc.text(plainPart, xPosition, yPosition);
-                  xPosition += doc.getTextWidth(plainPart);
-                  currentPos = plainLinePos + plainPart.length;
-                }
-              }
-            }
-          });
-          
-          yPosition += 7;
-        });
+      // Parse line into segments with formatting information
+      interface TextSegment {
+        text: string;
+        bold: boolean;
+        citation: boolean;
       }
+
+      const parseSegments = (text: string): TextSegment[] => {
+        const segments: TextSegment[] = [];
+        const parts = text.split(/(\*\*.*?\*\*|\[\d+\])/g);
+        
+        parts.forEach((part) => {
+          if (!part) return;
+          
+          if (part.startsWith('**') && part.endsWith('**')) {
+            segments.push({
+              text: part.replace(/\*\*/g, ''),
+              bold: true,
+              citation: false
+            });
+          } else if (part.match(/\[\d+\]/)) {
+            segments.push({
+              text: part,
+              bold: false,
+              citation: true
+            });
+          } else {
+            segments.push({
+              text: part,
+              bold: false,
+              citation: false
+            });
+          }
+        });
+        
+        return segments;
+      };
+
+      // Build lines that fit within contentWidth
+      const buildLines = (segments: TextSegment[]): TextSegment[][] => {
+        const lines: TextSegment[][] = [];
+        let currentLine: TextSegment[] = [];
+        let currentWidth = 0;
+
+        segments.forEach((segment) => {
+          const words = segment.text.split(/(\s+)/);
+          
+          words.forEach((word) => {
+            if (!word) return;
+            
+            // Calculate width for this word with correct font
+            doc.setFont('helvetica', segment.bold ? 'bold' : 'normal');
+            doc.setFontSize(segment.citation ? 9 : 12);
+            const wordWidth = doc.getTextWidth(word);
+            
+            // Check if adding this word exceeds the line width
+            if (currentWidth + wordWidth > contentWidth && currentLine.length > 0) {
+              // Start new line
+              lines.push(currentLine);
+              currentLine = [];
+              currentWidth = 0;
+              
+              // Don't start a line with whitespace
+              if (word.trim()) {
+                currentLine.push({
+                  text: word,
+                  bold: segment.bold,
+                  citation: segment.citation
+                });
+                currentWidth = wordWidth;
+              }
+            } else {
+              // Add to current line
+              currentLine.push({
+                text: word,
+                bold: segment.bold,
+                citation: segment.citation
+              });
+              currentWidth += wordWidth;
+            }
+            
+            // Reset to normal font
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(12);
+          });
+        });
+
+        // Add remaining line
+        if (currentLine.length > 0) {
+          lines.push(currentLine);
+        }
+
+        return lines;
+      };
+
+      // Parse and build lines
+      const segments = parseSegments(line);
+      const wrappedLines = buildLines(segments);
+
+      // Render each line
+      wrappedLines.forEach((lineSegments) => {
+        // Check for page break
+        if (yPosition > pageHeight - footerHeight - 20) {
+          addFooter(pageCount, 0);
+          doc.addPage();
+          pageCount++;
+          isFirstPage = false;
+          yPosition = margin + 5;
+        }
+
+        let xPosition = margin;
+
+        // Render each segment in the line
+        lineSegments.forEach((segment) => {
+          if (!segment.text.trim() && segment.text !== ' ') return;
+
+          if (segment.citation) {
+            // Citations - smaller superscript style
+            doc.setFontSize(9);
+            doc.setTextColor(110, 89, 165);
+            doc.text(segment.text, xPosition, yPosition - 1);
+            xPosition += doc.getTextWidth(segment.text) + 1;
+            doc.setFontSize(12);
+            doc.setTextColor(50, 50, 50);
+          } else {
+            // Regular or bold text
+            doc.setFont('helvetica', segment.bold ? 'bold' : 'normal');
+            doc.text(segment.text, xPosition, yPosition);
+            xPosition += doc.getTextWidth(segment.text);
+            doc.setFont('helvetica', 'normal');
+          }
+        });
+
+        yPosition += 7;
+      });
     }
     // Empty line
     else {
