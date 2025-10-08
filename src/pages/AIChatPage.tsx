@@ -98,7 +98,7 @@ const AIChatPage = () => {
             user_id: session.user.id,
             query: currentMessage,
             progress_step: deepSearchSteps[0].text,
-            status: 'in_progress'
+            status: 'processing'
           })
           .select()
           .single();

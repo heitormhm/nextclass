@@ -164,7 +164,6 @@ async function processDeepResearch(
     console.log(`Completed ${researchResults.length} research results`);
 
     // Step 3 & 4: Generate final report with OpenAI GPT-5
-    await updateProgress("A sintetizar conteúdo...");
     await updateProgress("A gerar relatório final...");
     console.log('Step 3: Generating final report with OpenAI GPT-5');
 
@@ -264,9 +263,12 @@ Agora, escreva o relatório final seguindo todas as diretrizes acima.`;
 
     console.log('Report generated successfully, length:', finalReport.length);
 
-    // Update session as completed with report
+    // Update progress to "Concluído" and add a small delay before final DB update
     await updateProgress("Concluído");
     console.log('Updating session with completed status...');
+    
+    // Small delay to ensure progress update is processed before final state
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     const { data: updateData, error: updateError } = await supabaseAdmin
       .from('deep_search_sessions')
