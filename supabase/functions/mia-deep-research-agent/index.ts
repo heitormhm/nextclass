@@ -56,17 +56,19 @@ async function processDeepResearch(
 
 **TÓPICO DO ALUNO:** "${query}"
 
-**TAREFA:** Decomponha o tópico em até 15 perguntas-chave que explorem as suas aplicações práticas na engenharia.
+**TAREFA:** Decomponha o tópico em perguntas-chave que explorem as suas aplicações práticas na engenharia de forma abrangente.
 
-**REGRAS:**
-- Gere entre 8 a 15 sub-perguntas focadas nos aspectos mais relevantes
+**REGRAS CRÍTICAS:**
+- Gere **exatamente 12 a 15** sub-perguntas focadas nos aspectos mais relevantes
+- **Priorize gerar o número máximo de perguntas** (15) para cobrir o tópico em profundidade
 - Cada sub-pergunta deve explorar aplicações práticas, conceitos fundamentais ou implicações na engenharia
 - Priorize perguntas que levem a informação técnica detalhada e academicamente relevante
+- Aborde o tópico de múltiplas perspectivas: conceitos teóricos, aplicações práticas, casos de estudo, problemas comuns, melhores práticas
 - Retorne apenas as perguntas, uma por linha, numeradas (ex: "1. ...", "2. ...", etc.)`
           }
         ],
         temperature: 0.7,
-        max_tokens: 1200,
+        max_tokens: 1800,
       }),
     });
 
@@ -76,7 +78,15 @@ async function processDeepResearch(
 
     const decomposeData = await decomposeResponse.json();
     const subQuestions = decomposeData.choices?.[0]?.message?.content?.split('\n').filter((q: string) => q.trim());
-    console.log(`Generated ${subQuestions?.length || 0} sub-questions`);
+    const questionCount = subQuestions?.length || 0;
+    console.log(`Generated ${questionCount} sub-questions`);
+    
+    // Log warning if we got fewer questions than expected
+    if (questionCount < 12) {
+      console.warn(`⚠️ Only generated ${questionCount} questions (expected 12-15)`);
+    } else {
+      console.log(`✓ Successfully generated ${questionCount} questions for comprehensive research`);
+    }
 
     // Step 2: Execute searches using Google Search grounding
     await updateProgress("A executar buscas na web...");

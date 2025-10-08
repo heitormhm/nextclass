@@ -93,7 +93,29 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
   doc.setFontSize(12); // Professional 12pt font
   doc.setFont('helvetica', 'normal');
 
-  const lines = content.split('\n');
+  // Preprocess mathematical notation
+  const preprocessMathNotation = (text: string): string => {
+    return text
+      // Convert common superscripts
+      .replace(/\^2/g, '²')
+      .replace(/\^3/g, '³')
+      .replace(/V2/g, 'V²')
+      .replace(/V_entrada2/g, 'V²entrada')
+      .replace(/V_saida2/g, 'V²saida')
+      .replace(/m2/g, 'm²')
+      .replace(/s2/g, 's²')
+      // Convert common subscripts (using combining characters)
+      .replace(/m_dot/g, 'ṁ')
+      .replace(/Q_liquido/g, 'Q̇líquido')
+      .replace(/W_liquido/g, 'Ẇ́líquido')
+      .replace(/W_eixo/g, 'Ẇ́eixo')
+      .replace(/h_entrada/g, 'hentrada')
+      .replace(/h_saida/g, 'hsaída')
+      // Improve formula readability
+      .replace(/\s*([+\-=])\s*/g, ' $1 '); // Add spaces around operators
+  };
+
+  const lines = content.split('\n').map(line => preprocessMathNotation(line));
   
   lines.forEach((line) => {
     // Check if we need a new page
@@ -106,40 +128,54 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     }
 
     // Handle markdown headers with improved styling and proper wrapping
-    if (line.startsWith('###')) {
+    // Check if line starts with # (must be first character or after whitespace)
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith('###')) {
       yPosition += 3; // Extra spacing before subsection
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(110, 89, 165);
-      const headerText = line.replace(/^###\s*/, '');
-      doc.text(headerText, margin, yPosition, { maxWidth: contentWidth });
-      yPosition += 8;
+      const headerText = trimmedLine.replace(/^###\s*/, '');
+      const headerLines = doc.splitTextToSize(headerText, contentWidth);
+      headerLines.forEach((hLine: string) => {
+        doc.text(hLine, margin, yPosition);
+        yPosition += 7;
+      });
+      yPosition += 1;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
-    } else if (line.startsWith('##')) {
+    } else if (trimmedLine.startsWith('##') && !trimmedLine.startsWith('###')) {
       yPosition += 5; // Extra spacing before section
       doc.setFontSize(15);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(110, 89, 165);
-      const headerText = line.replace(/^##\s*/, '');
-      doc.text(headerText, margin, yPosition, { maxWidth: contentWidth });
+      const headerText = trimmedLine.replace(/^##\s*/, '');
+      const headerLines = doc.splitTextToSize(headerText, contentWidth);
+      headerLines.forEach((hLine: string) => {
+        doc.text(hLine, margin, yPosition);
+        yPosition += 8;
+      });
       // Add subtle underline for sections
       doc.setDrawColor(236, 72, 153);
       doc.setLineWidth(0.5);
-      doc.line(margin, yPosition + 2, margin + 40, yPosition + 2);
-      yPosition += 10;
+      doc.line(margin, yPosition, margin + 40, yPosition);
+      yPosition += 2;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
-    } else if (line.startsWith('#')) {
+    } else if (trimmedLine.startsWith('#') && !trimmedLine.startsWith('##')) {
       yPosition += 8; // Extra spacing before main title
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(110, 89, 165);
-      const headerText = line.replace(/^#\s*/, '');
-      doc.text(headerText, margin, yPosition, { maxWidth: contentWidth });
-      yPosition += 12;
+      const headerText = trimmedLine.replace(/^#\s*/, '');
+      const headerLines = doc.splitTextToSize(headerText, contentWidth);
+      headerLines.forEach((hLine: string) => {
+        doc.text(hLine, margin, yPosition);
+        yPosition += 10;
+      });
+      yPosition += 2;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
@@ -190,8 +226,17 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
         let currentLine: TextSegment[] = [];
         let currentWidth = 0;
 
+        // Check if line contains mathematical formulas (equations with = or extensive use of subscripts/superscripts)
+        const lineText = segments.map(s => s.text).join('');
+        const isMathFormula = /[=²³⁰¹⁴⁵⁶⁷⁸⁹ṁ]/.test(lineText) || 
+                              lineText.includes('->') || 
+                              lineText.includes('∑') ||
+                              /\b[A-Z]_[a-z]+/.test(lineText);
+
         segments.forEach((segment) => {
-          const words = segment.text.split(/(\s+)/);
+          // For math formulas, try to keep them together more aggressively
+          const splitPattern = isMathFormula ? /(\s+)/ : /(\s+)/;
+          const words = segment.text.split(splitPattern);
           
           words.forEach((word) => {
             if (!word) return;
@@ -201,21 +246,40 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
             doc.setFontSize(segment.citation ? 9 : 12);
             const wordWidth = doc.getTextWidth(word);
             
+            // For math formulas, be more lenient with line width
+            const effectiveWidth = isMathFormula ? contentWidth * 1.05 : contentWidth;
+            
             // Check if adding this word exceeds the line width
-            if (currentWidth + wordWidth > contentWidth && currentLine.length > 0) {
-              // Start new line
-              lines.push(currentLine);
-              currentLine = [];
-              currentWidth = 0;
+            if (currentWidth + wordWidth > effectiveWidth && currentLine.length > 0) {
+              // For math formulas, only break at specific points
+              const canBreak = !isMathFormula || 
+                               word.trim() === '' || 
+                               /^[,;]/.test(word) ||
+                               currentLine.length > 15; // Allow break if line is very long
               
-              // Don't start a line with whitespace
-              if (word.trim()) {
+              if (canBreak) {
+                // Start new line
+                lines.push(currentLine);
+                currentLine = [];
+                currentWidth = 0;
+                
+                // Don't start a line with whitespace
+                if (word.trim()) {
+                  currentLine.push({
+                    text: word,
+                    bold: segment.bold,
+                    citation: segment.citation
+                  });
+                  currentWidth = wordWidth;
+                }
+              } else {
+                // Keep adding to current line even if it slightly exceeds
                 currentLine.push({
                   text: word,
                   bold: segment.bold,
                   citation: segment.citation
                 });
-                currentWidth = wordWidth;
+                currentWidth += wordWidth;
               }
             } else {
               // Add to current line
@@ -282,9 +346,9 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
         yPosition += 7;
       });
     }
-    // Empty line
+    // Empty line - add consistent spacing
     else {
-      yPosition += 4;
+      yPosition += 5;
     }
   });
 
