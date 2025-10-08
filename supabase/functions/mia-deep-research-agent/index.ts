@@ -263,53 +263,44 @@ ${sourcesFormatted}
       })
       .join('\n\n');
 
-    const masterPrompt = `Você é um redator técnico especialista em engenharia, encarregado de compilar um relatório académico detalhado.
+    const masterPrompt = `CONTEXTO:
+Você é um redator técnico especialista em engenharia, encarregado de compilar um relatório académico detalhado. Você recebeu um conjunto de extratos de pesquisa, cada um associado a uma URL de origem. A pesquisa foi conduzida em inglês para obter melhores fontes acadêmicas, mas você deve escrever o relatório em PORTUGUÊS. As fontes citadas podem estar em inglês - traduza e adapte os conceitos técnicos mantendo precisão e rigor. A sua única fonte de verdade é este material.
 
-**CONTEXTO:**
-Você recebeu um conjunto de extratos de pesquisa. A pesquisa foi conduzida em inglês para obter melhores fontes acadêmicas, mas você deve escrever o relatório em PORTUGUÊS. As fontes citadas podem estar em inglês - traduza e adapte os conceitos técnicos mantendo precisão e rigor.
+TAREFA:
+Com base exclusivamente nas informações fornecidas na variável compiledResearch abaixo, escreva um documento explicativo detalhado, entre 3 a 10 páginas, sobre o tópico "${query}".
 
-**TAREFA:**
-Com base exclusivamente nas informações fornecidas, escreva um documento explicativo detalhado, com 3 a 10 páginas, sobre o tópico "${query}".
+RESTRIÇÕES:
+- **Nível do Público:** O relatório destina-se a um estudante de engenharia de nível superior. Adapte a profundidade técnica e os exemplos para serem desafiadores e educativos, mas evite jargões excessivamente especializados sem explicação. O objetivo é a clareza e a aplicação prática do conhecimento.
 
-**NÍVEL DO PÚBLICO:** O relatório destina-se a um estudante de engenharia de nível superior. Adapte a profundidade técnica e os exemplos para serem desafiadores e educativos, mas evite jargões excessivamente especializados sem explicação. O objetivo é a clareza e a aplicação prática do conhecimento.
+- **Estrutura:**
+  1. **Introdução:** Apresente o tópico e a sua relevância na engenharia.
+  2. **Desenvolvimento:** Organize os conceitos em secções lógicas com subtítulos. Use ## para secções principais e ### para subsecções.
+  3. **Aplicações Práticas:** Explore aplicações do tópico na engenharia com exemplos concretos.
+  4. **Conclusão:** Sintetize os pontos principais.
+  5. **Referências Bibliográficas:** No final do documento, crie uma secção com este título e liste todas as fontes numeradas.
 
-Estruture o documento de forma lógica com:
+- **Regras de Citação (Obrigatórias):**
+  - Para cada informação utilizada, insira um número de referência entre parêntesis retos (ex: [1], [2]).
+  - Pode usar múltiplas referências no mesmo parágrafo (ex: [1][2]).
+  - Na secção "Referências Bibliográficas", liste cada fonte com o seu número e URL completo. Formato: [1] https://exemplo.com/artigo
 
-1. **Introdução:** Apresente o tópico e a sua relevância na engenharia.
+- **Restrição Crítica:**
+  - NÃO INVENTE INFORMAÇÕES OU REFERÊNCIAS. A sua principal diretriz é a fidelidade absoluta às fontes fornecidas. Se a informação for insuficiente, declare isso explicitamente.
 
-2. **Desenvolvimento:** Organize os conceitos em secções lógicas com subtítulos. Use ## para secções principais e ### para subsecções.
-
-3. **Aplicações Práticas:** Explore aplicações do tópico na engenharia com exemplos concretos.
-
-4. **Conclusão:** Sintetize os pontos principais.
-
-5. **Referências Bibliográficas:** No final do documento, crie uma secção com este título e liste todas as fontes numeradas.
-
-**REGRAS DE CITAÇÃO (OBRIGATÓRIAS):**
-- Para cada citação ou informação usada, insira um número de referência entre parêntesis retos no texto (ex: [1], [2], [3]).
-- Pode usar múltiplas referências no mesmo parágrafo (ex: [1][2]).
-- Na secção "Referências Bibliográficas", liste cada fonte com o seu número e URL completo.
-- Formato: [1] https://exemplo.com/artigo
-
-**RESTRIÇÃO CRÍTICA:**
-NÃO INVENTE INFORMAÇÕES OU REFERÊNCIAS. A sua principal diretriz é a fidelidade absoluta às fontes fornecidas. Se a informação for insuficiente, declare isso explicitamente.
-
-**FORMATAÇÃO:**
-- Use markdown para estruturar o documento
-- Use # para o título principal
-- Use ## para secções
-- Use ### para subsecções
-- Mantenha tom formal e académico
+- **Formatação:**
+  - Use markdown para estruturar o documento.
+  - Use # para o título principal, ## para secções, e ### para subsecções.
+  - Mantenha um tom formal e académico.
 
 ---
 
-**MATERIAL DE PESQUISA FORNECIDO:**
+MATERIAL DE PESQUISA FORNECIDO:
 
 ${compiledResearch}
 
 ---
 
-Agora, escreva o relatório final seguindo todas as diretrizes acima.`;
+Agora, escreva o relatório final em Português, seguindo todas as diretrizes acima.`;
 
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
