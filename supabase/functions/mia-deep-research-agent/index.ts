@@ -131,8 +131,10 @@ Example for "Thermodynamics Laws":
 
     interface ResearchResult {
       question: string;
-      content: string;
-      sources: string[];
+      sources: Array<{
+        url: string;
+        snippet: string;
+      }>;
     }
 
     const researchResults: ResearchResult[] = [];
@@ -148,20 +150,38 @@ Example for "Thermodynamics Laws":
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: 'google/gemini-2.5-pro',
             messages: [
               {
                 role: 'system',
-                content: `Você é um investigador académico especializado em engenharia.
+                content: `You are an academic research specialist for engineering education.
 
-**TAREFA:** Pesquise informação académica e técnica sobre a pergunta usando fontes reais da web.
+TASK: For the question "${subQuestion}", search the web and find information from at least 3 different reputable sources.
 
-**REGRAS CRÍTICAS:**
-- Use APENAS informação de fontes reais encontradas na pesquisa
-- Cite SEMPRE a URL completa de cada fonte no formato [Fonte: URL]
-- Seja conciso mas completo, foque nos pontos essenciais
-- Inclua dados técnicos e definições quando disponíveis
-- NÃO invente informações ou referências`
+SOURCE REQUIREMENTS:
+- Minimum 3 distinct sources (scientific articles, university websites, official documentation)
+- Each source must be from a different domain
+- Prioritize: .edu, .org, academic publishers, government sites, technical documentation
+
+OUTPUT FORMAT:
+For each source, provide:
+1. Full URL
+2. 2-3 most relevant paragraphs that directly answer the question
+
+Format your response as:
+[SOURCE 1]
+URL: [full URL]
+Content: [relevant paragraphs]
+
+[SOURCE 2]
+URL: [full URL]
+Content: [relevant paragraphs]
+
+[SOURCE 3]
+URL: [full URL]
+Content: [relevant paragraphs]
+
+CRITICAL: You MUST find and cite at least 3 different sources. Use ONLY real information from actual web searches.`
               },
               {
                 role: 'user',
@@ -187,14 +207,27 @@ Example for "Thermodynamics Laws":
           const researchData = await researchResponse.json();
           const result = researchData.choices?.[0]?.message?.content;
           if (result) {
-            // Extract URLs from citations
-            const urlMatches = result.match(/https?:\/\/[^\s\]]+/g) || [];
-            researchResults.push({
-              question: subQuestion,
-              content: result,
-              sources: urlMatches
-            });
-            console.log(`✓ Completed research for question ${researchResults.length}/${subQuestions.length}`);
+            // Parse structured sources from [SOURCE N] format
+            const sources: Array<{ url: string; snippet: string }> = [];
+            const sourceMatches = result.matchAll(/\[SOURCE \d+\]\s*URL:\s*(https?:\/\/[^\s\n]+)\s*Content:\s*([^[]*?)(?=\[SOURCE \d+\]|$)/gs);
+            
+            for (const match of sourceMatches) {
+              const url = match[1].trim();
+              const snippet = match[2].trim();
+              if (url && snippet) {
+                sources.push({ url, snippet });
+              }
+            }
+            
+            if (sources.length >= 3) {
+              researchResults.push({
+                question: subQuestion,
+                sources
+              });
+              console.log(`✓ Completed research for question ${researchResults.length}/${subQuestions.length} with ${sources.length} sources`);
+            } else {
+              console.warn(`⚠️ Only found ${sources.length} sources (minimum 3 required) for: ${subQuestion}`);
+            }
           }
         } else {
           console.warn(`Failed to research: ${subQuestion}`);
@@ -217,13 +250,15 @@ Example for "Thermodynamics Laws":
     // Compile all research results into a structured format
     const compiledResearch = researchResults
       .map((result, idx) => {
+        const sourcesFormatted = result.sources
+          .map((s, i) => `[${idx * 10 + i + 1}] ${s.url}\n${s.snippet}`)
+          .join('\n\n');
+        
         return `--- EXTRATO ${idx + 1} ---
 PERGUNTA: ${result.question}
-CONTEÚDO SINTETIZADO:
-${result.content}
 
-FONTES CONSULTADAS:
-${result.sources.map((s, i) => `[${idx * 10 + i + 1}] ${s}`).join('\n')}
+FONTES E CONTEÚDO:
+${sourcesFormatted}
 `;
       })
       .join('\n\n');
