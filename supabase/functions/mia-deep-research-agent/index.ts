@@ -52,23 +52,49 @@ async function processDeepResearch(
         messages: [
           {
             role: 'user',
-            content: `Você é um assistente de IA especialista em engenharia.
+            content: `You are an AI research agent for the NextClass platform, specializing in engineering education.
 
-**TÓPICO DO ALUNO:** "${query}"
+TASK: Analyze the user's query: "${query}". Deconstruct it into 5 to 7 logical, specific, and searchable sub-questions that will maximize search result quality from academic databases and technical documentation.
 
-**TAREFA:** Decomponha o tópico em perguntas-chave que explorem as suas aplicações práticas na engenharia de forma abrangente.
+CONSTRAINTS:
+- Output MUST be a valid JSON array of strings
+- Each string must be a precise, searchable question
+- Questions should be in ENGLISH for optimal academic search results
+- Cover: foundational principles, practical applications, technical details, and future trends
+- Format: ["Question 1?", "Question 2?", ...]
 
-**REGRAS CRÍTICAS:**
-- Gere **exatamente 12 a 15** sub-perguntas focadas nos aspectos mais relevantes
-- **Priorize gerar o número máximo de perguntas** (15) para cobrir o tópico em profundidade
-- Cada sub-pergunta deve explorar aplicações práticas, conceitos fundamentais ou implicações na engenharia
-- Priorize perguntas que levem a informação técnica detalhada e academicamente relevante
-- Aborde o tópico de múltiplas perspectivas: conceitos teóricos, aplicações práticas, casos de estudo, problemas comuns, melhores práticas
-- Retorne apenas as perguntas, uma por linha, numeradas (ex: "1. ...", "2. ...", etc.)`
+Example for "Thermodynamics Laws":
+["What is the formal definition and mathematical formulation of the First Law of Thermodynamics?",
+ "How does the Second Law introduce entropy and irreversibility in engineering?",
+ "What are practical applications of the Third Law in materials science?",
+ "How are thermodynamic cycles analyzed using these laws?",
+ "What causes inefficiency in real-world heat engines?"]`
           }
         ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "generate_research_questions",
+            description: "Generate focused research questions for deep search",
+            parameters: {
+              type: "object",
+              properties: {
+                questions: {
+                  type: "array",
+                  items: { type: "string" },
+                  minItems: 5,
+                  maxItems: 7,
+                  description: "Array of 5-7 focused research questions in English"
+                }
+              },
+              required: ["questions"],
+              additionalProperties: false
+            }
+          }
+        }],
+        tool_choice: { type: "function", function: { name: "generate_research_questions" } },
         temperature: 0.7,
-        max_tokens: 1800,
+        max_tokens: 1500,
       }),
     });
 
@@ -77,15 +103,26 @@ async function processDeepResearch(
     }
 
     const decomposeData = await decomposeResponse.json();
-    const subQuestions = decomposeData.choices?.[0]?.message?.content?.split('\n').filter((q: string) => q.trim());
-    const questionCount = subQuestions?.length || 0;
-    console.log(`Generated ${questionCount} sub-questions`);
     
-    // Log warning if we got fewer questions than expected
-    if (questionCount < 12) {
-      console.warn(`⚠️ Only generated ${questionCount} questions (expected 12-15)`);
-    } else {
-      console.log(`✓ Successfully generated ${questionCount} questions for comprehensive research`);
+    // Extract structured JSON from tool call
+    let subQuestions: string[] = [];
+    const toolCall = decomposeData.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (toolCall?.function?.arguments) {
+      try {
+        const parsed = JSON.parse(toolCall.function.arguments);
+        subQuestions = parsed.questions || [];
+      } catch (e) {
+        console.error('Failed to parse JSON questions:', e);
+        throw new Error('Invalid question format from AI');
+      }
+    }
+    
+    const questionCount = subQuestions.length;
+    console.log(`Generated ${questionCount} sub-questions (English):`, subQuestions);
+    
+    if (questionCount < 5 || questionCount > 7) {
+      console.warn(`⚠️ Generated ${questionCount} questions (expected 5-7)`);
     }
 
     // Step 2: Execute searches using Google Search grounding
@@ -194,7 +231,7 @@ ${result.sources.map((s, i) => `[${idx * 10 + i + 1}] ${s}`).join('\n')}
     const masterPrompt = `Você é um redator técnico especialista em engenharia, encarregado de compilar um relatório académico detalhado.
 
 **CONTEXTO:**
-Você recebeu um conjunto de extratos de pesquisa, cada um associado a uma URL de origem. A sua única fonte de verdade é este material.
+Você recebeu um conjunto de extratos de pesquisa. A pesquisa foi conduzida em inglês para obter melhores fontes acadêmicas, mas você deve escrever o relatório em PORTUGUÊS. As fontes citadas podem estar em inglês - traduza e adapte os conceitos técnicos mantendo precisão e rigor.
 
 **TAREFA:**
 Com base exclusivamente nas informações fornecidas, escreva um documento explicativo detalhado, com 3 a 10 páginas, sobre o tópico "${query}".
