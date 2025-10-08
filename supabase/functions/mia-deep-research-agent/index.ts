@@ -173,29 +173,67 @@ Example for "Thermodynamics Laws":
         });
       };
       
-      // Retry logic for insufficient sources with guaranteed termination
+      // Retry logic with multiple search strategies per attempt
       const MAX_RETRIES = 2;
       let finalSources: Array<{ url: string; snippet: string }> = [];
-      let currentQuery = subQuestion;
       const originalSubQuestion = subQuestion;
+      
+      // Define multiple search strategies to try per attempt
+      const getSearchStrategies = (baseQuery: string, attemptNumber: number): string[] => {
+        const strategies = [
+          baseQuery, // Original query
+          `${baseQuery} fundamentals engineering education`, // Academic focus
+          `${baseQuery.split(' ').slice(0, 3).join(' ')} overview`, // Simplified
+        ];
+        
+        // On retry attempts, use broader variations
+        if (attemptNumber > 0) {
+          strategies.push(
+            `${baseQuery.split(' ')[0]} ${baseQuery.split(' ').slice(-2).join(' ')} theory`,
+            `${baseQuery} practical applications`
+          );
+        }
+        
+        return strategies;
+      };
       
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         const attemptLabel = attempt === 0 ? 'initial' : `retry ${attempt}`;
-        console.log(`  Attempt ${attempt + 1}/${MAX_RETRIES + 1} (${attemptLabel}): "${currentQuery}"`);
+        console.log(`\n  Attempt ${attempt + 1}/${MAX_RETRIES + 1} (${attemptLabel}) for: "${originalSubQuestion}"`);
         
-        try {
-          const researchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-pro',
-              messages: [
-                {
-                  role: 'system',
-                  content: `CONTEXT:
+        // Get search strategies for this attempt
+        const searchStrategies = getSearchStrategies(originalSubQuestion, attempt);
+        console.log(`  ⤷ Will try ${searchStrategies.length} search variations`);
+        
+        // Lower quality threshold on last attempt if we're desperate
+        const minSnippetLength = (attempt === MAX_RETRIES && finalSources.length < 2) ? 50 : 100;
+        console.log(`  ⤷ Minimum snippet length for this attempt: ${minSnippetLength} chars`);
+        
+        // Try each search strategy for this attempt
+        for (let strategyIdx = 0; strategyIdx < searchStrategies.length; strategyIdx++) {
+          const currentQuery = searchStrategies[strategyIdx];
+          
+          // Stop trying more strategies if we already have enough sources
+          if (finalSources.length >= 3) {
+            console.log(`  ⤷ Already have ${finalSources.length} sources, skipping remaining strategies`);
+            break;
+          }
+          
+          console.log(`  ⤷ Strategy ${strategyIdx + 1}/${searchStrategies.length}: "${currentQuery}"`);
+          
+          try {
+            const researchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-pro',
+                messages: [
+                  {
+                    role: 'system',
+                    content: `CONTEXT:
 You are a meticulous AI research assistant for the NextClass engineering platform. Your function is to gather high-quality, verifiable information from multiple distinct sources to answer a specific academic question.
 
 TASK:
@@ -220,153 +258,108 @@ URL: [full URL]
 Content: [extracted relevant text - 2-3 paragraphs]
 
 **CRITICAL:** Use ONLY real information from actual web searches. Do NOT fabricate sources or content. If you cannot find high-quality sources, return what you find with accurate citations.`
-                },
-                {
-                  role: 'user',
-                  content: currentQuery
-                }
-              ],
-              tools: [
-                {
-                  googleSearchRetrieval: {
-                    dynamicRetrievalConfig: {
-                      mode: "MODE_DYNAMIC",
-                      dynamicThreshold: 0.5  // More aggressive retrieval
+                  },
+                  {
+                    role: 'user',
+                    content: currentQuery
+                  }
+                ],
+                tools: [
+                  {
+                    googleSearchRetrieval: {
+                      dynamicRetrievalConfig: {
+                        mode: "MODE_DYNAMIC",
+                        dynamicThreshold: 0.5  // More aggressive retrieval
+                      }
                     }
                   }
-                }
-              ],
-              temperature: 0.5,
-              max_tokens: 2000,
-            }),
-          });
+                ],
+                temperature: 0.5,
+                max_tokens: 2000,
+              }),
+            });
 
-          if (researchResponse.ok) {
-            const researchData = await researchResponse.json();
-            const result = researchData.choices?.[0]?.message?.content;
-            
-            if (result) {
-              console.log(`  ⤷ API response length: ${result.length} characters`);
-              console.log(`  ⤷ Response preview: ${result.substring(0, 200)}...`);
+            if (researchResponse.ok) {
+              const researchData = await researchResponse.json();
+              const result = researchData.choices?.[0]?.message?.content;
               
-              // Parse structured sources from [SOURCE N] format
-              const rawSources: Array<{ url: string; snippet: string }> = [];
-              const sourceMatches = result.matchAll(/\[SOURCE \d+\]\s*URL:\s*(https?:\/\/[^\s\n]+)\s*Content:\s*([^[]*?)(?=\[SOURCE \d+\]|$)/gs);
-              
-              for (const match of sourceMatches) {
-                const url = match[1].trim();
-                const snippet = match[2].trim();
-                if (url && snippet && snippet.length > 100) {  // Ensure substantial content
-                  rawSources.push({ url, snippet });
-                }
-              }
-              
-              // If no sources found with [SOURCE N] format, try parsing as JSON
-              if (rawSources.length === 0) {
-                try {
-                  const jsonMatch = result.match(/\[[\s\S]*\]/);
-                  if (jsonMatch) {
-                    const jsonSources = JSON.parse(jsonMatch[0]);
-                    if (Array.isArray(jsonSources)) {
-                      jsonSources.forEach((src: any) => {
-                        if (src.url && src.snippet && src.snippet.length > 100) {
-                          rawSources.push({ url: src.url, snippet: src.snippet });
-                        }
-                      });
-                      console.log(`  ⤷ Parsed ${rawSources.length} sources from JSON format`);
-                    }
-                  }
-                } catch (e) {
-                  console.log(`  ⤷ Could not parse JSON format either`);
-                }
-              }
-              
-              console.log(`  ⤷ Raw sources found: ${rawSources.length}`);
-              
-              // Validate and filter sources
-              const validSources = validateSources(rawSources);
-              console.log(`  ⤷ Valid sources after filtering: ${validSources.length}`);
-              
-              // Merge with any sources from previous attempts
-              for (const source of validSources) {
-                if (!finalSources.some(s => s.url === source.url)) {
-                  finalSources.push(source);
-                }
-              }
-              
-              if (finalSources.length >= 3) {
-                console.log(`  ✓ Success! Found ${finalSources.length} quality sources`);
-                break; // Exit the for loop - we have enough sources
-              } else if (attempt < MAX_RETRIES) {
-                console.log(`  ⚠️ Only ${finalSources.length} sources so far, will retry with reformulated query...`);
+              if (result) {
+                console.log(`    ⤷ API response length: ${result.length} characters`);
                 
-                // Use Gemini to reformulate the query for better results
-                try {
-                  const reformulateResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      model: 'google/gemini-2.5-flash',
-                      messages: [{
-                        role: 'user',
-                        content: `Reformulate this academic search query to be broader and more likely to find academic sources. Keep it focused on engineering/science education: "${currentQuery}". Return ONLY the reformulated query, nothing else.`
-                      }],
-                      max_tokens: 100,
-                      temperature: 0.7,
-                    }),
-                  });
-                  
-                  if (reformulateResponse.ok) {
-                    const reformData = await reformulateResponse.json();
-                    const reformulatedQuery = reformData.choices?.[0]?.message?.content?.trim();
-                    if (reformulatedQuery && reformulatedQuery.length > 0) {
-                      currentQuery = reformulatedQuery;
-                      console.log(`  ⤷ Reformulated query: "${currentQuery}"`);
-                    } else {
-                      // Fallback: programmatic reformulation
-                      currentQuery = attempt === 0 
-                        ? `${originalSubQuestion} engineering applications education`
-                        : `${originalSubQuestion.split(' ').slice(0, 4).join(' ')} fundamentals`;
-                      console.log(`  ⤷ Fallback reformulated query: "${currentQuery}"`);
-                    }
-                  } else {
-                    // Fallback: programmatic reformulation
-                    currentQuery = attempt === 0 
-                      ? `${originalSubQuestion} engineering applications education`
-                      : `${originalSubQuestion.split(' ').slice(0, 4).join(' ')} fundamentals`;
-                    console.log(`  ⤷ Fallback reformulated query: "${currentQuery}"`);
+                // Parse structured sources from [SOURCE N] format
+                const rawSources: Array<{ url: string; snippet: string }> = [];
+                const sourceMatches = result.matchAll(/\[SOURCE \d+\]\s*URL:\s*(https?:\/\/[^\s\n]+)\s*Content:\s*([^[]*?)(?=\[SOURCE \d+\]|$)/gs);
+                
+                for (const match of sourceMatches) {
+                  const url = match[1].trim();
+                  const snippet = match[2].trim();
+                  if (url && snippet && snippet.length > minSnippetLength) {
+                    rawSources.push({ url, snippet });
                   }
-                } catch (reformError) {
-                  console.log(`  ⤷ Error reformulating, using fallback approach`);
-                  currentQuery = attempt === 0 
-                    ? `${originalSubQuestion} engineering applications education`
-                    : `${originalSubQuestion.split(' ').slice(0, 4).join(' ')} fundamentals`;
-                  console.log(`  ⤷ Fallback reformulated query: "${currentQuery}"`);
                 }
-              } else {
-                // LAST ATTEMPT: Log that we're proceeding with what we have
-                console.warn(`  ⚠️ Max retries reached for "${originalSubQuestion}". Proceeding with ${finalSources.length} sources.`);
+                
+                // If no sources found with [SOURCE N] format, try parsing as JSON
+                if (rawSources.length === 0) {
+                  try {
+                    const jsonMatch = result.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                      const jsonSources = JSON.parse(jsonMatch[0]);
+                      if (Array.isArray(jsonSources)) {
+                        jsonSources.forEach((src: any) => {
+                          if (src.url && src.snippet && src.snippet.length > minSnippetLength) {
+                            rawSources.push({ url: src.url, snippet: src.snippet });
+                          }
+                        });
+                      }
+                    }
+                  } catch (e) {
+                    // Silently fail JSON parsing
+                  }
+                }
+                
+                console.log(`    ⤷ Raw sources found: ${rawSources.length}`);
+                
+                // Validate and filter sources
+                const validSources = validateSources(rawSources);
+                console.log(`    ⤷ Valid sources after filtering: ${validSources.length}`);
+                
+                // Merge with any sources from previous attempts (avoid duplicates)
+                for (const source of validSources) {
+                  if (!finalSources.some(s => s.url === source.url)) {
+                    finalSources.push(source);
+                  }
+                }
+                
+                console.log(`    ⤷ Total sources accumulated: ${finalSources.length}`);
+                
               }
+            } else {
+              const errorText = await researchResponse.text();
+              console.warn(`    ✗ API request failed for strategy ${strategyIdx + 1}:`, errorText.substring(0, 200));
             }
-          } else {
-            const errorText = await researchResponse.text();
-            console.warn(`  ✗ API request failed (attempt ${attempt + 1}):`, errorText);
+          } catch (error) {
+            console.error(`    ✗ Error in strategy ${strategyIdx + 1}:`, error);
           }
-        } catch (error) {
-          console.error(`  ✗ Error in attempt ${attempt + 1}:`, error);
-          // If it's the last attempt and it fails, break to avoid further issues
-          if (attempt >= MAX_RETRIES) {
-            console.error(`  ✗ Breaking loop after final attempt failed for "${originalSubQuestion}"`);
-            break;
+          
+          // Small delay between strategies to avoid rate limits
+          if (strategyIdx < searchStrategies.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 300));
           }
         }
         
-        // Small delay between retries to avoid rate limits (skip delay after last attempt)
-        if (attempt < MAX_RETRIES && finalSources.length < 3) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+        // Check if we have enough sources after trying all strategies for this attempt
+        if (finalSources.length >= 3) {
+          console.log(`  ✓ Success! Found ${finalSources.length} quality sources after ${attempt + 1} attempt(s)`);
+          break; // Exit the retry loop
+        } else if (attempt === MAX_RETRIES) {
+          console.warn(`  ⚠️ Max retries reached for "${originalSubQuestion}". Proceeding with ${finalSources.length} sources.`);
+        } else {
+          console.log(`  ⚠️ Only ${finalSources.length} sources after attempt ${attempt + 1}. Retrying...`);
+        }
+        
+        // Delay between attempts (skip after last attempt)
+        if (attempt < MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 800));
         }
       }
       
