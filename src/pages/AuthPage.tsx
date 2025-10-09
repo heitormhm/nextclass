@@ -83,10 +83,10 @@ const AuthPage = () => {
 
       // Get user role from database
       const { data: userData, error: userError } = await supabase
-        .from('users')
+        .from('user_roles')
         .select('role')
-        .eq('id', authData.user.id)
-        .single();
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
 
       if (userError) {
         toast.error('Erro ao buscar dados do usuário');
@@ -94,7 +94,7 @@ const AuthPage = () => {
       }
 
       // Redirect based on actual user role from database
-      if (userData.role === 'teacher') {
+      if (userData?.role === 'teacher') {
         navigate('/teacherdashboard', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });

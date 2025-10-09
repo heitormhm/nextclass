@@ -519,7 +519,6 @@ export type Database = {
           id: string
           period: string | null
           phone: string | null
-          role: Database["public"]["Enums"]["app_role"]
           university: string | null
           updated_at: string | null
         }
@@ -532,7 +531,6 @@ export type Database = {
           id: string
           period?: string | null
           phone?: string | null
-          role?: Database["public"]["Enums"]["app_role"]
           university?: string | null
           updated_at?: string | null
         }
@@ -545,7 +543,6 @@ export type Database = {
           id?: string
           period?: string | null
           phone?: string | null
-          role?: Database["public"]["Enums"]["app_role"]
           university?: string | null
           updated_at?: string | null
         }

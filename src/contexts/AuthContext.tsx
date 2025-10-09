@@ -69,18 +69,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // @ts-ignore - users table will be created in database
-      const result = await supabase.from('users').select('role').eq('id', userId).maybeSingle();
-      const { data, error } = result;
+      // Fetch role from user_roles table (secure, separate from profile data)
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching user role:', error);
         setRole(null);
-      } else if (data && 'role' in data) {
-        // @ts-ignore - users table role field
+      } else if (data?.role) {
         setRole(data.role as UserRole);
       } else {
-        // User not found in users table, default to student
+        // User not found in user_roles table, default to student
         setRole('student');
       }
     } catch (error) {
