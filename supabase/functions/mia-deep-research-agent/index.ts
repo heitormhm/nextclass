@@ -175,53 +175,70 @@ Example for "Thermodynamics Laws":
       
       // Retry logic with multiple search strategies per attempt
       const MAX_RETRIES = 2;
+      const MAX_TOTAL_API_CALLS = 15; // Global safety limit
       let finalSources: Array<{ url: string; snippet: string }> = [];
+      let totalAPICallsMade = 0;
       const originalSubQuestion = subQuestion;
       
-      // Define multiple search strategies to try per attempt
-      const getSearchStrategies = (baseQuery: string, attemptNumber: number): string[] => {
-        const strategies = [
-          baseQuery, // Original query
-          `${baseQuery} fundamentals engineering education`, // Academic focus
-          `${baseQuery.split(' ').slice(0, 3).join(' ')} overview`, // Simplified
+      // Pre-calculate ALL search strategies before entering the loop
+      const allSearchStrategies: Array<{ attempt: number; query: string; strategyIndex: number }> = [];
+      for (let attemptNum = 0; attemptNum <= MAX_RETRIES; attemptNum++) {
+        const baseStrategies = [
+          originalSubQuestion, // Original query
+          `${originalSubQuestion} fundamentals engineering education`, // Academic focus
+          `${originalSubQuestion.split(' ').slice(0, 3).join(' ')} overview`, // Simplified
         ];
         
-        // On retry attempts, use broader variations
-        if (attemptNumber > 0) {
-          strategies.push(
-            `${baseQuery.split(' ')[0]} ${baseQuery.split(' ').slice(-2).join(' ')} theory`,
-            `${baseQuery} practical applications`
+        // On retry attempts, add broader variations
+        if (attemptNum > 0) {
+          baseStrategies.push(
+            `${originalSubQuestion.split(' ')[0]} ${originalSubQuestion.split(' ').slice(-2).join(' ')} theory`,
+            `${originalSubQuestion} practical applications`
           );
         }
         
-        return strategies;
-      };
+        baseStrategies.forEach((query, idx) => {
+          allSearchStrategies.push({ attempt: attemptNum, query, strategyIndex: idx });
+        });
+      }
       
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`  ⤷ Pre-calculated ${allSearchStrategies.length} total search strategies across ${MAX_RETRIES + 1} attempts`);
+      
+      // Use labeled loop for guaranteed exit
+      retryLoop: for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         const attemptLabel = attempt === 0 ? 'initial' : `retry ${attempt}`;
         console.log(`\n  Attempt ${attempt + 1}/${MAX_RETRIES + 1} (${attemptLabel}) for: "${originalSubQuestion}"`);
         
-        // Get search strategies for this attempt
-        const searchStrategies = getSearchStrategies(originalSubQuestion, attempt);
-        console.log(`  ⤷ Will try ${searchStrategies.length} search variations`);
+        // Filter strategies for this specific attempt
+        const currentAttemptStrategies = allSearchStrategies.filter(s => s.attempt === attempt);
+        console.log(`  ⤷ Will try ${currentAttemptStrategies.length} search variations for this attempt`);
         
         // Lower quality threshold on last attempt if we're desperate
         const minSnippetLength = (attempt === MAX_RETRIES && finalSources.length < 2) ? 50 : 100;
         console.log(`  ⤷ Minimum snippet length for this attempt: ${minSnippetLength} chars`);
         
         // Try each search strategy for this attempt
-        for (let strategyIdx = 0; strategyIdx < searchStrategies.length; strategyIdx++) {
-          const currentQuery = searchStrategies[strategyIdx];
+        strategyLoop: for (let strategyIdx = 0; strategyIdx < currentAttemptStrategies.length; strategyIdx++) {
+          const strategyObj = currentAttemptStrategies[strategyIdx];
+          const currentQuery = strategyObj.query;
+          
+          // Safety check: Global API call limit
+          if (totalAPICallsMade >= MAX_TOTAL_API_CALLS) {
+            console.log(`  🛑 SAFETY EXIT: Reached global API call limit (${MAX_TOTAL_API_CALLS} calls). Stopping all searches.`);
+            break retryLoop;
+          }
           
           // Stop trying more strategies if we already have enough sources
           if (finalSources.length >= 3) {
-            console.log(`  ⤷ Already have ${finalSources.length} sources, skipping remaining strategies`);
-            break;
+            console.log(`  ⤷ Already have ${finalSources.length} sources, skipping remaining strategies for this attempt`);
+            break strategyLoop;
           }
           
-          console.log(`  ⤷ Strategy ${strategyIdx + 1}/${searchStrategies.length}: "${currentQuery}"`);
+          console.log(`  ⤷ Strategy ${strategyIdx + 1}/${currentAttemptStrategies.length}: "${currentQuery}" [API Call #${totalAPICallsMade + 1}]`);
           
           try {
+            totalAPICallsMade++; // Increment BEFORE making the call
+            
             const researchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -342,26 +359,30 @@ Content: [extracted relevant text - 2-3 paragraphs]
           }
           
           // Small delay between strategies to avoid rate limits
-          if (strategyIdx < searchStrategies.length - 1) {
+          if (strategyIdx < currentAttemptStrategies.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 300));
           }
         }
         
+        console.log(`  → End of attempt ${attempt + 1}: ${finalSources.length} sources accumulated, ${totalAPICallsMade} API calls made`);
+        
         // Check if we have enough sources after trying all strategies for this attempt
         if (finalSources.length >= 3) {
-          console.log(`  ✓ Success! Found ${finalSources.length} quality sources after ${attempt + 1} attempt(s)`);
-          break; // Exit the retry loop
+          console.log(`  ✓ SUCCESS: Found ${finalSources.length} quality sources after ${attempt + 1} attempt(s). Exiting retry loop.`);
+          break retryLoop; // Explicitly exit the retry loop
         } else if (attempt === MAX_RETRIES) {
-          console.warn(`  ⚠️ Max retries reached for "${originalSubQuestion}". Proceeding with ${finalSources.length} sources.`);
+          console.warn(`  ⚠️ FINAL ATTEMPT COMPLETE: Max retries reached for "${originalSubQuestion}". Proceeding with ${finalSources.length} sources.`);
         } else {
-          console.log(`  ⚠️ Only ${finalSources.length} sources after attempt ${attempt + 1}. Retrying...`);
+          console.log(`  ⚠️ Only ${finalSources.length} sources after attempt ${attempt + 1}. Continuing to next attempt...`);
         }
         
         // Delay between attempts (skip after last attempt)
-        if (attempt < MAX_RETRIES) {
+        if (attempt < MAX_RETRIES && finalSources.length < 3) {
           await new Promise(resolve => setTimeout(resolve, 800));
         }
       }
+      
+      console.log(`\n  📊 FINAL STATS for "${originalSubQuestion}": ${finalSources.length} sources, ${totalAPICallsMade}/${MAX_TOTAL_API_CALLS} API calls used`);
       
       // Final assessment
       if (finalSources.length >= 3) {
