@@ -420,8 +420,8 @@ ${sourcesFormatted}
     const masterPrompt = `CONTEXTO:
 Você é um redator técnico especialista em engenharia, encarregado de compilar um relatório académico detalhado. Você recebeu um conjunto de extratos de pesquisa, cada um associado a uma URL de origem. A pesquisa foi conduzida em inglês para obter melhores fontes acadêmicas, mas você deve escrever o relatório em PORTUGUÊS. As fontes citadas podem estar em inglês - traduza e adapte os conceitos técnicos mantendo precisão e rigor. A sua única fonte de verdade é este material.
 
-TAREFA:
-Com base exclusivamente nas informações fornecidas na variável compiledResearch abaixo, escreva um documento explicativo detalhado, entre 3 a 10 páginas, sobre o tópico "${query}".
+    TAREFA:
+Com base exclusivamente nas informações fornecidas na variável compiledResearch abaixo, escreva um documento explicativo detalhado, entre 2 a 4 páginas, sobre o tópico "${query}".
 
 RESTRIÇÕES:
 - **Nível do Público:** O relatório destina-se a um estudante de engenharia de nível superior. Adapte a profundidade técnica e os exemplos para serem desafiadores e educativos, mas evite jargões excessivamente especializados sem explicação. O objetivo é a clareza e a aplicação prática do conhecimento.
@@ -456,26 +456,52 @@ ${compiledResearch}
 
 Agora, escreva o relatório final em Português, seguindo todas as diretrizes acima.`;
 
-    const reportResponse = await withTimeout(
-      fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-5',
-          messages: [
-            {
-              role: 'user',
-              content: masterPrompt
-            }
-          ],
-          max_completion_tokens: 16000,
+    // Start periodic progress updates during report generation
+    let progressInterval: number | undefined;
+    const startProgressUpdates = () => {
+      let dots = 0;
+      progressInterval = setInterval(async () => {
+        dots = (dots + 1) % 4;
+        const dotsStr = '.'.repeat(dots);
+        await updateProgress(`A gerar relatório final${dotsStr}`);
+      }, 5000) as unknown as number; // Update every 5 seconds with animated dots
+    };
+    
+    startProgressUpdates();
+    
+    let reportResponse;
+    try {
+      reportResponse = await withTimeout(
+        fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-5',
+            messages: [
+              {
+                role: 'user',
+                content: masterPrompt
+              }
+            ],
+            max_completion_tokens: 16000,
+          }),
         }),
-      }),
-      120000 // 2 minute timeout for report generation
-    );
+        300000 // 5 minute timeout for report generation
+      );
+    } catch (error) {
+      if (progressInterval) clearInterval(progressInterval);
+      if (error instanceof Error && error.message === 'Operation timed out') {
+        console.error('✗ Report generation timed out after 5 minutes');
+        throw new Error('O relatório está a demorar muito tempo a gerar. Tente uma pergunta mais específica.');
+      }
+      throw error;
+    }
+    
+    if (progressInterval) clearInterval(progressInterval);
+    await updateProgress("A gerar relatório final...");
 
     if (!reportResponse.ok) {
       const errorText = await reportResponse.text();
