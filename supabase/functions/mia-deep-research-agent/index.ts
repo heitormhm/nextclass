@@ -180,7 +180,7 @@ async function processDeepResearch(
     // ====================================================================
     // Step 2: Execute Web Searches with GPT-5 Agentic Researcher
     // ====================================================================
-    await updateProgress("A executar buscas na web com IA...");
+    await updateProgress("A executar buscas na web...");
     console.log('\n=== Step 2: Executing web searches with GPT-5 agent ===');
 
     interface ResearchResult {
@@ -389,10 +389,17 @@ Be strategic about your searches - you have a limited number of iterations.`
     console.log(`\n✓ Completed ${researchResults.length}/${subQuestions.length} research questions`);
 
     // ====================================================================
-    // Step 3: Generate Final Report with OpenAI GPT-5
+    // Step 3: Synthesize Content
+    // ====================================================================
+    await updateProgress("A sintetizar conteúdo...");
+    console.log('\n=== Step 3: Synthesizing research content ===');
+    await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for UI
+
+    // ====================================================================
+    // Step 4: Generate Final Report with OpenAI GPT-5
     // ====================================================================
     await updateProgress("A gerar relatório final...");
-    console.log('\n=== Step 3: Generating final report with OpenAI GPT-5 ===');
+    console.log('\n=== Step 4: Generating final report with OpenAI GPT-5 ===');
 
     // Compile all research results into a structured format
     const compiledResearch = researchResults

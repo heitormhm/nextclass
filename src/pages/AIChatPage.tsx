@@ -538,6 +538,97 @@ const AIChatPage = () => {
   useEffect(() => {
     if (!deepSearchSessionId) return;
 
+    console.log('🔔 Setting up realtime subscription for session:', deepSearchSessionId);
+    
+    let pollInterval: NodeJS.Timeout;
+    
+    const pollSession = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('deep_search_sessions')
+          .select('*')
+          .eq('id', deepSearchSessionId)
+          .single();
+        
+        if (error) {
+          console.error('❌ Polling error:', error);
+          return;
+        }
+        
+        if (data) {
+          console.log('📊 Polling update:', {
+            status: data.status,
+            step: data.progress_step,
+            hasResult: !!data.result
+          });
+          
+          handleSessionUpdate(data);
+        }
+      } catch (err) {
+        console.error('❌ Unexpected polling error:', err);
+      }
+    };
+    
+    const handleSessionUpdate = (sessionData: any) => {
+      const progressStep = sessionData.progress_step;
+      const status = sessionData.status;
+      const result = sessionData.result;
+      
+      console.log('🔄 Deep search update:', { progressStep, status, hasResult: !!result });
+      
+      // Update progress based on step
+      const stepIndex = deepSearchSteps.findIndex(step => step.text === progressStep);
+      if (stepIndex !== -1) {
+        console.log(`📈 Progress: ${stepIndex + 1}/${deepSearchSteps.length} - ${progressStep}`);
+        setDeepSearchProgress(stepIndex);
+      } else {
+        console.warn('⚠️ Unknown progress step:', progressStep);
+      }
+      
+      // If completed, add the report message
+      if (status === 'completed' && result) {
+        console.log('✅ Deep search completed with result, length:', result.length);
+        
+        const reportMessage: Message = {
+          id: `${activeConversationId || 'new'}-${Date.now()}`,
+          content: result,
+          isUser: false,
+          timestamp: new Date(),
+          isReport: true,
+          reportTitle: sessionData.query
+        };
+        
+        setMessages(prev => {
+          console.log('💬 Adding report message to chat');
+          return [...prev, reportMessage];
+        });
+        
+        toast({
+          title: "Pesquisa Concluída",
+          description: "O relatório foi gerado com sucesso!",
+        });
+        
+        // Delay closing the loader to show the final step
+        setTimeout(() => {
+          console.log('🏁 Closing deep search loader');
+          setDeepSearchSessionId(null);
+          setDeepSearchProgress(0);
+          setIsDeepSearchLoading(false);
+        }, 1500);
+      } else if (status === 'error') {
+        console.log('❌ Deep search failed:', progressStep);
+        toast({
+          title: "Erro na Pesquisa",
+          description: progressStep || 'Erro na pesquisa aprofundada',
+          variant: "destructive",
+        });
+        setDeepSearchSessionId(null);
+        setDeepSearchProgress(0);
+        setIsDeepSearchLoading(false);
+      }
+    };
+
+    // Set up realtime subscription
     const channel = supabase
       .channel(`deep-search-${deepSearchSessionId}`)
       .on(
@@ -549,55 +640,29 @@ const AIChatPage = () => {
           filter: `id=eq.${deepSearchSessionId}`
         },
         (payload: any) => {
-          const progressStep = payload.new.progress_step;
-          const status = payload.new.status;
-          const result = payload.new.result;
-          
-          console.log('Deep search update:', { progressStep, status, hasResult: !!result });
-          
-          // Update progress based on step
-          const stepIndex = deepSearchSteps.findIndex(step => step.text === progressStep);
-          if (stepIndex !== -1) {
-            setDeepSearchProgress(stepIndex);
-          }
-          
-          // If completed, add the report message
-          if (status === 'completed' && result) {
-            console.log('Deep search completed with result');
-            
-            const reportMessage: Message = {
-              id: `${activeConversationId}-${Date.now()}`,
-              content: result,
-              isUser: false,
-              timestamp: new Date(),
-              isReport: true,
-              reportTitle: payload.new.query
-            };
-            
-            setMessages(prev => [...prev, reportMessage]);
-            
-            // Delay closing the loader to show the final step
-            setTimeout(() => {
-              setDeepSearchSessionId(null);
-              setDeepSearchProgress(0);
-              setIsDeepSearchLoading(false);
-            }, 1000);
-          } else if (status === 'error') {
-            console.log('Deep search failed');
-            toast({
-              title: "Erro",
-              description: progressStep || 'Erro na pesquisa aprofundada',
-              variant: "destructive",
-            });
-            setDeepSearchSessionId(null);
-            setDeepSearchProgress(0);
-            setIsDeepSearchLoading(false);
-          }
+          console.log('🔔 Realtime event received:', payload);
+          handleSessionUpdate(payload.new);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log('📡 Subscription status:', status);
+        if (err) {
+          console.error('❌ Subscription error:', err);
+        }
+        
+        // Start polling as fallback when subscribed
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Realtime subscription active, starting fallback polling...');
+          pollInterval = setInterval(pollSession, 2000); // Poll every 2 seconds
+        }
+      });
+
+    // Initial poll
+    pollSession();
 
     return () => {
+      console.log('🔌 Cleaning up subscription and polling');
+      if (pollInterval) clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
   }, [deepSearchSessionId, activeConversationId, toast]);
