@@ -67,6 +67,14 @@ async function processDeepResearch(
   deepSearchSessionId: string,
   userId: string
 ) {
+  const startTime = Date.now();
+  
+  // Monitor execution time periodically
+  const timeMonitor = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    console.log(`⏱️ Function running for ${elapsed}s`);
+  }, 10000) as unknown as number; // Log every 10 seconds
+  
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -84,6 +92,16 @@ async function processDeepResearch(
       console.error('Error updating progress:', error);
     }
   };
+
+  // Define research results outside try block so it's accessible in catch
+  interface ResearchResult {
+    question: string;
+    sources: Array<{
+      url: string;
+      snippet: string;
+    }>;
+  }
+  const researchResults: ResearchResult[] = [];
 
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
@@ -182,16 +200,6 @@ async function processDeepResearch(
     // ====================================================================
     await updateProgress("A executar buscas na web...");
     console.log('\n=== Step 2: Executing web searches with GPT-5 agent ===');
-
-    interface ResearchResult {
-      question: string;
-      sources: Array<{
-        url: string;
-        snippet: string;
-      }>;
-    }
-
-    const researchResults: ResearchResult[] = [];
 
     // Define the web search tool for GPT-5 function calling
     const webSearchTool = {
@@ -421,7 +429,7 @@ ${sourcesFormatted}
 Você é um redator técnico especialista em engenharia, encarregado de compilar um relatório académico detalhado. Você recebeu um conjunto de extratos de pesquisa, cada um associado a uma URL de origem. A pesquisa foi conduzida em inglês para obter melhores fontes acadêmicas, mas você deve escrever o relatório em PORTUGUÊS. As fontes citadas podem estar em inglês - traduza e adapte os conceitos técnicos mantendo precisão e rigor. A sua única fonte de verdade é este material.
 
     TAREFA:
-Com base exclusivamente nas informações fornecidas na variável compiledResearch abaixo, escreva um documento explicativo detalhado, entre 2 a 4 páginas, sobre o tópico "${query}".
+Com base exclusivamente nas informações fornecidas na variável compiledResearch abaixo, escreva um documento explicativo conciso, entre 2 a 3 páginas, sobre o tópico "${query}".
 
 RESTRIÇÕES:
 - **Nível do Público:** O relatório destina-se a um estudante de engenharia de nível superior. Adapte a profundidade técnica e os exemplos para serem desafiadores e educativos, mas evite jargões excessivamente especializados sem explicação. O objetivo é a clareza e a aplicação prática do conhecimento.
@@ -469,39 +477,57 @@ Agora, escreva o relatório final em Português, seguindo todas as diretrizes ac
     
     startProgressUpdates();
     
-    let reportResponse;
-    try {
-      reportResponse = await withTimeout(
-        fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-5',
-            messages: [
-              {
-                role: 'user',
-                content: masterPrompt
-              }
-            ],
-            max_completion_tokens: 16000,
+    // Add retry logic for report generation
+    let reportResponse: Response | undefined;
+    let retryCount = 0;
+    const MAX_RETRIES = 2;
+    
+    while (retryCount <= MAX_RETRIES) {
+      try {
+        reportResponse = await withTimeout(
+          fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-5',
+              messages: [
+                {
+                  role: 'user',
+                  content: masterPrompt
+                }
+              ],
+              max_completion_tokens: 8000, // Reduced from 16000 for faster generation
+            }),
           }),
-        }),
-        300000 // 5 minute timeout for report generation
-      );
-    } catch (error) {
-      if (progressInterval) clearInterval(progressInterval);
-      if (error instanceof Error && error.message === 'Operation timed out') {
-        console.error('✗ Report generation timed out after 5 minutes');
-        throw new Error('O relatório está a demorar muito tempo a gerar. Tente uma pergunta mais específica.');
+          180000 // 3 minute timeout (more realistic)
+        );
+        break; // Success, exit retry loop
+      } catch (error) {
+        retryCount++;
+        if (progressInterval) clearInterval(progressInterval);
+        
+        if (retryCount > MAX_RETRIES) {
+          console.error(`✗ Report generation failed after ${MAX_RETRIES} retries`);
+          throw new Error('Falha ao gerar relatório após múltiplas tentativas.');
+        }
+        
+        console.log(`⚠️ Retry ${retryCount}/${MAX_RETRIES} for report generation...`);
+        await updateProgress(`A gerar relatório final... (tentativa ${retryCount + 1})`);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2s delay between retries
+        startProgressUpdates();
       }
-      throw error;
     }
     
     if (progressInterval) clearInterval(progressInterval);
     await updateProgress("A gerar relatório final...");
+    
+    // Safety check to ensure reportResponse is defined
+    if (!reportResponse) {
+      throw new Error('Failed to get response from OpenAI API');
+    }
 
     if (!reportResponse.ok) {
       const errorText = await reportResponse.text();
@@ -546,19 +572,36 @@ Agora, escreva o relatório final em Português, seguindo todas as diretrizes ac
   } catch (error) {
     console.error('✗ Error in background task:', error);
     
-    // Update session with error
+    // Clear time monitor
+    if (timeMonitor) clearInterval(timeMonitor);
+    
+    // Save partial results even if report generation fails
+    const partialReport = researchResults.length > 0 
+      ? `# Pesquisa Incompleta\n\n⚠️ A geração do relatório final falhou, mas conseguimos coletar ${researchResults.length} fontes:\n\n` +
+        researchResults.map((r, i) => 
+          `## Tópico ${i + 1}: ${r.question}\n${r.sources.map(s => `- [${s.url}](${s.url})\n  ${s.snippet.substring(0, 200)}...`).join('\n\n')}`
+        ).join('\n\n')
+      : null;
+    
+    // Update session with error or partial results
     try {
       await supabaseAdmin
         .from('deep_search_sessions')
         .update({
-          status: 'error',
-          progress_step: 'Erro na pesquisa. Por favor tente novamente.',
+          status: partialReport ? 'completed' : 'error',
+          result: partialReport,
+          progress_step: partialReport 
+            ? 'Pesquisa concluída parcialmente' 
+            : 'Erro na pesquisa. Por favor tente novamente.',
           updated_at: new Date().toISOString()
         })
         .eq('id', deepSearchSessionId);
     } catch (updateError) {
       console.error('Failed to update error status:', updateError);
     }
+  } finally {
+    // Ensure time monitor is cleared
+    if (timeMonitor) clearInterval(timeMonitor);
   }
 }
 
