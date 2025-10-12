@@ -519,7 +519,55 @@ const AIChatPage = () => {
             case 'COMPLETED':
               setDeepSearchProgress(4);
               
-              // Add report to messages
+              // Save conversation and messages to database
+              (async () => {
+                try {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (!session) return;
+                  
+                  // Create or use existing conversation
+                  let conversationId = activeConversationId;
+                  if (!conversationId) {
+                    const { data: newConv, error: convError } = await supabase
+                      .from('conversations')
+                      .insert({
+                        user_id: session.user.id,
+                        title: job.input_payload.query.substring(0, 100)
+                      })
+                      .select()
+                      .single();
+                    
+                    if (!convError && newConv) {
+                      conversationId = newConv.id;
+                      setActiveConversationId(conversationId);
+                    }
+                  }
+                  
+                  // Save messages to database
+                  if (conversationId) {
+                    // 1. Save user message
+                    await supabase.from('messages').insert({
+                      conversation_id: conversationId,
+                      role: 'user',
+                      content: job.input_payload.query
+                    });
+                    
+                    // 2. Save report
+                    await supabase.from('messages').insert({
+                      conversation_id: conversationId,
+                      role: 'assistant',
+                      content: job.result
+                    });
+                    
+                    // Reload conversations list
+                    loadConversations();
+                  }
+                } catch (error) {
+                  console.error('Error saving conversation:', error);
+                }
+              })();
+              
+              // Add report to local messages
               const reportMessage: Message = {
                 id: `${activeConversationId}-${Date.now()}`,
                 content: job.result,

@@ -27,9 +27,12 @@ async function executeWebSearch(
 ): Promise<Array<{ url: string; title: string; snippet: string }>> {
   console.log(`🔍 Searching: "${query}"`);
 
+  // Add academic keywords to query
+  const academicQuery = `${query} (site:edu OR site:gov OR site:org OR "journal" OR "paper" OR "research" OR "academic" OR "scientific")`;
+  
   try {
     const response = await fetch(
-      `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${numResults}`,
+      `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(academicQuery)}&count=${numResults * 3}`,
       {
         headers: {
           'Accept': 'application/json',
@@ -46,11 +49,54 @@ async function executeWebSearch(
     const data = await response.json();
     const results = data.web?.results || [];
 
-    return results.slice(0, numResults).map((r: any) => ({
-      url: r.url || '',
-      title: r.title || '',
-      snippet: r.description || '',
-    }));
+    // Filter and prioritize academic sources
+    const filteredResults = results
+      .filter((r: any) => {
+        const url = r.url?.toLowerCase() || '';
+        const title = r.title?.toLowerCase() || '';
+        
+        // Priority 1: Academic domains
+        const isAcademic = url.includes('.edu') || 
+                           url.includes('.gov') || 
+                           url.includes('.org') ||
+                           url.includes('scielo') ||
+                           url.includes('scholar') ||
+                           url.includes('ieee') ||
+                           url.includes('springer') ||
+                           url.includes('elsevier') ||
+                           url.includes('researchgate');
+        
+        // Priority 2: Academic keywords in title
+        const hasAcademicKeywords = title.includes('journal') ||
+                                     title.includes('paper') ||
+                                     title.includes('research') ||
+                                     title.includes('study') ||
+                                     title.includes('academic') ||
+                                     title.includes('engineering');
+        
+        // Reject unreliable sources
+        const isBlacklisted = url.includes('wikipedia') ||
+                               url.includes('blog.') ||
+                               url.includes('forum') ||
+                               url.includes('reddit');
+        
+        return (isAcademic || hasAcademicKeywords) && !isBlacklisted;
+      })
+      .map((r: any) => ({
+        url: r.url || '',
+        title: r.title || '',
+        snippet: r.description || '',
+      }));
+
+    const academicCount = filteredResults.filter((s: any) => 
+      s.url.includes('.edu') || 
+      s.url.includes('.gov') || 
+      s.url.includes('scholar')
+    ).length;
+    
+    console.log(`✓ Found ${filteredResults.length} filtered sources (${academicCount} academic) from ${results.length} total results`);
+    
+    return filteredResults.slice(0, numResults);
   } catch (error) {
     console.error('Search error:', error);
     return [];
@@ -205,39 +251,62 @@ async function handleResearchingState(job: any, supabaseAdmin: any, lovableApiKe
     });
   });
 
-  const systemPrompt = `Você é um assistente de pesquisa académica especializado em engenharia.
-Sua tarefa é sintetizar um relatório académico completo, profundo e bem estruturado em português brasileiro, com base nas fontes de pesquisa fornecidas.
+  const systemPrompt = `Você é um assistente de pesquisa acadêmica especializado em engenharia de nível universitário.
+Sua tarefa é sintetizar um relatório acadêmico completo, profundo e tecnicamente rigoroso em português brasileiro, apropriado para estudantes e profissionais de engenharia.
+
+**PÚBLICO-ALVO**: Estudantes de graduação e pós-graduação em engenharia, professores e profissionais da área.
+
+**NÍVEL DE RIGOR**: Ensino superior - use terminologia técnica precisa, equações matemáticas quando apropriado, e mantenha alto padrão de rigor científico.
 
 **FORMATO OBRIGATÓRIO DO RELATÓRIO:**
 
-# [Título do Tópico]
+# [Título Técnico do Tópico]
 
 ## 1. Introdução
-[Contextualização do tema com citações das fontes]
+[Contextualização acadêmica do tema, incluindo relevância histórica e estado da arte. Todas as afirmações devem ter citações numeradas [1], [2], etc.]
 
 ## 2. Fundamentação Teórica
-[Explicação detalhada dos conceitos principais, com citações inline após cada afirmação]
+[Explicação detalhada dos conceitos, equações e princípios fundamentais. Cada afirmação factual deve ter citação [X]. Use notação matemática apropriada: ΔU = Q - W, etc.]
 
-## 3. Análise Técnica
-[Discussão técnica aprofundada com referências às fontes]
+## 3. Análise Técnica Aprofundada
+[Discussão técnica avançada com derivações matemáticas quando relevante, diagramas conceituais descritos, e análise crítica das fontes.]
 
-## 4. Aplicações Práticas
-[Exemplos do contexto brasileiro quando relevante]
+## 4. Aplicações em Engenharia
+[Exemplos práticos de aplicação industrial e de projeto, preferencialmente com casos brasileiros quando disponíveis.]
 
-## 5. Conclusão
-[Síntese dos pontos principais]
+## 5. Desafios e Perspectivas Futuras
+[Limitações atuais, áreas de pesquisa ativa, e tendências tecnológicas.]
+
+## 6. Conclusão
+[Síntese objetiva dos pontos principais e relevância para a prática profissional.]
 
 ## Referências Bibliográficas
-[Lista numerada de todas as fontes citadas no formato: 
-1. Título da Fonte - URL]
+[Lista numerada no formato acadêmico:
+[1] Título da Fonte - Instituição/Autor - URL
+[2] ...]
 
 **REGRAS CRÍTICAS:**
-- TODAS as afirmações factuais devem ser seguidas por citação inline: "Segundo [Fonte X], ..." ou "[Fonte: Nome]"
-- Use APENAS informações das fontes fornecidas
-- Não invente ou alucine referências
-- Use linguagem técnica mas clara
-- Mínimo 800 palavras
-- Máximo 2000 palavras`;
+
+1. **Citações obrigatórias**: TODAS as afirmações factuais devem ter citação numérica [X] imediatamente após.
+
+2. **Apenas fontes fornecidas**: Use EXCLUSIVAMENTE as fontes web fornecidas. Não invente referências.
+
+3. **Rigor acadêmico**: 
+   - Use terminologia técnica precisa (ex: "entalpia específica", "escoamento isentrópico")
+   - Quando houver equações, use notação matemática clara: ΔU = Q - W, P₁V₁ = P₂V₂
+   - Explique conceitos de forma completa mas concisa
+   - Mantenha tom formal e objetivo
+
+4. **Qualidade sobre quantidade**:
+   - Priorize informações de fontes .edu, .gov, .org, e publicações científicas
+   - Se uma fonte não for confiável, não a use
+   - Mínimo 1500 palavras, máximo 3000 palavras
+
+5. **Contexto brasileiro**: Quando relevante, inclua exemplos de aplicação no contexto da engenharia brasileira (normas ABNT, indústrias nacionais, etc.).
+
+6. **Estrutura clara**: Use cabeçalhos numerados (##), listas quando apropriado, e parágrafos bem organizados para facilitar leitura.
+
+7. **Matemática**: Para equações importantes, apresente-as destacadas e explique cada variável.`;
 
   const userPrompt = `Pergunta Original: ${query}
 

@@ -93,29 +93,61 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
   doc.setFontSize(12); // Professional 12pt font
   doc.setFont('helvetica', 'normal');
 
-  // Preprocess mathematical notation
-  const preprocessMathNotation = (text: string): string => {
-    return text
-      // Convert common superscripts
+  // Preprocess citations and mathematical notation
+  const preprocessCitationsAndMath = (content: string): { text: string; references: string[] } => {
+    const references: string[] = [];
+    let citationIndex = 1;
+    
+    // Extract and number citations
+    let processedText = content.replace(/\[(\d+)\]/g, (match, num) => {
+      return match; // Keep numbered citations as-is
+    });
+    
+    // Improve mathematical notation
+    processedText = processedText
+      // Greek symbols
+      .replace(/\\Delta\s*/g, 'Δ')
+      .replace(/\\delta/g, 'δ')
+      .replace(/\\theta/g, 'θ')
+      .replace(/\\pi/g, 'π')
+      .replace(/\\rho/g, 'ρ')
+      .replace(/\\sigma/g, 'σ')
+      .replace(/\\alpha/g, 'α')
+      .replace(/\\beta/g, 'β')
+      .replace(/\\gamma/g, 'γ')
+      
+      // Subscripts and superscripts
       .replace(/\^2/g, '²')
       .replace(/\^3/g, '³')
-      .replace(/V2/g, 'V²')
-      .replace(/V_entrada2/g, 'V²entrada')
-      .replace(/V_saida2/g, 'V²saida')
-      .replace(/m2/g, 'm²')
-      .replace(/s2/g, 's²')
-      // Convert common subscripts (using combining characters)
-      .replace(/m_dot/g, 'ṁ')
-      .replace(/Q_liquido/g, 'Q̇líquido')
-      .replace(/W_liquido/g, 'Ẇ́líquido')
-      .replace(/W_eixo/g, 'Ẇ́eixo')
-      .replace(/h_entrada/g, 'hentrada')
-      .replace(/h_saida/g, 'hsaída')
-      // Improve formula readability
-      .replace(/\s*([+\-=])\s*/g, ' $1 '); // Add spaces around operators
+      .replace(/P_1/g, 'P₁')
+      .replace(/P_2/g, 'P₂')
+      .replace(/V_1/g, 'V₁')
+      .replace(/V_2/g, 'V₂')
+      .replace(/T_1/g, 'T₁')
+      .replace(/T_2/g, 'T₂')
+      
+      // Clean up quotes around formulas
+      .replace(/"([A-Z])/g, '$1')
+      .replace(/([A-Z])"/g, '$1')
+      
+      // Improve spacing in equations
+      .replace(/([=+\-×÷])/g, ' $1 ')
+      .replace(/\s+/g, ' '); // Normalize multiple spaces
+    
+    return { text: processedText, references };
   };
 
-  const lines = content.split('\n').map(line => preprocessMathNotation(line));
+  const { text: preprocessedContent, references } = preprocessCitationsAndMath(content);
+  
+  // Preprocess individual lines for additional math notation
+  const preprocessMathNotation = (text: string): string => {
+    return text
+      .replace(/m_dot/g, 'ṁ')
+      .replace(/Q_liquido/g, 'Q̇líquido')
+      .replace(/W_liquido/g, 'Ẇ́líquido');
+  };
+
+  const lines = preprocessedContent.split('\n').map(line => preprocessMathNotation(line));
   
   lines.forEach((line) => {
     // Check if we need a new page
@@ -165,17 +197,20 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
     } else if (trimmedLine.startsWith('#') && !trimmedLine.startsWith('##')) {
-      yPosition += 8; // Extra spacing before main title
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(110, 89, 165);
+      // Skip first H1 if it's a duplicate of the main title
       const headerText = trimmedLine.replace(/^#\s*/, '');
-      const headerLines = doc.splitTextToSize(headerText, contentWidth);
-      headerLines.forEach((hLine: string) => {
-        doc.text(hLine, margin, yPosition);
-        yPosition += 10;
-      });
-      yPosition += 2;
+      if (headerText.toLowerCase() !== title.toLowerCase() || pageCount > 1) {
+        yPosition += 8;
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(110, 89, 165);
+        const headerLines = doc.splitTextToSize(headerText, contentWidth);
+        headerLines.forEach((hLine: string) => {
+          doc.text(hLine, margin, yPosition);
+          yPosition += 10;
+        });
+        yPosition += 2;
+      }
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
@@ -351,6 +386,49 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
       yPosition += 5;
     }
   });
+
+  // Add References section if there are citations
+  if (references.length > 0) {
+    // Check if we need a new page
+    if (yPosition > pageHeight - footerHeight - 100) {
+      addFooter(pageCount, 0);
+      doc.addPage();
+      pageCount++;
+      yPosition = margin + 5;
+    }
+    
+    // Section title
+    yPosition += 10;
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(110, 89, 165);
+    doc.text('Referências Bibliográficas', margin, yPosition);
+    yPosition += 10;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(50, 50, 50);
+    
+    // List references
+    references.forEach((ref, index) => {
+      if (yPosition > pageHeight - footerHeight - 20) {
+        addFooter(pageCount, 0);
+        doc.addPage();
+        pageCount++;
+        yPosition = margin + 5;
+      }
+      
+      const refText = `[${index + 1}] ${ref}`;
+      const refLines = doc.splitTextToSize(refText, contentWidth - 10);
+      
+      refLines.forEach((line: string) => {
+        doc.text(line, margin + 5, yPosition);
+        yPosition += 6;
+      });
+      
+      yPosition += 2; // Space between references
+    });
+  }
 
   // Update all footers with correct total pages
   const totalPages = pageCount;
