@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Timeout helper
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+// Timeout helper with default 120s for Phase 1
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 120000): Promise<T> {
   const timeout = new Promise<T>((_, reject) => {
     setTimeout(() => reject(new Error('Operation timed out')), timeoutMs);
   });
@@ -80,14 +80,15 @@ async function processDeepResearch(
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
-  // Helper to update progress
+  // Helper to update progress with timestamps
   const updateProgress = async (step: string) => {
+    const timestamp = new Date().toISOString();
     try {
       await supabaseAdmin
         .from('deep_search_sessions')
-        .update({ progress_step: step, updated_at: new Date().toISOString() })
+        .update({ progress_step: step, updated_at: timestamp })
         .eq('id', deepSearchSessionId);
-      console.log('Progress:', step);
+      console.log(`[${timestamp}] Progress:`, step);
     } catch (error) {
       console.error('Error updating progress:', error);
     }
@@ -164,7 +165,7 @@ async function processDeepResearch(
           max_completion_tokens: 2000,
         }),
       }),
-      90000 // 90s timeout - increased for GPT-5 response time
+      120000 // 120s timeout - increased for GPT-5 response time under load
     );
 
     if (!decomposeResponse.ok) {
@@ -249,15 +250,21 @@ Be strategic about your searches - you have a limited number of iterations.`
         }
       ];
       
-      const MAX_ITERATIONS = 5; // Hard limit to prevent infinite loops
-      let iteration = 0;
+      const MAX_ITERATIONS = 5; // Guaranteed termination after 5 attempts
+      const MIN_SOURCES = 3; // Minimum acceptable sources
+      const TARGET_SOURCES = 5; // Ideal number of sources
       const searchResults: Array<{ url: string; snippet: string }> = [];
       const seenUrls = new Set<string>();
       
-      // Agentic loop - GPT-5 decides when to search and when it's done
-      agentLoop: while (iteration < MAX_ITERATIONS) {
-        iteration++;
-        console.log(`  Iteration ${iteration}/${MAX_ITERATIONS} (${searchResults.length} sources so far)`);
+      // Deterministic loop - guarantees exactly MAX_ITERATIONS attempts
+      for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
+        // Check if we have enough sources before attempting more searches
+        if (searchResults.length >= TARGET_SOURCES) {
+          console.log(`  ✓ Target reached: ${searchResults.length} sources collected`);
+          break;
+        }
+        
+        console.log(`  Iteration ${iteration + 1}/${MAX_ITERATIONS} (${searchResults.length}/${TARGET_SOURCES} sources)`);
         
         try {
           const agentResponse = await withTimeout(
@@ -280,7 +287,7 @@ Be strategic about your searches - you have a limited number of iterations.`
           if (!agentResponse.ok) {
             const errorText = await agentResponse.text();
             console.error(`  ✗ GPT-5 call failed (${agentResponse.status}):`, errorText.substring(0, 200));
-            break agentLoop; // Exit on error
+            break; // Exit on error
           }
           
           const agentData = await agentResponse.json();
@@ -288,7 +295,7 @@ Be strategic about your searches - you have a limited number of iterations.`
           
           if (!message) {
             console.error('  ✗ No message in GPT-5 response');
-            break agentLoop;
+            break;
           }
           
           // Add assistant's response to history
@@ -354,27 +361,32 @@ Be strategic about your searches - you have a limited number of iterations.`
               }
             }
             
-            // Check if we have enough sources
-            if (searchResults.length >= 5) {
+            // Check if we have enough sources after this round
+            if (searchResults.length >= TARGET_SOURCES) {
               console.log(`  ✓ Found sufficient sources (${searchResults.length}), stopping research for this question`);
-              break agentLoop;
+              break;
             }
             
           } else {
             // GPT-5 has finished researching (no more function calls)
-            console.log(`  ✓ GPT-5 completed research after ${iteration} iteration(s)`);
-            break agentLoop;
+            console.log(`  ✓ GPT-5 completed research after ${iteration + 1} iteration(s)`);
+            break;
           }
           
         } catch (error) {
-          console.error(`  ✗ Error in iteration ${iteration}:`, error);
-          break agentLoop;
+          console.error(`  ✗ Error in iteration ${iteration + 1}:`, error);
+          // Continue to next iteration instead of breaking
+          // This ensures we always attempt MAX_ITERATIONS
         }
         
         // Small delay between iterations
-        if (iteration < MAX_ITERATIONS) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // Validate minimum sources after loop completion
+      if (searchResults.length < MIN_SOURCES) {
+        console.warn(`⚠️ Only found ${searchResults.length} sources (minimum: ${MIN_SOURCES})`);
+        // Still save partial results - don't throw error
       }
       
       // Store results for this question

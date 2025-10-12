@@ -42,7 +42,6 @@ const AIChatPage = () => {
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const reportGenerationStartedRef = useRef<Set<string>>(new Set());
   const phase2TriggerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -56,6 +55,9 @@ const AIChatPage = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
+  const [phase2InvocationState, setPhase2InvocationState] = useState<{
+    [sessionId: string]: 'idle' | 'scheduled' | 'invoked' | 'completed'
+  }>({});
 
   const deepSearchSteps = [
     { text: "A decompor a pergunta em tópicos..." },
@@ -575,8 +577,9 @@ const AIChatPage = () => {
       const progressStep = sessionData.progress_step;
       const status = sessionData.status;
       const result = sessionData.result;
+      const sessionId = sessionData.id;
       
-      console.log('🔄 Deep search update:', { progressStep, status, hasResult: !!result });
+      console.log('🔄 Deep search update:', { progressStep, status, hasResult: !!result, sessionId });
       
       // Update progress based on step
       const stepIndex = deepSearchSteps.findIndex(step => step.text === progressStep);
@@ -587,68 +590,81 @@ const AIChatPage = () => {
         console.warn('⚠️ Unknown progress step:', progressStep);
       }
       
-      // If research completed, trigger Phase 2 (report generation) with debounce
-      if (status === 'research_completed' && !reportGenerationStartedRef.current.has(sessionData.id)) {
-        console.log('✅ Phase 1 complete, scheduling Phase 2...');
+      // Phase 2 Trigger Logic with State Machine
+      if (status === 'research_completed') {
+        const currentState = phase2InvocationState[sessionId] || 'idle';
+        
+        console.log(`🔍 Phase 2 check - Status: research_completed, State: ${currentState}`);
+        
+        // Only proceed if in idle state
+        if (currentState !== 'idle') {
+          console.log(`⏭️ Skipping Phase 2 trigger - already in state: ${currentState}`);
+          return;
+        }
+        
+        // Mark as scheduled
+        setPhase2InvocationState(prev => ({ ...prev, [sessionId]: 'scheduled' }));
         
         // Clear any existing timeout
         if (phase2TriggerTimeoutRef.current) {
           clearTimeout(phase2TriggerTimeoutRef.current);
         }
         
-        // Debounce: wait 2 seconds before triggering
+        // Debounce: wait 3 seconds before triggering (increased from 2)
         phase2TriggerTimeoutRef.current = setTimeout(async () => {
-          // Double-check after debounce
-          if (reportGenerationStartedRef.current.has(sessionData.id)) {
-            console.log('Phase 2 already started, skipping...');
-            return;
-          }
-          
-          reportGenerationStartedRef.current.add(sessionData.id);
-          console.log('Triggering Phase 2 (report generation)');
-          
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-              throw new Error('Not authenticated');
+          // Triple-check state before invocation
+          setPhase2InvocationState(prev => {
+            const finalState = prev[sessionId];
+            if (finalState !== 'scheduled') {
+              console.log(`⏭️ Phase 2 cancelled - state changed to: ${finalState}`);
+              return prev;
             }
+            
+            console.log('🚀 Invoking Phase 2 (report generation)');
+            
+            // Start the invocation
+            (async () => {
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                  throw new Error('Not authenticated');
+                }
 
-            // Invoke Phase 2: Report generation
-            const { error: invokeError } = await supabase.functions.invoke('generate-deep-search-report', {
-              body: { 
-                deepSearchSessionId: sessionData.id 
-              },
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
+                const { error: invokeError } = await supabase.functions.invoke('generate-deep-search-report', {
+                  body: { deepSearchSessionId: sessionId },
+                  headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                  }
+                });
+
+                if (invokeError) {
+                  console.error('Error invoking report generation:', invokeError);
+                  setPhase2InvocationState(prev => ({ ...prev, [sessionId]: 'idle' })); // Reset on error
+                  toast({
+                    title: "Erro",
+                    description: `Falha ao gerar relatório: ${invokeError.message}`,
+                    variant: "destructive",
+                  });
+                } else {
+                  console.log('✓ Report generation invoked successfully');
+                  // Keep state as 'invoked' - will be cleared when completed
+                }
+              } catch (error) {
+                console.error('Unexpected error triggering report generation:', error);
+                setPhase2InvocationState(prev => ({ ...prev, [sessionId]: 'idle' })); // Reset on error
               }
-            });
-
-            if (invokeError) {
-              console.error('Error invoking report generation:', invokeError);
-              reportGenerationStartedRef.current.delete(sessionData.id);
-              toast({
-                title: "Erro",
-                description: `Falha ao gerar relatório: ${invokeError.message}`,
-                variant: "destructive",
-              });
-            } else {
-              console.log('✓ Report generation triggered successfully');
-            }
-          } catch (error) {
-            console.error('Unexpected error triggering report generation:', error);
-            reportGenerationStartedRef.current.delete(sessionData.id);
-            toast({
-              title: "Erro",
-              description: 'Erro ao iniciar geração de relatório',
-              variant: "destructive",
-            });
-          }
-        }, 2000); // 2 second debounce
+            })();
+            
+            return { ...prev, [sessionId]: 'invoked' };
+          });
+        }, 3000); // 3 second debounce
       }
       
-      // If completed, add the report message
+      // Mark as completed when report arrives
       if (status === 'completed' && result) {
         console.log('✅ Deep search completed with result, length:', result.length);
+        
+        setPhase2InvocationState(prev => ({ ...prev, [sessionId]: 'completed' }));
         
         const reportMessage: Message = {
           id: `${activeConversationId || 'new'}-${Date.now()}`,
@@ -678,6 +694,7 @@ const AIChatPage = () => {
         }, 1500);
       } else if (status === 'error') {
         console.log('❌ Deep search failed:', progressStep);
+        setPhase2InvocationState(prev => ({ ...prev, [sessionId]: 'idle' })); // Reset on error
         toast({
           title: "Erro na Pesquisa",
           description: progressStep || 'Erro na pesquisa aprofundada',
@@ -706,15 +723,15 @@ const AIChatPage = () => {
         }
       )
       .subscribe((status, err) => {
-        console.log('📡 Subscription status:', status);
-        if (err) {
-          console.error('❌ Subscription error:', err);
-        }
+        console.log('📡 Subscription status:', status, 'Error:', err || 'none');
         
-        // Start polling as fallback when subscribed
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Realtime subscription active, starting fallback polling...');
-          pollInterval = setInterval(pollSession, 2000); // Poll every 2 seconds
+          console.log('✅ Realtime subscription active, starting polling...');
+          pollInterval = setInterval(pollSession, 3000); // Increased to 3s
+        } else if (status === 'CLOSED') {
+          console.log('🔌 Subscription closed');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel error:', err);
         }
       });
 
@@ -728,12 +745,6 @@ const AIChatPage = () => {
     };
   }, [deepSearchSessionId, activeConversationId, toast]);
 
-  // Cleanup ref when session completes or errors
-  useEffect(() => {
-    if (deepSearchSessionId && (messages.find(m => m.isReport) || !isDeepSearchLoading)) {
-      reportGenerationStartedRef.current.delete(deepSearchSessionId);
-    }
-  }, [deepSearchSessionId, messages, isDeepSearchLoading]);
 
   // Scroll to bottom when messages change
   useEffect(() => {

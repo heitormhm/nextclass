@@ -38,14 +38,25 @@ async function generateReport(
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
-  // Helper to update progress
+  // Helper to update progress with throttling
+  let lastProgressUpdate = 0;
+  const MIN_PROGRESS_INTERVAL = 5000; // 5 seconds minimum between updates
+  
   const updateProgress = async (step: string) => {
+    const now = Date.now();
+    if (now - lastProgressUpdate < MIN_PROGRESS_INTERVAL) {
+      console.log(`[Throttled] ${step}`);
+      return; // Skip update if too soon
+    }
+    
+    lastProgressUpdate = now;
+    const timestamp = new Date().toISOString();
     try {
       await supabaseAdmin
         .from('deep_search_sessions')
-        .update({ progress_step: step, updated_at: new Date().toISOString() })
+        .update({ progress_step: step, updated_at: timestamp })
         .eq('id', deepSearchSessionId);
-      console.log('Progress:', step);
+      console.log(`[${timestamp}] Progress:`, step);
     } catch (error) {
       console.error('Error updating progress:', error);
     }
@@ -55,25 +66,39 @@ async function generateReport(
     // ====================================================================
     // Idempotency Check: Prevent duplicate report generation
     // ====================================================================
-    console.log('Checking if report already exists...');
+    console.log('=== Idempotency Check ===');
     const { data: existingSession } = await supabaseAdmin
       .from('deep_search_sessions')
       .select('result, status, updated_at')
       .eq('id', deepSearchSessionId)
       .single();
 
+    // Skip if report already exists
     if (existingSession?.result || existingSession?.status === 'completed') {
-      console.log('✓ Report already generated, skipping...');
+      console.log('✓ Report already generated, exiting gracefully');
       return;
     }
 
+    // Skip if currently processing (check last 3 minutes instead of 1)
     if (existingSession?.status === 'processing') {
       const timeSinceUpdate = Date.now() - new Date(existingSession.updated_at).getTime();
-      if (timeSinceUpdate < 60000) { // Less than 1 minute
-        console.log('✓ Report generation already in progress (recent update), skipping...');
+      if (timeSinceUpdate < 180000) { // 3 minutes
+        console.log(`✓ Report generation in progress (${Math.floor(timeSinceUpdate/1000)}s ago), skipping`);
         return;
       }
+      console.log(`⚠️ Stale processing state detected (${Math.floor(timeSinceUpdate/1000)}s old), proceeding with generation`);
     }
+
+    // Mark as processing before starting
+    await supabaseAdmin
+      .from('deep_search_sessions')
+      .update({ 
+        status: 'processing',
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', deepSearchSessionId);
+
+    console.log('✓ Idempotency check passed, starting report generation');
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     
     if (!OPENAI_API_KEY) {
@@ -332,11 +357,13 @@ serve(async (req) => {
     }
 
     // Start background task (fire and forget)
-    console.log('Starting background task for report generation...');
+    console.log('✓ Background task registered with EdgeRuntime.waitUntil()');
     EdgeRuntime.waitUntil(
-      generateReport(deepSearchSessionId, user.id).catch((error) => {
-        console.error('Background task failed:', error);
-      })
+      generateReport(deepSearchSessionId, user.id)
+        .then(() => console.log('✓ Background task completed successfully'))
+        .catch((error) => {
+          console.error('✗ Background task failed:', error);
+        })
     );
 
     // Return immediately - processing will continue in background
