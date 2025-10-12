@@ -397,207 +397,66 @@ Be strategic about your searches - you have a limited number of iterations.`
     console.log(`\n✓ Completed ${researchResults.length}/${subQuestions.length} research questions`);
 
     // ====================================================================
-    // Step 3: Synthesize Content
+    // Phase 1 Complete: Save Research Data for Phase 2
     // ====================================================================
-    await updateProgress("A sintetizar conteúdo...");
-    console.log('\n=== Step 3: Synthesizing research content ===');
-    await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for UI
-
-    // ====================================================================
-    // Step 4: Generate Final Report with OpenAI GPT-5
-    // ====================================================================
-    await updateProgress("A gerar relatório final...");
-    console.log('\n=== Step 4: Generating final report with OpenAI GPT-5 ===');
-
-    // Compile all research results into a structured format
-    const compiledResearch = researchResults
-      .map((result, idx) => {
-        const sourcesFormatted = result.sources
-          .map((s, i) => `[${idx * 10 + i + 1}] ${s.url}\n${s.snippet}`)
-          .join('\n\n');
-        
-        return `--- EXTRATO ${idx + 1} ---
-PERGUNTA: ${result.question}
-
-FONTES E CONTEÚDO:
-${sourcesFormatted}
-`;
-      })
-      .join('\n\n');
-
-    const masterPrompt = `CONTEXTO:
-Você é um redator técnico especialista em engenharia, encarregado de compilar um relatório académico detalhado. Você recebeu um conjunto de extratos de pesquisa, cada um associado a uma URL de origem. A pesquisa foi conduzida em inglês para obter melhores fontes acadêmicas, mas você deve escrever o relatório em PORTUGUÊS. As fontes citadas podem estar em inglês - traduza e adapte os conceitos técnicos mantendo precisão e rigor. A sua única fonte de verdade é este material.
-
-    TAREFA:
-Com base exclusivamente nas informações fornecidas na variável compiledResearch abaixo, escreva um documento explicativo conciso, entre 2 a 3 páginas, sobre o tópico "${query}".
-
-RESTRIÇÕES:
-- **Nível do Público:** O relatório destina-se a um estudante de engenharia de nível superior. Adapte a profundidade técnica e os exemplos para serem desafiadores e educativos, mas evite jargões excessivamente especializados sem explicação. O objetivo é a clareza e a aplicação prática do conhecimento.
-
-- **Estrutura:**
-  1. **Introdução:** Apresente o tópico e a sua relevância na engenharia.
-  2. **Desenvolvimento:** Organize os conceitos em secções lógicas com subtítulos. Use ## para secções principais e ### para subsecções.
-  3. **Aplicações Práticas:** Explore aplicações do tópico na engenharia com exemplos concretos.
-  4. **Conclusão:** Sintetize os pontos principais.
-  5. **Referências Bibliográficas:** No final do documento, crie uma secção com este título e liste todas as fontes numeradas.
-
-- **Regras de Citação (Obrigatórias):**
-  - Para cada informação utilizada, insira um número de referência entre parêntesis retos (ex: [1], [2]).
-  - Pode usar múltiplas referências no mesmo parágrafo (ex: [1][2]).
-  - Na secção "Referências Bibliográficas", liste cada fonte com o seu número e URL completo. Formato: [1] https://exemplo.com/artigo
-
-- **Restrição Crítica:**
-  - NÃO INVENTE INFORMAÇÕES OU REFERÊNCIAS. A sua principal diretriz é a fidelidade absoluta às fontes fornecidas. Se a informação for insuficiente, declare isso explicitamente.
-
-- **Formatação:**
-  - Use markdown para estruturar o documento.
-  - Use # para o título principal, ## para secções, e ### para subsecções.
-  - Mantenha um tom formal e académico.
-
----
-
-MATERIAL DE PESQUISA FORNECIDO:
-
-${compiledResearch}
-
----
-
-Agora, escreva o relatório final em Português, seguindo todas as diretrizes acima.`;
-
-    // Start periodic progress updates during report generation
-    let progressInterval: number | undefined;
-    const startProgressUpdates = () => {
-      let dots = 0;
-      progressInterval = setInterval(async () => {
-        dots = (dots + 1) % 4;
-        const dotsStr = '.'.repeat(dots);
-        await updateProgress(`A gerar relatório final${dotsStr}`);
-      }, 5000) as unknown as number; // Update every 5 seconds with animated dots
-    };
+    await updateProgress("Pesquisa concluída, a preparar relatório...");
+    console.log('\n=== Phase 1 Complete: Saving research data ===');
     
-    startProgressUpdates();
-    
-    // Add retry logic for report generation
-    let reportResponse: Response | undefined;
-    let retryCount = 0;
-    const MAX_RETRIES = 2;
-    
-    while (retryCount <= MAX_RETRIES) {
-      try {
-        reportResponse = await withTimeout(
-          fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${OPENAI_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'gpt-5',
-              messages: [
-                {
-                  role: 'user',
-                  content: masterPrompt
-                }
-              ],
-              max_completion_tokens: 8000, // Reduced from 16000 for faster generation
-            }),
-          }),
-          180000 // 3 minute timeout (more realistic)
-        );
-        break; // Success, exit retry loop
-      } catch (error) {
-        retryCount++;
-        if (progressInterval) clearInterval(progressInterval);
-        
-        if (retryCount > MAX_RETRIES) {
-          console.error(`✗ Report generation failed after ${MAX_RETRIES} retries`);
-          throw new Error('Falha ao gerar relatório após múltiplas tentativas.');
-        }
-        
-        console.log(`⚠️ Retry ${retryCount}/${MAX_RETRIES} for report generation...`);
-        await updateProgress(`A gerar relatório final... (tentativa ${retryCount + 1})`);
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2s delay between retries
-        startProgressUpdates();
-      }
-    }
-    
-    if (progressInterval) clearInterval(progressInterval);
-    await updateProgress("A gerar relatório final...");
-    
-    // Safety check to ensure reportResponse is defined
-    if (!reportResponse) {
-      throw new Error('Failed to get response from OpenAI API');
-    }
-
-    if (!reportResponse.ok) {
-      const errorText = await reportResponse.text();
-      console.error('Report generation failed:', errorText);
-      throw new Error('Failed to generate report');
-    }
-
-    const reportData = await reportResponse.json();
-    const finalReport = reportData.choices?.[0]?.message?.content;
-
-    if (!finalReport) {
-      throw new Error('No report generated');
-    }
-
-    console.log('✓ Report generated successfully, length:', finalReport.length);
-
-    // Update session with completed status
-    await updateProgress("Concluído");
-    console.log('Updating session with completed status...');
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const { data: updateData, error: updateError } = await supabaseAdmin
+    // Save research data to database for Phase 2 (report generation)
+    const { error: saveError } = await supabaseAdmin
       .from('deep_search_sessions')
       .update({
-        status: 'completed',
-        result: finalReport,
-        progress_step: 'Concluído',
+        status: 'research_completed',
+        research_data: researchResults,
+        progress_step: 'Pesquisa concluída, a preparar relatório...',
         updated_at: new Date().toISOString()
       })
-      .eq('id', deepSearchSessionId)
-      .select();
+      .eq('id', deepSearchSessionId);
 
-    if (updateError) {
-      console.error('Error updating session:', updateError);
-      throw new Error(`Failed to save report: ${updateError.message}`);
+    if (saveError) {
+      console.error('Error saving research data:', saveError);
+      throw new Error(`Failed to save research data: ${saveError.message}`);
     }
 
-    console.log('✓ Session updated successfully');
-    console.log('✓ Deep research completed successfully');
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    console.log(`✓ Phase 1 completed successfully in ${elapsed}s`);
+    console.log(`✓ Saved ${researchResults.length} research results`);
+    console.log('✓ Ready for Phase 2 (report generation)');
 
   } catch (error) {
-    console.error('✗ Error in background task:', error);
+    console.error('✗ Error in Phase 1:', error);
     
     // Clear time monitor
     if (timeMonitor) clearInterval(timeMonitor);
     
-    // Save partial results even if report generation fails
-    const partialReport = researchResults.length > 0 
-      ? `# Pesquisa Incompleta\n\n⚠️ A geração do relatório final falhou, mas conseguimos coletar ${researchResults.length} fontes:\n\n` +
-        researchResults.map((r, i) => 
-          `## Tópico ${i + 1}: ${r.question}\n${r.sources.map(s => `- [${s.url}](${s.url})\n  ${s.snippet.substring(0, 200)}...`).join('\n\n')}`
-        ).join('\n\n')
-      : null;
-    
-    // Update session with error or partial results
-    try {
-      await supabaseAdmin
-        .from('deep_search_sessions')
-        .update({
-          status: partialReport ? 'completed' : 'error',
-          result: partialReport,
-          progress_step: partialReport 
-            ? 'Pesquisa concluída parcialmente' 
-            : 'Erro na pesquisa. Por favor tente novamente.',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', deepSearchSessionId);
-    } catch (updateError) {
-      console.error('Failed to update error status:', updateError);
+    // Save partial research data if available
+    if (researchResults.length > 0) {
+      try {
+        await supabaseAdmin
+          .from('deep_search_sessions')
+          .update({
+            status: 'error',
+            research_data: researchResults,
+            progress_step: `Erro na pesquisa após coletar ${researchResults.length} resultados`,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', deepSearchSessionId);
+      } catch (updateError) {
+        console.error('Failed to save partial research data:', updateError);
+      }
+    } else {
+      try {
+        await supabaseAdmin
+          .from('deep_search_sessions')
+          .update({
+            status: 'error',
+            progress_step: 'Erro na pesquisa. Por favor tente novamente.',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', deepSearchSessionId);
+      } catch (updateError) {
+        console.error('Failed to update error status:', updateError);
+      }
     }
   } finally {
     // Ensure time monitor is cleared

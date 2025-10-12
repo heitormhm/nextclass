@@ -151,6 +151,7 @@ export type Database = {
           id: string
           progress_step: string | null
           query: string
+          research_data: Json | null
           result: string | null
           status: string
           updated_at: string
@@ -161,6 +162,7 @@ export type Database = {
           id?: string
           progress_step?: string | null
           query: string
+          research_data?: Json | null
           result?: string | null
           status?: string
           updated_at?: string
@@ -171,6 +173,7 @@ export type Database = {
           id?: string
           progress_step?: string | null
           query?: string
+          research_data?: Json | null
           result?: string | null
           status?: string
           updated_at?: string

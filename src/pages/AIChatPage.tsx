@@ -58,7 +58,7 @@ const AIChatPage = () => {
   const deepSearchSteps = [
     { text: "A decompor a pergunta em tópicos..." },
     { text: "A executar buscas na web..." },
-    { text: "A sintetizar conteúdo..." },
+    { text: "Pesquisa concluída, a preparar relatório..." },
     { text: "A gerar relatório final..." },
     { text: "Concluído" },
   ];
@@ -569,7 +569,7 @@ const AIChatPage = () => {
       }
     };
     
-    const handleSessionUpdate = (sessionData: any) => {
+    const handleSessionUpdate = async (sessionData: any) => {
       const progressStep = sessionData.progress_step;
       const status = sessionData.status;
       const result = sessionData.result;
@@ -583,6 +583,46 @@ const AIChatPage = () => {
         setDeepSearchProgress(stepIndex);
       } else {
         console.warn('⚠️ Unknown progress step:', progressStep);
+      }
+      
+      // If research completed, trigger Phase 2 (report generation)
+      if (status === 'research_completed') {
+        console.log('✅ Phase 1 complete, triggering Phase 2 (report generation)');
+        
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            throw new Error('Not authenticated');
+          }
+
+          // Invoke Phase 2: Report generation
+          const { error: invokeError } = await supabase.functions.invoke('generate-deep-search-report', {
+            body: { 
+              deepSearchSessionId: sessionData.id 
+            },
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            }
+          });
+
+          if (invokeError) {
+            console.error('Error invoking report generation:', invokeError);
+            toast({
+              title: "Erro",
+              description: `Falha ao gerar relatório: ${invokeError.message}`,
+              variant: "destructive",
+            });
+          } else {
+            console.log('✓ Report generation triggered successfully');
+          }
+        } catch (error) {
+          console.error('Unexpected error triggering report generation:', error);
+          toast({
+            title: "Erro",
+            description: 'Erro ao iniciar geração de relatório',
+            variant: "destructive",
+          });
+        }
       }
       
       // If completed, add the report message

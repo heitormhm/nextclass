@@ -6,6 +6,9 @@ verify_jwt = true
 [functions.mia-deep-research-agent]
 verify_jwt = true
 
+[functions.generate-deep-search-report]
+verify_jwt = true
+
 [functions.plan-lesson-with-mia]
 verify_jwt = false
 
