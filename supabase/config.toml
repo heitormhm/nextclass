@@ -3,8 +3,8 @@ project_id = "kzupylvyamjaaobongvm"
 [functions.mia-student-chat]
 verify_jwt = true
 
-[functions.mia-deep-research-agent]
-verify_jwt = true
+[functions.job-runner]
+verify_jwt = false
 
 [functions.generate-deep-search-report]
 verify_jwt = true

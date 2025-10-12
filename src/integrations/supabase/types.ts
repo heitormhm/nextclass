@@ -145,42 +145,6 @@ export type Database = {
         }
         Relationships: []
       }
-      deep_search_sessions: {
-        Row: {
-          created_at: string
-          id: string
-          progress_step: string | null
-          query: string
-          research_data: Json | null
-          result: string | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          progress_step?: string | null
-          query: string
-          research_data?: Json | null
-          result?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          progress_step?: string | null
-          query?: string
-          research_data?: Json | null
-          result?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       flashcard_reviews: {
         Row: {
           correct_count: number
@@ -221,6 +185,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      jobs: {
+        Row: {
+          created_at: string
+          error_log: string | null
+          id: string
+          input_payload: Json
+          intermediate_data: Json | null
+          job_type: string
+          result: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_log?: string | null
+          id?: string
+          input_payload: Json
+          intermediate_data?: Json | null
+          job_type: string
+          result?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_log?: string | null
+          id?: string
+          input_payload?: Json
+          intermediate_data?: Json | null
+          job_type?: string
+          result?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       lectures: {
         Row: {

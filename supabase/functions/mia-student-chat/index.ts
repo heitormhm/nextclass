@@ -13,8 +13,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, fileData, fileType, fileName, isDeepSearch, deepSearchSessionId, conversationId } = await req.json();
-    console.log('Received request:', { message, fileType, fileName, isDeepSearch, deepSearchSessionId, conversationId });
+    const { message, fileData, fileType, fileName, isDeepSearch, conversationId } = await req.json();
+    console.log('Received request:', { message, fileType, fileName, isDeepSearch, conversationId });
 
     // Get authenticated user
     const authHeader = req.headers.get('Authorization');
@@ -43,23 +43,45 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Helper function to update deep search progress
-    const updateProgress = async (progressStep: string) => {
-      if (!isDeepSearch || !deepSearchSessionId) return;
+    // Handle Deep Search - create job and return immediately
+    if (isDeepSearch) {
+      console.log('🔍 Deep search requested, creating job...');
       
-      try {
-        await supabaseAdmin
-          .from('deep_search_sessions')
-          .update({ progress_step: progressStep })
-          .eq('id', deepSearchSessionId);
-        console.log('Updated progress:', progressStep);
-      } catch (error) {
-        console.error('Error updating progress:', error);
+      const { data: newJob, error: jobError } = await supabaseAdmin
+        .from('jobs')
+        .insert({
+          user_id: user.id,
+          job_type: 'DEEP_SEARCH',
+          status: 'PENDING',
+          input_payload: { query: message }
+        })
+        .select()
+        .single();
+      
+      if (jobError) {
+        throw new Error(`Failed to create job: ${jobError.message}`);
       }
-    };
-
-    // Update initial progress
-    await updateProgress("Analisando a sua pergunta...");
+      
+      console.log(`✅ Job created: ${newJob.id}`);
+      
+      // Invoke job-runner (fire and forget)
+      supabaseAdmin.functions.invoke('job-runner', {
+        body: { jobId: newJob.id }
+      }).then(() => {
+        console.log(`🚀 Job runner invoked for ${newJob.id}`);
+      }).catch(err => {
+        console.error('Error invoking job-runner:', err);
+      });
+      
+      return new Response(
+        JSON.stringify({
+          response: 'Sua pesquisa profunda foi iniciada! Acompanhe o progresso na interface.',
+          jobId: newJob.id,
+          success: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Fetch last 5 quiz attempts
     const { data: quizAttempts, error: quizError } = await supabaseAdmin
@@ -105,8 +127,6 @@ serve(async (req) => {
       performanceContext += '- Se perceber padrões de dificuldade, sugira revisão focada nesses tópicos.\n';
     }
 
-    await updateProgress("Pesquisando fontes académicas...");
-
     // Build the content array for Gemini
     const contentParts: any[] = [
       {
@@ -140,43 +160,9 @@ serve(async (req) => {
       }
     }
 
-    await updateProgress("Verificando referências...");
-
-    // Master prompt - different for deep search
+    // Master prompt for normal chat (deep search handled above)
     let systemPrompt = '';
-    
-    if (isDeepSearch) {
-      systemPrompt = `Você é 'Mia', uma assistente de IA para pesquisa académica em engenharia, potencializada pelo Gemini. A sua função principal é atuar como uma investigadora digital. Você não deve responder com base apenas no seu conhecimento pré-treinado, mas sim com base em informações encontradas em tempo real através de pesquisa na web.
-
-**PERSONA:**
-- Você é uma investigadora digital rigorosa e meticulosa
-- Você fala em português do Brasil de forma técnica mas clara e didática
-- Você prioriza fontes de alta credibilidade: artigos científicos, publicações de universidades, livros técnicos e documentação oficial de engenharia
-- Você se refere a normas técnicas brasileiras (ABNT) e internacionais quando relevante
-
-**PROCESSO OBRIGATÓRIO DE PESQUISA:**
-1. **Pesquise exaustivamente:** Ao receber uma pergunta, você deve pesquisar o tópico na web para encontrar fontes atualizadas e confiáveis.
-2. **Analise os resultados:** Priorize fontes académicas de alta credibilidade (universidades, journals científicos, livros técnicos, documentação oficial).
-3. **Sintetize a informação:** Construa uma resposta completa, didática e bem estruturada com base em múltiplas fontes.
-4. **Citação Obrigatória:** Para cada afirmação factual, dado ou parágrafo informativo na sua resposta, você DEVE citar a fonte de onde a informação foi extraída. Use o formato: "Segundo [Nome da Fonte], ..." ou adicione "[Fonte: Nome/Link]" ao final da frase.
-
-**RESTRIÇÃO CRÍTICA - ANTI-ALUCINAÇÃO:**
-⚠️ **NÃO FORNEÇA NENHUMA INFORMAÇÃO QUE NÃO POSSA SER DIRETAMENTE SUSTENTADA POR UMA FONTE ENCONTRADA NA SUA PESQUISA ATUAL.**
-
-- Se a sua pesquisa não encontrar informação sobre um ponto específico, declare explicitamente: "Não foram encontradas fontes confiáveis sobre este aspecto específico."
-- **É absolutamente proibido inventar ou alucinar referências.** A sua credibilidade depende da veracidade das suas fontes.
-- Cada citação deve ser rastreável e verificável pelo aluno.
-
-**FORMATO DA RESPOSTA:**
-1. **Introdução:** Contexto breve do tópico (com citação da fonte principal)
-2. **Desenvolvimento:** Explicação detalhada e técnica com citações inline após cada afirmação factual
-3. **Aplicações Práticas:** Exemplos do contexto brasileiro (com fontes)
-4. **Conclusão:** Síntese e próximos passos
-5. **Referências Bibliográficas:** Liste todas as fontes consultadas e citadas. Use o formato ABNT quando possível. **Apenas fontes que você efetivamente encontrou na sua pesquisa.**
-
-${performanceContext}`;
-    } else {
-      systemPrompt = `Você é 'Mia', uma assistente de IA especialista em engenharia para estudantes universitários brasileiros. A sua função é ser uma tutora pessoal, proativa e personalizada.
+    systemPrompt = `Você é 'Mia', uma assistente de IA especialista em engenharia para estudantes universitários brasileiros. A sua função é ser uma tutora pessoal, proativa e personalizada.
 
 **PERSONA:**
 - Você é amigável, paciente e encorajadora
@@ -204,23 +190,18 @@ ${performanceContext}`;
 - Se não tiver certeza sobre algo, seja honesto e sugira recursos adicionais
 
 ${performanceContext}`;
-    }
-
-    await updateProgress("Sintetizando informação...");
-
+    
     // Call Lovable AI Gateway with Gemini
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    await updateProgress("Preparando resposta detalhada...");
-
     console.log('Calling Lovable AI Gateway...');
     
-    // Build the request body
+    // Build the request body for normal chat
     const requestBody: any = {
-      model: isDeepSearch ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'system',
@@ -232,22 +213,8 @@ ${performanceContext}`;
         }
       ],
       temperature: 0.7,
-      max_tokens: isDeepSearch ? 4000 : 2000,
+      max_tokens: 2000,
     };
-
-    // Enable Google Search grounding for deep searches
-    if (isDeepSearch) {
-      requestBody.tools = [
-        {
-          googleSearchRetrieval: {
-            dynamicRetrievalConfig: {
-              mode: "MODE_DYNAMIC",
-              dynamicThreshold: 0.7
-            }
-          }
-        }
-      ];
-    }
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -408,22 +375,6 @@ Resposta: ${assistantMessage.substring(0, 300)}...`;
       }
     }
 
-    // Update deep search session as completed
-    if (isDeepSearch && deepSearchSessionId) {
-      try {
-        await supabaseAdmin
-          .from('deep_search_sessions')
-          .update({ 
-            status: 'completed',
-            result: assistantMessage,
-            progress_step: 'Concluído'
-          })
-          .eq('id', deepSearchSessionId);
-        console.log('Deep search session marked as completed');
-      } catch (error) {
-        console.error('Error updating session completion:', error);
-      }
-    }
 
     return new Response(
       JSON.stringify({ 

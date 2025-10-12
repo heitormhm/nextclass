@@ -48,16 +48,13 @@ const AIChatPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isDeepSearch, setIsDeepSearch] = useState(false);
-  const [deepSearchSessionId, setDeepSearchSessionId] = useState<string | null>(null);
+  const [deepSearchJobId, setDeepSearchJobId] = useState<string | null>(null);
   const [deepSearchProgress, setDeepSearchProgress] = useState(0);
   const [isListening, setIsListening] = useState(false);
   const [showMobileHistory, setShowMobileHistory] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
-  const [phase2InvocationState, setPhase2InvocationState] = useState<{
-    [sessionId: string]: 'idle' | 'scheduled' | 'invoked' | 'completed'
-  }>({});
 
   const deepSearchSteps = [
     { text: "A decompor a pergunta em tópicos..." },
@@ -93,128 +90,74 @@ const AIChatPage = () => {
         throw new Error('Não autenticado');
       }
 
-      // Create deep search session if enabled
-      if (isDeepSearch) {
-        console.log('Creating deep search session for user:', session.user.id);
-        const { data: searchSession, error: searchError } = await supabase
-          .from('deep_search_sessions')
-          .insert({
-            user_id: session.user.id,
-            query: currentMessage,
-            progress_step: deepSearchSteps[0].text,
-            status: 'processing'
-          })
-          .select()
-          .single();
+      // Call mia-student-chat for both normal and deep search
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('mia-student-chat', {
+        body: {
+          message: currentMessage,
+          fileData: currentFile?.data,
+          fileType: currentFile?.type,
+          fileName: currentFile?.name,
+          isDeepSearch,
+          conversationId: activeConversationId,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
-        if (searchError) {
-          console.error('Error creating deep search session:', searchError);
-          throw new Error(`Falha ao criar sessão de pesquisa: ${searchError.message}`);
-        }
-        
-        if (!searchSession) {
-          console.error('No session data returned');
-          throw new Error('Falha ao criar sessão de pesquisa: Nenhuma sessão retornada');
-        }
+      if (functionError) {
+        console.error('Function invocation error:', functionError);
+        throw new Error(functionError.message || 'Erro ao processar mensagem');
+      }
 
-        console.log('Deep search session created:', searchSession.id);
-        sessionId = searchSession.id;
-        setDeepSearchSessionId(sessionId);
-        setDeepSearchProgress(0);
+      console.log('Function response:', functionData);
+
+      // Handle deep search response
+      if (isDeepSearch && functionData.jobId) {
+        setDeepSearchJobId(functionData.jobId);
         setIsDeepSearchLoading(true);
-
-        // Call deep research agent (fire-and-forget - result will come via subscription)
-        console.log('Invoking mia-deep-research-agent with session:', sessionId);
-        supabase.functions.invoke('mia-deep-research-agent', {
-          body: { 
-            query: currentMessage,
-            deepSearchSessionId: sessionId 
-          }
-        }).then(({ error: invokeError }) => {
-          if (invokeError) {
-            console.error('Error invoking deep research:', invokeError);
-            console.error('Error details:', JSON.stringify(invokeError, null, 2));
-            toast({
-              title: "Erro na Invocação",
-              description: `Falha ao iniciar pesquisa: ${invokeError.message || 'Erro desconhecido'}`,
-              variant: "destructive",
-            });
-            setIsDeepSearchLoading(false);
-            setDeepSearchSessionId(null);
-            setDeepSearchProgress(0);
-          } else {
-            console.log('Deep research agent invoked successfully');
-          }
-        }).catch((err) => {
-          console.error('Unexpected error invoking deep research:', err);
-          toast({
-            title: "Erro Inesperado",
-            description: `Erro ao invocar pesquisa: ${err.message || 'Erro desconhecido'}`,
-            variant: "destructive",
-          });
-          setIsDeepSearchLoading(false);
-          setDeepSearchSessionId(null);
-          setDeepSearchProgress(0);
-        });
-
-        // Don't wait for response - it will come via realtime subscription
-      } else {
-        // Standard chat
-        const response = await supabase.functions.invoke('mia-student-chat', {
-          body: {
-            message: currentMessage,
-            fileData: currentFile?.data,
-            fileType: currentFile?.type,
-            fileName: currentFile?.name,
-            isDeepSearch: false,
-            conversationId: activeConversationId,
-          },
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          }
-        });
-
-        if (response.error) {
-          throw response.error;
-        }
-
-        const aiResponse: Message = {
-          id: `${Date.now() + 1}`,
-          content: response.data.response || "Desculpe, não consegui processar sua solicitação.",
+        setDeepSearchProgress(0);
+        
+        const assistantMessage: Message = {
+          id: `${activeConversationId}-${Date.now()}`,
+          content: functionData.response,
           isUser: false,
           timestamp: new Date(),
         };
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        // Normal chat response
+        const assistantMessage: Message = {
+          id: `${activeConversationId}-${Date.now()}`,
+          content: functionData.response,
+          isUser: false,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
 
-        setMessages(prev => [...prev, aiResponse]);
+        // Update conversation ID if this was the first message
+        if (functionData.conversationId && !activeConversationId) {
+          setActiveConversationId(functionData.conversationId);
+          loadConversations();
+        }
 
-        // Update active conversation ID if this was a new conversation
-        if (response.data.conversationId) {
-          setActiveConversationId(response.data.conversationId);
-          // Refresh conversations list to show new title
+        if (functionData.conversationTitle) {
+          console.log('Received conversation title:', functionData.conversationTitle);
           loadConversations();
         }
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
       toast({
-        title: "Erro ao Enviar",
+        title: "Erro",
         description: error instanceof Error ? error.message : "Falha ao enviar mensagem",
         variant: "destructive",
       });
-      
-      // Remove user message on error
-      setMessages(prev => prev.slice(0, -1));
-      
-      // Reset deep search state on error
-      if (isDeepSearch) {
-        setDeepSearchSessionId(null);
-        setDeepSearchProgress(0);
-        setIsDeepSearchLoading(false);
-      }
+      setDeepSearchJobId(null);
+      setDeepSearchProgress(0);
+      setIsDeepSearchLoading(false);
     } finally {
       setIsLoading(false);
-      // Don't reset deepSearchSessionId here - let the subscription handle it
     }
   };
 
@@ -538,212 +481,91 @@ const AIChatPage = () => {
     loadConversations();
   }, []);
 
-  // Subscribe to deep search progress updates
+  // Subscribe to job updates for deep search
   useEffect(() => {
-    if (!deepSearchSessionId) return;
+    if (!deepSearchJobId) return;
 
-    console.log('🔔 Setting up realtime subscription for session:', deepSearchSessionId);
+    console.log('📡 Subscribing to job updates:', deepSearchJobId);
     
-    let pollInterval: NodeJS.Timeout;
-    
-    const pollSession = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('deep_search_sessions')
-          .select('*')
-          .eq('id', deepSearchSessionId)
-          .single();
-        
-        if (error) {
-          console.error('❌ Polling error:', error);
-          return;
-        }
-        
-        if (data) {
-          console.log('📊 Polling update:', {
-            status: data.status,
-            step: data.progress_step,
-            hasResult: !!data.result
-          });
-          
-          handleSessionUpdate(data);
-        }
-      } catch (err) {
-        console.error('❌ Unexpected polling error:', err);
-      }
-    };
-    
-    const handleSessionUpdate = async (sessionData: any) => {
-      const progressStep = sessionData.progress_step;
-      const status = sessionData.status;
-      const result = sessionData.result;
-      const sessionId = sessionData.id;
-      
-      console.log('🔄 Deep search update:', { progressStep, status, hasResult: !!result, sessionId });
-      
-      // Update progress based on step
-      const stepIndex = deepSearchSteps.findIndex(step => step.text === progressStep);
-      if (stepIndex !== -1) {
-        console.log(`📈 Progress: ${stepIndex + 1}/${deepSearchSteps.length} - ${progressStep}`);
-        setDeepSearchProgress(stepIndex);
-      } else {
-        console.warn('⚠️ Unknown progress step:', progressStep);
-      }
-      
-      // Phase 2 Trigger Logic with State Machine
-      if (status === 'research_completed') {
-        const currentState = phase2InvocationState[sessionId] || 'idle';
-        
-        console.log(`🔍 Phase 2 check - Status: research_completed, State: ${currentState}`);
-        
-        // Only proceed if in idle state
-        if (currentState !== 'idle') {
-          console.log(`⏭️ Skipping Phase 2 trigger - already in state: ${currentState}`);
-          return;
-        }
-        
-        // Mark as scheduled
-        setPhase2InvocationState(prev => ({ ...prev, [sessionId]: 'scheduled' }));
-        
-        // Clear any existing timeout
-        if (phase2TriggerTimeoutRef.current) {
-          clearTimeout(phase2TriggerTimeoutRef.current);
-        }
-        
-        // Debounce: wait 3 seconds before triggering (increased from 2)
-        phase2TriggerTimeoutRef.current = setTimeout(async () => {
-          // Triple-check state before invocation
-          setPhase2InvocationState(prev => {
-            const finalState = prev[sessionId];
-            if (finalState !== 'scheduled') {
-              console.log(`⏭️ Phase 2 cancelled - state changed to: ${finalState}`);
-              return prev;
-            }
-            
-            console.log('🚀 Invoking Phase 2 (report generation)');
-            
-            // Start the invocation
-            (async () => {
-              try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) {
-                  throw new Error('Not authenticated');
-                }
-
-                const { error: invokeError } = await supabase.functions.invoke('generate-deep-search-report', {
-                  body: { deepSearchSessionId: sessionId },
-                  headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                  }
-                });
-
-                if (invokeError) {
-                  console.error('Error invoking report generation:', invokeError);
-                  setPhase2InvocationState(prev => ({ ...prev, [sessionId]: 'idle' })); // Reset on error
-                  toast({
-                    title: "Erro",
-                    description: `Falha ao gerar relatório: ${invokeError.message}`,
-                    variant: "destructive",
-                  });
-                } else {
-                  console.log('✓ Report generation invoked successfully');
-                  // Keep state as 'invoked' - will be cleared when completed
-                }
-              } catch (error) {
-                console.error('Unexpected error triggering report generation:', error);
-                setPhase2InvocationState(prev => ({ ...prev, [sessionId]: 'idle' })); // Reset on error
-              }
-            })();
-            
-            return { ...prev, [sessionId]: 'invoked' };
-          });
-        }, 3000); // 3 second debounce
-      }
-      
-      // Mark as completed when report arrives
-      if (status === 'completed' && result) {
-        console.log('✅ Deep search completed with result, length:', result.length);
-        
-        setPhase2InvocationState(prev => ({ ...prev, [sessionId]: 'completed' }));
-        
-        const reportMessage: Message = {
-          id: `${activeConversationId || 'new'}-${Date.now()}`,
-          content: result,
-          isUser: false,
-          timestamp: new Date(),
-          isReport: true,
-          reportTitle: sessionData.query
-        };
-        
-        setMessages(prev => {
-          console.log('💬 Adding report message to chat');
-          return [...prev, reportMessage];
-        });
-        
-        toast({
-          title: "Pesquisa Concluída",
-          description: "O relatório foi gerado com sucesso!",
-        });
-        
-        // Delay closing the loader to show the final step
-        setTimeout(() => {
-          console.log('🏁 Closing deep search loader');
-          setDeepSearchSessionId(null);
-          setDeepSearchProgress(0);
-          setIsDeepSearchLoading(false);
-        }, 1500);
-      } else if (status === 'error') {
-        console.log('❌ Deep search failed:', progressStep);
-        setPhase2InvocationState(prev => ({ ...prev, [sessionId]: 'idle' })); // Reset on error
-        toast({
-          title: "Erro na Pesquisa",
-          description: progressStep || 'Erro na pesquisa aprofundada',
-          variant: "destructive",
-        });
-        setDeepSearchSessionId(null);
-        setDeepSearchProgress(0);
-        setIsDeepSearchLoading(false);
-      }
-    };
-
-    // Set up realtime subscription
-    const channel = supabase
-      .channel(`deep-search-${deepSearchSessionId}`)
+    const jobChannel = supabase
+      .channel(`job:${deepSearchJobId}`)
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
-          table: 'deep_search_sessions',
-          filter: `id=eq.${deepSearchSessionId}`
+          table: 'jobs',
+          filter: `id=eq.${deepSearchJobId}`
         },
-        (payload: any) => {
-          console.log('🔔 Realtime event received:', payload);
-          handleSessionUpdate(payload.new);
+        (payload) => {
+          console.log('📬 Job update received:', payload);
+          
+          const job = payload.new as any;
+          
+          // Update progress based on status
+          switch (job.status) {
+            case 'PENDING':
+              setDeepSearchProgress(0);
+              break;
+            case 'DECOMPOSING':
+              setDeepSearchProgress(1);
+              break;
+            case 'RESEARCHING':
+              setDeepSearchProgress(2);
+              break;
+            case 'SYNTHESIZING':
+              setDeepSearchProgress(3);
+              break;
+            case 'COMPLETED':
+              setDeepSearchProgress(4);
+              
+              // Add report to messages
+              const reportMessage: Message = {
+                id: `${activeConversationId}-${Date.now()}`,
+                content: job.result,
+                isUser: false,
+                timestamp: new Date(),
+                isReport: true,
+                reportTitle: job.input_payload.query
+              };
+              
+              setMessages(prev => [...prev, reportMessage]);
+              
+              toast({
+                title: "Pesquisa Concluída",
+                description: "O relatório foi gerado com sucesso!",
+              });
+              
+              // Close loader
+              setTimeout(() => {
+                setDeepSearchJobId(null);
+                setDeepSearchProgress(0);
+                setIsDeepSearchLoading(false);
+              }, 1500);
+              break;
+            case 'FAILED':
+              toast({
+                title: "Erro na Pesquisa",
+                description: job.error_log || 'Erro desconhecido',
+                variant: "destructive",
+              });
+              
+              setDeepSearchJobId(null);
+              setDeepSearchProgress(0);
+              setIsDeepSearchLoading(false);
+              break;
+          }
         }
       )
-      .subscribe((status, err) => {
-        console.log('📡 Subscription status:', status, 'Error:', err || 'none');
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Realtime subscription active, starting polling...');
-          pollInterval = setInterval(pollSession, 3000); // Increased to 3s
-        } else if (status === 'CLOSED') {
-          console.log('🔌 Subscription closed');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Channel error:', err);
-        }
+      .subscribe((status) => {
+        console.log('📡 Job subscription status:', status);
       });
-
-    // Initial poll
-    pollSession();
-
+    
     return () => {
-      console.log('🔌 Cleaning up subscription and polling');
-      if (pollInterval) clearInterval(pollInterval);
-      supabase.removeChannel(channel);
+      console.log('🔌 Unsubscribing from job updates');
+      supabase.removeChannel(jobChannel);
     };
-  }, [deepSearchSessionId, activeConversationId, toast]);
+  }, [deepSearchJobId, activeConversationId, toast]);
 
 
   // Scroll to bottom when messages change
