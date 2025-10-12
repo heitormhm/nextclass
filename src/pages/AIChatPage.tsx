@@ -42,6 +42,7 @@ const AIChatPage = () => {
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const reportGenerationStartedRef = useRef<Set<string>>(new Set());
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -586,8 +587,9 @@ const AIChatPage = () => {
       }
       
       // If research completed, trigger Phase 2 (report generation)
-      if (status === 'research_completed') {
+      if (status === 'research_completed' && !reportGenerationStartedRef.current.has(sessionData.id)) {
         console.log('✅ Phase 1 complete, triggering Phase 2 (report generation)');
+        reportGenerationStartedRef.current.add(sessionData.id);
         
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -607,6 +609,7 @@ const AIChatPage = () => {
 
           if (invokeError) {
             console.error('Error invoking report generation:', invokeError);
+            reportGenerationStartedRef.current.delete(sessionData.id);
             toast({
               title: "Erro",
               description: `Falha ao gerar relatório: ${invokeError.message}`,
@@ -617,6 +620,7 @@ const AIChatPage = () => {
           }
         } catch (error) {
           console.error('Unexpected error triggering report generation:', error);
+          reportGenerationStartedRef.current.delete(sessionData.id);
           toast({
             title: "Erro",
             description: 'Erro ao iniciar geração de relatório',
@@ -706,6 +710,13 @@ const AIChatPage = () => {
       supabase.removeChannel(channel);
     };
   }, [deepSearchSessionId, activeConversationId, toast]);
+
+  // Cleanup ref when session completes or errors
+  useEffect(() => {
+    if (deepSearchSessionId && (messages.find(m => m.isReport) || !isDeepSearchLoading)) {
+      reportGenerationStartedRef.current.delete(deepSearchSessionId);
+    }
+  }, [deepSearchSessionId, messages, isDeepSearchLoading]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
