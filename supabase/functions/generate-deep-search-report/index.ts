@@ -2,6 +2,11 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Declare EdgeRuntime for background tasks
+declare const EdgeRuntime: {
+  waitUntil(promise: Promise<unknown>): void;
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -306,9 +311,11 @@ serve(async (req) => {
 
     // Start background task (fire and forget)
     console.log('Starting background task for report generation...');
-    generateReport(deepSearchSessionId, user.id).catch((error) => {
-      console.error('Background task failed:', error);
-    });
+    EdgeRuntime.waitUntil(
+      generateReport(deepSearchSessionId, user.id).catch((error) => {
+        console.error('Background task failed:', error);
+      })
+    );
 
     // Return immediately - processing will continue in background
     return new Response(
