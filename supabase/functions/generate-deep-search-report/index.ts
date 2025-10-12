@@ -52,6 +52,28 @@ async function generateReport(
   };
 
   try {
+    // ====================================================================
+    // Idempotency Check: Prevent duplicate report generation
+    // ====================================================================
+    console.log('Checking if report already exists...');
+    const { data: existingSession } = await supabaseAdmin
+      .from('deep_search_sessions')
+      .select('result, status, updated_at')
+      .eq('id', deepSearchSessionId)
+      .single();
+
+    if (existingSession?.result || existingSession?.status === 'completed') {
+      console.log('✓ Report already generated, skipping...');
+      return;
+    }
+
+    if (existingSession?.status === 'processing') {
+      const timeSinceUpdate = Date.now() - new Date(existingSession.updated_at).getTime();
+      if (timeSinceUpdate < 60000) { // Less than 1 minute
+        console.log('✓ Report generation already in progress (recent update), skipping...');
+        return;
+      }
+    }
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     
     if (!OPENAI_API_KEY) {

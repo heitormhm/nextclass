@@ -43,6 +43,7 @@ const AIChatPage = () => {
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const reportGenerationStartedRef = useRef<Set<string>>(new Set());
+  const phase2TriggerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -586,47 +587,63 @@ const AIChatPage = () => {
         console.warn('⚠️ Unknown progress step:', progressStep);
       }
       
-      // If research completed, trigger Phase 2 (report generation)
+      // If research completed, trigger Phase 2 (report generation) with debounce
       if (status === 'research_completed' && !reportGenerationStartedRef.current.has(sessionData.id)) {
-        console.log('✅ Phase 1 complete, triggering Phase 2 (report generation)');
-        reportGenerationStartedRef.current.add(sessionData.id);
+        console.log('✅ Phase 1 complete, scheduling Phase 2...');
         
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            throw new Error('Not authenticated');
+        // Clear any existing timeout
+        if (phase2TriggerTimeoutRef.current) {
+          clearTimeout(phase2TriggerTimeoutRef.current);
+        }
+        
+        // Debounce: wait 2 seconds before triggering
+        phase2TriggerTimeoutRef.current = setTimeout(async () => {
+          // Double-check after debounce
+          if (reportGenerationStartedRef.current.has(sessionData.id)) {
+            console.log('Phase 2 already started, skipping...');
+            return;
           }
-
-          // Invoke Phase 2: Report generation
-          const { error: invokeError } = await supabase.functions.invoke('generate-deep-search-report', {
-            body: { 
-              deepSearchSessionId: sessionData.id 
-            },
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
+          
+          reportGenerationStartedRef.current.add(sessionData.id);
+          console.log('Triggering Phase 2 (report generation)');
+          
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+              throw new Error('Not authenticated');
             }
-          });
 
-          if (invokeError) {
-            console.error('Error invoking report generation:', invokeError);
+            // Invoke Phase 2: Report generation
+            const { error: invokeError } = await supabase.functions.invoke('generate-deep-search-report', {
+              body: { 
+                deepSearchSessionId: sessionData.id 
+              },
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              }
+            });
+
+            if (invokeError) {
+              console.error('Error invoking report generation:', invokeError);
+              reportGenerationStartedRef.current.delete(sessionData.id);
+              toast({
+                title: "Erro",
+                description: `Falha ao gerar relatório: ${invokeError.message}`,
+                variant: "destructive",
+              });
+            } else {
+              console.log('✓ Report generation triggered successfully');
+            }
+          } catch (error) {
+            console.error('Unexpected error triggering report generation:', error);
             reportGenerationStartedRef.current.delete(sessionData.id);
             toast({
               title: "Erro",
-              description: `Falha ao gerar relatório: ${invokeError.message}`,
+              description: 'Erro ao iniciar geração de relatório',
               variant: "destructive",
             });
-          } else {
-            console.log('✓ Report generation triggered successfully');
           }
-        } catch (error) {
-          console.error('Unexpected error triggering report generation:', error);
-          reportGenerationStartedRef.current.delete(sessionData.id);
-          toast({
-            title: "Erro",
-            description: 'Erro ao iniciar geração de relatório',
-            variant: "destructive",
-          });
-        }
+        }, 2000); // 2 second debounce
       }
       
       // If completed, add the report message

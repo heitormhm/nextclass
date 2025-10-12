@@ -164,7 +164,7 @@ async function processDeepResearch(
           max_completion_tokens: 2000,
         }),
       }),
-      30000 // 30s timeout
+      90000 // 90s timeout - increased for GPT-5 response time
     );
 
     if (!decomposeResponse.ok) {
