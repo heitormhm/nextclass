@@ -99,51 +99,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     return titles;
   };
 
-  // Fase 6: Improved visual index
-  const sectionTitles = extractH2Titles(content);
-  if (sectionTitles.length > 0) {
-    yPosition += 6;
-    
-    // Background box for index
-    const indexHeight = (sectionTitles.length * 6) + 15;
-    doc.setFillColor(250, 248, 255); // Very light purple
-    doc.roundedRect(margin - 5, yPosition - 3, contentWidth + 10, indexHeight, 3, 3, 'F');
-    
-    // Subtle border
-    doc.setDrawColor(110, 89, 165);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(margin - 5, yPosition - 3, contentWidth + 10, indexHeight, 3, 3, 'S');
-    
-    // Title with icon
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(110, 89, 165);
-    doc.text('📑 Conteúdo', margin, yPosition + 3);
-    yPosition += 10;
-    
-    // Decorative line
-    doc.setDrawColor(236, 72, 153);
-    doc.setLineWidth(0.3);
-    doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 5;
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(70, 70, 70);
-    
-    // Icons by section type
-    const sectionIcons = ['📖', '🔬', '⚙️', '💡', '🚀', '🎯', '📚'];
-    
-    sectionTitles.forEach((title, index) => {
-      const icon = sectionIcons[index] || '•';
-      doc.text(`${icon} ${index + 1}. ${title}`, margin + 3, yPosition);
-      yPosition += 6;
-    });
-    
-    yPosition += 8;
-  } else {
-    yPosition += 8;
-  }
+  // Fase 6: Visual index will be added after preprocessing
 
   // Process content
   doc.setTextColor(50, 50, 50); // Dark gray for better readability
@@ -216,6 +172,63 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
 
   const { text: preprocessedContent, references } = preprocessCitationsAndMath(cleanContent(content));
   
+  // Correção 5: Validate content is not empty
+  if (!preprocessedContent || preprocessedContent.trim().length < 100) {
+    console.error('❌ Conteúdo vazio ou muito curto após preprocessamento:', preprocessedContent.length, 'caracteres');
+    console.error('Conteúdo original tinha:', content.length, 'caracteres');
+    return;
+  }
+  
+  console.log('✅ Conteúdo preprocessado:', preprocessedContent.length, 'caracteres');
+  
+  // Correção 1: Extract index AFTER preprocessing
+  const sectionTitles = extractH2Titles(preprocessedContent);
+  console.log('✅ Títulos extraídos:', sectionTitles.length);
+  
+  if (sectionTitles.length > 0) {
+    yPosition += 6;
+    
+    // Background box for index
+    const indexHeight = (sectionTitles.length * 6) + 15;
+    doc.setFillColor(250, 248, 255); // Very light purple
+    doc.roundedRect(margin - 5, yPosition - 3, contentWidth + 10, indexHeight, 3, 3, 'F');
+    
+    // Subtle border
+    doc.setDrawColor(110, 89, 165);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin - 5, yPosition - 3, contentWidth + 10, indexHeight, 3, 3, 'S');
+    
+    // Title with icon
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(110, 89, 165);
+    doc.text('📑 Conteúdo', margin, yPosition + 3);
+    yPosition += 10;
+    
+    // Decorative line
+    doc.setDrawColor(236, 72, 153);
+    doc.setLineWidth(0.3);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 5;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(70, 70, 70);
+    
+    // Icons by section type
+    const sectionIcons = ['📖', '🔬', '⚙️', '💡', '🚀', '🎯', '📚'];
+    
+    sectionTitles.forEach((title, index) => {
+      const icon = sectionIcons[index] || '•';
+      doc.text(`${icon} ${index + 1}. ${title}`, margin + 3, yPosition);
+      yPosition += 6;
+    });
+    
+    yPosition += 8;
+  } else {
+    yPosition += 8;
+  }
+  
   // Preprocess individual lines for additional math notation
   const preprocessMathNotation = (text: string): string => {
     return text
@@ -226,7 +239,17 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
 
   const lines = preprocessedContent.split('\n').map(line => preprocessMathNotation(line));
   
-  lines.forEach((line) => {
+  // Correção 2: Add debug logs
+  console.log('✅ Total de linhas para processar:', lines.length);
+  
+  // Correção 3: Track first H1 to avoid skipping all H1s
+  let firstH1Rendered = false;
+  
+  lines.forEach((line, lineIndex) => {
+    // Log progress every 50 lines
+    if (lineIndex % 50 === 0) {
+      console.log(`📝 Processando linha ${lineIndex}/${lines.length}`);
+    }
     // Check if we need a new page
     if (yPosition > pageHeight - footerHeight - 20) {
       addFooter(pageCount, 0);
@@ -340,10 +363,16 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
         const sectionNumber = match[1];
         const headerText = match[2];
         
-        // Skip if duplicate of main title - but continue processing other lines
-        const isDuplicateTitle = headerText.toLowerCase().trim() === title.toLowerCase().trim();
+        console.log('🔍 H1 detectado:', headerText);
         
-        if (!isDuplicateTitle) {
+        // Correção 3: Only skip the FIRST H1 if it's a duplicate of the title
+        const isDuplicateTitle = headerText.toLowerCase().trim() === title.toLowerCase().trim();
+        const shouldSkip = isDuplicateTitle && !firstH1Rendered;
+        
+        if (!shouldSkip) {
+          firstH1Rendered = true;
+          console.log('✅ Renderizando H1:', headerText);
+          
           yPosition += 14;
           
           // Large decorative number in pink
@@ -362,6 +391,8 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
             yPosition += 10;
           });
           yPosition += 4;
+        } else {
+          console.log('⏭️ Pulando H1 duplicado:', headerText);
         }
       }
       
@@ -369,8 +400,62 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
     }
+    // Correção 4: Check for important equations BEFORE buildLines
     // Handle regular text with bold support and citations
     else if (line.trim()) {
+      // First check if this is an important equation
+      const cleanText = trimmedLine.replace(/\[\d+\]/g, '').trim();
+      const hasEquals = cleanText.includes('=');
+      const hasVariables = /[ΔUHSGPVT][₀₁₂₃₄₅₆₇₈₉]?/.test(cleanText) || 
+                            /[A-Z]{1,2}[₀₁₂₃₄₅₆₇₈₉]/.test(cleanText);
+      const isShort = cleanText.split(/\s+/).length < 20;
+      const noVerbs = !/\b(é|são|está|estão|foi|foram|será|serão)\b/i.test(cleanText);
+      
+      const isImportantEquation = hasEquals && hasVariables && isShort && noVerbs;
+      
+      // Render important equations in highlighted box
+      if (isImportantEquation) {
+        console.log('🧮 Equação importante detectada:', cleanText.substring(0, 50));
+        
+        // Check for page break
+        if (yPosition > pageHeight - footerHeight - 30) {
+          addFooter(pageCount, 0);
+          doc.addPage();
+          pageCount++;
+          isFirstPage = false;
+          yPosition = margin + 5;
+        }
+        
+        yPosition += 6;
+        
+        // Mathematical icon
+        doc.setFontSize(16);
+        doc.setTextColor(110, 89, 165);
+        doc.text('≡', margin - 8, yPosition + 4);
+        
+        // Background box with gradient effect (simulated)
+        doc.setFillColor(248, 248, 252); // Very light blue
+        doc.roundedRect(margin - 3, yPosition - 4, contentWidth + 6, 18, 2, 2, 'F');
+        
+        // Stronger purple border
+        doc.setDrawColor(110, 89, 165);
+        doc.setLineWidth(0.8);
+        doc.roundedRect(margin - 3, yPosition - 4, contentWidth + 6, 18, 2, 2, 'S');
+        
+        // Render centered bold equation
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(40, 40, 40);
+        doc.text(cleanText, pageWidth / 2, yPosition + 5, { align: 'center' });
+        
+        yPosition += 22;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        doc.setTextColor(50, 50, 50);
+        
+        return; // Skip this line in further processing
+      }
+      
       // Parse line into segments with formatting information
       interface TextSegment {
         text: string;
@@ -415,66 +500,12 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
         let currentLine: TextSegment[] = [];
         let currentWidth = 0;
 
-        // Fase 5: Improved equation detection and rendering
+        // Fase 5: Improved equation detection (checking only, rendering moved outside)
         const lineText = segments.map(s => s.text).join('');
         const isMathFormula = /[=²³⁰¹⁴⁵⁶⁷⁸⁹ṁΔ]/.test(lineText) || 
                               lineText.includes('->') || 
                               lineText.includes('∑') ||
                               /\b[A-Z]_[a-z]+/.test(lineText);
-        
-        // Improved detection of important equations
-        const cleanText = lineText.replace(/\[\d+\]/g, '').trim();
-        const hasEquals = cleanText.includes('=');
-        const hasVariables = /[ΔUHSGPVT][₀₁₂₃₄₅₆₇₈₉]?/.test(cleanText) || 
-                              /[A-Z]{1,2}[₀₁₂₃₄₅₆₇₈₉]/.test(cleanText);
-        const isShort = cleanText.split(/\s+/).length < 20;
-        const noVerbs = !/\b(é|são|está|estão|foi|foram|será|serão)\b/i.test(cleanText);
-        
-        const isImportantEquation = hasEquals && hasVariables && isShort && noVerbs;
-        
-        // Render important equations in highlighted box
-        if (isImportantEquation) {
-          // Check for page break
-          if (yPosition > pageHeight - footerHeight - 30) {
-            addFooter(pageCount, 0);
-            doc.addPage();
-            pageCount++;
-            isFirstPage = false;
-            yPosition = margin + 5;
-          }
-          
-          yPosition += 6;
-          
-          // Mathematical icon
-          doc.setFontSize(16);
-          doc.setTextColor(110, 89, 165);
-          doc.text('≡', margin - 8, yPosition + 4);
-          
-          // Background box with gradient effect (simulated)
-          doc.setFillColor(248, 248, 252); // Very light blue
-          doc.roundedRect(margin - 3, yPosition - 4, contentWidth + 6, 18, 2, 2, 'F');
-          
-          // Stronger purple border
-          doc.setDrawColor(110, 89, 165);
-          doc.setLineWidth(0.8);
-          doc.roundedRect(margin - 3, yPosition - 4, contentWidth + 6, 18, 2, 2, 'S');
-          
-          // Clean citations from equation for rendering
-          const cleanEquation = lineText.replace(/\[\d+\]/g, '').trim();
-          
-          // Render centered bold equation
-          doc.setFontSize(14); // Increased from 13
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(40, 40, 40);
-          doc.text(cleanEquation, pageWidth / 2, yPosition + 5, { align: 'center' });
-          
-          yPosition += 22;
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(12);
-          doc.setTextColor(50, 50, 50);
-          
-          return []; // Don't process further
-        }
 
         segments.forEach((segment) => {
           // For math formulas, try to keep them together more aggressively
