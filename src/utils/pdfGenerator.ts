@@ -59,6 +59,16 @@ interface RenderStats {
   paragraphs: number;
   equations: number;
   pagesAdded: number;
+  lists: number;
+  boldText: number;
+  italicText: number;
+}
+
+interface SectionAnchor {
+  title: string;
+  level: number;
+  page: number;
+  yPosition: number;
 }
 
 // FASE 1: Análise de Conteúdo
@@ -78,7 +88,6 @@ const analyzeContent = (content: string): ContentAnalysis => {
     }
   };
 
-  // Validações críticas
   if (!content || content.trim().length === 0) {
     analysis.isValid = false;
     analysis.errors.push('Conteúdo vazio');
@@ -90,18 +99,15 @@ const analyzeContent = (content: string): ContentAnalysis => {
     analysis.errors.push('Conteúdo muito curto (menos de 100 caracteres)');
   }
 
-  // Contar elementos
   const lines = content.split('\n');
   lines.forEach(line => {
     const trimmed = line.trim();
     if (trimmed.match(/^#\s+[^#]/)) analysis.stats.h1Count++;
     if (trimmed.match(/^##\s+[^#]/)) analysis.stats.h2Count++;
     if (trimmed.match(/^###\s+/)) analysis.stats.h3Count++;
-    if (trimmed.includes('=') && trimmed.length < 100) analysis.stats.equationCount++;
     if (trimmed.length > 20 && !trimmed.match(/^#{1,3}\s+/)) analysis.stats.paragraphCount++;
   });
 
-  // Validações de estrutura
   if (analysis.stats.h1Count === 0 && analysis.stats.h2Count === 0) {
     analysis.warnings.push('Nenhum título encontrado no conteúdo');
   }
@@ -122,19 +128,16 @@ const validateGeneratedPDF = (doc: jsPDF, contentAnalysis: ContentAnalysis): PDF
     estimatedContentPages: Math.ceil(contentAnalysis.stats.totalCharacters / 2000)
   };
 
-  // Validação 1: Número mínimo de páginas
   if (validation.pageCount < 2) {
     validation.isValid = false;
     validation.errors.push(`PDF tem apenas ${validation.pageCount} página(s). Esperado: pelo menos 2 páginas`);
   }
 
-  // Validação 2: Verificar se o número de páginas faz sentido
   if (contentAnalysis.stats.totalCharacters > 3000 && validation.pageCount < 2) {
     validation.isValid = false;
     validation.errors.push(`Conteúdo muito grande (${contentAnalysis.stats.totalCharacters} caracteres) mas PDF tem apenas ${validation.pageCount} página(s)`);
   }
 
-  // Validação 3: Verificar se não está muito pequeno
   if (validation.pageCount < Math.floor(validation.estimatedContentPages * 0.5)) {
     validation.errors.push(`PDF pode estar incompleto. Esperado: ~${validation.estimatedContentPages} páginas, gerado: ${validation.pageCount} páginas`);
   }
@@ -158,7 +161,6 @@ const diagnosePDF = (
   console.log(`   Renderizado: H1=${renderStats.h1}, H2=${renderStats.h2}, H3=${renderStats.h3}, P=${renderStats.paragraphs}`);
   console.log(`   Esperado: H1=${contentAnalysis.stats.h1Count}, H2=${contentAnalysis.stats.h2Count}, H3=${contentAnalysis.stats.h3Count}, P=${contentAnalysis.stats.paragraphCount}`);
   
-  // Diagnostic 1: Page count mismatch
   if (pageCount === 1 && expectedPages > 2) {
     diagnostics.push({
       issue: `PDF tem apenas 1 página mas deveria ter ~${expectedPages} páginas`,
@@ -169,7 +171,6 @@ const diagnosePDF = (
     });
   }
   
-  // Diagnostic 2: No paragraphs rendered
   if (renderStats.paragraphs === 0 && contentAnalysis.stats.paragraphCount > 0) {
     diagnostics.push({
       issue: `${contentAnalysis.stats.paragraphCount} parágrafos detectados mas ${renderStats.paragraphs} renderizados`,
@@ -180,7 +181,6 @@ const diagnosePDF = (
     });
   }
   
-  // Diagnostic 3: Headers not rendered
   const totalHeadersExpected = contentAnalysis.stats.h1Count + contentAnalysis.stats.h2Count + contentAnalysis.stats.h3Count;
   const totalHeadersRendered = renderStats.h1 + renderStats.h2 + renderStats.h3;
   
@@ -194,7 +194,6 @@ const diagnosePDF = (
     });
   }
   
-  // Diagnostic 4: Pages not being added
   if (renderStats.pagesAdded === 0 && expectedPages > 1) {
     diagnostics.push({
       issue: 'Nenhuma página nova foi adicionada durante a renderização',
@@ -248,16 +247,51 @@ const attemptAutoFix = (diagnostics: DiagnosticResult[]): {
   };
 };
 
-// FASE 5: Geração do PDF Document
-const generatePDFDocument = (content: string, title: string): { doc: jsPDF; renderStats: RenderStats } => {
+// ============= FASE 5: FUNÇÕES AUXILIARES =============
+
+// FASE 1 (Melhorias): Detectar se é equação científica (mais preciso)
+const isEquation = (line: string): boolean => {
+  const hasEquals = line.includes('=');
+  const hasMathSymbols = /[\d\+\-\*\/\(\)\^\√π∆Δθωαβγ]/.test(line);
+  const notTooLong = line.length < 150;
+  const notSentence = !line.endsWith('.') && !line.includes(' é ') && !line.includes(' são ');
+  
+  return hasEquals && hasMathSymbols && notTooLong && notSentence;
+};
+
+// FASE 2 (Melhorias): Remover formatação markdown inline para cálculo
+const stripInlineFormatting = (text: string): string => {
+  return text.replace(/\*\*/g, '').replace(/\*/g, '');
+};
+
+// FASE 2 (Melhorias): Detectar negrito/itálico no texto
+const hasInlineFormatting = (text: string): { hasBold: boolean; hasItalic: boolean } => {
+  return {
+    hasBold: /\*\*[^*]+\*\*/.test(text),
+    hasItalic: /\*[^*]+\*/.test(text) && !/\*\*/.test(text)
+  };
+};
+
+// ============= GERAÇÃO DO PDF =============
+
+const generatePDFDocument = (content: string, title: string): { 
+  doc: jsPDF; 
+  renderStats: RenderStats;
+  sectionAnchors: SectionAnchor[];
+} => {
   const renderStats: RenderStats = {
     h1: 0,
     h2: 0,
     h3: 0,
     paragraphs: 0,
     equations: 0,
-    pagesAdded: 0
+    pagesAdded: 0,
+    lists: 0,
+    boldText: 0,
+    italicText: 0
   };
+  
+  const sectionAnchors: SectionAnchor[] = [];
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -275,9 +309,23 @@ const generatePDFDocument = (content: string, title: string): { doc: jsPDF; rend
   let yPosition = margin;
   let pageCount = 1;
   let isFirstPage = true;
+  let totalPages = 0; // será atualizado no final
 
-  // Helper function to add footer
-  const addFooter = (pageNum: number, totalPages: number) => {
+  // FASE 1 (Melhorias): Função de quebra de página com margem dinâmica
+  const checkPageBreak = (estimatedHeight: number = 20): boolean => {
+    if (yPosition + estimatedHeight > pageHeight - footerHeight - 5) {
+      addFooter(pageCount, totalPages);
+      doc.addPage();
+      pageCount++;
+      renderStats.pagesAdded++;
+      yPosition = margin + 5;
+      return true;
+    }
+    return false;
+  };
+
+  // FASE 4 (Melhorias): Rodapé com "Página X de Y"
+  const addFooter = (pageNum: number, total: number) => {
     const footerY = pageHeight - 8;
     
     doc.setFillColor(236, 72, 153);
@@ -288,7 +336,10 @@ const generatePDFDocument = (content: string, title: string): { doc: jsPDF; rend
     doc.setFont('helvetica', 'normal');
     
     doc.text('Gerado por NextClass AI', margin, footerY);
-    doc.text(`${pageNum}`, pageWidth / 2, footerY, { align: 'center' });
+    
+    // FASE 4: Exibir "Página X de Y"
+    const pageText = total > 0 ? `Página ${pageNum} de ${total}` : `${pageNum}`;
+    doc.text(pageText, pageWidth / 2, footerY, { align: 'center' });
     
     const currentDate = new Date().toLocaleDateString('pt-PT', { 
       year: 'numeric', 
@@ -296,6 +347,51 @@ const generatePDFDocument = (content: string, title: string): { doc: jsPDF; rend
       day: 'numeric' 
     });
     doc.text(currentDate, pageWidth - margin, footerY, { align: 'right' });
+  };
+
+  // FASE 2 (Melhorias): Processar formatação inline (**negrito**, *itálico*)
+  const renderTextWithFormatting = (text: string, x: number, y: number, fontSize: number = 11) => {
+    const formatting = hasInlineFormatting(text);
+    
+    if (!formatting.hasBold && !formatting.hasItalic) {
+      // Texto simples
+      doc.setFontSize(fontSize);
+      doc.setFont('helvetica', 'normal');
+      doc.text(text, x, y);
+      return;
+    }
+
+    // Processar formatação inline
+    const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/);
+    let currentX = x;
+    
+    doc.setFontSize(fontSize);
+    
+    parts.forEach(part => {
+      if (!part) return;
+      
+      if (part.startsWith('**') && part.endsWith('**')) {
+        // Negrito
+        const boldText = part.slice(2, -2);
+        doc.setFont('helvetica', 'bold');
+        doc.text(boldText, currentX, y);
+        currentX += doc.getTextWidth(boldText);
+        doc.setFont('helvetica', 'normal');
+        renderStats.boldText++;
+      } else if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
+        // Itálico
+        const italicText = part.slice(1, -1);
+        doc.setFont('helvetica', 'italic');
+        doc.text(italicText, currentX, y);
+        currentX += doc.getTextWidth(italicText);
+        doc.setFont('helvetica', 'normal');
+        renderStats.italicText++;
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.text(part, currentX, y);
+        currentX += doc.getTextWidth(part);
+      }
+    });
   };
 
   // Add header on first page
@@ -347,6 +443,8 @@ const generatePDFDocument = (content: string, title: string): { doc: jsPDF; rend
   
   console.log(`📝 Processando ${lines.length} linhas de conteúdo`);
 
+  // ============= PROCESSAMENTO DAS LINHAS =============
+  
   lines.forEach((line, index) => {
     if (index % 20 === 0) {
       console.log(`⏳ Processando linha ${index + 1}/${lines.length}`);
@@ -354,150 +452,259 @@ const generatePDFDocument = (content: string, title: string): { doc: jsPDF; rend
 
     const trimmedLine = line.trim();
     if (!trimmedLine) {
-      yPosition += 4;
+      yPosition += 3; // FASE 1: Espaçamento reduzido para linhas vazias
       return;
     }
 
-    // Check for page break
-    if (yPosition > pageHeight - footerHeight - 20) {
-      addFooter(pageCount, 0);
-      doc.addPage();
-      pageCount++;
-      renderStats.pagesAdded++;
-      isFirstPage = false;
-      yPosition = margin + 5;
-    }
-
-    // H1 detection
+    // FASE 1: H1 detection com espaçamento melhorado
     const h1Match = trimmedLine.match(/^#\s+([^#].*)$/);
     if (h1Match) {
       renderStats.h1++;
+      const h1Text = h1Match[1].trim();
+      
+      // FASE 1: Espaçamento superior
+      yPosition += 8;
+      checkPageBreak(30); // Margem de segurança para títulos longos
+      
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(74, 85, 104);
       
-      const h1Text = h1Match[1].trim();
       const wrappedH1 = doc.splitTextToSize(h1Text, contentWidth);
       
       wrappedH1.forEach((line: string) => {
-        if (yPosition > pageHeight - footerHeight - 20) {
-          addFooter(pageCount, 0);
-          doc.addPage();
-          pageCount++;
-          renderStats.pagesAdded++;
-          yPosition = margin + 5;
+        if (checkPageBreak(15)) {
+          // Recalcular após quebra
         }
         doc.text(line, margin, yPosition);
-        yPosition += 10;
+        yPosition += 12; // FASE 1: Altura da linha H1
+      });
+      
+      yPosition += 6; // FASE 1: Espaçamento inferior
+      
+      // FASE 4: Adicionar âncora para índice
+      sectionAnchors.push({
+        title: h1Text,
+        level: 1,
+        page: pageCount,
+        yPosition: yPosition
+      });
+      
+      return;
+    }
+
+    // FASE 1: H2 detection com espaçamento melhorado
+    const h2Match = trimmedLine.match(/^##\s+([^#].*)$/);
+    if (h2Match) {
+      renderStats.h2++;
+      const h2Text = h2Match[1].trim();
+      
+      // FASE 1: Espaçamento superior
+      yPosition += 6;
+      checkPageBreak(20);
+      
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(74, 85, 104);
+      
+      const wrappedH2 = doc.splitTextToSize(h2Text, contentWidth);
+      
+      wrappedH2.forEach((line: string) => {
+        if (checkPageBreak(12)) {
+          // Recalcular após quebra
+        }
+        doc.text(line, margin, yPosition);
+        yPosition += 9; // FASE 1: Altura da linha H2
+      });
+      
+      yPosition += 4; // FASE 1: Espaçamento inferior
+      
+      // FASE 4: Adicionar âncora
+      sectionAnchors.push({
+        title: h2Text,
+        level: 2,
+        page: pageCount,
+        yPosition: yPosition
+      });
+      
+      return;
+    }
+
+    // FASE 1: H3 detection com espaçamento melhorado
+    const h3Match = trimmedLine.match(/^###\s+(.*)$/);
+    if (h3Match) {
+      renderStats.h3++;
+      const h3Text = h3Match[1].trim();
+      
+      // FASE 1: Espaçamento superior
+      yPosition += 4;
+      checkPageBreak(15);
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(74, 85, 104);
+      
+      const wrappedH3 = doc.splitTextToSize(h3Text, contentWidth);
+      
+      wrappedH3.forEach((line: string) => {
+        if (checkPageBreak(10)) {
+          // Recalcular após quebra
+        }
+        doc.text(line, margin, yPosition);
+        yPosition += 7; // FASE 1: Altura da linha H3
+      });
+      
+      yPosition += 3; // FASE 1: Espaçamento inferior
+      
+      // FASE 4: Adicionar âncora
+      sectionAnchors.push({
+        title: h3Text,
+        level: 3,
+        page: pageCount,
+        yPosition: yPosition
+      });
+      
+      return;
+    }
+
+    // FASE 2: Lista com bullet detection (-, *, •)
+    const bulletMatch = trimmedLine.match(/^[-*•]\s+(.+)$/);
+    if (bulletMatch) {
+      renderStats.lists++;
+      checkPageBreak(8);
+      
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      // Bullet point
+      doc.text('•', margin + 3, yPosition);
+      
+      // Texto da lista com formatação inline
+      const listText = bulletMatch[1];
+      const strippedText = stripInlineFormatting(listText);
+      const wrappedList = doc.splitTextToSize(strippedText, contentWidth - 10);
+      
+      wrappedList.forEach((line: string, idx: number) => {
+        if (checkPageBreak(8)) {
+          // Recalcular
+        }
+        doc.text(line, margin + 10, yPosition);
+        if (idx < wrappedList.length - 1) {
+          yPosition += 5;
+        }
+      });
+      
+      yPosition += 5; // Espaçamento após item da lista
+      return;
+    }
+
+    // FASE 2: Lista numerada detection (1., 2., etc)
+    const numberedMatch = trimmedLine.match(/^(\d+)\.\s+(.+)$/);
+    if (numberedMatch) {
+      renderStats.lists++;
+      checkPageBreak(8);
+      
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      // Número
+      const number = numberedMatch[1];
+      doc.text(number + '.', margin + 3, yPosition);
+      
+      // Texto da lista
+      const listText = numberedMatch[2];
+      const strippedText = stripInlineFormatting(listText);
+      const wrappedList = doc.splitTextToSize(strippedText, contentWidth - 12);
+      
+      wrappedList.forEach((line: string, idx: number) => {
+        if (checkPageBreak(8)) {
+          // Recalcular
+        }
+        doc.text(line, margin + 12, yPosition);
+        if (idx < wrappedList.length - 1) {
+          yPosition += 5;
+        }
+      });
+      
+      yPosition += 5;
+      return;
+    }
+
+    // FASE 3: Equation detection melhorado
+    if (isEquation(trimmedLine)) {
+      renderStats.equations++;
+      checkPageBreak(15);
+      
+      doc.setFontSize(11);
+      doc.setFont('courier', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      // FASE 3: Adicionar caixa de destaque para equações
+      const equationText = trimmedLine;
+      const textWidth = doc.getTextWidth(equationText);
+      const boxPadding = 5;
+      const boxWidth = Math.min(textWidth + boxPadding * 2, contentWidth);
+      const boxHeight = 8;
+      
+      // Fundo cinza claro
+      doc.setFillColor(245, 245, 245);
+      doc.rect(margin + 5, yPosition - 5, boxWidth, boxHeight, 'F');
+      
+      // Borda
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.rect(margin + 5, yPosition - 5, boxWidth, boxHeight, 'S');
+      
+      const wrappedEquation = doc.splitTextToSize(equationText, contentWidth - 20);
+      wrappedEquation.forEach((line: string) => {
+        if (checkPageBreak(10)) {
+          // Recalcular
+        }
+        // FASE 3: Centralizar equação
+        const lineWidth = doc.getTextWidth(line);
+        const centerX = margin + (contentWidth / 2) - (lineWidth / 2);
+        doc.text(line, centerX, yPosition);
+        yPosition += 6;
       });
       
       yPosition += 3;
       return;
     }
 
-    // H2 detection
-    const h2Match = trimmedLine.match(/^##\s+([^#].*)$/);
-    if (h2Match) {
-      renderStats.h2++;
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(74, 85, 104);
-      
-      const h2Text = h2Match[1].trim();
-      const wrappedH2 = doc.splitTextToSize(h2Text, contentWidth);
-      
-      wrappedH2.forEach((line: string) => {
-        if (yPosition > pageHeight - footerHeight - 20) {
-          addFooter(pageCount, 0);
-          doc.addPage();
-          pageCount++;
-          renderStats.pagesAdded++;
-          yPosition = margin + 5;
-        }
-        doc.text(line, margin, yPosition);
-        yPosition += 8;
-      });
-      
-      yPosition += 2;
-      return;
-    }
-
-    // H3 detection
-    const h3Match = trimmedLine.match(/^###\s+(.*)$/);
-    if (h3Match) {
-      renderStats.h3++;
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(74, 85, 104);
-      
-      const h3Text = h3Match[1].trim();
-      const wrappedH3 = doc.splitTextToSize(h3Text, contentWidth);
-      
-      wrappedH3.forEach((line: string) => {
-        if (yPosition > pageHeight - footerHeight - 20) {
-          addFooter(pageCount, 0);
-          doc.addPage();
-          pageCount++;
-          renderStats.pagesAdded++;
-          yPosition = margin + 5;
-        }
-        doc.text(line, margin, yPosition);
-        yPosition += 7;
-      });
-      
-      yPosition += 2;
-      return;
-    }
-
-    // Equation detection
-    if (trimmedLine.includes('=') && trimmedLine.length < 100) {
-      renderStats.equations++;
-      doc.setFontSize(11);
-      doc.setFont('courier', 'normal');
-      doc.setTextColor(0, 0, 0);
-      
-      const wrappedEquation = doc.splitTextToSize(trimmedLine, contentWidth);
-      wrappedEquation.forEach((line: string) => {
-        if (yPosition > pageHeight - footerHeight - 20) {
-          addFooter(pageCount, 0);
-          doc.addPage();
-          pageCount++;
-          renderStats.pagesAdded++;
-          yPosition = margin + 5;
-        }
-        doc.text(line, margin + 10, yPosition);
-        yPosition += 6;
-      });
-      
-      yPosition += 2;
-      return;
-    }
-
     // Regular paragraph text
     renderStats.paragraphs++;
+    checkPageBreak(10);
+    
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     
-    const wrappedLines = doc.splitTextToSize(trimmedLine, contentWidth);
+    // FASE 2: Processar com formatação inline
+    const strippedText = stripInlineFormatting(trimmedLine);
+    const wrappedLines = doc.splitTextToSize(strippedText, contentWidth);
     
     wrappedLines.forEach((lineSegment: string) => {
-      if (yPosition > pageHeight - footerHeight - 20) {
-        addFooter(pageCount, 0);
-        doc.addPage();
-        pageCount++;
-        renderStats.pagesAdded++;
-        yPosition = margin + 5;
+      if (checkPageBreak(8)) {
+        // Recalcular
       }
       
       doc.text(lineSegment, margin, yPosition);
-      yPosition += 6;
+      yPosition += 6; // FASE 1: Altura da linha de parágrafo
     });
     
-    yPosition += 1;
+    yPosition += 2; // FASE 1: Espaçamento entre parágrafos
   });
 
-  addFooter(pageCount, 0);
+  // Calcular total de páginas
+  totalPages = pageCount;
+  
+  // FASE 4: Atualizar todos os rodapés com o total correto
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    addFooter(i, totalPages);
+  }
 
   console.log(`✅ Processamento concluído:`);
   console.log(`   • Linhas processadas: ${lines.length}`);
@@ -505,9 +712,11 @@ const generatePDFDocument = (content: string, title: string): { doc: jsPDF; rend
   console.log(`   • H2 renderizados: ${renderStats.h2}`);
   console.log(`   • H3 renderizados: ${renderStats.h3}`);
   console.log(`   • Parágrafos: ${renderStats.paragraphs}`);
+  console.log(`   • Listas: ${renderStats.lists}`);
+  console.log(`   • Equações: ${renderStats.equations}`);
   console.log(`   • Páginas totais: ${pageCount}`);
 
-  return { doc, renderStats };
+  return { doc, renderStats, sectionAnchors };
 };
 
 // FASE 6: Função Principal com Auto-Diagnóstico
@@ -612,7 +821,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): PDFGeneration
   
   console.log(`✅ Download iniciado: ${fileName}`);
   console.log(`📄 Páginas: ${doc.getNumberOfPages()}`);
-  console.log(`📝 Renderizado: H1=${renderStats.h1}, H2=${renderStats.h2}, H3=${renderStats.h3}, P=${renderStats.paragraphs}`);
+  console.log(`📝 Renderizado: H1=${renderStats.h1}, H2=${renderStats.h2}, H3=${renderStats.h3}, P=${renderStats.paragraphs}, Listas=${renderStats.lists}`);
 
   return {
     success: true,
