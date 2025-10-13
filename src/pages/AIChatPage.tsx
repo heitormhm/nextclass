@@ -1264,12 +1264,13 @@ const AIChatPage = () => {
                           console.log('🎨 Rendering JobStatus:', jobId, job.type, job.status);
                           
                           return (
-                            <JobStatus
-                              key={jobId}
-                              job={job}
-                              onOpenQuiz={handleOpenQuiz}
-                              onOpenFlashcards={handleOpenFlashcards}
-                            />
+                  <JobStatus
+                    key={jobId}
+                    job={job}
+                    conversationTitle={conversations.find(c => c.id === activeConversationId)?.title}
+                    onOpenQuiz={handleOpenQuiz}
+                    onOpenFlashcards={handleOpenFlashcards}
+                  />
                           );
                         })}
 

@@ -11,6 +11,20 @@ const corsHeaders = {
 // HELPER FUNCTIONS
 // =========================
 
+// Função para sanitizar JSON malformado
+function sanitizeJSON(jsonString: string): string {
+  // Remove markdown wrappers
+  let cleaned = jsonString.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+  
+  // Remove quebras de linha dentro de strings
+  cleaned = cleaned.replace(/\n(?=(?:[^"]*"[^"]*")*[^"]*$)/g, ' ');
+  
+  // Remove espaços extras
+  cleaned = cleaned.trim();
+  
+  return cleaned;
+}
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 120000): Promise<T> {
   return Promise.race([
     promise,
@@ -539,16 +553,21 @@ async function handleGenerateQuiz(job: any, supabaseAdmin: any, lovableApiKey: s
     const systemPrompt = `Você é um criador de quizzes educacionais para engenharia.
 Gere 6-9 perguntas de múltipla escolha baseadas no conteúdo fornecido.
 
-⚠️ IMPORTANTE: Retorne APENAS o JSON puro, sem markdown, sem formatação adicional.
+⚠️ REGRAS CRÍTICAS DE FORMATAÇÃO:
+1. Retorne APENAS o JSON puro, sem markdown (sem \`\`\`json)
+2. Use aspas duplas escapadas corretamente: \\"texto\\"
+3. NÃO use quebras de linha dentro de strings
+4. Substitua aspas em fórmulas por 'aspas simples'
+5. Use \\n para quebras de linha em explicações
 
-FORMATO JSON:
+FORMATO JSON OBRIGATÓRIO:
 {
   "questions": [
     {
-      "question": "Texto da pergunta",
+      "question": "Texto da pergunta sem quebras de linha",
       "options": ["Opção A", "Opção B", "Opção C", "Opção D"],
       "correctAnswer": 0,
-      "explanation": "Explicação da resposta correta"
+      "explanation": "Explicação clara e concisa sem caracteres especiais problemáticos"
     }
   ]
 }`;
@@ -590,7 +609,12 @@ FORMATO JSON:
     
   } else if (job.status === 'SYNTHESIZING') {
     // ✅ Extrair e validar JSON
-    const jsonMatch = job.intermediate_data.quizData.match(/\{[\s\S]*\}/);
+    console.log('📄 Raw quizData (first 500 chars):', job.intermediate_data.quizData.substring(0, 500));
+
+    const sanitized = sanitizeJSON(job.intermediate_data.quizData);
+    console.log('🧹 Sanitized JSON (first 300 chars):', sanitized.substring(0, 300));
+
+    const jsonMatch = sanitized.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
       console.error('❌ No JSON found in quiz data');
@@ -598,13 +622,28 @@ FORMATO JSON:
         .from('jobs')
         .update({
           status: 'FAILED',
-          result: JSON.stringify({ error: 'Failed to extract quiz data from AI response' })
+          result: JSON.stringify({ error: 'Failed to extract quiz data from AI response' }),
+          error_log: 'No JSON structure found'
         })
         .eq('id', job.id);
-      throw new Error('No JSON structure found in AI response');
+      return;
     }
 
-    const quizData = JSON.parse(jsonMatch[0]);
+    let quizData;
+    try {
+      quizData = JSON.parse(jsonMatch[0]);
+    } catch (parseError: any) {
+      console.error('❌ JSON parse error:', parseError.message);
+      await supabaseAdmin
+        .from('jobs')
+        .update({
+          status: 'FAILED',
+          result: JSON.stringify({ error: 'Invalid JSON format from AI' }),
+          error_log: `JSON parse error: ${parseError.message}`
+        })
+        .eq('id', job.id);
+      return;
+    }
 
     // ✅ Validar que há perguntas
     if (!quizData.questions || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
@@ -668,14 +707,19 @@ async function handleGenerateFlashcards(job: any, supabaseAdmin: any, lovableApi
     const systemPrompt = `Você é um criador de flashcards educacionais para engenharia.
 Gere 8-12 flashcards baseados no conteúdo fornecido.
 
-⚠️ IMPORTANTE: Retorne APENAS o JSON puro, sem markdown, sem formatação adicional.
+⚠️ REGRAS CRÍTICAS DE FORMATAÇÃO:
+1. Retorne APENAS o JSON puro, sem markdown (sem \`\`\`json)
+2. Use aspas duplas escapadas corretamente: \\"texto\\"
+3. NÃO use quebras de linha dentro de strings
+4. Substitua aspas em fórmulas por 'aspas simples'
+5. Use \\n para quebras de linha em explicações
 
-FORMATO JSON:
+FORMATO JSON OBRIGATÓRIO:
 {
   "cards": [
     {
-      "front": "Pergunta ou conceito",
-      "back": "Resposta ou explicação detalhada"
+      "front": "Pergunta ou conceito sem quebras de linha",
+      "back": "Resposta ou explicação detalhada sem caracteres especiais problemáticos"
     }
   ]
 }`;
@@ -717,7 +761,12 @@ FORMATO JSON:
     
   } else if (job.status === 'SYNTHESIZING') {
     // ✅ Extrair e validar JSON
-    const jsonMatch = job.intermediate_data.flashcardsData.match(/\{[\s\S]*\}/);
+    console.log('📄 Raw flashcardsData (first 500 chars):', job.intermediate_data.flashcardsData.substring(0, 500));
+
+    const sanitized = sanitizeJSON(job.intermediate_data.flashcardsData);
+    console.log('🧹 Sanitized JSON (first 300 chars):', sanitized.substring(0, 300));
+
+    const jsonMatch = sanitized.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
       console.error('❌ No JSON found in flashcards data');
@@ -725,13 +774,28 @@ FORMATO JSON:
         .from('jobs')
         .update({
           status: 'FAILED',
-          result: JSON.stringify({ error: 'Failed to extract flashcards from AI response' })
+          result: JSON.stringify({ error: 'Failed to extract flashcards from AI response' }),
+          error_log: 'No JSON structure found'
         })
         .eq('id', job.id);
-      throw new Error('No JSON structure found in AI response');
+      return;
     }
 
-    const flashcardsData = JSON.parse(jsonMatch[0]);
+    let flashcardsData;
+    try {
+      flashcardsData = JSON.parse(jsonMatch[0]);
+    } catch (parseError: any) {
+      console.error('❌ JSON parse error:', parseError.message);
+      await supabaseAdmin
+        .from('jobs')
+        .update({
+          status: 'FAILED',
+          result: JSON.stringify({ error: 'Invalid JSON format from AI' }),
+          error_log: `JSON parse error: ${parseError.message}`
+        })
+        .eq('id', job.id);
+      return;
+    }
 
     // ✅ Validar que há cards
     if (!flashcardsData.cards || !Array.isArray(flashcardsData.cards) || flashcardsData.cards.length === 0) {
