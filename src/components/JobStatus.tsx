@@ -8,9 +8,11 @@ interface JobStatusProps {
     type: string;
     result?: string;
   };
+  onOpenQuiz?: (quizId: string) => void;
+  onOpenFlashcards?: (setId: string) => void;
 }
 
-export const JobStatus = ({ job }: JobStatusProps) => {
+export const JobStatus = ({ job, onOpenQuiz, onOpenFlashcards }: JobStatusProps) => {
   if (!job) return null;
   
   switch (job.status) {
@@ -33,8 +35,12 @@ export const JobStatus = ({ job }: JobStatusProps) => {
               <CheckCircle className="h-5 w-5 text-green-600" />
               <p className="text-green-800 font-medium">Seu quiz está pronto!</p>
             </div>
-            <Button asChild size="sm" className="bg-pink-500 hover:bg-pink-600 text-white">
-              <Link to={`/generated-quiz/${job.result}`}>Começar Quiz</Link>
+            <Button 
+              size="sm" 
+              onClick={() => job.result && onOpenQuiz?.(job.result)}
+              className="bg-pink-500 hover:bg-pink-600 text-white"
+            >
+              Começar Quiz
             </Button>
           </div>
         );
@@ -46,8 +52,12 @@ export const JobStatus = ({ job }: JobStatusProps) => {
               <CheckCircle className="h-5 w-5 text-blue-600" />
               <p className="text-blue-800 font-medium">Seus flashcards foram criados!</p>
             </div>
-            <Button asChild size="sm" className="bg-pink-500 hover:bg-pink-600 text-white">
-              <Link to={`/generated-flashcards/${job.result}`}>Estudar Flashcards</Link>
+            <Button 
+              size="sm" 
+              onClick={() => job.result && onOpenFlashcards?.(job.result)}
+              className="bg-pink-500 hover:bg-pink-600 text-white"
+            >
+              Estudar Flashcards
             </Button>
           </div>
         );

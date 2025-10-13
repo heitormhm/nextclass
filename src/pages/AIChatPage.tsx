@@ -58,6 +58,10 @@ const AIChatPage = () => {
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
   const [activeJobs, setActiveJobs] = useState<Map<string, any>>(new Map());
+  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+  const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
+  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
+  const [selectedFlashcardSetId, setSelectedFlashcardSetId] = useState<string | null>(null);
 
   const deepSearchSteps = [
     { text: "A decompor a pergunta em tópicos..." },
@@ -114,6 +118,16 @@ const AIChatPage = () => {
         return newJobs;
       });
     }
+  };
+
+  const handleOpenQuiz = (quizId: string) => {
+    setSelectedQuizId(quizId);
+    setIsQuizModalOpen(true);
+  };
+
+  const handleOpenFlashcards = (setId: string) => {
+    setSelectedFlashcardSetId(setId);
+    setIsFlashcardModalOpen(true);
   };
 
   const handleSendMessage = async () => {
@@ -1160,6 +1174,18 @@ const AIChatPage = () => {
           currentState={deepSearchProgress}
         />
       )}
+
+      <QuizModal
+        open={isQuizModalOpen}
+        onOpenChange={setIsQuizModalOpen}
+        quizId={selectedQuizId || ''}
+      />
+
+      <FlashcardModal
+        open={isFlashcardModalOpen}
+        onOpenChange={setIsFlashcardModalOpen}
+        flashcardSetId={selectedFlashcardSetId || undefined}
+      />
     </MainLayout>
   );
 };

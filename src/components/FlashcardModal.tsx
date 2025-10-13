@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { engineeringFlashcards } from '@/data/engineeringModules';
 
 interface Flashcard {
@@ -17,6 +18,7 @@ interface FlashcardModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   moduleId?: number;
+  flashcardSetId?: string;
 }
 
 // Updated tag colors for engineering themes
@@ -51,11 +53,48 @@ const tagColors = {
   'Desempenho': 'bg-yellow-100 text-yellow-800 border-yellow-200'
 };
 
-export const FlashcardModal: React.FC<FlashcardModalProps> = ({ open, onOpenChange, moduleId = 1 }) => {
+export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }: FlashcardModalProps) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  
-  const flashcards = engineeringFlashcards[moduleId] || engineeringFlashcards[1];
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [flashcardData, setFlashcardData] = useState<{ topic: string } | null>(null);
+  const [reviewedCards, setReviewedCards] = useState<Set<number>>(new Set());
+  const [correctCards, setCorrectCards] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (flashcardSetId && open) {
+      loadGeneratedFlashcards();
+    } else if (moduleId !== undefined) {
+      const cards = engineeringFlashcards[moduleId] || engineeringFlashcards[1];
+      setFlashcards(cards);
+      setCurrentCardIndex(0);
+      setIsFlipped(false);
+    }
+  }, [moduleId, flashcardSetId, open]);
+
+  const loadGeneratedFlashcards = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('generated_flashcard_sets')
+        .select('*')
+        .eq('id', flashcardSetId)
+        .single();
+
+      if (error) throw error;
+
+      setFlashcardData({ topic: data.topic });
+      setFlashcards(data.cards as unknown as Flashcard[]);
+      setCurrentCardIndex(0);
+      setIsFlipped(false);
+    } catch (error) {
+      console.error('Error loading flashcards:', error);
+      toast.error('Erro ao carregar flashcards');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePrevious = () => {
     setCurrentCardIndex((prev) => (prev === 0 ? flashcards.length - 1 : prev - 1));
@@ -75,18 +114,67 @@ export const FlashcardModal: React.FC<FlashcardModalProps> = ({ open, onOpenChan
     toast.success("Flashcard salvo como imagem! (funcionalidade simulada)");
   };
 
-  const handleClose = () => {
+  const handleCardResult = (correct: boolean) => {
+    setReviewedCards(prev => new Set(prev).add(currentCardIndex));
+    if (correct) {
+      setCorrectCards(prev => new Set(prev).add(currentCardIndex));
+    }
+    handleNext();
+  };
+
+  const handleClose = async () => {
+    if (reviewedCards.size > 0 && flashcardSetId && flashcardData) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('flashcard_reviews').insert({
+          user_id: user.id,
+          topic: flashcardData.topic,
+          correct_count: correctCards.size,
+          total_count: reviewedCards.size,
+          percentage: (correctCards.size / reviewedCards.size) * 100,
+          lecture_id: null,
+        });
+        toast.success('Revisão salva com sucesso!');
+      }
+    }
+    
     onOpenChange(false);
     setCurrentCardIndex(0);
     setIsFlipped(false);
+    setReviewedCards(new Set());
+    setCorrectCards(new Set());
   };
+
+  if (loading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <div className="flex items-center justify-center p-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (!open) return null;
 
   const currentCard = flashcards[currentCardIndex];
 
+  if (!currentCard) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-4xl">
+          <div className="text-center p-8">
+            <p className="text-muted-foreground">Nenhum flashcard disponível</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-[95vw] sm:max-w-4xl h-[90vh] sm:h-[80vh] p-0 overflow-hidden mx-2 sm:mx-0">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 border-b">
@@ -97,15 +185,17 @@ export const FlashcardModal: React.FC<FlashcardModalProps> = ({ open, onOpenChan
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSaveAsImage}
-              className="hidden sm:flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Salvar como Imagem
-            </Button>
+            {!flashcardSetId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveAsImage}
+                className="hidden sm:flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Salvar como Imagem
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -259,19 +349,42 @@ export const FlashcardModal: React.FC<FlashcardModalProps> = ({ open, onOpenChan
           <div className="text-sm text-muted-foreground text-center">
             Clique no card para ver a resposta
           </div>
+
+          {/* Action Buttons for Generated Flashcards */}
+          {flashcardSetId && isFlipped && !reviewedCards.has(currentCardIndex) && (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleCardResult(false)}
+                variant="outline"
+                size="sm"
+                className="px-4"
+              >
+                ❌ Errei
+              </Button>
+              <Button
+                onClick={() => handleCardResult(true)}
+                size="sm"
+                className="bg-green-500 hover:bg-green-600 text-white px-4"
+              >
+                ✅ Acertei
+              </Button>
+            </div>
+          )}
           
           {/* Mobile Download Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSaveAsImage}
-            className="sm:hidden flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Salvar
-          </Button>
+          {!flashcardSetId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveAsImage}
+              className="sm:hidden flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Salvar
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
-};
+}
