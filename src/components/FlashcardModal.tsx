@@ -207,14 +207,6 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
                 Salvar como Imagem
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-              className="h-8 w-8 sm:h-10 sm:w-10"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 

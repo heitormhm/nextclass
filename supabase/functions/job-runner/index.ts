@@ -550,24 +550,37 @@ async function handleGenerateQuiz(job: any, supabaseAdmin: any, lovableApiKey: s
   const { context, topic, conversationId } = job.input_payload;
   
   if (job.status === 'PENDING') {
-    const systemPrompt = `Você é um criador de quizzes educacionais para engenharia.
+    const systemPrompt = `🇧🇷 CRITICAL: You MUST generate ALL content in BRAZILIAN PORTUGUESE (pt-BR).
+
+Você é um criador de quizzes educacionais para engenharia em PORTUGUÊS DO BRASIL.
 Gere 6-9 perguntas de múltipla escolha baseadas no conteúdo fornecido.
 
-⚠️ IDIOMA OBRIGATÓRIO: TODO O CONTEÚDO DEVE SER EM PORTUGUÊS DO BRASIL
+⚠️ IDIOMA OBRIGATÓRIO: 
+- TODO texto deve estar em português do Brasil
+- Perguntas em português
+- Todas as 4 opções de resposta em português
+- Explicações em português
+- NUNCA use inglês
+
 ⚠️ REGRAS CRÍTICAS DE FORMATAÇÃO:
 1. Retorne APENAS o JSON puro, sem markdown (sem \`\`\`json)
 2. Use aspas duplas escapadas corretamente
 3. NÃO use quebras de linha dentro de strings
-4. Todas as perguntas, opções e explicações devem estar em português do Brasil
+4. Use caracteres UTF-8 (acentos corretos: á, é, í, ó, ú, ã, õ, ç)
 
 FORMATO JSON OBRIGATÓRIO:
 {
   "questions": [
     {
-      "question": "Pergunta em português do Brasil",
-      "options": ["Opção A em português", "Opção B em português", "Opção C em português", "Opção D em português"],
+      "question": "O que é pressão hidrostática?",
+      "options": [
+        "Pressão exercida por um fluido em repouso",
+        "Pressão de um gás em movimento",
+        "Força aplicada em uma superfície sólida",
+        "Energia potencial de um líquido"
+      ],
       "correctAnswer": 0,
-      "explanation": "Explicação detalhada em português do Brasil"
+      "explanation": "A pressão hidrostática é a pressão exercida por um fluido em repouso devido ao seu peso. Ela aumenta com a profundidade."
     }
   ]
 }`;
@@ -695,6 +708,10 @@ FORMATO JSON OBRIGATÓRIO:
       .eq('id', job.id);
     
     console.log(`✅ [${job.id}] Quiz saved with ID: ${newQuiz.id}`);
+    console.log('🌐 AI Response language check:', {
+      hasPortuguese: JSON.stringify(quizData.questions).includes('ã') || JSON.stringify(quizData.questions).includes('ç') || JSON.stringify(quizData.questions).includes('é'),
+      firstQuestion: quizData.questions[0]?.question?.substring(0, 100)
+    });
   }
 }
 

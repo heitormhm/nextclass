@@ -1273,7 +1273,7 @@ const AIChatPage = () => {
                       {message.content}
                     </div>
                   ) : (
-                    <div className="text-sm leading-relaxed max-h-96 overflow-y-auto prose prose-sm prose-invert max-w-none">
+                    <div className="text-sm leading-relaxed max-h-96 overflow-y-auto max-w-none">
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm, remarkMath]}
                         rehypePlugins={[rehypeKatex]}
