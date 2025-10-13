@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, Mic, Paperclip, Plus, MessageCircle, X, FileText, Image as ImageIcon, Music, FileDown, Trash2, Pin } from "lucide-react";
+import 'katex/dist/katex.min.css';
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,8 @@ import { FlashcardModal } from "@/components/FlashcardModal";
 import { SuggestionsButtons } from "@/components/SuggestionsButtons";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 interface AttachedFile {
   name: string;
@@ -1063,9 +1066,9 @@ const AIChatPage = () => {
                         className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}
                       >
                         <div
-                          className={`max-w-[80%] p-4 rounded-xl ${
+                          className={`max-w-[85%] p-5 rounded-xl ${
                             message.isUser
-                              ? "bg-primary text-primary-foreground"
+                              ? "bg-primary text-white"
                               : "bg-muted text-foreground"
                           }`}
                         >
@@ -1104,10 +1107,16 @@ const AIChatPage = () => {
                             </div>
                           )}
 
-                  <div className="text-sm leading-relaxed max-h-96 overflow-y-auto prose prose-sm prose-invert max-w-none">
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]}
-                      components={{
+                  {message.isUser ? (
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed text-white">
+                      {message.content}
+                    </div>
+                  ) : (
+                    <div className="text-sm leading-relaxed max-h-96 overflow-y-auto prose prose-sm prose-invert max-w-none">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                        components={{
                         h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-4 mb-2 text-foreground" {...props} />,
                         h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-3 mb-2 text-foreground" {...props} />,
                         p: ({node, ...props}) => <p className="mb-2 text-foreground" {...props} />,
@@ -1125,9 +1134,10 @@ const AIChatPage = () => {
                         sup: ({node, ...props}) => <sup className="text-primary font-semibold" {...props} />,
                       }}
                     >
-                      {message.content}
-                    </ReactMarkdown>
-                  </div>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
 
                           {/* Add action buttons for Mia's responses */}
                           {!message.isUser && message.content.length > 100 && (
