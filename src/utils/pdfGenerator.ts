@@ -340,29 +340,29 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
         const sectionNumber = match[1];
         const headerText = match[2];
         
-        // Skip if duplicate of main title
-        if (headerText.toLowerCase() === title.toLowerCase()) {
-          return; // Don't render
+        // Skip if duplicate of main title - but continue processing other lines
+        const isDuplicateTitle = headerText.toLowerCase().trim() === title.toLowerCase().trim();
+        
+        if (!isDuplicateTitle) {
+          yPosition += 14;
+          
+          // Large decorative number in pink
+          doc.setFontSize(36);
+          doc.setTextColor(236, 72, 153);
+          doc.setFont('helvetica', 'bold');
+          doc.text(sectionNumber, margin, yPosition);
+          yPosition += 12;
+          
+          // Section title in purple
+          doc.setFontSize(18);
+          doc.setTextColor(110, 89, 165);
+          const headerLines = doc.splitTextToSize(headerText, contentWidth);
+          headerLines.forEach((hLine: string) => {
+            doc.text(hLine, margin, yPosition);
+            yPosition += 10;
+          });
+          yPosition += 4;
         }
-        
-        yPosition += 14;
-        
-        // Large decorative number in pink
-        doc.setFontSize(36);
-        doc.setTextColor(236, 72, 153);
-        doc.setFont('helvetica', 'bold');
-        doc.text(sectionNumber, margin, yPosition);
-        yPosition += 12;
-        
-        // Section title in purple
-        doc.setFontSize(18);
-        doc.setTextColor(110, 89, 165);
-        const headerLines = doc.splitTextToSize(headerText, contentWidth);
-        headerLines.forEach((hLine: string) => {
-          doc.text(hLine, margin, yPosition);
-          yPosition += 10;
-        });
-        yPosition += 4;
       }
       
       doc.setFontSize(12);
