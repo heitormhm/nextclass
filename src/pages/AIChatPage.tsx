@@ -664,7 +664,7 @@ const AIChatPage = () => {
     console.log('📡 Subscribing to job updates');
     
     const jobChannel = supabase
-      .channel('all-jobs-updates')
+      .channel(`jobs-updates-${Date.now()}`) // ✅ Canal único
       .on(
         'postgres_changes',
         {
@@ -701,6 +701,15 @@ const AIChatPage = () => {
                   handleSelectChat(activeConversationId);
                 }
               }
+              
+              // ✅ Remover job completado após 3 segundos
+              setTimeout(() => {
+                setActiveJobs(prev => {
+                  const newJobs = new Map(prev);
+                  newJobs.delete(job.id);
+                  return newJobs;
+                });
+              }, 3000);
             }
           }
           
@@ -846,9 +855,9 @@ const AIChatPage = () => {
     
     return () => {
       console.log('🔌 Unsubscribing from job updates');
-      supabase.removeChannel(jobChannel);
+      jobChannel.unsubscribe();
     };
-  }, [deepSearchJobId, activeConversationId, activeJobs, toast]);
+  }, [deepSearchJobId, activeConversationId]);
 
 
   // Scroll to bottom when messages change
