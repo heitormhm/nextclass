@@ -37,7 +37,8 @@ interface Message {
   file?: AttachedFile;
   isReport?: boolean;
   reportTitle?: string;
-  suggestionsJobId?: string; // ✅ NOVO CAMPO
+  suggestionsJobId?: string;
+  jobIds?: string[]; // ✅ NOVO: IDs dos jobs vinculados a esta mensagem
 }
 
 interface Conversation {
@@ -93,6 +94,20 @@ const AIChatPage = () => {
       payload: payload
     }));
     
+    // ✅ NOVO: Vincular job à última mensagem do assistente
+    setMessages(prev => {
+      const updated = [...prev];
+      const lastAssistantIndex = updated.length - 1 - updated.slice().reverse().findIndex(m => !m.isUser);
+      
+      if (lastAssistantIndex >= 0 && lastAssistantIndex < updated.length) {
+        updated[lastAssistantIndex] = {
+          ...updated[lastAssistantIndex],
+          jobIds: [...(updated[lastAssistantIndex].jobIds || []), tempId]
+        };
+      }
+      return updated;
+    });
+    
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
@@ -114,20 +129,40 @@ const AIChatPage = () => {
         newJobs.delete(tempId);
         
         if (data.jobId) {
-          // ✅ CORREÇÃO 4: Só adiciona se não existir já (evita duplicação)
           if (!newJobs.has(data.jobId)) {
             newJobs.set(data.jobId, { 
               status: 'PENDING', 
               type: jobType,
               payload: payload
             });
-            console.log('✅ Real job ID added to tracking:', data.jobId);
-          } else {
-            console.log('⚠️ Job already exists in state, skipping:', data.jobId);
           }
         }
         return newJobs;
       });
+      
+      // ✅ NOVO: Atualizar jobIds com o ID real
+      if (data.jobId) {
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastAssistantIndex = updated.length - 1 - updated.slice().reverse().findIndex(m => !m.isUser);
+          
+          if (lastAssistantIndex >= 0 && lastAssistantIndex < updated.length) {
+            const jobIds = updated[lastAssistantIndex].jobIds || [];
+            const tempIndex = jobIds.indexOf(tempId);
+            
+            if (tempIndex !== -1) {
+              const newJobIds = [...jobIds];
+              newJobIds[tempIndex] = data.jobId;
+              
+              updated[lastAssistantIndex] = {
+                ...updated[lastAssistantIndex],
+                jobIds: newJobIds
+              };
+            }
+          }
+          return updated;
+        });
+      }
       
       toast({
         title: "Processando",
@@ -145,11 +180,25 @@ const AIChatPage = () => {
         newJobs.delete(tempId);
         return newJobs;
       });
+      
+      // ✅ NOVO: Remover tempId dos jobIds em caso de erro
+      setMessages(prev => {
+        const updated = [...prev];
+        const lastAssistantIndex = updated.length - 1 - updated.slice().reverse().findIndex(m => !m.isUser);
+        
+        if (lastAssistantIndex >= 0 && lastAssistantIndex < updated.length) {
+          const jobIds = updated[lastAssistantIndex].jobIds || [];
+          updated[lastAssistantIndex] = {
+            ...updated[lastAssistantIndex],
+            jobIds: jobIds.filter(id => id !== tempId)
+          };
+        }
+        return updated;
+      });
     }
   };
 
   const handleOpenQuiz = (quizId: string) => {
-    // ✅ CORREÇÃO 3: Encontrar e remover o job ANTES de navegar
     const jobIdToRemove = Array.from(activeJobs.entries()).find(
       ([_, job]) => job.type === 'GENERATE_QUIZ' && job.result?.includes(quizId)
     )?.[0];
@@ -160,6 +209,13 @@ const AIChatPage = () => {
         newJobs.delete(jobIdToRemove);
         return newJobs;
       });
+      
+      // ✅ NOVO: Remover jobId da mensagem
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        jobIds: msg.jobIds?.filter(id => id !== jobIdToRemove)
+      })));
+      
       console.log('🗑️ Removed quiz job before navigation:', jobIdToRemove);
     }
     
@@ -172,7 +228,6 @@ const AIChatPage = () => {
   };
 
   const handleOpenFlashcards = (setId: string) => {
-    // ✅ CORREÇÃO 3: Encontrar e remover o job ANTES de abrir modal
     const jobIdToRemove = Array.from(activeJobs.entries()).find(
       ([_, job]) => job.type === 'GENERATE_FLASHCARDS' && job.result?.includes(setId)
     )?.[0];
@@ -183,6 +238,13 @@ const AIChatPage = () => {
         newJobs.delete(jobIdToRemove);
         return newJobs;
       });
+      
+      // ✅ NOVO: Remover jobId da mensagem
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        jobIds: msg.jobIds?.filter(id => id !== jobIdToRemove)
+      })));
+      
       console.log('🗑️ Removed flashcard job before opening modal:', jobIdToRemove);
     }
     
@@ -1150,14 +1212,19 @@ const AIChatPage = () => {
                           )}
 
                           {/* Job Status - Exibir status de processamento */}
-                          {!message.isUser && Array.from(activeJobs.entries()).map(([jobId, job]) => (
-                            <JobStatus
-                              key={jobId}
-                              job={job}
-                              onOpenQuiz={handleOpenQuiz}
-                              onOpenFlashcards={handleOpenFlashcards}
-                            />
-                          ))}
+                          {!message.isUser && message.jobIds?.map(jobId => {
+                            const job = activeJobs.get(jobId);
+                            if (!job) return null;
+                            
+                            return (
+                              <JobStatus
+                                key={jobId}
+                                job={job}
+                                onOpenQuiz={handleOpenQuiz}
+                                onOpenFlashcards={handleOpenFlashcards}
+                              />
+                            );
+                          })}
 
                           {/* Suggestions Buttons */}
                           {!message.isUser && message.suggestionsJobId && (
