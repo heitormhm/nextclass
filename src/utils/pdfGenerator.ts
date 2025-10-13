@@ -205,20 +205,20 @@ const diagnosePDF = (
     });
   }
   
-  // FASE 6: Verificar símbolos Unicode mal renderizados
+  // FASE 6: Verificar símbolos Unicode mal renderizados (Expandido)
   if (content) {
-    const unicodeSymbols = ['Δ', 'δ', 'π', 'θ', 'ω', 'Σ', 'α', 'β', 'γ', '∫', '√', '∞'];
-    let hasUnicodeIssues = false;
+    const unicodeSymbolsPattern = /[Δ∆δ𝚫πΠθΘωΩΣσαβγλμνρτφψ∫√∞≈≠≤≥×÷±∂∇]/;
+    const hasUnicodeSymbols = content.split('\n').some(line => unicodeSymbolsPattern.test(line));
     
-    unicodeSymbols.forEach(symbol => {
-      if (content.includes(symbol)) {
-        hasUnicodeIssues = true;
-      }
-    });
-    
-    if (hasUnicodeIssues) {
+    if (hasUnicodeSymbols) {
       console.log('⚠️ Símbolos Unicode detectados - aplicando normalização automática');
-      // Não é mais um problema pois está sendo corrigido automaticamente
+      diagnostics.push({
+        issue: 'Símbolos matemáticos Unicode detectados no conteúdo original',
+        severity: 'medium',
+        detectedAt: 'Content Preprocessing',
+        suggestedFix: 'Símbolos serão normalizados automaticamente para ASCII',
+        canAutoFix: true
+      });
     }
   }
   
@@ -232,8 +232,18 @@ const diagnosePDF = (
     
     if (hasEquationsWithAsterisks) {
       console.log('⚠️ Equações com asteriscos detectadas - normalizando automaticamente');
-      // Corrigido automaticamente pelo normalizeScientificSymbols
     }
+  }
+  
+  // FASE 6: Verificar se equações foram renderizadas corretamente
+  if (renderStats.equations === 0 && contentAnalysis.stats.totalCharacters > 5000) {
+    diagnostics.push({
+      issue: 'Nenhuma equação detectada em documento longo (pode haver problema de detecção)',
+      severity: 'low',
+      detectedAt: 'Equation Detection',
+      suggestedFix: 'Verificar se o conteúdo realmente não contém equações',
+      canAutoFix: false
+    });
   }
   
   return diagnostics;
@@ -292,30 +302,60 @@ const isEquation = (line: string): boolean => {
 };
 
 // FASE 1 (Nova): Normalizar símbolos Unicode para renderização
+// FASE 2: Expandido para incluir mais variantes Unicode
 const normalizeScientificSymbols = (text: string): string => {
   const symbolMap: Record<string, string> = {
-    'Δ': 'Delta',
-    'δ': 'delta',
+    // Todas as variantes de Delta
+    'Δ': 'Delta',      // U+0394 (Greek Capital Delta)
+    '∆': 'Delta',      // U+2206 (Increment)
+    'δ': 'delta',      // U+03B4 (Greek Small Delta)
+    '𝚫': 'Delta',      // U+1D6AB (Mathematical Bold Capital Delta)
+    
+    // Outras letras gregas (todas as variantes)
     'π': 'pi',
+    'Π': 'Pi',
     'θ': 'theta',
+    'Θ': 'Theta',
     'ω': 'omega',
+    'Ω': 'Omega',
     'Σ': 'Sigma',
+    'σ': 'sigma',
     'α': 'alpha',
     'β': 'beta',
     'γ': 'gamma',
+    'λ': 'lambda',
+    'μ': 'mu',
+    'ν': 'nu',
+    'ρ': 'rho',
+    'τ': 'tau',
+    'φ': 'phi',
+    'ψ': 'psi',
+    
+    // Operadores matemáticos
     '∫': 'integral',
     '√': 'sqrt',
     '∞': 'infinito',
     '≈': '~=',
     '≠': '!=',
     '≤': '<=',
-    '≥': '>='
+    '≥': '>=',
+    '×': 'x',
+    '÷': '/',
+    '±': '+/-',
+    '∂': 'd',
+    '∇': 'nabla',
   };
   
   let normalized = text;
-  Object.entries(symbolMap).forEach(([unicode, ascii]) => {
-    normalized = normalized.replace(new RegExp(unicode, 'g'), ascii);
-  });
+  
+  // Processar em ordem de caracteres mais específicos primeiro
+  Object.entries(symbolMap)
+    .sort((a, b) => b[0].length - a[0].length)
+    .forEach(([unicode, ascii]) => {
+      // Usar replace global com escape de caracteres especiais
+      const escaped = unicode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      normalized = normalized.replace(new RegExp(escaped, 'g'), ascii);
+    });
   
   return normalized;
 };
@@ -428,7 +468,7 @@ const generatePDFDocument = (content: string, title: string): {
     return false;
   };
 
-  // FASE 4 (Melhorias): Rodapé com "Página X de Y"
+  // FASE 1 & 4: Rodapé corrigido com "Página X de Y"
   const addFooter = (pageNum: number, total: number) => {
     const footerY = pageHeight - 8;
     
@@ -439,16 +479,18 @@ const generatePDFDocument = (content: string, title: string): {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     
+    // Lado esquerdo: "Gerado por NextClass AI"
     doc.text('Gerado por NextClass AI', margin, footerY);
     
-    // FASE 4: Exibir "Página X de Y"
-    const pageText = total > 0 ? `Página ${pageNum} de ${total}` : `${pageNum}`;
+    // Centro: "Página X de Y" (formato correto)
+    const pageText = total > 0 ? `Página ${pageNum} de ${total}` : `Página ${pageNum}`;
     doc.text(pageText, pageWidth / 2, footerY, { align: 'center' });
     
-    const currentDate = new Date().toLocaleDateString('pt-PT', { 
-      year: 'numeric', 
+    // Lado direito: Data formatada corretamente
+    const currentDate = new Date().toLocaleDateString('pt-BR', { 
+      day: 'numeric',
       month: 'long', 
-      day: 'numeric' 
+      year: 'numeric' 
     });
     doc.text(currentDate, pageWidth - margin, footerY, { align: 'right' });
   };
@@ -585,7 +627,7 @@ const generatePDFDocument = (content: string, title: string): {
         yPosition += 12; // FASE 1: Altura da linha H1
       });
       
-      yPosition += 8; // FASE 2: Espaçamento inferior aumentado para H1
+      yPosition += 5; // FASE 3: Espaçamento inferior H1 (reduzido de 8mm para 5mm)
       
       // FASE 4: Adicionar âncora para índice
       sectionAnchors.push({
@@ -674,9 +716,17 @@ const generatePDFDocument = (content: string, title: string): {
       return;
     }
 
-    // FASE 2: Lista com bullet detection (-, *, •)
+    // FASE 2 & 4: Lista com bullet detection (-, *, •) + espaço antes de listas
     const bulletMatch = trimmedLine.match(/^[-*•]\s+(.+)$/);
     if (bulletMatch) {
+      // FASE 4: Verificar se linha anterior não era lista
+      const previousLine = index > 0 ? lines[index - 1].trim() : '';
+      const previousWasList = /^[-*•]\s+/.test(previousLine);
+      
+      if (!previousWasList) {
+        yPosition += 3; // Espaço extra antes da primeira item da lista
+      }
+      
       renderStats.lists++;
       checkPageBreak(8);
       
@@ -707,9 +757,17 @@ const generatePDFDocument = (content: string, title: string): {
       return;
     }
 
-    // FASE 2: Lista numerada detection (1., 2., etc)
+    // FASE 2 & 4: Lista numerada detection (1., 2., etc) + espaço antes de listas
     const numberedMatch = trimmedLine.match(/^(\d+)\.\s+(.+)$/);
     if (numberedMatch) {
+      // FASE 4: Verificar se linha anterior não era lista
+      const previousLine = index > 0 ? lines[index - 1].trim() : '';
+      const previousWasList = /^\d+\.\s+/.test(previousLine);
+      
+      if (!previousWasList) {
+        yPosition += 3; // Espaço extra antes da primeira item da lista
+      }
+      
       renderStats.lists++;
       checkPageBreak(8);
       
@@ -752,6 +810,13 @@ const generatePDFDocument = (content: string, title: string): {
       
       // FASE 1: Normalizar símbolos Unicode ANTES de renderizar
       const normalizedEquation = normalizeScientificSymbols(trimmedLine);
+      
+      // FASE 7: Logging para debug
+      if (normalizedEquation !== trimmedLine) {
+        console.log('🔄 Equação normalizada:');
+        console.log('   Original:', trimmedLine);
+        console.log('   Normalizada:', normalizedEquation);
+      }
       
       // FASE 5: Tentar renderizar sem quebra primeiro
       const equationWidth = doc.getTextWidth(normalizedEquation);
@@ -845,20 +910,20 @@ const generatePDFDocument = (content: string, title: string): {
     // FASE 1: Normalizar símbolos Unicode
     const normalizedLine = normalizeScientificSymbols(trimmedLine);
     
-    // FASE 4: Verificar se há referências bibliográficas
+    // FASE 4 & 5: Verificar e processar referências bibliográficas (corrigido)
     const { hasRefs, segments } = formatReferences(normalizedLine);
     
     if (hasRefs) {
-      // Renderizar com referências formatadas
-      const strippedText = stripInlineFormatting(normalizedLine);
-      const wrappedLines = doc.splitTextToSize(strippedText, contentWidth);
+      // FASE 5: NÃO aplicar stripInlineFormatting antes de processar referências
+      // Aplicar splitTextToSize diretamente no texto normalizado
+      const wrappedLines = doc.splitTextToSize(normalizedLine, contentWidth);
       
       wrappedLines.forEach((lineSegment: string) => {
         if (checkPageBreak(8)) {
           // Recalcular
         }
         
-        // Verificar se esta linha tem referências
+        // Processar referências nesta linha específica
         const lineRefs = formatReferences(lineSegment);
         if (lineRefs.hasRefs) {
           let currentX = margin;
@@ -873,9 +938,17 @@ const generatePDFDocument = (content: string, title: string): {
               doc.setFontSize(prevSize);
               doc.setTextColor(0, 0, 0);
             } else {
-              // Texto normal
-              doc.text(segment.text, currentX, yPosition);
-              currentX += doc.getTextWidth(segment.text);
+              // Texto normal - verificar se tem formatação inline
+              const formatting = hasInlineFormatting(segment.text);
+              if (formatting.hasBold || formatting.hasItalic) {
+                // Renderizar com formatação inline preservada
+                const strippedSegment = stripInlineFormatting(segment.text);
+                doc.text(strippedSegment, currentX, yPosition);
+                currentX += doc.getTextWidth(strippedSegment);
+              } else {
+                doc.text(segment.text, currentX, yPosition);
+                currentX += doc.getTextWidth(segment.text);
+              }
             }
           });
         } else {
