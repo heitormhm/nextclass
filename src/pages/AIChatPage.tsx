@@ -187,7 +187,7 @@ const AIChatPage = () => {
 
   // Handler para clicar em uma sugestão
   const handleSuggestionClick = async (suggestion: string) => {
-    console.log(`🔍 Suggestion clicked: "${suggestion}"`);
+    console.log(`🔍 Suggestion clicked: "${suggestion}" | Mode: ${isDeepSearch ? 'Deep Search' : 'Normal Search'}`);
     
     // Adicionar mensagem do usuário no chat
     setMessages((prev) => [
@@ -200,9 +200,7 @@ const AIChatPage = () => {
       },
     ]);
     
-    // Iniciar Deep Search automaticamente
-    setIsDeepSearchLoading(true);
-    setIsDeepSearch(true);
+    setIsLoading(true);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -213,7 +211,7 @@ const AIChatPage = () => {
       const { data, error } = await supabase.functions.invoke('mia-student-chat', {
         body: {
           message: suggestion,
-          isDeepSearch: true,
+          isDeepSearch,
           conversationId: activeConversationId,
         },
         headers: {
@@ -223,9 +221,12 @@ const AIChatPage = () => {
       
       if (error) throw error;
       
-      if (data.jobId) {
+      if (isDeepSearch && data.jobId) {
+        // Deep Search mode: track job
+        console.log("🔍 Deep Search job created:", data.jobId);
         setDeepSearchJobId(data.jobId);
         setDeepSearchProgress(0);
+        setIsDeepSearchLoading(true);
         
         // Adicionar ao activeJobs para tracking
         setActiveJobs(prev => new Map(prev).set(data.jobId, {
@@ -237,17 +238,39 @@ const AIChatPage = () => {
           title: "Pesquisa Profunda Iniciada",
           description: "Acompanhe o progresso na interface.",
         });
+      } else if (!isDeepSearch && data.response) {
+        // Normal Search mode: add response directly to chat
+        console.log("💬 Normal response received");
+        const assistantMessage: Message = {
+          id: `${activeConversationId}-${Date.now()}`,
+          content: data.response,
+          isUser: false,
+          timestamp: new Date(),
+          suggestionsJobId: data.suggestionsJobId || undefined,
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+
+        // Update conversation ID if this was the first message
+        if (data.conversationId && !activeConversationId) {
+          setActiveConversationId(data.conversationId);
+          if (data.title) {
+            setConversations(prev =>
+              prev.map(conv =>
+                conv.id === data.conversationId ? { ...conv, title: data.title } : conv
+              )
+            );
+          }
+        }
       }
     } catch (error) {
       console.error('Error starting deep search from suggestion:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível iniciar a pesquisa profunda.",
+        description: "Não foi possível processar a sugestão.",
         variant: "destructive",
       });
     } finally {
-      setIsDeepSearchLoading(false);
-      setIsDeepSearch(false);
+      setIsLoading(false);
     }
   };
 
@@ -816,10 +839,31 @@ const AIChatPage = () => {
                 break;
               case 'COMPLETED':
                 setDeepSearchProgress(4);
-                toast({
-                  title: "Pesquisa Concluída",
-                  description: "O relatório foi gerado com sucesso!",
-                });
+                
+                // Adicionar o relatório ao chat
+                if (job.result) {
+                  console.log("📄 Adding Deep Search report to chat");
+                  const reportMessage: Message = {
+                    id: `report-${job.id}`,
+                    content: job.result,
+                    isUser: false,
+                    timestamp: new Date(),
+                    isReport: true,
+                    reportTitle: "Relatório de Pesquisa Aprofundada",
+                  };
+                  setMessages(prev => [...prev, reportMessage]);
+                  
+                  toast({
+                    title: "Pesquisa Concluída",
+                    description: "O relatório foi adicionado à conversa!",
+                  });
+                } else {
+                  toast({
+                    title: "Pesquisa Concluída",
+                    description: "O relatório foi gerado com sucesso!",
+                  });
+                }
+                
                 setTimeout(() => {
                   setDeepSearchJobId(null);
                   setDeepSearchProgress(0);
