@@ -16,6 +16,8 @@ import { JobStatus } from "@/components/JobStatus";
 import { QuizModal } from "@/components/QuizModal";
 import { FlashcardModal } from "@/components/FlashcardModal";
 import { SuggestionsButtons } from "@/components/SuggestionsButtons";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface AttachedFile {
   name: string;
@@ -249,6 +251,17 @@ const AIChatPage = () => {
           suggestionsJobId: data.suggestionsJobId || undefined,
         };
         setMessages(prev => [...prev, assistantMessage]);
+
+        // Validação de formatação (logging apenas)
+        if (data.response.length > 500) {
+          const hasMarkdownHeaders = /^#{2,3}\s/m.test(data.response);
+          const hasReferences = /## Referências/i.test(data.response);
+          console.log('📊 Análise de formatação:', {
+            comprimento: data.response.length,
+            temCabeçalhos: hasMarkdownHeaders,
+            temReferências: hasReferences,
+          });
+        }
 
         // Update conversation ID if this was the first message
         if (data.conversationId && !activeConversationId) {
@@ -1091,9 +1104,30 @@ const AIChatPage = () => {
                             </div>
                           )}
 
-                          <div className="whitespace-pre-wrap text-sm leading-relaxed max-h-96 overflow-y-auto">
-                            {message.content}
-                          </div>
+                  <div className="text-sm leading-relaxed max-h-96 overflow-y-auto prose prose-sm prose-invert max-w-none">
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-4 mb-2 text-foreground" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-3 mb-2 text-foreground" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-2 text-foreground" {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-bold text-foreground" {...props} />,
+                        code: ({node, inline, ...props}: any) => 
+                          inline 
+                            ? <code className="bg-background/50 px-1.5 py-0.5 rounded text-xs font-mono text-primary" {...props} />
+                            : <code className="block bg-background/50 p-3 rounded text-xs font-mono overflow-x-auto my-2 text-foreground" {...props} />,
+                        pre: ({node, ...props}) => <pre className="bg-background/50 p-3 rounded overflow-x-auto my-2" {...props} />,
+                        a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-1 my-2 text-foreground" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal list-inside space-y-1 my-2 text-foreground" {...props} />,
+                        li: ({node, ...props}) => <li className="text-foreground" {...props} />,
+                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/50 pl-4 italic my-2 text-foreground/80" {...props} />,
+                        sup: ({node, ...props}) => <sup className="text-primary font-semibold" {...props} />,
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
 
                           {/* Add action buttons for Mia's responses */}
                           {!message.isUser && message.content.length > 100 && (
