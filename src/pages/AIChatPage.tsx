@@ -106,12 +106,19 @@ const AIChatPage = () => {
       setActiveJobs(prev => {
         const newJobs = new Map(prev);
         newJobs.delete(tempId);
+        
         if (data.jobId) {
-          newJobs.set(data.jobId, { 
-            status: 'PENDING', 
-            type: jobType,
-            payload: payload
-          });
+          // ✅ CORREÇÃO 4: Só adiciona se não existir já (evita duplicação)
+          if (!newJobs.has(data.jobId)) {
+            newJobs.set(data.jobId, { 
+              status: 'PENDING', 
+              type: jobType,
+              payload: payload
+            });
+            console.log('✅ Real job ID added to tracking:', data.jobId);
+          } else {
+            console.log('⚠️ Job already exists in state, skipping:', data.jobId);
+          }
         }
         return newJobs;
       });
@@ -136,39 +143,45 @@ const AIChatPage = () => {
   };
 
   const handleOpenQuiz = (quizId: string) => {
+    // ✅ CORREÇÃO 3: Encontrar e remover o job ANTES de navegar
+    const jobIdToRemove = Array.from(activeJobs.entries()).find(
+      ([_, job]) => job.type === 'GENERATE_QUIZ' && job.result?.includes(quizId)
+    )?.[0];
+    
+    if (jobIdToRemove) {
+      setActiveJobs(prev => {
+        const newJobs = new Map(prev);
+        newJobs.delete(jobIdToRemove);
+        return newJobs;
+      });
+      console.log('🗑️ Removed quiz job before navigation:', jobIdToRemove);
+    }
+    
     navigate(`/quiz/${quizId}`, {
       state: {
         fromChat: true,
         conversationId: activeConversationId
       }
     });
-    
-    // ✅ Remover job após abrir quiz
-    setActiveJobs(prev => {
-      const newJobs = new Map(prev);
-      for (const [jobId, job] of prev.entries()) {
-        if (job.type === 'GENERATE_QUIZ' && job.result?.includes(quizId)) {
-          newJobs.delete(jobId);
-        }
-      }
-      return newJobs;
-    });
   };
 
   const handleOpenFlashcards = (setId: string) => {
+    // ✅ CORREÇÃO 3: Encontrar e remover o job ANTES de abrir modal
+    const jobIdToRemove = Array.from(activeJobs.entries()).find(
+      ([_, job]) => job.type === 'GENERATE_FLASHCARDS' && job.result?.includes(setId)
+    )?.[0];
+    
+    if (jobIdToRemove) {
+      setActiveJobs(prev => {
+        const newJobs = new Map(prev);
+        newJobs.delete(jobIdToRemove);
+        return newJobs;
+      });
+      console.log('🗑️ Removed flashcard job before opening modal:', jobIdToRemove);
+    }
+    
     setSelectedFlashcardSetId(setId);
     setIsFlashcardModalOpen(true);
-    
-    // ✅ Remover job após abrir flashcards
-    setActiveJobs(prev => {
-      const newJobs = new Map(prev);
-      for (const [jobId, job] of prev.entries()) {
-        if (job.type === 'GENERATE_FLASHCARDS' && job.result?.includes(setId)) {
-          newJobs.delete(jobId);
-        }
-      }
-      return newJobs;
-    });
   };
 
   // Handler para clicar em uma sugestão
@@ -707,14 +720,32 @@ const AIChatPage = () => {
           
           console.log('📬 Job update received:', job.id, job.status, job.job_type);
           
-          // ✅ ANTI-LOOP: Se já foi processado, ignora
+          // ✅ CORREÇÃO 2: ANTI-LOOP MELHORADO - Marca job como "em processamento" na primeira vez
           if (processedJobsRef.current.has(job.id)) {
-            console.log('⏭️ Job already processed, skipping:', job.id);
+            console.log('⏭️ Job already being tracked, skipping:', job.id);
             return;
           }
+
+          // ✅ Adicionar ao ref IMEDIATAMENTE (não esperar COMPLETED)
+          processedJobsRef.current.add(job.id);
+          console.log('📌 Job now being tracked:', job.id);
           
-          // Atualiza estado visual do job
+          // ✅ CORREÇÃO 1: COMPARAÇÃO PROFUNDA - Só atualiza se houve mudança real
           setActiveJobs(prev => {
+            const currentJob = prev.get(job.id);
+            
+            if (currentJob) {
+              const hasChanged = 
+                currentJob.status !== job.status ||
+                currentJob.result !== job.result;
+              
+              if (!hasChanged) {
+                console.log('⏭️ No changes detected for job:', job.id);
+                return prev; // ← Retorna o MESMO Map (sem re-render)
+              }
+            }
+            
+            // Mudança detectada → Criar novo Map
             const newJobs = new Map(prev);
             newJobs.set(job.id, {
               status: job.status,
@@ -727,9 +758,7 @@ const AIChatPage = () => {
           
           // ✅ Processa jobs terminados
           if (job.status === 'COMPLETED' || job.status === 'FAILED') {
-            // ✅ MARCA COMO PROCESSADO (ref não causa re-render)
-            processedJobsRef.current.add(job.id);
-            console.log('✅ Job marked as processed:', job.id);
+            console.log('✅ Job completed/failed:', job.id);
             
             if (job.status === 'COMPLETED') {
               // Força re-render para mostrar sugestões
