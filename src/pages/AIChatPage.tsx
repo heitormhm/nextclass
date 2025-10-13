@@ -905,44 +905,39 @@ const AIChatPage = () => {
             conversationId: job.conversation_id
           });
           
-          // ✅ VERIFICAÇÃO 1: Job já foi processado?
-          if (processedJobsRef.current.has(job.id)) {
-            console.log('⏭️ Job already tracked, skipping:', job.id);
-            return;
-          }
-          
-          // ✅ VERIFICAÇÃO 2: Job pertence a esta conversa?
+          // ✅ VERIFICAÇÃO 1: Job pertence a esta conversa?
           if (job.conversation_id !== activeConversationId) {
             console.log('⏭️ Job from different conversation, skipping');
             return;
           }
           
-          // ✅ Marcar como processado IMEDIATAMENTE
-          processedJobsRef.current.add(job.id);
-          console.log('📌 Job now tracked:', job.id);
-          
-          // ✅ VERIFICAÇÃO 3: Mudança real no estado?
+          // ✅ VERIFICAÇÃO 2: Mudança real no estado?
           setActiveJobs(prev => {
             const currentJob = prev.get(job.id);
             
-            if (currentJob) {
-              const hasRealChange = 
-                currentJob.status !== job.status ||
-                currentJob.result !== job.result;
-              
-              if (!hasRealChange) {
-                console.log('⏭️ No real changes, skipping update');
-                return prev;
-              }
+            // Se job não existe, criar
+            if (!currentJob) {
+              console.log('🆕 New job detected:', job.id, job.status);
+              return new Map(prev).set(job.id, {
+                status: job.status,
+                type: job.job_type,
+                result: job.result,
+                payload: job.input_payload
+              });
+            }
+            
+            // Se status E result são IDÊNTICOS, ignorar
+            if (currentJob.status === job.status && currentJob.result === job.result) {
+              console.log('⏭️ No real changes, skipping update');
+              return prev; // ✅ SEM RE-RENDER
             }
             
             console.log('✏️ Updating job state:', job.id, job.status);
             const newJobs = new Map(prev);
             newJobs.set(job.id, {
+              ...currentJob,
               status: job.status,
-              type: job.job_type,
-              result: job.result,
-              payload: currentJob?.payload || job.input_payload
+              result: job.result
             });
             return newJobs;
           });
@@ -1246,14 +1241,16 @@ const AIChatPage = () => {
                   )}
 
                           {/* Add action buttons for Mia's responses */}
-                          {!message.isUser && message.content.length > 100 && (
-                            <ActionButtons
-                              messageContent={message.content}
-                              topic={message.content.split('\n')[0].substring(0, 50)}
-                              onAction={handleAction}
-                              disabled={isLoading}
-                            />
-                          )}
+                      {!message.isUser && message.content.length > 100 && (
+                        <ActionButtons
+                          messageContent={message.content}
+                          topic={message.content.split('\n')[0].substring(0, 50)}
+                          onAction={handleAction}
+                          disabled={isLoading}
+                          activeJobs={activeJobs}
+                          messageJobIds={message.jobIds}
+                        />
+                      )}
 
                           {/* Job Status - Exibir status de processamento */}
                         {!message.isUser && message.jobIds?.map(jobId => {

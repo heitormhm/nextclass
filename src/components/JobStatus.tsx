@@ -13,7 +13,17 @@ interface JobStatusProps {
 }
 
 export const JobStatus = ({ job, onOpenQuiz, onOpenFlashcards }: JobStatusProps) => {
-  if (!job) return null;
+  console.log('🎨 JobStatus render:', {
+    status: job?.status,
+    type: job?.type,
+    hasResult: !!job?.result,
+    resultPreview: job?.result?.substring(0, 100)
+  });
+  
+  if (!job) {
+    console.log('⚠️ JobStatus: job is null/undefined');
+    return null;
+  }
   
   switch (job.status) {
     case 'PENDING':

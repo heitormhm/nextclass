@@ -7,9 +7,22 @@ interface ActionButtonsProps {
   onAction: (jobType: string, payload: any) => void;
   disabled?: boolean;
   activeJobs?: Map<string, any>;
+  messageJobIds?: string[];
 }
 
-export const ActionButtons = ({ messageContent, topic, onAction, disabled, activeJobs }: ActionButtonsProps) => {
+export const ActionButtons = ({ messageContent, topic, onAction, disabled, activeJobs, messageJobIds }: ActionButtonsProps) => {
+  // ✅ Verificar se esta mensagem tem jobs ativos/completos
+  const hasActiveOrCompletedJobs = messageJobIds?.some(jobId => {
+    const job = activeJobs?.get(jobId);
+    return job && ['PENDING', 'SYNTHESIZING', 'COMPLETED'].includes(job.status);
+  });
+  
+  // ✅ Se há jobs, não renderizar ActionButtons
+  if (hasActiveOrCompletedJobs) {
+    console.log('🚫 ActionButtons hidden: jobs exist for this message');
+    return null;
+  }
+  
   const hasActiveQuizJob = Array.from(activeJobs?.entries() || []).some(
     ([_, job]) => job.type === 'GENERATE_QUIZ' && 
                  (job.status === 'PENDING' || job.status === 'SYNTHESIZING')
