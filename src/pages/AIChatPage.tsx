@@ -16,6 +16,7 @@ import { ActionButtons } from "@/components/ActionButtons";
 import { JobStatus } from "@/components/JobStatus";
 import { QuizModal } from "@/components/QuizModal";
 import { FlashcardModal } from "@/components/FlashcardModal";
+import { GeneratedContentCard } from "@/components/GeneratedContentCard";
 import { SuggestionsButtons } from "@/components/SuggestionsButtons";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -77,6 +78,10 @@ const AIChatPage = () => {
   const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [selectedFlashcardSetId, setSelectedFlashcardSetId] = useState<string | null>(null);
+  const [conversationContent, setConversationContent] = useState<{
+    quizzes: any[];
+    flashcards: any[];
+  }>({ quizzes: [], flashcards: [] });
 
   const deepSearchSteps = [
     { text: "A decompor a pergunta em tópicos..." },
@@ -717,6 +722,29 @@ const AIChatPage = () => {
     setShowMobileHistory(false);
   };
 
+  const loadConversationContent = async (conversationId: string) => {
+    try {
+      const { data: quizzes } = await supabase
+        .from('generated_quizzes')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: false });
+      
+      const { data: flashcards } = await supabase
+        .from('generated_flashcard_sets')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: false });
+      
+      setConversationContent({
+        quizzes: quizzes || [],
+        flashcards: flashcards || []
+      });
+    } catch (error) {
+      console.error('Error loading conversation content:', error);
+    }
+  };
+
   const handleSelectChat = async (conversationId: string) => {
     setActiveJobs(new Map());
     processedJobsRef.current.clear();
@@ -759,6 +787,7 @@ const AIChatPage = () => {
       setMessages(messagesWithSuggestions);
       setActiveConversationId(conversationId);
       setShowMobileHistory(false);
+      loadConversationContent(conversationId);
     } catch (error) {
       console.error('Error loading conversation:', error);
       toast({
@@ -1080,6 +1109,37 @@ const AIChatPage = () => {
                 <Plus className="w-4 h-4 mr-2" />
                 Nova Conversa
               </Button>
+
+              {/* Conteúdo Gerado na Conversa */}
+              {(conversationContent.quizzes.length > 0 || conversationContent.flashcards.length > 0) && (
+                <div className="pb-4 border-b border-border">
+                  <h3 className="text-sm font-semibold text-foreground-muted px-2 mb-3">
+                    📚 Conteúdo Gerado
+                  </h3>
+                  <div className="space-y-2">
+                    {conversationContent.quizzes.map((quiz) => (
+                      <GeneratedContentCard
+                        key={quiz.id}
+                        type="quiz"
+                        title={quiz.title}
+                        itemCount={quiz.questions?.length || 0}
+                        createdAt={quiz.created_at}
+                        onOpen={() => handleOpenQuiz(quiz.id)}
+                      />
+                    ))}
+                    {conversationContent.flashcards.map((set) => (
+                      <GeneratedContentCard
+                        key={set.id}
+                        type="flashcard"
+                        title={set.title}
+                        itemCount={set.cards?.length || 0}
+                        createdAt={set.created_at}
+                        onOpen={() => handleOpenFlashcards(set.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Chat History List */}
               <div className="flex-1 space-y-2 overflow-y-auto">

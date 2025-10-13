@@ -8,10 +8,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { engineeringFlashcards } from '@/data/engineeringModules';
 
 interface Flashcard {
-  id: string;
-  question: string;
-  answer: string;
-  tags: string[];
+  id?: string;
+  question?: string;  // Para flashcards antigos
+  answer?: string;    // Para flashcards antigos
+  front?: string;     // Para flashcards gerados por IA
+  back?: string;      // Para flashcards gerados por IA
+  tags?: string[];
 }
 
 interface FlashcardModalProps {
@@ -85,7 +87,16 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
       if (error) throw error;
 
       setFlashcardData({ topic: data.topic });
-      setFlashcards(data.cards as unknown as Flashcard[]);
+      
+      // Converter formato { front, back } para { question, answer, tags }
+      const convertedCards = (data.cards as any[]).map((card, index) => ({
+        id: `generated-${index}`,
+        question: card.front || card.question || '',
+        answer: card.back || card.answer || '',
+        tags: card.tags || [data.topic] // Usar tópico como tag padrão
+      }));
+      
+      setFlashcards(convertedCards);
       setCurrentCardIndex(0);
       setIsFlipped(false);
     } catch (error) {
@@ -259,24 +270,27 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
                 {/* Front of Card (Question) */}
                 <div className="absolute inset-0 w-full h-full rounded-2xl border-2 border-primary/20 bg-card shadow-2xl p-4 sm:p-8 flex flex-col justify-between backface-hidden">
                   <div className="flex-1 flex items-center justify-center text-center">
-                    <h3 className="text-lg sm:text-2xl font-semibold leading-tight text-foreground">
-                      {currentCard.question}
+                  <h3 className="text-lg sm:text-2xl font-semibold leading-tight text-foreground">
+                    {currentCard.question || currentCard.front || 'Sem pergunta'}
                     </h3>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 justify-center mt-4 sm:mt-6">
-                    {currentCard.tags.map((tag, index) => (
-                      <Badge
-                        key={index}
-                        variant="outline"
-                        className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium border ${
-                          tagColors[tag as keyof typeof tagColors] || 'bg-gray-100 text-gray-800 border-gray-200'
-                        }`}
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
+                  {/* Tags */}
+                  {currentCard.tags && currentCard.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 justify-center mt-4 sm:mt-6">
+                      {currentCard.tags.map((tag, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium border ${
+                            tagColors[tag as keyof typeof tagColors] || 'bg-gray-100 text-gray-800 border-gray-200'
+                          }`}
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="absolute top-4 right-4 bg-primary/10 rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center">
                     <span className="text-xs font-bold text-primary">
@@ -292,24 +306,27 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
                 {/* Back of Card (Answer) */}
                 <div className="absolute inset-0 w-full h-full rounded-2xl border-2 border-secondary/20 bg-secondary/5 shadow-2xl p-4 sm:p-8 flex flex-col justify-between backface-hidden rotate-y-180">
                   <div className="flex-1 flex items-center justify-center text-center">
-                    <p className="text-base sm:text-xl leading-relaxed text-foreground">
-                      {currentCard.answer}
+                  <p className="text-base sm:text-xl leading-relaxed text-foreground">
+                    {currentCard.answer || currentCard.back || 'Sem resposta'}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 justify-center mt-4 sm:mt-6">
-                    {currentCard.tags.map((tag, index) => (
-                      <Badge
-                        key={index}
-                        variant="outline"
-                        className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium border ${
-                          tagColors[tag as keyof typeof tagColors] || 'bg-gray-100 text-gray-800 border-gray-200'
-                        }`}
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
+                  {/* Tags */}
+                  {currentCard.tags && currentCard.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 justify-center mt-4 sm:mt-6">
+                      {currentCard.tags.map((tag, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium border ${
+                            tagColors[tag as keyof typeof tagColors] || 'bg-gray-100 text-gray-800 border-gray-200'
+                          }`}
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="absolute top-4 right-4 bg-secondary/20 rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center">
                     <span className="text-xs font-bold text-secondary">

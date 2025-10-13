@@ -553,21 +553,21 @@ async function handleGenerateQuiz(job: any, supabaseAdmin: any, lovableApiKey: s
     const systemPrompt = `Você é um criador de quizzes educacionais para engenharia.
 Gere 6-9 perguntas de múltipla escolha baseadas no conteúdo fornecido.
 
+⚠️ IDIOMA OBRIGATÓRIO: TODO O CONTEÚDO DEVE SER EM PORTUGUÊS DO BRASIL
 ⚠️ REGRAS CRÍTICAS DE FORMATAÇÃO:
 1. Retorne APENAS o JSON puro, sem markdown (sem \`\`\`json)
-2. Use aspas duplas escapadas corretamente: \\"texto\\"
+2. Use aspas duplas escapadas corretamente
 3. NÃO use quebras de linha dentro de strings
-4. Substitua aspas em fórmulas por 'aspas simples'
-5. Use \\n para quebras de linha em explicações
+4. Todas as perguntas, opções e explicações devem estar em português do Brasil
 
 FORMATO JSON OBRIGATÓRIO:
 {
   "questions": [
     {
-      "question": "Texto da pergunta sem quebras de linha",
-      "options": ["Opção A", "Opção B", "Opção C", "Opção D"],
+      "question": "Pergunta em português do Brasil",
+      "options": ["Opção A em português", "Opção B em português", "Opção C em português", "Opção D em português"],
       "correctAnswer": 0,
-      "explanation": "Explicação clara e concisa sem caracteres especiais problemáticos"
+      "explanation": "Explicação detalhada em português do Brasil"
     }
   ]
 }`;
@@ -707,19 +707,19 @@ async function handleGenerateFlashcards(job: any, supabaseAdmin: any, lovableApi
     const systemPrompt = `Você é um criador de flashcards educacionais para engenharia.
 Gere 8-12 flashcards baseados no conteúdo fornecido.
 
+⚠️ IDIOMA OBRIGATÓRIO: TODO O CONTEÚDO DEVE SER EM PORTUGUÊS DO BRASIL
 ⚠️ REGRAS CRÍTICAS DE FORMATAÇÃO:
 1. Retorne APENAS o JSON puro, sem markdown (sem \`\`\`json)
-2. Use aspas duplas escapadas corretamente: \\"texto\\"
+2. Use aspas duplas escapadas corretamente
 3. NÃO use quebras de linha dentro de strings
-4. Substitua aspas em fórmulas por 'aspas simples'
-5. Use \\n para quebras de linha em explicações
+4. Todas as perguntas (front) e respostas (back) devem estar em português do Brasil
 
 FORMATO JSON OBRIGATÓRIO:
 {
   "cards": [
     {
-      "front": "Pergunta ou conceito sem quebras de linha",
-      "back": "Resposta ou explicação detalhada sem caracteres especiais problemáticos"
+      "front": "Pergunta ou conceito em português do Brasil",
+      "back": "Resposta ou explicação detalhada em português do Brasil"
     }
   ]
 }`;
