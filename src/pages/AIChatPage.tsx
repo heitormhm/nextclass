@@ -64,6 +64,7 @@ const AIChatPage = () => {
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
   const [activeJobs, setActiveJobs] = useState<Map<string, any>>(new Map());
+  const [processedJobs, setProcessedJobs] = useState<Set<string>>(new Set());
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
   const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
@@ -541,6 +542,9 @@ const AIChatPage = () => {
   };
 
   const handleSelectChat = async (conversationId: string) => {
+    setActiveJobs(new Map());
+    setProcessedJobs(new Set());
+    
     try {
       // Load messages for this conversation
       const { data: messagesData, error } = await supabase
@@ -699,6 +703,11 @@ const AIChatPage = () => {
           
           const job = payload.new as any;
           
+          // ✅ PREVENIR LOOP: Só processar se não foi processado ainda
+          if (processedJobs.has(job.id)) {
+            return; // Ignora updates duplicados
+          }
+          
           // Update active jobs state
           if (activeJobs.has(job.id)) {
             const currentJob = activeJobs.get(job.id);
@@ -713,8 +722,10 @@ const AIChatPage = () => {
               }));
             }
             
-            // ✅ NAVEGAÇÃO AUTOMÁTICA quando job completar
+            // ✅ Processar quando job completar
             if (job.status === 'COMPLETED') {
+              // ✅ MARCAR COMO PROCESSADO
+              setProcessedJobs(prev => new Set(prev).add(job.id));
               
               // 💡 SUGGESTIONS: Forçar re-render
               if (job.job_type === 'GENERATE_SUGGESTIONS') {
@@ -729,11 +740,14 @@ const AIChatPage = () => {
                 }
               }
               
-              // ✅ Remover job completado após 10 segundos (tempo para usuário ver e clicar)
+              // ✅ Remover job completado após 10 segundos EXCETO sugestões
               setTimeout(() => {
                 setActiveJobs(prev => {
                   const newJobs = new Map(prev);
-                  newJobs.delete(job.id);
+                  // Só remover se NÃO for job de sugestões
+                  if (job.job_type !== 'GENERATE_SUGGESTIONS') {
+                    newJobs.delete(job.id);
+                  }
                   return newJobs;
                 });
               }, 10000);
@@ -884,7 +898,7 @@ const AIChatPage = () => {
       console.log('🔌 Unsubscribing from job updates');
       jobChannel.unsubscribe();
     };
-  }, [deepSearchJobId, activeConversationId]);
+  }, [deepSearchJobId]);
 
 
   // Scroll to bottom when messages change
