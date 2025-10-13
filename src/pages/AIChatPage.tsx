@@ -12,6 +12,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { generateReportPDF } from "@/utils/pdfGenerator";
 import { ActionButtons } from "@/components/ActionButtons";
 import { JobStatus } from "@/components/JobStatus";
+import { QuizModal } from "@/components/QuizModal";
+import { FlashcardModal } from "@/components/FlashcardModal";
 
 interface AttachedFile {
   name: string;
