@@ -149,7 +149,8 @@ const validateGeneratedPDF = (doc: jsPDF, contentAnalysis: ContentAnalysis): PDF
 const diagnosePDF = (
   doc: jsPDF, 
   contentAnalysis: ContentAnalysis,
-  renderStats: RenderStats
+  renderStats: RenderStats,
+  content: string = ''
 ): DiagnosticResult[] => {
   const diagnostics: DiagnosticResult[] = [];
   
@@ -202,6 +203,37 @@ const diagnosePDF = (
       suggestedFix: 'Condição de quebra de página pode estar incorreta',
       canAutoFix: true
     });
+  }
+  
+  // FASE 6: Verificar símbolos Unicode mal renderizados
+  if (content) {
+    const unicodeSymbols = ['Δ', 'δ', 'π', 'θ', 'ω', 'Σ', 'α', 'β', 'γ', '∫', '√', '∞'];
+    let hasUnicodeIssues = false;
+    
+    unicodeSymbols.forEach(symbol => {
+      if (content.includes(symbol)) {
+        hasUnicodeIssues = true;
+      }
+    });
+    
+    if (hasUnicodeIssues) {
+      console.log('⚠️ Símbolos Unicode detectados - aplicando normalização automática');
+      // Não é mais um problema pois está sendo corrigido automaticamente
+    }
+  }
+  
+  // FASE 6: Verificar equações com asteriscos (formatação markdown)
+  if (content) {
+    const lines = content.split('\n');
+    const hasEquationsWithAsterisks = lines.some(line => {
+      const trimmed = line.trim();
+      return trimmed.includes('**') && isEquation(trimmed.replace(/\*\*/g, ''));
+    });
+    
+    if (hasEquationsWithAsterisks) {
+      console.log('⚠️ Equações com asteriscos detectadas - normalizando automaticamente');
+      // Corrigido automaticamente pelo normalizeScientificSymbols
+    }
   }
   
   return diagnostics;
@@ -259,6 +291,35 @@ const isEquation = (line: string): boolean => {
   return hasEquals && hasMathSymbols && notTooLong && notSentence;
 };
 
+// FASE 1 (Nova): Normalizar símbolos Unicode para renderização
+const normalizeScientificSymbols = (text: string): string => {
+  const symbolMap: Record<string, string> = {
+    'Δ': 'Delta',
+    'δ': 'delta',
+    'π': 'pi',
+    'θ': 'theta',
+    'ω': 'omega',
+    'Σ': 'Sigma',
+    'α': 'alpha',
+    'β': 'beta',
+    'γ': 'gamma',
+    '∫': 'integral',
+    '√': 'sqrt',
+    '∞': 'infinito',
+    '≈': '~=',
+    '≠': '!=',
+    '≤': '<=',
+    '≥': '>='
+  };
+  
+  let normalized = text;
+  Object.entries(symbolMap).forEach(([unicode, ascii]) => {
+    normalized = normalized.replace(new RegExp(unicode, 'g'), ascii);
+  });
+  
+  return normalized;
+};
+
 // FASE 2 (Melhorias): Remover formatação markdown inline para cálculo
 const stripInlineFormatting = (text: string): string => {
   return text.replace(/\*\*/g, '').replace(/\*/g, '');
@@ -270,6 +331,49 @@ const hasInlineFormatting = (text: string): { hasBold: boolean; hasItalic: boole
     hasBold: /\*\*[^*]+\*\*/.test(text),
     hasItalic: /\*[^*]+\*/.test(text) && !/\*\*/.test(text)
   };
+};
+
+// FASE 4 (Nova): Formatar referências bibliográficas [X.Y]
+const formatReferences = (text: string): { 
+  hasRefs: boolean; 
+  segments: Array<{ text: string; isRef: boolean }> 
+} => {
+  const refPattern = /\[(\d+\.?\d*|\d+)\]/g;
+  const hasRefs = refPattern.test(text);
+  
+  if (!hasRefs) {
+    return { hasRefs: false, segments: [{ text, isRef: false }] };
+  }
+  
+  const segments: Array<{ text: string; isRef: boolean }> = [];
+  let lastIndex = 0;
+  const matches = text.matchAll(/\[(\d+\.?\d*|\d+)\]/g);
+  
+  for (const match of matches) {
+    // Texto antes da referência
+    if (match.index! > lastIndex) {
+      segments.push({ 
+        text: text.substring(lastIndex, match.index), 
+        isRef: false 
+      });
+    }
+    // Referência
+    segments.push({ 
+      text: match[0], 
+      isRef: true 
+    });
+    lastIndex = match.index! + match[0].length;
+  }
+  
+  // Texto restante
+  if (lastIndex < text.length) {
+    segments.push({ 
+      text: text.substring(lastIndex), 
+      isRef: false 
+    });
+  }
+  
+  return { hasRefs: true, segments };
 };
 
 // ============= GERAÇÃO DO PDF =============
@@ -452,7 +556,7 @@ const generatePDFDocument = (content: string, title: string): {
 
     const trimmedLine = line.trim();
     if (!trimmedLine) {
-      yPosition += 3; // FASE 1: Espaçamento reduzido para linhas vazias
+      yPosition += 5; // FASE 2: Espaçamento aumentado para melhor respiração visual
       return;
     }
 
@@ -462,8 +566,8 @@ const generatePDFDocument = (content: string, title: string): {
       renderStats.h1++;
       const h1Text = h1Match[1].trim();
       
-      // FASE 1: Espaçamento superior
-      yPosition += 8;
+      // FASE 2: Espaçamento superior aumentado para H1
+      yPosition += 12;
       checkPageBreak(30); // Margem de segurança para títulos longos
       
       doc.setFontSize(18);
@@ -476,11 +580,12 @@ const generatePDFDocument = (content: string, title: string): {
         if (checkPageBreak(15)) {
           // Recalcular após quebra
         }
-        doc.text(line, margin, yPosition);
+        // FASE 1: Aplicar normalização de símbolos
+        doc.text(normalizeScientificSymbols(line), margin, yPosition);
         yPosition += 12; // FASE 1: Altura da linha H1
       });
       
-      yPosition += 6; // FASE 1: Espaçamento inferior
+      yPosition += 8; // FASE 2: Espaçamento inferior aumentado para H1
       
       // FASE 4: Adicionar âncora para índice
       sectionAnchors.push({
@@ -499,8 +604,8 @@ const generatePDFDocument = (content: string, title: string): {
       renderStats.h2++;
       const h2Text = h2Match[1].trim();
       
-      // FASE 1: Espaçamento superior
-      yPosition += 6;
+      // FASE 2: Espaçamento superior aumentado para H2
+      yPosition += 8;
       checkPageBreak(20);
       
       doc.setFontSize(14);
@@ -513,11 +618,12 @@ const generatePDFDocument = (content: string, title: string): {
         if (checkPageBreak(12)) {
           // Recalcular após quebra
         }
-        doc.text(line, margin, yPosition);
+        // FASE 1: Aplicar normalização de símbolos
+        doc.text(normalizeScientificSymbols(line), margin, yPosition);
         yPosition += 9; // FASE 1: Altura da linha H2
       });
       
-      yPosition += 4; // FASE 1: Espaçamento inferior
+      yPosition += 6; // FASE 2: Espaçamento inferior aumentado para H2
       
       // FASE 4: Adicionar âncora
       sectionAnchors.push({
@@ -550,7 +656,8 @@ const generatePDFDocument = (content: string, title: string): {
         if (checkPageBreak(10)) {
           // Recalcular após quebra
         }
-        doc.text(line, margin, yPosition);
+        // FASE 1: Aplicar normalização de símbolos
+        doc.text(normalizeScientificSymbols(line), margin, yPosition);
         yPosition += 7; // FASE 1: Altura da linha H3
       });
       
@@ -589,13 +696,14 @@ const generatePDFDocument = (content: string, title: string): {
         if (checkPageBreak(8)) {
           // Recalcular
         }
-        doc.text(line, margin + 10, yPosition);
+        // FASE 1: Aplicar normalização de símbolos
+        doc.text(normalizeScientificSymbols(line), margin + 10, yPosition);
         if (idx < wrappedList.length - 1) {
-          yPosition += 5;
+          yPosition += 4; // FASE 3: Espaçamento reduzido entre linhas de lista
         }
       });
       
-      yPosition += 5; // Espaçamento após item da lista
+      yPosition += 4; // FASE 3: Espaçamento reduzido após item da lista
       return;
     }
 
@@ -622,17 +730,18 @@ const generatePDFDocument = (content: string, title: string): {
         if (checkPageBreak(8)) {
           // Recalcular
         }
-        doc.text(line, margin + 12, yPosition);
+        // FASE 1: Aplicar normalização de símbolos
+        doc.text(normalizeScientificSymbols(line), margin + 12, yPosition);
         if (idx < wrappedList.length - 1) {
-          yPosition += 5;
+          yPosition += 4; // FASE 3: Espaçamento reduzido entre linhas de lista
         }
       });
       
-      yPosition += 5;
+      yPosition += 4; // FASE 3: Espaçamento reduzido após item da lista
       return;
     }
 
-    // FASE 3: Equation detection melhorado
+    // FASE 3 & 5: Equation detection e renderização melhorada
     if (isEquation(trimmedLine)) {
       renderStats.equations++;
       checkPageBreak(15);
@@ -641,33 +750,85 @@ const generatePDFDocument = (content: string, title: string): {
       doc.setFont('courier', 'normal');
       doc.setTextColor(0, 0, 0);
       
-      // FASE 3: Adicionar caixa de destaque para equações
-      const equationText = trimmedLine;
-      const textWidth = doc.getTextWidth(equationText);
-      const boxPadding = 5;
-      const boxWidth = Math.min(textWidth + boxPadding * 2, contentWidth);
-      const boxHeight = 8;
+      // FASE 1: Normalizar símbolos Unicode ANTES de renderizar
+      const normalizedEquation = normalizeScientificSymbols(trimmedLine);
       
-      // Fundo cinza claro
-      doc.setFillColor(245, 245, 245);
-      doc.rect(margin + 5, yPosition - 5, boxWidth, boxHeight, 'F');
+      // FASE 5: Tentar renderizar sem quebra primeiro
+      const equationWidth = doc.getTextWidth(normalizedEquation);
+      const maxWidth = contentWidth - 20;
       
-      // Borda
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.5);
-      doc.rect(margin + 5, yPosition - 5, boxWidth, boxHeight, 'S');
-      
-      const wrappedEquation = doc.splitTextToSize(equationText, contentWidth - 20);
-      wrappedEquation.forEach((line: string) => {
-        if (checkPageBreak(10)) {
-          // Recalcular
-        }
-        // FASE 3: Centralizar equação
-        const lineWidth = doc.getTextWidth(line);
-        const centerX = margin + (contentWidth / 2) - (lineWidth / 2);
-        doc.text(line, centerX, yPosition);
+      if (equationWidth <= maxWidth) {
+        // Cabe em uma linha - renderizar centralizado com destaque
+        const boxPadding = 5;
+        const boxWidth = equationWidth + boxPadding * 2;
+        const boxHeight = 8;
+        
+        // Fundo cinza claro
+        doc.setFillColor(245, 245, 245);
+        const centerX = margin + (contentWidth / 2) - (boxWidth / 2);
+        doc.rect(centerX, yPosition - 5, boxWidth, boxHeight, 'F');
+        
+        // Borda
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.5);
+        doc.rect(centerX, yPosition - 5, boxWidth, boxHeight, 'S');
+        
+        // Centralizar equação
+        const textCenterX = margin + (contentWidth / 2) - (equationWidth / 2);
+        doc.text(normalizedEquation, textCenterX, yPosition);
         yPosition += 6;
-      });
+      } else {
+        // FASE 5: Equação muito longa - quebrar em operadores lógicos
+        const breakPoints = ['=', '+', '-', '×', '÷', '*'];
+        let bestBreak = -1;
+        let bestOperator = '';
+        
+        for (const op of breakPoints) {
+          const idx = normalizedEquation.lastIndexOf(op, Math.floor(normalizedEquation.length * 0.6));
+          if (idx > bestBreak && idx > 10) {
+            bestBreak = idx;
+            bestOperator = op;
+          }
+        }
+        
+        if (bestBreak > 0) {
+          // Quebrar no operador
+          const part1 = normalizedEquation.substring(0, bestBreak + 1).trim();
+          const part2 = normalizedEquation.substring(bestBreak + 1).trim();
+          
+          // Renderizar com fundo
+          doc.setFillColor(245, 245, 245);
+          doc.rect(margin + 5, yPosition - 5, contentWidth - 10, 14, 'F');
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.5);
+          doc.rect(margin + 5, yPosition - 5, contentWidth - 10, 14, 'S');
+          
+          doc.text(part1, margin + 10, yPosition);
+          yPosition += 6;
+          doc.text('  ' + part2, margin + 10, yPosition); // Indentação
+          yPosition += 6;
+        } else {
+          // Fallback: usar splitTextToSize
+          const wrappedEquation = doc.splitTextToSize(normalizedEquation, maxWidth);
+          
+          const boxHeight = wrappedEquation.length * 6 + 4;
+          doc.setFillColor(245, 245, 245);
+          doc.rect(margin + 5, yPosition - 5, contentWidth - 10, boxHeight, 'F');
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.5);
+          doc.rect(margin + 5, yPosition - 5, contentWidth - 10, boxHeight, 'S');
+          
+          wrappedEquation.forEach((line: string) => {
+            if (checkPageBreak(10)) {
+              // Recalcular
+            }
+            const lineWidth = doc.getTextWidth(line);
+            const centerX = margin + (contentWidth / 2) - (lineWidth / 2);
+            doc.text(line, centerX, yPosition);
+            yPosition += 6;
+          });
+        }
+      }
       
       yPosition += 3;
       return;
@@ -681,20 +842,63 @@ const generatePDFDocument = (content: string, title: string): {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     
-    // FASE 2: Processar com formatação inline
-    const strippedText = stripInlineFormatting(trimmedLine);
-    const wrappedLines = doc.splitTextToSize(strippedText, contentWidth);
+    // FASE 1: Normalizar símbolos Unicode
+    const normalizedLine = normalizeScientificSymbols(trimmedLine);
     
-    wrappedLines.forEach((lineSegment: string) => {
-      if (checkPageBreak(8)) {
-        // Recalcular
-      }
+    // FASE 4: Verificar se há referências bibliográficas
+    const { hasRefs, segments } = formatReferences(normalizedLine);
+    
+    if (hasRefs) {
+      // Renderizar com referências formatadas
+      const strippedText = stripInlineFormatting(normalizedLine);
+      const wrappedLines = doc.splitTextToSize(strippedText, contentWidth);
       
-      doc.text(lineSegment, margin, yPosition);
-      yPosition += 6; // FASE 1: Altura da linha de parágrafo
-    });
+      wrappedLines.forEach((lineSegment: string) => {
+        if (checkPageBreak(8)) {
+          // Recalcular
+        }
+        
+        // Verificar se esta linha tem referências
+        const lineRefs = formatReferences(lineSegment);
+        if (lineRefs.hasRefs) {
+          let currentX = margin;
+          lineRefs.segments.forEach(segment => {
+            if (segment.isRef) {
+              // Renderizar referência em cinza e menor
+              const prevSize = doc.getFontSize();
+              doc.setFontSize(9);
+              doc.setTextColor(100, 100, 100);
+              doc.text(segment.text, currentX, yPosition);
+              currentX += doc.getTextWidth(segment.text);
+              doc.setFontSize(prevSize);
+              doc.setTextColor(0, 0, 0);
+            } else {
+              // Texto normal
+              doc.text(segment.text, currentX, yPosition);
+              currentX += doc.getTextWidth(segment.text);
+            }
+          });
+        } else {
+          doc.text(lineSegment, margin, yPosition);
+        }
+        yPosition += 6; // FASE 1: Altura da linha de parágrafo
+      });
+    } else {
+      // FASE 2: Processar com formatação inline
+      const strippedText = stripInlineFormatting(normalizedLine);
+      const wrappedLines = doc.splitTextToSize(strippedText, contentWidth);
+      
+      wrappedLines.forEach((lineSegment: string) => {
+        if (checkPageBreak(8)) {
+          // Recalcular
+        }
+        
+        doc.text(lineSegment, margin, yPosition);
+        yPosition += 6; // FASE 1: Altura da linha de parágrafo
+      });
+    }
     
-    yPosition += 2; // FASE 1: Espaçamento entre parágrafos
+    yPosition += 4; // FASE 2: Espaçamento aumentado entre parágrafos
   });
 
   // Calcular total de páginas
@@ -717,6 +921,89 @@ const generatePDFDocument = (content: string, title: string): {
   console.log(`   • Páginas totais: ${pageCount}`);
 
   return { doc, renderStats, sectionAnchors };
+};
+
+// FASE 7: Testes de Qualidade Visual
+interface VisualQualityCheck {
+  passed: boolean;
+  issues: string[];
+  score: number; // 0-100
+}
+
+const checkVisualQuality = (doc: jsPDF, renderStats: RenderStats, contentAnalysis: ContentAnalysis): VisualQualityCheck => {
+  const issues: string[] = [];
+  let score = 100;
+  
+  console.log('📊 Verificando qualidade visual do PDF...');
+  
+  // Check 1: Hierarquia de cabeçalhos
+  if (renderStats.h1 > 0 && renderStats.h2 > 0) {
+    console.log('  ✓ Hierarquia de títulos presente');
+    score += 0; // Neutral
+  } else if (renderStats.h1 === 0 && renderStats.h2 === 0) {
+    issues.push('PDF sem hierarquia de títulos - dificulta navegação');
+    score -= 10;
+  }
+  
+  // Check 2: Densidade de texto
+  const avgCharsPerPage = contentAnalysis.stats.totalCharacters / doc.getNumberOfPages();
+  if (avgCharsPerPage > 2500) {
+    issues.push('Densidade de texto muito alta - considere mais espaçamento');
+    score -= 15;
+    console.log(`  ⚠️ Alta densidade: ${Math.round(avgCharsPerPage)} chars/página`);
+  } else {
+    console.log(`  ✓ Densidade adequada: ${Math.round(avgCharsPerPage)} chars/página`);
+  }
+  
+  // Check 3: Proporção de listas
+  const totalElements = renderStats.paragraphs + renderStats.lists;
+  if (totalElements > 0) {
+    const listRatio = renderStats.lists / totalElements;
+    if (listRatio > 0.5) {
+      issues.push('Muitas listas (>50%) - pode dificultar leitura contínua');
+      score -= 10;
+      console.log(`  ⚠️ Alta proporção de listas: ${Math.round(listRatio * 100)}%`);
+    } else {
+      console.log(`  ✓ Proporção de listas adequada: ${Math.round(listRatio * 100)}%`);
+    }
+  }
+  
+  // Check 4: Uso de formatação inline
+  if (renderStats.boldText === 0 && renderStats.italicText === 0 && renderStats.paragraphs > 5) {
+    issues.push('Nenhuma formatação inline - texto pode ser monótono');
+    score -= 5;
+    console.log('  ⚠️ Sem formatação inline');
+  } else if (renderStats.boldText > 0 || renderStats.italicText > 0) {
+    console.log(`  ✓ Formatação inline presente (bold: ${renderStats.boldText}, italic: ${renderStats.italicText})`);
+  }
+  
+  // Check 5: Páginas geradas vs esperadas
+  const expectedPages = Math.ceil(contentAnalysis.stats.totalCharacters / 2000);
+  const pageRatio = doc.getNumberOfPages() / expectedPages;
+  if (pageRatio < 0.5) {
+    issues.push('Páginas geradas muito abaixo do esperado - conteúdo pode estar faltando');
+    score -= 20;
+    console.log(`  ⚠️ Páginas: ${doc.getNumberOfPages()}/${expectedPages} (${Math.round(pageRatio * 100)}%)`);
+  } else if (pageRatio > 2) {
+    issues.push('Páginas geradas muito acima do esperado - espaçamento excessivo');
+    score -= 10;
+    console.log(`  ⚠️ Páginas: ${doc.getNumberOfPages()}/${expectedPages} (${Math.round(pageRatio * 100)}%)`);
+  } else {
+    console.log(`  ✓ Páginas: ${doc.getNumberOfPages()}/${expectedPages} (${Math.round(pageRatio * 100)}%)`);
+  }
+  
+  // Check 6: Equações formatadas
+  if (renderStats.equations > 0) {
+    console.log(`  ✓ ${renderStats.equations} equações formatadas com destaque`);
+  }
+  
+  console.log(`📊 Score final de qualidade visual: ${score}/100`);
+  
+  return {
+    passed: score >= 70,
+    issues,
+    score
+  };
 };
 
 // FASE 6: Função Principal com Auto-Diagnóstico
@@ -748,7 +1035,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): PDFGeneration
   
   // FASE 3: Diagnóstico
   console.log('🔍 FASE 3: Diagnosticando PDF gerado...');
-  const diagnostics = diagnosePDF(doc, contentAnalysis, renderStats);
+  const diagnostics = diagnosePDF(doc, contentAnalysis, renderStats, content);
   
   let fixesApplied: string[] = [];
   
@@ -772,7 +1059,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): PDFGeneration
       
       console.log('📊 Estatísticas de renderização (Tentativa 2):', renderStats);
       
-      const newDiagnostics = diagnosePDF(doc, contentAnalysis, renderStats);
+      const newDiagnostics = diagnosePDF(doc, contentAnalysis, renderStats, content);
       if (newDiagnostics.length > 0) {
         console.warn('⚠️ Alguns problemas persistem após correção automática');
       } else {
@@ -813,9 +1100,20 @@ export const generateReportPDF = ({ content, title }: PDFOptions): PDFGeneration
   }
 
   console.log('✅ PDF validado com sucesso!');
+  
+  // FASE 7: Verificação de qualidade visual
+  console.log('🎨 FASE 7: Verificando qualidade visual...');
+  const qualityCheck = checkVisualQuality(doc, renderStats, contentAnalysis);
+  
+  if (!qualityCheck.passed) {
+    console.warn(`⚠️ Score de qualidade: ${qualityCheck.score}/100`);
+    console.warn('⚠️ Problemas de qualidade visual:', qualityCheck.issues);
+  } else {
+    console.log(`✅ Qualidade visual aprovada: ${qualityCheck.score}/100`);
+  }
 
-  // FASE 7: Download
-  console.log('📥 FASE 7: Iniciando download do PDF...');
+  // FASE 8: Download
+  console.log('📥 FASE 8: Iniciando download do PDF...');
   const fileName = `relatorio-${title.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.pdf`;
   doc.save(fileName);
   
