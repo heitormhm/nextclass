@@ -247,6 +247,34 @@ const diagnosePDF = (
     });
   }
   
+  // FASE 4 (NOVA): Verificar rodapés
+  if (renderStats.pagesAdded > 0) {
+    diagnostics.push({
+      issue: `Verificar se rodapés mostram "Página X de ${pageCount}" corretamente`,
+      severity: 'low',
+      detectedAt: 'Footer Rendering',
+      suggestedFix: 'Inspecionar visualmente o PDF gerado',
+      canAutoFix: false
+    });
+  }
+  
+  // FASE 4 (NOVA): Verificar referências bibliográficas
+  if (content) {
+    const refPattern = /\[\d+\.?\d*\]/g;
+    const refsFound = content.match(refPattern);
+    
+    if (refsFound && refsFound.length > 0) {
+      console.log(`📚 Total de referências detectadas: ${refsFound.length}`);
+      diagnostics.push({
+        issue: `${refsFound.length} referências bibliográficas detectadas - verificar formatação em cinza 9pt`,
+        severity: 'low',
+        detectedAt: 'Reference Processing',
+        suggestedFix: 'Referências devem aparecer em RGB(100,100,100) e tamanho 9pt',
+        canAutoFix: false
+      });
+    }
+  }
+  
   return diagnostics;
 };
 
@@ -587,8 +615,8 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
         if (checkPageBreak(15)) {
           // Recalcular após quebra
         }
-        // FASE 1: Aplicar normalização de símbolos
-        doc.text(normalizeScientificSymbols(line), margin, yPosition);
+        // FASE 1: Símbolos Unicode renderizados nativamente com DejaVu Sans
+        doc.text(line, margin, yPosition);
         yPosition += 12; // FASE 1: Altura da linha H1
       });
       
@@ -625,8 +653,8 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
         if (checkPageBreak(12)) {
           // Recalcular após quebra
         }
-        // FASE 1: Aplicar normalização de símbolos
-        doc.text(normalizeScientificSymbols(line), margin, yPosition);
+        // FASE 1: Símbolos Unicode renderizados nativamente com DejaVu Sans
+        doc.text(line, margin, yPosition);
         yPosition += 9; // FASE 1: Altura da linha H2
       });
       
@@ -663,8 +691,8 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
         if (checkPageBreak(10)) {
           // Recalcular após quebra
         }
-        // FASE 1: Aplicar normalização de símbolos
-        doc.text(normalizeScientificSymbols(line), margin, yPosition);
+        // FASE 1: Símbolos Unicode renderizados nativamente com DejaVu Sans
+        doc.text(line, margin, yPosition);
         yPosition += 7; // FASE 1: Altura da linha H3
       });
       
@@ -711,8 +739,8 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
         if (checkPageBreak(8)) {
           // Recalcular
         }
-        // FASE 1: Aplicar normalização de símbolos
-        doc.text(normalizeScientificSymbols(line), margin + 10, yPosition);
+        // FASE 1: Símbolos Unicode renderizados nativamente com DejaVu Sans
+        doc.text(line, margin + 10, yPosition);
         if (idx < wrappedList.length - 1) {
           yPosition += 4; // FASE 3: Espaçamento reduzido entre linhas de lista
         }
@@ -753,8 +781,8 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
         if (checkPageBreak(8)) {
           // Recalcular
         }
-        // FASE 1: Aplicar normalização de símbolos
-        doc.text(normalizeScientificSymbols(line), margin + 12, yPosition);
+        // FASE 1: Símbolos Unicode renderizados nativamente com DejaVu Sans
+        doc.text(line, margin + 12, yPosition);
         if (idx < wrappedList.length - 1) {
           yPosition += 4; // FASE 3: Espaçamento reduzido entre linhas de lista
         }
@@ -773,8 +801,8 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
       doc.setFont('courier', 'normal');
       doc.setTextColor(0, 0, 0);
       
-      // FASE 1: Normalizar símbolos Unicode ANTES de renderizar
-      const normalizedEquation = normalizeScientificSymbols(trimmedLine);
+      // FASE 1: Usar símbolos Unicode nativos (não normalizar mais)
+      const normalizedEquation = trimmedLine;
       
       // FASE 7: Logging para debug
       if (normalizedEquation !== trimmedLine) {
@@ -872,81 +900,97 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     
-    // FASE 1: Normalizar símbolos Unicode
-    const normalizedLine = normalizeScientificSymbols(trimmedLine);
+    // FASE 3 (REFATORADA): Processamento de referências ANTES de quebra de linha
+    const processedLine = trimmedLine; // Usar Unicode nativo
     
-    // FASE 4 & 5: Verificar e processar referências bibliográficas (corrigido)
-    const { hasRefs, segments } = formatReferences(normalizedLine);
+    // FASE 3: PRIMEIRO detectar referências
+    const { hasRefs, segments } = formatReferences(processedLine);
     
     if (hasRefs) {
-      // FASE 5: NÃO aplicar stripInlineFormatting antes de processar referências
-      // Aplicar splitTextToSize diretamente no texto normalizado
-      const wrappedLines = doc.splitTextToSize(normalizedLine, contentWidth);
+      // FASE 3: Processar cada segmento ANTES de quebrar
+      console.log(`📚 Referências detectadas: "${processedLine.substring(0, 60)}..."`);
+      console.log(`   Segmentos: ${segments.length}`);
       
-      wrappedLines.forEach((lineSegment: string) => {
-        if (checkPageBreak(8)) {
-          // Recalcular
-        }
-        
-        // Processar referências nesta linha específica
-        const lineRefs = formatReferences(lineSegment);
-        if (lineRefs.hasRefs) {
-          let currentX = margin;
-          lineRefs.segments.forEach(segment => {
-            if (segment.isRef) {
-              // Renderizar referência em cinza e menor
-              const prevSize = doc.getFontSize();
-              doc.setFontSize(9);
-              doc.setTextColor(100, 100, 100);
-              doc.text(segment.text, currentX, yPosition);
-              currentX += doc.getTextWidth(segment.text);
-              doc.setFontSize(prevSize);
-              doc.setTextColor(0, 0, 0);
-            } else {
-              // Texto normal - verificar se tem formatação inline
-              const formatting = hasInlineFormatting(segment.text);
-              if (formatting.hasBold || formatting.hasItalic) {
-                // Renderizar com formatação inline preservada
-                const strippedSegment = stripInlineFormatting(segment.text);
-                doc.text(strippedSegment, currentX, yPosition);
-                currentX += doc.getTextWidth(strippedSegment);
-              } else {
-                doc.text(segment.text, currentX, yPosition);
-                currentX += doc.getTextWidth(segment.text);
-              }
-            }
-          });
+      let currentX = margin;
+      
+      segments.forEach((segment, segIdx) => {
+        if (segment.isRef) {
+          // Renderizar referência com estilo especial
+          const refWidth = doc.getTextWidth(segment.text);
+          
+          // Verificar se cabe na linha atual
+          if (currentX + refWidth > margin + contentWidth) {
+            // Nova linha
+            yPosition += 6;
+            checkPageBreak(8);
+            currentX = margin;
+          }
+          
+          // Renderizar em cinza e 9pt
+          const prevSize = doc.getFontSize();
+          const prevColor = doc.getTextColor();
+          doc.setFontSize(9);
+          doc.setTextColor(100, 100, 100);
+          doc.text(segment.text, currentX, yPosition);
+          currentX += refWidth;
+          
+          // Restaurar estilo
+          doc.setFontSize(prevSize);
+          doc.setTextColor(0, 0, 0);
+          
+          console.log(`   [${segIdx}] REF: "${segment.text}" em cinza 9pt`);
         } else {
-          doc.text(lineSegment, margin, yPosition);
+          // Texto normal - quebrar se necessário
+          const words = segment.text.split(' ');
+          
+          words.forEach(word => {
+            const wordWidth = doc.getTextWidth(word + ' ');
+            
+            if (currentX + wordWidth > margin + contentWidth) {
+              // Nova linha
+              yPosition += 6;
+              checkPageBreak(8);
+              currentX = margin;
+            }
+            
+            doc.text(word + ' ', currentX, yPosition);
+            currentX += wordWidth;
+          });
+          
+          console.log(`   [${segIdx}] TEXT: "${segment.text.substring(0, 30)}..."`);
         }
-        yPosition += 6; // FASE 1: Altura da linha de parágrafo
       });
+      
+      yPosition += 6; // Próxima linha após processar todos os segmentos
     } else {
-      // FASE 2: Processar com formatação inline
-      const strippedText = stripInlineFormatting(normalizedLine);
-      const wrappedLines = doc.splitTextToSize(strippedText, contentWidth);
+      // Texto sem referências - processar normalmente
+      const wrappedLines = doc.splitTextToSize(processedLine, contentWidth);
       
       wrappedLines.forEach((lineSegment: string) => {
-        if (checkPageBreak(8)) {
-          // Recalcular
-        }
-        
+        checkPageBreak(8);
         doc.text(lineSegment, margin, yPosition);
-        yPosition += 6; // FASE 1: Altura da linha de parágrafo
+        yPosition += 6;
       });
     }
     
-    yPosition += 4; // FASE 2: Espaçamento aumentado entre parágrafos
+    // FASE 6: Micro-espaçamento a cada 3 parágrafos
+    if (renderStats.paragraphs % 3 === 0) {
+      yPosition += 2;
+    }
+    
+    yPosition += 4; // Espaçamento entre parágrafos
   });
 
   // Calcular total de páginas
   totalPages = pageCount;
   
-  // FASE 4: Atualizar todos os rodapés com o total correto
+  // FASE 2: Atualizar todos os rodapés com o total correto (2ª passagem)
+  console.log(`📄 Atualizando rodapés: ${totalPages} páginas`);
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     addFooter(i, totalPages);
   }
+  console.log(`✅ Rodapés atualizados: formato "Página X de ${totalPages}"`);
 
   console.log(`✅ Processamento concluído:`);
   console.log(`   • Linhas processadas: ${lines.length}`);
@@ -1041,6 +1085,42 @@ const checkVisualQuality = (doc: jsPDF, renderStats: RenderStats, contentAnalysi
     passed: score >= 70,
     issues,
     score
+  };
+};
+
+// FASE 5 (NOVA): Validação Automática de Qualidade
+const validatePDFQuality = (
+  doc: jsPDF, 
+  renderStats: RenderStats,
+  content: string
+): { passed: boolean; issues: string[] } => {
+  const issues: string[] = [];
+  
+  // Teste 1: Verificar total de páginas
+  const totalPages = doc.getNumberOfPages();
+  if (totalPages < 2) {
+    issues.push(`PDF tem apenas ${totalPages} página(s) - pode estar incompleto`);
+  }
+  
+  // Teste 2: Verificar proporção de elementos renderizados
+  const totalElements = renderStats.h1 + renderStats.h2 + renderStats.h3 + renderStats.paragraphs;
+  if (totalElements < 10) {
+    issues.push('Poucos elementos renderizados - verificar parsing');
+  }
+  
+  // Teste 3: Verificar se referências existem no conteúdo
+  const refPattern = /\[\d+\.?\d*\]/g;
+  const refsInContent = (content.match(refPattern) || []).length;
+  
+  console.log(`\n📊 Validação de Qualidade:`);
+  console.log(`   ✓ Total de páginas: ${totalPages}`);
+  console.log(`   ✓ Elementos renderizados: ${totalElements}`);
+  console.log(`   ✓ Referências no conteúdo: ${refsInContent}`);
+  console.log(`   ✓ Equações: ${renderStats.equations}`);
+  
+  return {
+    passed: issues.length === 0,
+    issues
   };
 };
 
@@ -1139,6 +1219,16 @@ export const generateReportPDF = async ({ content, title }: PDFOptions): Promise
   }
 
   console.log('✅ PDF validado com sucesso!');
+  
+  // FASE 5: Validação de qualidade
+  console.log('📊 FASE 5: Validação de qualidade...');
+  const qualityValidation = validatePDFQuality(doc, renderStats, content);
+  
+  if (!qualityValidation.passed) {
+    console.warn('⚠️ Problemas de qualidade detectados:', qualityValidation.issues);
+  } else {
+    console.log('✅ Validação de qualidade aprovada');
+  }
   
   // FASE 7: Verificação de qualidade visual
   console.log('🎨 FASE 7: Verificando qualidade visual...');
