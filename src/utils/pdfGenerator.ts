@@ -275,6 +275,23 @@ const diagnosePDF = (
     }
   }
   
+  // FASE 4 (NOVA): Verificar símbolos matemáticos no conteúdo
+  if (content) {
+    const mathSymbolsPattern = /[ΔπθωΩΣ∫αβγμλΦΨ±≠≤≥√∞∂∇]/g;
+    const mathSymbolsFound = (content.match(mathSymbolsPattern) || []).length;
+    
+    if (mathSymbolsFound > 0) {
+      diagnostics.push({
+        issue: `${mathSymbolsFound} símbolos matemáticos Unicode detectados - verificar renderização com fonte Unicode`,
+        severity: 'low',
+        detectedAt: 'Symbol Detection',
+        suggestedFix: 'Equações devem usar fonte DejaVu Sans para suporte Unicode completo',
+        canAutoFix: false
+      });
+      console.log(`🔬 Símbolos matemáticos detectados: ${mathSymbolsFound}`);
+    }
+  }
+  
   return diagnostics;
 };
 
@@ -395,7 +412,13 @@ const formatReferences = (text: string): {
 
 // ============= GERAÇÃO DO PDF =============
 
-const generatePDFDocument = async (content: string, title: string): Promise<{ 
+// Detectar se texto contém símbolos matemáticos Unicode
+const hasMathSymbols = (text: string): boolean => {
+  const mathSymbols = /[ΔπθωΩΣ∫αβγμλΦΨ±≠≤≥√∞∂∇]/;
+  return mathSymbols.test(text);
+};
+
+const generatePDFDocument = async (content: string, title: string): Promise<{
   doc: jsPDF; 
   renderStats: RenderStats;
   sectionAnchors: SectionAnchor[];
@@ -423,13 +446,15 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
   // ✅ FASE 7: Adicionar fonte Unicode para suportar símbolos matemáticos
   try {
     const fontBase64 = await loadUnicodeFont();
+    // Registrar fonte Unicode, mas NÃO definir como padrão
     doc.addFileToVFS(unicodeFontConfig.fontFileName, fontBase64);
     doc.addFont(
       unicodeFontConfig.fontFileName, 
       unicodeFontConfig.fontName, 
       unicodeFontConfig.fontStyle
     );
-    doc.setFont(unicodeFontConfig.fontName);
+    // Usar Helvetica como padrão para texto normal
+    doc.setFont('helvetica');
     console.log('✅ Fonte Unicode carregada: símbolos matemáticos (Δ, π, θ, ω, etc.) serão renderizados nativamente');
   } catch (error) {
     console.warn('⚠️ Erro ao carregar fonte Unicode, usando fonte padrão:', error);
@@ -797,33 +822,45 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
       renderStats.equations++;
       checkPageBreak(15);
       
+      // Configurar estilo de equação com fonte Unicode
       doc.setFontSize(11);
-      doc.setFont('courier', 'normal');
+      doc.setFont(unicodeFontConfig.fontName, 'normal');
       doc.setTextColor(0, 0, 0);
       
       // FASE 1: Usar símbolos Unicode nativos (não normalizar mais)
       const normalizedEquation = trimmedLine;
       
-      // FASE 7: Logging para debug
-      if (normalizedEquation !== trimmedLine) {
-        console.log('🔄 Equação normalizada:');
-        console.log('   Original:', trimmedLine);
-        console.log('   Normalizada:', normalizedEquation);
+      const equationWidth = doc.getTextWidth(normalizedEquation);
+      const maxWidth = contentWidth - 40; // Margem maior para evitar overflow
+      
+      // Logging melhorado
+      console.log('📐 Renderizando equação:');
+      console.log(`   Texto: "${normalizedEquation}"`);
+      console.log(`   Largura: ${equationWidth.toFixed(2)}mm (max: ${maxWidth.toFixed(2)}mm)`);
+      console.log(`   Fonte: ${unicodeFontConfig.fontName}`);
+      
+      // Detectar símbolos Unicode
+      const symbols = normalizedEquation.match(/[ΔπθωΩΣ∫αβγμλΦΨ±≠≤≥√∞∂∇]/g);
+      if (symbols) {
+        console.log(`   Símbolos Unicode: ${symbols.join(', ')}`);
       }
       
-      // FASE 5: Tentar renderizar sem quebra primeiro
-      const equationWidth = doc.getTextWidth(normalizedEquation);
-      const maxWidth = contentWidth - 20;
-      
+      // Verificar se equação cabe em uma única linha
       if (equationWidth <= maxWidth) {
-        // Cabe em uma linha - renderizar centralizado com destaque
+        // Renderizar equação centralizada com fundo cinza claro
         const boxPadding = 5;
-        const boxWidth = equationWidth + boxPadding * 2;
+        const boxWidth = Math.min(equationWidth + boxPadding * 2, contentWidth - 10);
         const boxHeight = 8;
         
-        // Fundo cinza claro
         doc.setFillColor(245, 245, 245);
-        const centerX = margin + (contentWidth / 2) - (boxWidth / 2);
+        let centerX = margin + (contentWidth / 2) - (boxWidth / 2);
+        
+        // Verificar se caixa cabe na página
+        const boxRight = centerX + boxWidth;
+        if (boxRight > pageWidth - margin) {
+          centerX = pageWidth - margin - boxWidth;
+        }
+        
         doc.rect(centerX, yPosition - 5, boxWidth, boxHeight, 'F');
         
         // Borda
@@ -854,9 +891,11 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
           const part1 = normalizedEquation.substring(0, bestBreak + 1).trim();
           const part2 = normalizedEquation.substring(bestBreak + 1).trim();
           
-          // Renderizar com fundo
+          // Criar fundo cinza para as duas linhas
           doc.setFillColor(245, 245, 245);
-          doc.rect(margin + 5, yPosition - 5, contentWidth - 10, 14, 'F');
+          const boxWidth = contentWidth - 10; // Fixo, não ultrapassar
+          const boxX = margin + 5;
+          doc.rect(boxX, yPosition - 5, boxWidth, 14, 'F');
           doc.setDrawColor(200, 200, 200);
           doc.setLineWidth(0.5);
           doc.rect(margin + 5, yPosition - 5, contentWidth - 10, 14, 'S');
@@ -871,7 +910,8 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
           
           const boxHeight = wrappedEquation.length * 6 + 4;
           doc.setFillColor(245, 245, 245);
-          doc.rect(margin + 5, yPosition - 5, contentWidth - 10, boxHeight, 'F');
+          const boxWidth = contentWidth - 10;
+          doc.rect(margin + 5, yPosition - 5, boxWidth, boxHeight, 'F');
           doc.setDrawColor(200, 200, 200);
           doc.setLineWidth(0.5);
           doc.rect(margin + 5, yPosition - 5, contentWidth - 10, boxHeight, 'S');
@@ -943,19 +983,29 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
           // Texto normal - quebrar se necessário
           const words = segment.text.split(' ');
           
-          words.forEach(word => {
-            const wordWidth = doc.getTextWidth(word + ' ');
-            
-            if (currentX + wordWidth > margin + contentWidth) {
-              // Nova linha
-              yPosition += 6;
-              checkPageBreak(8);
-              currentX = margin;
-            }
-            
-            doc.text(word + ' ', currentX, yPosition);
-            currentX += wordWidth;
-          });
+      words.forEach(word => {
+        const wordWidth = doc.getTextWidth(word + ' ');
+        
+        if (currentX + wordWidth > margin + contentWidth) {
+          // Nova linha
+          yPosition += 6;
+          checkPageBreak(8);
+          currentX = margin;
+        }
+        
+        // Usar fonte Unicode se palavra contém símbolos matemáticos
+        if (hasMathSymbols(word)) {
+          doc.setFont(unicodeFontConfig.fontName, 'normal');
+        }
+        
+        doc.text(word + ' ', currentX, yPosition);
+        currentX += wordWidth;
+        
+        // Restaurar fonte normal
+        if (hasMathSymbols(word)) {
+          doc.setFont('helvetica', 'normal');
+        }
+      });
           
           console.log(`   [${segIdx}] TEXT: "${segment.text.substring(0, 30)}..."`);
         }
@@ -1112,11 +1162,20 @@ const validatePDFQuality = (
   const refPattern = /\[\d+\.?\d*\]/g;
   const refsInContent = (content.match(refPattern) || []).length;
   
+  // Teste 4: Verificar se símbolos matemáticos existem no conteúdo
+  const mathSymbolsInContent = (content.match(/[ΔπθωΩΣ∫αβγμλΦΨ±≠≤≥√∞∂∇]/g) || []).length;
+  
   console.log(`\n📊 Validação de Qualidade:`);
   console.log(`   ✓ Total de páginas: ${totalPages}`);
   console.log(`   ✓ Elementos renderizados: ${totalElements}`);
   console.log(`   ✓ Referências no conteúdo: ${refsInContent}`);
   console.log(`   ✓ Equações: ${renderStats.equations}`);
+  
+  if (mathSymbolsInContent > 0) {
+    console.log(`   ✓ Símbolos matemáticos Unicode: ${mathSymbolsInContent}`);
+  } else if (renderStats.equations > 0) {
+    issues.push('Equações detectadas mas sem símbolos Unicode - verificar fonte');
+  }
   
   return {
     passed: issues.length === 0,
