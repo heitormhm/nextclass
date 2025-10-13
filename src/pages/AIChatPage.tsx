@@ -816,52 +816,75 @@ const AIChatPage = () => {
 
                           {message.isReport && (
                             <Button
-                              onClick={() => {
-                                console.log('🎯 Iniciando geração de PDF...');
-                                console.log('📄 Conteúdo:', message.content.substring(0, 200) + '...');
-                                console.log('📏 Tamanho do conteúdo:', message.content.length, 'caracteres');
-                                
-                                const result = generateReportPDF({
-                                  content: message.content,
-                                  title: message.reportTitle || 'Relatório de Pesquisa',
-                                  logoSvg: '',
-                                });
-                                
-                                if (result.success) {
-                                  let description = "O relatório foi gerado e o download iniciou.";
-                                  
-                                  if (result.stats) {
-                                    description += `\n\nEstatísticas:\n`;
-                                    description += `• ${result.stats.content.h1Count + result.stats.content.h2Count + result.stats.content.h3Count} títulos\n`;
-                                    description += `• ${result.stats.content.paragraphCount} parágrafos\n`;
-                                    description += `• ${result.stats.pdf.pageCount} páginas geradas`;
-                                  }
-                                  
-                                  if (result.warnings && result.warnings.length > 0) {
-                                    description += `\n\n⚠️ Avisos:\n${result.warnings.join('\n')}`;
-                                  }
-                                  
-                                  toast({
-                                    title: "✅ PDF Gerado com Sucesso",
-                                    description,
-                                    duration: 5000,
-                                  });
-                                } else {
-                                  toast({
-                                    title: "❌ Erro ao Gerar PDF",
-                                    description: result.error || "Erro desconhecido",
-                                    variant: "destructive",
-                                    duration: 7000,
-                                  });
-                                  
-                                  // Log detalhado para debug
-                                  console.error('❌ Falha na geração do PDF');
-                                  console.error('Erro:', result.error);
-                                  if (result.stats) {
-                                    console.error('Stats:', result.stats);
-                                  }
-                                }
-                              }}
+                  onClick={() => {
+                    console.log('🎯 Iniciando geração de PDF...');
+                    console.log('📄 Conteúdo:', message.content.substring(0, 200) + '...');
+                    console.log('📏 Tamanho do conteúdo:', message.content.length, 'caracteres');
+                    
+                    const result = generateReportPDF({
+                      content: message.content,
+                      title: message.reportTitle || 'Relatório de Pesquisa',
+                      logoSvg: '',
+                    });
+                    
+                    if (result.success) {
+                      let description = "O relatório foi gerado e o download iniciou.";
+                      
+                      if (result.fixesApplied && result.fixesApplied.length > 0) {
+                        description = "✅ PDF gerado com sucesso após correções automáticas!\n\n";
+                        description += `🔧 Correções aplicadas:\n${result.fixesApplied.map(f => `• ${f}`).join('\n')}`;
+                      }
+                      
+                      if (result.stats) {
+                        description += `\n\n📊 Estatísticas:\n`;
+                        description += `• Conteúdo: ${result.stats.content.h1Count + result.stats.content.h2Count + result.stats.content.h3Count} títulos, ${result.stats.content.paragraphCount} parágrafos\n`;
+                        if (result.stats.render) {
+                          description += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
+                        }
+                        description += `• PDF: ${result.stats.pdf.pageCount} páginas geradas`;
+                      }
+                      
+                      if (result.warnings && result.warnings.length > 0) {
+                        description += `\n\n⚠️ Avisos:\n${result.warnings.map(w => `• ${w}`).join('\n')}`;
+                      }
+                      
+                      toast({
+                        title: result.fixesApplied ? "✅ PDF Gerado (Auto-Corrigido)" : "✅ PDF Gerado com Sucesso",
+                        description,
+                        duration: result.fixesApplied ? 8000 : 5000,
+                      });
+                    } else {
+                      let errorDescription = result.error || "Erro desconhecido";
+                      
+                      if (result.diagnostics && result.diagnostics.length > 0) {
+                        errorDescription += `\n\n🔍 Problemas detectados:\n`;
+                        errorDescription += result.diagnostics.map(d => `• ${d.issue}\n  Sugestão: ${d.suggestedFix}`).join('\n');
+                      }
+                      
+                      if (result.stats?.render) {
+                        errorDescription += `\n\n📊 Debug Info:\n`;
+                        errorDescription += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
+                        errorDescription += `• Páginas adicionadas: ${result.stats.render.pagesAdded}`;
+                      }
+                      
+                      toast({
+                        title: "❌ Erro ao Gerar PDF",
+                        description: errorDescription,
+                        variant: "destructive",
+                        duration: 10000,
+                      });
+                      
+                      // Log detalhado para debug
+                      console.error('❌ Falha na geração do PDF');
+                      console.error('Erro:', result.error);
+                      if (result.diagnostics) {
+                        console.error('Diagnósticos:', result.diagnostics);
+                      }
+                      if (result.stats) {
+                        console.error('Stats:', result.stats);
+                      }
+                    }
+                  }}
                               className="mt-4 w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
                             >
                               <FileDown className="w-4 h-4 mr-2" />
