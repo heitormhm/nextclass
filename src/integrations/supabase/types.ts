@@ -186,6 +186,82 @@ export type Database = {
           },
         ]
       }
+      generated_flashcard_sets: {
+        Row: {
+          cards: Json
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          title: string
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          cards: Json
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          title: string
+          topic: string
+          user_id: string
+        }
+        Update: {
+          cards?: Json
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          title?: string
+          topic?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_flashcard_sets_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generated_quizzes: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          questions: Json
+          title: string
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          questions: Json
+          title: string
+          topic: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          questions?: Json
+          title?: string
+          topic?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_quizzes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           created_at: string
@@ -421,6 +497,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      student_insights: {
+        Row: {
+          action_type: string
+          context: Json | null
+          created_at: string | null
+          id: string
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          topic: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          topic?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       turma_enrollments: {
         Row: {

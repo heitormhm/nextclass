@@ -366,6 +366,262 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
 }
 
 // =========================
+// INTERACTIVE ACTION HANDLERS
+// =========================
+
+async function handleGenerateSuggestions(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  console.log(`💡 [${job.id}] Generating suggestions`);
+  
+  const { context, topic } = job.input_payload;
+  
+  const systemPrompt = `Você é um assistente educacional especializado em engenharia.
+Sua tarefa é gerar 3 sugestões de aprofundamento sobre o tópico fornecido.
+
+FORMATO DE RESPOSTA (JSON):
+{
+  "suggestions": [
+    {
+      "title": "Título curto da sugestão",
+      "description": "Descrição breve (1-2 frases)",
+      "difficulty": "iniciante|intermediário|avançado"
+    }
+  ]
+}`;
+  
+  const userPrompt = `Tópico: ${topic}\nContexto: ${typeof context === 'string' ? context.substring(0, 500) : JSON.stringify(context).substring(0, 500)}`;
+  
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${lovableApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+    }),
+  });
+  
+  if (!response.ok) throw new Error(`AI error: ${response.status}`);
+  
+  const data = await response.json();
+  const suggestionsText = data.choices[0].message.content;
+  const jsonMatch = suggestionsText.match(/\{[\s\S]*\}/);
+  const suggestions = jsonMatch ? JSON.parse(jsonMatch[0]) : { suggestions: [] };
+  
+  await supabaseAdmin
+    .from('jobs')
+    .update({
+      status: 'COMPLETED',
+      result: JSON.stringify(suggestions)
+    })
+    .eq('id', job.id);
+  
+  console.log(`✅ [${job.id}] Suggestions generated`);
+}
+
+async function handleGenerateQuiz(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  console.log(`📝 [${job.id}] Generating quiz`);
+  
+  const { context, topic, conversationId } = job.input_payload;
+  
+  if (job.status === 'PENDING') {
+    const systemPrompt = `Você é um criador de quizzes educacionais para engenharia.
+Gere 6-9 perguntas de múltipla escolha baseadas no conteúdo fornecido.
+
+FORMATO JSON:
+{
+  "questions": [
+    {
+      "question": "Texto da pergunta",
+      "options": ["Opção A", "Opção B", "Opção C", "Opção D"],
+      "correctAnswer": 0,
+      "explanation": "Explicação da resposta correta"
+    }
+  ]
+}`;
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Tópico: ${topic}\n\n${typeof context === 'string' ? context.substring(0, 2000) : JSON.stringify(context)}` }
+        ],
+      }),
+    });
+    
+    if (!response.ok) throw new Error(`AI error: ${response.status}`);
+    
+    const data = await response.json();
+    const quizJson = data.choices[0].message.content;
+    
+    await supabaseAdmin
+      .from('jobs')
+      .update({
+        status: 'SYNTHESIZING',
+        intermediate_data: { quizData: quizJson }
+      })
+      .eq('id', job.id);
+    
+    await selfInvoke(job.id);
+    
+  } else if (job.status === 'SYNTHESIZING') {
+    const jsonMatch = job.intermediate_data.quizData.match(/\{[\s\S]*\}/);
+    const quizData = jsonMatch ? JSON.parse(jsonMatch[0]) : { questions: [] };
+    
+    const { data: newQuiz, error: quizError } = await supabaseAdmin
+      .from('generated_quizzes')
+      .insert({
+        user_id: job.user_id,
+        conversation_id: job.input_payload.conversationId,
+        title: `Quiz: ${job.input_payload.topic}`,
+        topic: job.input_payload.topic,
+        questions: quizData.questions
+      })
+      .select()
+      .single();
+    
+    if (quizError) throw new Error(`Failed to save quiz: ${quizError.message}`);
+    
+    await supabaseAdmin
+      .from('messages')
+      .insert({
+        conversation_id: job.input_payload.conversationId,
+        role: 'assistant',
+        content: `✅ **Quiz criado com sucesso!**\n\nCriei um quiz com ${quizData.questions.length} perguntas sobre ${job.input_payload.topic}.`
+      });
+    
+    await supabaseAdmin
+      .from('jobs')
+      .update({
+        status: 'COMPLETED',
+        result: newQuiz.id
+      })
+      .eq('id', job.id);
+    
+    console.log(`✅ [${job.id}] Quiz saved with ID: ${newQuiz.id}`);
+  }
+}
+
+async function handleGenerateFlashcards(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  console.log(`🎴 [${job.id}] Generating flashcards`);
+  
+  const { context, topic, conversationId } = job.input_payload;
+  
+  if (job.status === 'PENDING') {
+    const systemPrompt = `Você é um criador de flashcards educacionais para engenharia.
+Gere 8-12 flashcards baseados no conteúdo fornecido.
+
+FORMATO JSON:
+{
+  "cards": [
+    {
+      "front": "Pergunta ou conceito",
+      "back": "Resposta ou explicação detalhada"
+    }
+  ]
+}`;
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Tópico: ${topic}\n\n${typeof context === 'string' ? context.substring(0, 2000) : JSON.stringify(context)}` }
+        ],
+      }),
+    });
+    
+    if (!response.ok) throw new Error(`AI error: ${response.status}`);
+    
+    const data = await response.json();
+    const flashcardsJson = data.choices[0].message.content;
+    
+    await supabaseAdmin
+      .from('jobs')
+      .update({
+        status: 'SYNTHESIZING',
+        intermediate_data: { flashcardsData: flashcardsJson }
+      })
+      .eq('id', job.id);
+    
+    await selfInvoke(job.id);
+    
+  } else if (job.status === 'SYNTHESIZING') {
+    const jsonMatch = job.intermediate_data.flashcardsData.match(/\{[\s\S]*\}/);
+    const flashcardsData = jsonMatch ? JSON.parse(jsonMatch[0]) : { cards: [] };
+    
+    const { data: newSet, error: setError } = await supabaseAdmin
+      .from('generated_flashcard_sets')
+      .insert({
+        user_id: job.user_id,
+        conversation_id: job.input_payload.conversationId,
+        title: `Flashcards: ${job.input_payload.topic}`,
+        topic: job.input_payload.topic,
+        cards: flashcardsData.cards
+      })
+      .select()
+      .single();
+    
+    if (setError) throw new Error(`Failed to save flashcards: ${setError.message}`);
+    
+    await supabaseAdmin
+      .from('messages')
+      .insert({
+        conversation_id: job.input_payload.conversationId,
+        role: 'assistant',
+        content: `✅ **Flashcards criados com sucesso!**\n\nCriei ${flashcardsData.cards.length} flashcards sobre ${job.input_payload.topic}.`
+      });
+    
+    await supabaseAdmin
+      .from('jobs')
+      .update({
+        status: 'COMPLETED',
+        result: newSet.id
+      })
+      .eq('id', job.id);
+    
+    console.log(`✅ [${job.id}] Flashcards saved with ID: ${newSet.id}`);
+  }
+}
+
+async function handleLogInsight(job: any, supabaseAdmin: any) {
+  console.log(`📊 [${job.id}] Logging academic insight`);
+  
+  const { action, topic, timestamp } = job.input_payload;
+  
+  await supabaseAdmin
+    .from('student_insights')
+    .insert({
+      user_id: job.user_id,
+      action_type: action,
+      topic: topic,
+      context: { timestamp }
+    });
+  
+  await supabaseAdmin
+    .from('jobs')
+    .update({ status: 'COMPLETED' })
+    .eq('id', job.id);
+  
+  console.log(`✅ [${job.id}] Insight logged`);
+}
+
+// =========================
 // MAIN JOB RUNNER
 // =========================
 
@@ -413,19 +669,31 @@ async function runJob(jobId: string) {
       return;
     }
 
-    // 3. State machine dispatch
-    switch (job.status) {
-      case 'PENDING':
-        await handlePendingState(job, supabaseAdmin, LOVABLE_API_KEY);
-        break;
-      case 'DECOMPOSING':
-        await handleDecomposingState(job, supabaseAdmin, BRAVE_API_KEY);
-        break;
-      case 'RESEARCHING':
-        await handleResearchingState(job, supabaseAdmin, LOVABLE_API_KEY);
-        break;
-      default:
-        console.warn(`⚠️ Unknown state: ${job.status}`);
+    // 3. State machine dispatch for interactive jobs or deep search
+    if (job.job_type === 'GENERATE_SUGGESTIONS') {
+      await handleGenerateSuggestions(job, supabaseAdmin, LOVABLE_API_KEY);
+    } else if (job.job_type === 'GENERATE_QUIZ') {
+      await handleGenerateQuiz(job, supabaseAdmin, LOVABLE_API_KEY);
+    } else if (job.job_type === 'GENERATE_FLASHCARDS') {
+      await handleGenerateFlashcards(job, supabaseAdmin, LOVABLE_API_KEY);
+    } else if (job.job_type === 'LOG_ACADEMIC_INSIGHT') {
+      await handleLogInsight(job, supabaseAdmin);
+    } else if (job.job_type === 'DEEP_SEARCH') {
+      switch (job.status) {
+        case 'PENDING':
+          await handlePendingState(job, supabaseAdmin, LOVABLE_API_KEY);
+          break;
+        case 'DECOMPOSING':
+          await handleDecomposingState(job, supabaseAdmin, BRAVE_API_KEY);
+          break;
+        case 'RESEARCHING':
+          await handleResearchingState(job, supabaseAdmin, LOVABLE_API_KEY);
+          break;
+        default:
+          console.warn(`⚠️ Unknown state: ${job.status}`);
+      }
+    } else {
+      console.warn(`⚠️ Unknown job type: ${job.job_type}`);
     }
   } catch (error) {
     console.error(`❌ Error processing job ${jobId}:`, error);

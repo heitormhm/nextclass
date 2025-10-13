@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { generateReportPDF } from "@/utils/pdfGenerator";
+import { ActionButtons } from "@/components/ActionButtons";
+import { JobStatus } from "@/components/JobStatus";
 
 interface AttachedFile {
   name: string;
@@ -55,6 +57,7 @@ const AIChatPage = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
+  const [activeJobs, setActiveJobs] = useState<Map<string, any>>(new Map());
 
   const deepSearchSteps = [
     { text: "A decompor a pergunta em tópicos..." },
@@ -63,6 +66,55 @@ const AIChatPage = () => {
     { text: "A gerar relatório final..." },
     { text: "Concluído" },
   ];
+
+  // Handler for interactive actions
+  const handleAction = async (jobType: string, payload: any) => {
+    const tempId = `job-${Date.now()}`;
+    setActiveJobs(prev => new Map(prev).set(tempId, { status: 'PENDING', type: jobType }));
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+      
+      const { data, error } = await supabase.functions.invoke('mia-student-chat', {
+        body: { 
+          action: jobType, 
+          context: payload,
+          conversationId: activeConversationId 
+        },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      
+      if (error) throw error;
+      
+      // Replace temp ID with real job ID
+      setActiveJobs(prev => {
+        const newJobs = new Map(prev);
+        newJobs.delete(tempId);
+        if (data.jobId) {
+          newJobs.set(data.jobId, { status: 'PENDING', type: jobType });
+        }
+        return newJobs;
+      });
+      
+      toast({
+        title: "Processando",
+        description: "Sua solicitação foi iniciada!"
+      });
+    } catch (error) {
+      console.error(`Erro ao iniciar ${jobType}:`, error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível processar sua solicitação.",
+        variant: "destructive"
+      });
+      setActiveJobs(prev => {
+        const newJobs = new Map(prev);
+        newJobs.delete(tempId);
+        return newJobs;
+      });
+    }
+  };
 
   const handleSendMessage = async () => {
     if ((!inputMessage.trim() && !attachedFile) || isLoading) return;
@@ -481,26 +533,44 @@ const AIChatPage = () => {
     loadConversations();
   }, []);
 
-  // Subscribe to job updates for deep search
+  // Subscribe to all jobs updates (deep search and interactive actions)
   useEffect(() => {
-    if (!deepSearchJobId) return;
+    const allJobIds = [deepSearchJobId, ...Array.from(activeJobs.keys())].filter(Boolean);
+    if (allJobIds.length === 0) return;
 
-    console.log('📡 Subscribing to job updates:', deepSearchJobId);
+    console.log('📡 Subscribing to job updates');
     
     const jobChannel = supabase
-      .channel(`job:${deepSearchJobId}`)
+      .channel('all-jobs-updates')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'jobs',
-          filter: `id=eq.${deepSearchJobId}`
+          table: 'jobs'
         },
         (payload) => {
           console.log('📬 Job update received:', payload);
           
           const job = payload.new as any;
+          
+          // Update active jobs state
+          if (activeJobs.has(job.id)) {
+            setActiveJobs(prev => new Map(prev).set(job.id, {
+              status: job.status,
+              type: job.job_type,
+              result: job.result
+            }));
+            
+            // Reload messages when job completes
+            if (job.status === 'COMPLETED') {
+              loadConversations();
+              handleSelectChat(activeConversationId!);
+            }
+          }
+          
+          // Handle deep search updates (existing logic)
+          if (job.id === deepSearchJobId) {
           
           // Update progress based on status
           switch (job.status) {
@@ -603,6 +673,7 @@ const AIChatPage = () => {
               setIsDeepSearchLoading(false);
               break;
           }
+          }
         }
       )
       .subscribe((status) => {
@@ -613,7 +684,7 @@ const AIChatPage = () => {
       console.log('🔌 Unsubscribing from job updates');
       supabase.removeChannel(jobChannel);
     };
-  }, [deepSearchJobId, activeConversationId, toast]);
+  }, [deepSearchJobId, activeConversationId, activeJobs, toast]);
 
 
   // Scroll to bottom when messages change
@@ -813,6 +884,16 @@ const AIChatPage = () => {
                           <div className="whitespace-pre-wrap text-sm leading-relaxed max-h-96 overflow-y-auto">
                             {message.content}
                           </div>
+
+                          {/* Add action buttons for Mia's responses */}
+                          {!message.isUser && message.content.length > 100 && (
+                            <ActionButtons
+                              messageContent={message.content}
+                              topic={message.content.split('\n')[0].substring(0, 50)}
+                              onAction={handleAction}
+                              disabled={isLoading}
+                            />
+                          )}
 
                           {message.isReport && (
                             <Button

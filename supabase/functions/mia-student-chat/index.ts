@@ -13,8 +13,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, fileData, fileType, fileName, isDeepSearch, conversationId } = await req.json();
-    console.log('Received request:', { message, fileType, fileName, isDeepSearch, conversationId });
+    const { message, fileData, fileType, fileName, isDeepSearch, conversationId, action, context } = await req.json();
+    console.log('Received request:', { message, fileType, fileName, isDeepSearch, conversationId, action });
 
     // Get authenticated user
     const authHeader = req.headers.get('Authorization');
@@ -42,6 +42,65 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Handle Interactive Actions (GENERATE_SUGGESTIONS, GENERATE_QUIZ, GENERATE_FLASHCARDS)
+    if (action && ['GENERATE_SUGGESTIONS', 'GENERATE_QUIZ', 'GENERATE_FLASHCARDS'].includes(action)) {
+      console.log(`🎯 Interactive action requested: ${action}`);
+      
+      // Create main job
+      const { data: newJob, error: jobError } = await supabaseAdmin
+        .from('jobs')
+        .insert({
+          user_id: user.id,
+          job_type: action,
+          status: 'PENDING',
+          input_payload: { 
+            context: context?.context || context,
+            topic: context?.topic || 'Tópico de Engenharia',
+            conversationId: conversationId
+          }
+        })
+        .select()
+        .single();
+      
+      if (jobError) throw new Error(`Failed to create job: ${jobError.message}`);
+      
+      // Fire-and-forget: create insight job
+      (async () => {
+        try {
+          await supabaseAdmin
+            .from('jobs')
+            .insert({
+              user_id: user.id,
+              job_type: 'LOG_ACADEMIC_INSIGHT',
+              status: 'PENDING',
+              input_payload: {
+                action: action.toLowerCase(),
+                topic: context?.topic || 'Tópico não especificado',
+                timestamp: new Date().toISOString()
+              }
+            });
+          console.log('✅ Insight job created');
+        } catch (err) {
+          console.error('⚠️ Failed to create insight job:', err);
+        }
+      })();
+      
+      // Invoke job-runner
+      supabaseAdmin.functions.invoke('job-runner', {
+        body: { jobId: newJob.id }
+      }).catch(err => console.error('Error invoking job-runner:', err));
+      
+      return new Response(
+        JSON.stringify({
+          response: 'Processando sua solicitação...',
+          jobId: newJob.id,
+          jobType: action,
+          success: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Handle Deep Search - create job and return immediately
     if (isDeepSearch) {
