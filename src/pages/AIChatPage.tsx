@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, Mic, Paperclip, Plus, MessageCircle, X, FileText, Image as ImageIcon, Music, FileDown, Trash2, Pin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +45,7 @@ interface Conversation {
 
 const AIChatPage = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -78,7 +80,11 @@ const AIChatPage = () => {
   // Handler for interactive actions
   const handleAction = async (jobType: string, payload: any) => {
     const tempId = `job-${Date.now()}`;
-    setActiveJobs(prev => new Map(prev).set(tempId, { status: 'PENDING', type: jobType }));
+    setActiveJobs(prev => new Map(prev).set(tempId, { 
+      status: 'PENDING', 
+      type: jobType,
+      payload: payload
+    }));
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -100,7 +106,11 @@ const AIChatPage = () => {
         const newJobs = new Map(prev);
         newJobs.delete(tempId);
         if (data.jobId) {
-          newJobs.set(data.jobId, { status: 'PENDING', type: jobType });
+          newJobs.set(data.jobId, { 
+            status: 'PENDING', 
+            type: jobType,
+            payload: payload
+          });
         }
         return newJobs;
       });
@@ -652,19 +662,68 @@ const AIChatPage = () => {
             setActiveJobs(prev => new Map(prev).set(job.id, {
               status: job.status,
               type: job.job_type,
-              result: job.result
+              result: job.result,
+              payload: prev.get(job.id)?.payload
             }));
             
-            // Reload messages when job completes
+            // ✅ NAVEGAÇÃO AUTOMÁTICA quando job completar
             if (job.status === 'COMPLETED') {
-              loadConversations();
-              if (activeConversationId) {
-                handleSelectChat(activeConversationId);
+              
+              // 🎯 QUIZ: Navegar automaticamente
+              if (job.job_type === 'GENERATE_QUIZ') {
+                try {
+                  const resultData = JSON.parse(job.result);
+                  const { quizId, title, questionCount } = resultData;
+                  
+                  toast({
+                    title: "✅ Quiz Pronto!",
+                    description: `${title} com ${questionCount} perguntas. Redirecionando...`,
+                    duration: 2000,
+                  });
+                  
+                  setTimeout(() => {
+                    navigate(`/quiz/${quizId}`);
+                  }, 1000);
+                  
+                } catch (error) {
+                  console.error('Error parsing quiz result:', error);
+                  handleOpenQuiz(job.result);
+                }
               }
               
-              // Forçar re-render quando sugestões completarem
+              // 🎴 FLASHCARDS: Abrir modal automaticamente
+              if (job.job_type === 'GENERATE_FLASHCARDS') {
+                try {
+                  const resultData = JSON.parse(job.result);
+                  const { flashcardSetId, title, cardCount } = resultData;
+                  
+                  toast({
+                    title: "✅ Flashcards Prontos!",
+                    description: `${title} com ${cardCount} cards. Abrindo...`,
+                    duration: 2000,
+                  });
+                  
+                  setTimeout(() => {
+                    handleOpenFlashcards(flashcardSetId);
+                  }, 1000);
+                  
+                } catch (error) {
+                  console.error('Error parsing flashcard result:', error);
+                  handleOpenFlashcards(job.result);
+                }
+              }
+              
+              // 💡 SUGGESTIONS: Forçar re-render
               if (job.job_type === 'GENERATE_SUGGESTIONS') {
                 setMessages(prev => [...prev]);
+              }
+              
+              // 📄 DEEP_SEARCH: Recarregar conversa
+              if (job.job_type === 'DEEP_SEARCH') {
+                loadConversations();
+                if (activeConversationId) {
+                  handleSelectChat(activeConversationId);
+                }
               }
             }
           }
@@ -748,6 +807,35 @@ const AIChatPage = () => {
               };
               
               setMessages(prev => [...prev, reportMessage]);
+              
+              // ✅ BUSCAR suggestionsJobId do Deep Search job
+              (async () => {
+                try {
+                  const { data: deepSearchJob } = await supabase
+                    .from('jobs')
+                    .select('intermediate_data')
+                    .eq('id', job.id)
+                    .single();
+                  
+                  const intermediateData = deepSearchJob?.intermediate_data as { suggestionsJobId?: string } | null;
+                  const suggestionsJobId = intermediateData?.suggestionsJobId;
+                  
+                  if (suggestionsJobId) {
+                    setActiveJobs(prev => new Map(prev).set(suggestionsJobId, {
+                      status: 'PENDING',
+                      type: 'GENERATE_SUGGESTIONS',
+                    }));
+                    
+                    setMessages(prev => prev.map(msg => 
+                      msg.id === reportMessage.id 
+                        ? { ...msg, suggestionsJobId }
+                        : msg
+                    ));
+                  }
+                } catch (error) {
+                  console.error('Error fetching suggestions job ID:', error);
+                }
+              })();
               
               toast({
                 title: "Pesquisa Concluída",

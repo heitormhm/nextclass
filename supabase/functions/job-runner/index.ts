@@ -600,7 +600,11 @@ FORMATO JSON:
       .from('jobs')
       .update({
         status: 'COMPLETED',
-        result: newQuiz.id
+        result: JSON.stringify({
+          quizId: newQuiz.id,
+          title: `Quiz: ${job.input_payload.topic}`,
+          questionCount: quizData.questions.length
+        })
       })
       .eq('id', job.id);
     
@@ -687,7 +691,11 @@ FORMATO JSON:
       .from('jobs')
       .update({
         status: 'COMPLETED',
-        result: newSet.id
+        result: JSON.stringify({
+          flashcardSetId: newSet.id,
+          title: `Flashcards: ${job.input_payload.topic}`,
+          cardCount: flashcardsData.cards.length
+        })
       })
       .eq('id', job.id);
     
