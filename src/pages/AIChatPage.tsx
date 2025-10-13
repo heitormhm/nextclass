@@ -51,6 +51,7 @@ const AIChatPage = () => {
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const phase2TriggerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const activeChannelRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -321,14 +322,6 @@ const AIChatPage = () => {
           suggestionsJobId: functionData.suggestionsJobId || undefined,
         };
         setMessages(prev => [...prev, assistantMessage]);
-        
-        // Adicionar job de sugestões ao activeJobs se existir
-        if (functionData.suggestionsJobId) {
-          setActiveJobs(prev => new Map(prev).set(functionData.suggestionsJobId, {
-            status: 'PENDING',
-            type: 'GENERATE_SUGGESTIONS'
-          }));
-        }
 
         // Update conversation ID if this was the first message
         if (functionData.conversationId && !activeConversationId) {
@@ -703,8 +696,24 @@ const AIChatPage = () => {
       return;
     }
 
+    // ✅ Se já existe um listener para esta conversa, não cria outro
+    if (activeChannelRef.current === activeConversationId) {
+      console.log('⏭️ Listener already active for this conversation, skipping');
+      return;
+    }
+
     console.log('📡 Setting up job listener for conversation:', activeConversationId);
-    processedJobsRef.current.clear();
+    activeChannelRef.current = activeConversationId;
+
+    // ✅ Limpar apenas jobs de outras conversas do processedJobsRef
+    const jobsToKeep = new Set<string>();
+    activeJobs.forEach((job, jobId) => {
+      if (job.payload?.conversationId === activeConversationId) {
+        jobsToKeep.add(jobId);
+      }
+    });
+    processedJobsRef.current = jobsToKeep;
+    console.log(`📌 Kept ${jobsToKeep.size} jobs from current conversation`);
 
     const channel = supabase
       .channel(`jobs-conversation-${activeConversationId}`)
@@ -751,7 +760,7 @@ const AIChatPage = () => {
               status: job.status,
               type: job.job_type,
               result: job.result,
-              payload: prev.get(job.id)?.payload
+              payload: prev.get(job.id)?.payload || job.input_payload
             });
             return newJobs;
           });
@@ -839,6 +848,7 @@ const AIChatPage = () => {
     return () => {
       console.log('🔌 Cleaning up job listener for conversation:', activeConversationId);
       supabase.removeChannel(channel);
+      activeChannelRef.current = null;
     };
   }, [activeConversationId]);
 
