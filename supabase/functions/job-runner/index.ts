@@ -496,6 +496,17 @@ FORMATO DE RESPOSTA (JSON puro):
       })
       .eq('id', job.id);
     
+    // Salvar sugestões na tabela para persistência
+    if (job.input_payload.conversationId) {
+      await supabaseAdmin
+        .from('conversation_suggestions')
+        .insert({
+          conversation_id: job.input_payload.conversationId,
+          message_index: job.input_payload.messageIndex || 0,
+          suggestions: suggestions
+        });
+    }
+    
     console.log(`✅ [${job.id}] ${suggestions.suggestions.length} suggestions generated`);
     
   } catch (error) {
@@ -559,17 +570,6 @@ FORMATO JSON:
     
     const data = await response.json();
     const quizJson = data.choices[0].message.content;
-    
-    // Salvar sugestões na tabela
-    if (job.input_payload.conversationId) {
-      await supabaseAdmin
-        .from('conversation_suggestions')
-        .insert({
-          conversation_id: job.input_payload.conversationId,
-          message_index: job.input_payload.messageIndex || 0,
-          suggestions: { suggestions }
-        });
-    }
     
     await supabaseAdmin
       .from('jobs')

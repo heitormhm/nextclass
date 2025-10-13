@@ -545,9 +545,10 @@ const AIChatPage = () => {
 
       const messagesWithSuggestions = loadedMessages.map((msg, idx) => {
         const suggestion = savedSuggestions?.find(s => s.message_index === idx);
+        const suggestionsData = suggestion?.suggestions as { suggestions?: string[] } | null;
         return {
           ...msg,
-          suggestions: suggestion?.suggestions?.suggestions || null
+          suggestions: suggestionsData?.suggestions || null
         };
       });
 
