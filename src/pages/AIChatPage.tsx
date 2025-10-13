@@ -38,7 +38,8 @@ interface Message {
   isReport?: boolean;
   reportTitle?: string;
   suggestionsJobId?: string;
-  jobIds?: string[]; // ✅ NOVO: IDs dos jobs vinculados a esta mensagem
+  jobIds?: string[];
+  jobMetadata?: Map<string, { type: string; context: string }>;
 }
 
 interface Conversation {
@@ -85,29 +86,67 @@ const AIChatPage = () => {
     { text: "Concluído" },
   ];
 
+  // ✅ Verificar se já existe job do mesmo tipo para o mesmo contexto
+  const hasExistingJob = (jobType: string, context: string): boolean => {
+    for (const [jobId, job] of activeJobs.entries()) {
+      if (job.type === jobType && 
+          job.payload?.context === context &&
+          (job.status === 'PENDING' || job.status === 'SYNTHESIZING')) {
+        console.log('⚠️ Job already exists:', jobId, jobType);
+        return true;
+      }
+    }
+    return false;
+  };
+
   // Handler for interactive actions
   const handleAction = async (jobType: string, payload: any) => {
-    const tempId = `job-${Date.now()}`;
-    setActiveJobs(prev => new Map(prev).set(tempId, { 
-      status: 'PENDING', 
-      type: jobType,
-      payload: payload
-    }));
+    // ✅ PASSO 1: Verificar duplicação
+    const contextKey = payload.context || payload.topic;
     
-    // ✅ NOVO: Vincular job à última mensagem do assistente
+    if (hasExistingJob(jobType, contextKey)) {
+      toast({
+        title: "Job em andamento",
+        description: "Este conteúdo já está sendo processado. Aguarde a conclusão.",
+        variant: "default"
+      });
+      return;
+    }
+    
+    const tempId = `temp-${jobType}-${Date.now()}`;
+    console.log('🆕 Creating new job:', tempId, jobType);
+    
+    // ✅ PASSO 2: Adicionar job temporário ao state
+    setActiveJobs(prev => {
+      const newJobs = new Map(prev);
+      newJobs.set(tempId, { 
+        status: 'PENDING', 
+        type: jobType,
+        payload: payload
+      });
+      return newJobs;
+    });
+    
+    // ✅ PASSO 3: Vincular tempId à última mensagem do assistente
     setMessages(prev => {
       const updated = [...prev];
-      const lastAssistantIndex = updated.length - 1 - updated.slice().reverse().findIndex(m => !m.isUser);
-      
-      if (lastAssistantIndex >= 0 && lastAssistantIndex < updated.length) {
-        updated[lastAssistantIndex] = {
-          ...updated[lastAssistantIndex],
-          jobIds: [...(updated[lastAssistantIndex].jobIds || []), tempId]
-        };
+      for (let i = updated.length - 1; i >= 0; i--) {
+        if (!updated[i].isUser) {
+          updated[i] = {
+            ...updated[i],
+            jobIds: [...(updated[i].jobIds || []), tempId],
+            jobMetadata: new Map(updated[i].jobMetadata || []).set(tempId, {
+              type: jobType,
+              context: contextKey
+            })
+          };
+          break;
+        }
       }
       return updated;
     });
     
+    // ✅ PASSO 4: Invocar edge function
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
@@ -123,46 +162,51 @@ const AIChatPage = () => {
       
       if (error) throw error;
       
-      // Replace temp ID with real job ID
+      const realJobId = data.jobId;
+      console.log('✅ Job created successfully:', realJobId);
+      
+      // ✅ PASSO 5: Substituir tempId pelo jobId real
       setActiveJobs(prev => {
         const newJobs = new Map(prev);
         newJobs.delete(tempId);
         
-        if (data.jobId) {
-          if (!newJobs.has(data.jobId)) {
-            newJobs.set(data.jobId, { 
-              status: 'PENDING', 
-              type: jobType,
-              payload: payload
-            });
-          }
+        if (realJobId && !newJobs.has(realJobId)) {
+          newJobs.set(realJobId, { 
+            status: 'PENDING', 
+            type: jobType,
+            payload: payload
+          });
         }
         return newJobs;
       });
       
-      // ✅ NOVO: Atualizar jobIds com o ID real
-      if (data.jobId) {
-        setMessages(prev => {
-          const updated = [...prev];
-          const lastAssistantIndex = updated.length - 1 - updated.slice().reverse().findIndex(m => !m.isUser);
-          
-          if (lastAssistantIndex >= 0 && lastAssistantIndex < updated.length) {
-            const jobIds = updated[lastAssistantIndex].jobIds || [];
-            const tempIndex = jobIds.indexOf(tempId);
+      // ✅ PASSO 6: Atualizar jobIds na mensagem
+      setMessages(prev => {
+        const updated = [...prev];
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (!updated[i].isUser && updated[i].jobIds?.includes(tempId)) {
+            const newJobIds = updated[i].jobIds!.map(id => id === tempId ? realJobId : id);
+            const newMetadata = new Map(updated[i].jobMetadata || []);
             
-            if (tempIndex !== -1) {
-              const newJobIds = [...jobIds];
-              newJobIds[tempIndex] = data.jobId;
-              
-              updated[lastAssistantIndex] = {
-                ...updated[lastAssistantIndex],
-                jobIds: newJobIds
-              };
+            const metadata = newMetadata.get(tempId);
+            if (metadata) {
+              newMetadata.delete(tempId);
+              newMetadata.set(realJobId, metadata);
             }
+            
+            updated[i] = {
+              ...updated[i],
+              jobIds: newJobIds,
+              jobMetadata: newMetadata
+            };
+            break;
           }
-          return updated;
-        });
-      }
+        }
+        return updated;
+      });
+      
+      // ✅ ADICIONAR ao processedJobsRef imediatamente
+      processedJobsRef.current.add(realJobId);
       
       toast({
         title: "Processando",
@@ -170,53 +214,69 @@ const AIChatPage = () => {
       });
     } catch (error) {
       console.error(`Erro ao iniciar ${jobType}:`, error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível processar sua solicitação.",
-        variant: "destructive"
-      });
+      
+      // ✅ PASSO 7: Cleanup em caso de erro
       setActiveJobs(prev => {
         const newJobs = new Map(prev);
         newJobs.delete(tempId);
         return newJobs;
       });
       
-      // ✅ NOVO: Remover tempId dos jobIds em caso de erro
       setMessages(prev => {
         const updated = [...prev];
-        const lastAssistantIndex = updated.length - 1 - updated.slice().reverse().findIndex(m => !m.isUser);
-        
-        if (lastAssistantIndex >= 0 && lastAssistantIndex < updated.length) {
-          const jobIds = updated[lastAssistantIndex].jobIds || [];
-          updated[lastAssistantIndex] = {
-            ...updated[lastAssistantIndex],
-            jobIds: jobIds.filter(id => id !== tempId)
-          };
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (!updated[i].isUser && updated[i].jobIds?.includes(tempId)) {
+            updated[i] = {
+              ...updated[i],
+              jobIds: updated[i].jobIds!.filter(id => id !== tempId),
+              jobMetadata: (() => {
+                const newMetadata = new Map(updated[i].jobMetadata || []);
+                newMetadata.delete(tempId);
+                return newMetadata;
+              })()
+            };
+            break;
+          }
         }
         return updated;
+      });
+      
+      toast({
+        title: "Erro",
+        description: "Não foi possível processar sua solicitação.",
+        variant: "destructive"
       });
     }
   };
 
   const handleOpenQuiz = (quizId: string) => {
-    const jobIdToRemove = Array.from(activeJobs.entries()).find(
-      ([_, job]) => job.type === 'GENERATE_QUIZ' && job.result?.includes(quizId)
-    )?.[0];
+    console.log('🎯 Opening quiz:', quizId);
     
-    if (jobIdToRemove) {
+    const jobEntry = Array.from(activeJobs.entries()).find(
+      ([_, job]) => job.type === 'GENERATE_QUIZ' && job.result?.includes(quizId)
+    );
+    
+    if (jobEntry) {
+      const [jobId] = jobEntry;
+      console.log('🗑️ Removing quiz job:', jobId);
+      
       setActiveJobs(prev => {
         const newJobs = new Map(prev);
-        newJobs.delete(jobIdToRemove);
+        newJobs.delete(jobId);
         return newJobs;
       });
       
-      // ✅ NOVO: Remover jobId da mensagem
       setMessages(prev => prev.map(msg => ({
         ...msg,
-        jobIds: msg.jobIds?.filter(id => id !== jobIdToRemove)
+        jobIds: msg.jobIds?.filter(id => id !== jobId),
+        jobMetadata: (() => {
+          const newMetadata = new Map(msg.jobMetadata || []);
+          newMetadata.delete(jobId);
+          return newMetadata;
+        })()
       })));
       
-      console.log('🗑️ Removed quiz job before navigation:', jobIdToRemove);
+      processedJobsRef.current.delete(jobId);
     }
     
     navigate(`/quiz/${quizId}`, {
@@ -228,24 +288,33 @@ const AIChatPage = () => {
   };
 
   const handleOpenFlashcards = (setId: string) => {
-    const jobIdToRemove = Array.from(activeJobs.entries()).find(
-      ([_, job]) => job.type === 'GENERATE_FLASHCARDS' && job.result?.includes(setId)
-    )?.[0];
+    console.log('📚 Opening flashcard set:', setId);
     
-    if (jobIdToRemove) {
+    const jobEntry = Array.from(activeJobs.entries()).find(
+      ([_, job]) => job.type === 'GENERATE_FLASHCARDS' && job.result?.includes(setId)
+    );
+    
+    if (jobEntry) {
+      const [jobId] = jobEntry;
+      console.log('🗑️ Removing flashcard job:', jobId);
+      
       setActiveJobs(prev => {
         const newJobs = new Map(prev);
-        newJobs.delete(jobIdToRemove);
+        newJobs.delete(jobId);
         return newJobs;
       });
       
-      // ✅ NOVO: Remover jobId da mensagem
       setMessages(prev => prev.map(msg => ({
         ...msg,
-        jobIds: msg.jobIds?.filter(id => id !== jobIdToRemove)
+        jobIds: msg.jobIds?.filter(id => id !== jobId),
+        jobMetadata: (() => {
+          const newMetadata = new Map(msg.jobMetadata || []);
+          newMetadata.delete(jobId);
+          return newMetadata;
+        })()
       })));
       
-      console.log('🗑️ Removed flashcard job before opening modal:', jobIdToRemove);
+      processedJobsRef.current.delete(jobId);
     }
     
     setSelectedFlashcardSetId(setId);
@@ -829,135 +898,110 @@ const AIChatPage = () => {
         (payload) => {
           const job = payload.new as any;
           
-          console.log('📬 Job update received:', job.id, job.status, job.job_type);
+          console.log('📬 Job update received:', {
+            id: job.id,
+            status: job.status,
+            type: job.job_type,
+            conversationId: job.conversation_id
+          });
           
-          // ✅ ANTI-LOOP: Se já foi processado, ignora
+          // ✅ VERIFICAÇÃO 1: Job já foi processado?
           if (processedJobsRef.current.has(job.id)) {
-            console.log('⏭️ Job already being tracked, skipping:', job.id);
+            console.log('⏭️ Job already tracked, skipping:', job.id);
             return;
           }
-
-          // ✅ Adicionar ao ref IMEDIATAMENTE
-          processedJobsRef.current.add(job.id);
-          console.log('📌 Job now being tracked:', job.id);
           
-          // ✅ COMPARAÇÃO PROFUNDA
+          // ✅ VERIFICAÇÃO 2: Job pertence a esta conversa?
+          if (job.conversation_id !== activeConversationId) {
+            console.log('⏭️ Job from different conversation, skipping');
+            return;
+          }
+          
+          // ✅ Marcar como processado IMEDIATAMENTE
+          processedJobsRef.current.add(job.id);
+          console.log('📌 Job now tracked:', job.id);
+          
+          // ✅ VERIFICAÇÃO 3: Mudança real no estado?
           setActiveJobs(prev => {
             const currentJob = prev.get(job.id);
             
             if (currentJob) {
-              const hasChanged = 
+              const hasRealChange = 
                 currentJob.status !== job.status ||
                 currentJob.result !== job.result;
               
-              if (!hasChanged) {
-                console.log('⏭️ No changes detected for job:', job.id);
+              if (!hasRealChange) {
+                console.log('⏭️ No real changes, skipping update');
                 return prev;
               }
             }
             
+            console.log('✏️ Updating job state:', job.id, job.status);
             const newJobs = new Map(prev);
             newJobs.set(job.id, {
               status: job.status,
               type: job.job_type,
               result: job.result,
-              payload: prev.get(job.id)?.payload || job.input_payload
+              payload: currentJob?.payload || job.input_payload
             });
             return newJobs;
           });
           
-          // ✅ Processa jobs terminados
+          // ✅ Processar jobs terminados
           if (job.status === 'COMPLETED' || job.status === 'FAILED') {
-            console.log('✅ Job completed/failed:', job.id);
+            console.log(`${job.status === 'COMPLETED' ? '✅' : '❌'} Job finished:`, job.id);
             
             if (job.status === 'COMPLETED') {
-              // Força re-render para mostrar sugestões
               if (job.job_type === 'GENERATE_SUGGESTIONS') {
-                console.log('💡 Suggestions completed, forcing re-render');
+                console.log('💡 Suggestions ready');
                 setMessages(prev => [...prev]);
               }
               
-              // Recarrega dados para deep search
               if (job.job_type === 'DEEP_SEARCH') {
-                console.log('🔍 Deep search completed, reloading conversations');
+                console.log('🔍 Deep search complete, reloading');
                 loadConversations();
               }
-              
-              // ✅ LÓGICA DE REMOÇÃO CONDICIONAL
+            }
+            
+            // ✅ CLEANUP: Remove jobs completados após delay (exceto sugestões)
+            if (job.job_type !== 'GENERATE_SUGGESTIONS') {
               setTimeout(() => {
+                console.log('🗑️ Cleaning up completed job:', job.id);
                 setActiveJobs(prev => {
                   const newJobs = new Map(prev);
-                  // 🔒 NUNCA remove jobs de sugestões
-                  if (job.job_type !== 'GENERATE_SUGGESTIONS') {
-                    console.log('🗑️ Removing completed job:', job.id);
-                    newJobs.delete(job.id);
-                  } else {
-                    console.log('📌 Keeping suggestions job:', job.id);
-                  }
+                  newJobs.delete(job.id);
                   return newJobs;
                 });
               }, 10000);
             }
           }
           
-          // Handle deep search specific progress
           if (job.id === deepSearchJobId) {
-            switch (job.status) {
-              case 'PENDING':
-                setDeepSearchProgress(0);
-                break;
-              case 'DECOMPOSING':
-                setDeepSearchProgress(1);
-                break;
-              case 'RESEARCHING':
-                setDeepSearchProgress(2);
-                break;
-              case 'SYNTHESIZING':
-                setDeepSearchProgress(3);
-                break;
-              case 'COMPLETED':
-                setDeepSearchProgress(4);
-                
-                // Adicionar o relatório ao chat
-                if (job.result) {
-                  console.log("📄 Adding Deep Search report to chat");
-                  const reportMessage: Message = {
-                    id: `report-${job.id}`,
-                    content: job.result,
-                    isUser: false,
-                    timestamp: new Date(),
-                    isReport: true,
-                    reportTitle: "Relatório de Pesquisa Aprofundada",
-                  };
-                  setMessages(prev => [...prev, reportMessage]);
-                  
-                  toast({
-                    title: "Pesquisa Concluída",
-                    description: "O relatório foi adicionado à conversa!",
-                  });
-                } else {
-                  toast({
-                    title: "Pesquisa Concluída",
-                    description: "O relatório foi gerado com sucesso!",
-                  });
+            if (job.status === 'SYNTHESIZING' && job.result) {
+              try {
+                const progress = JSON.parse(job.result);
+                if (progress.stage && typeof progress.stage === 'number') {
+                  setDeepSearchProgress(progress.stage);
                 }
-                
-                setTimeout(() => {
-                  setDeepSearchJobId(null);
-                  setDeepSearchProgress(0);
-                  setIsDeepSearchLoading(false);
-                }, 1500);
-                break;
-              case 'FAILED':
-                toast({
-                  title: "Erro na Pesquisa",
-                  description: job.error_log || 'Erro desconhecido',
-                  variant: "destructive",
-                });
-                setDeepSearchJobId(null);
+              } catch (e) {
+                console.error('Error parsing deep search progress:', e);
+              }
+            }
+            
+            if (job.status === 'COMPLETED') {
+              setIsDeepSearchLoading(false);
+              setDeepSearchJobId(null);
+              setDeepSearchProgress(4);
+              
+              setTimeout(() => {
                 setDeepSearchProgress(0);
-                setIsDeepSearchLoading(false);
-                break;
+              }, 2000);
+            }
+            
+            if (job.status === 'FAILED') {
+              setIsDeepSearchLoading(false);
+              setDeepSearchJobId(null);
+              setDeepSearchProgress(0);
             }
           }
         }
@@ -1212,19 +1256,25 @@ const AIChatPage = () => {
                           )}
 
                           {/* Job Status - Exibir status de processamento */}
-                          {!message.isUser && message.jobIds?.map(jobId => {
-                            const job = activeJobs.get(jobId);
-                            if (!job) return null;
-                            
-                            return (
-                              <JobStatus
-                                key={jobId}
-                                job={job}
-                                onOpenQuiz={handleOpenQuiz}
-                                onOpenFlashcards={handleOpenFlashcards}
-                              />
-                            );
-                          })}
+                        {!message.isUser && message.jobIds?.map(jobId => {
+                          const job = activeJobs.get(jobId);
+                          
+                          if (!job) {
+                            console.log('⏭️ Job not found in activeJobs:', jobId);
+                            return null;
+                          }
+                          
+                          console.log('🎨 Rendering JobStatus:', jobId, job.type, job.status);
+                          
+                          return (
+                            <JobStatus
+                              key={jobId}
+                              job={job}
+                              onOpenQuiz={handleOpenQuiz}
+                              onOpenFlashcards={handleOpenFlashcards}
+                            />
+                          );
+                        })}
 
                           {/* Suggestions Buttons */}
                           {!message.isUser && message.suggestionsJobId && (

@@ -6,15 +6,26 @@ interface ActionButtonsProps {
   topic: string;
   onAction: (jobType: string, payload: any) => void;
   disabled?: boolean;
+  activeJobs?: Map<string, any>;
 }
 
-export const ActionButtons = ({ messageContent, topic, onAction, disabled }: ActionButtonsProps) => {
+export const ActionButtons = ({ messageContent, topic, onAction, disabled, activeJobs }: ActionButtonsProps) => {
+  const hasActiveQuizJob = Array.from(activeJobs?.entries() || []).some(
+    ([_, job]) => job.type === 'GENERATE_QUIZ' && 
+                 (job.status === 'PENDING' || job.status === 'SYNTHESIZING')
+  );
+
+  const hasActiveFlashcardJob = Array.from(activeJobs?.entries() || []).some(
+    ([_, job]) => job.type === 'GENERATE_FLASHCARDS' && 
+                 (job.status === 'PENDING' || job.status === 'SYNTHESIZING')
+  );
+
   return (
     <div className="flex gap-2 mt-3 flex-wrap">
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_QUIZ', { context: messageContent, topic })}
-        disabled={disabled}
+        disabled={disabled || hasActiveQuizJob}
         className="bg-pink-500 hover:bg-pink-600 text-white"
       >
         <FileQuestion className="w-4 h-4 mr-1" />
@@ -24,7 +35,7 @@ export const ActionButtons = ({ messageContent, topic, onAction, disabled }: Act
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_FLASHCARDS', { context: messageContent, topic })}
-        disabled={disabled}
+        disabled={disabled || hasActiveFlashcardJob}
         className="bg-pink-500 hover:bg-pink-600 text-white"
       >
         <Layers className="w-4 h-4 mr-1" />
