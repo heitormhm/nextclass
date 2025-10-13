@@ -64,7 +64,7 @@ const AIChatPage = () => {
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
   const [activeJobs, setActiveJobs] = useState<Map<string, any>>(new Map());
-  const [processedJobs, setProcessedJobs] = useState<Set<string>>(new Set());
+  const processedJobsRef = useRef<Set<string>>(new Set());
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
   const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
@@ -543,7 +543,9 @@ const AIChatPage = () => {
 
   const handleSelectChat = async (conversationId: string) => {
     setActiveJobs(new Map());
-    setProcessedJobs(new Set());
+    processedJobsRef.current.clear();
+    
+    console.log('🔄 Switched to conversation:', conversationId);
     
     try {
       // Load messages for this conversation
@@ -682,71 +684,76 @@ const AIChatPage = () => {
     loadConversations();
   }, []);
 
-  // Subscribe to all jobs updates (deep search and interactive actions)
+  // Subscribe to job updates
   useEffect(() => {
-    const allJobIds = [deepSearchJobId, ...Array.from(activeJobs.keys())].filter(Boolean);
-    if (allJobIds.length === 0) return;
+    if (!activeConversationId) {
+      return;
+    }
 
-    console.log('📡 Subscribing to job updates');
-    
-    const jobChannel = supabase
-      .channel(`jobs-updates-${Date.now()}`) // ✅ Canal único
+    console.log('📡 Setting up job listener for conversation:', activeConversationId);
+
+    const channel = supabase
+      .channel(`jobs-conversation-${activeConversationId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
-          table: 'jobs'
+          table: 'jobs',
+          filter: `conversation_id=eq.${activeConversationId}`
         },
         (payload) => {
-          console.log('📬 Job update received:', payload);
-          
           const job = payload.new as any;
           
-          // ✅ PREVENIR LOOP: Só processar se não foi processado ainda
-          if (processedJobs.has(job.id)) {
-            return; // Ignora updates duplicados
+          console.log('📬 Job update received:', job.id, job.status, job.job_type);
+          
+          // ✅ ANTI-LOOP: Se já foi processado, ignora
+          if (processedJobsRef.current.has(job.id)) {
+            console.log('⏭️ Job already processed, skipping:', job.id);
+            return;
           }
           
-          // Update active jobs state
-          if (activeJobs.has(job.id)) {
-            const currentJob = activeJobs.get(job.id);
+          // Atualiza estado visual do job
+          setActiveJobs(prev => {
+            const newJobs = new Map(prev);
+            newJobs.set(job.id, {
+              status: job.status,
+              type: job.job_type,
+              result: job.result,
+              payload: prev.get(job.id)?.payload
+            });
+            return newJobs;
+          });
+          
+          // ✅ Processa jobs terminados
+          if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+            // ✅ MARCA COMO PROCESSADO (ref não causa re-render)
+            processedJobsRef.current.add(job.id);
+            console.log('✅ Job marked as processed:', job.id);
             
-            // ✅ Só atualizar se status ou result realmente mudou
-            if (currentJob?.status !== job.status || currentJob?.result !== job.result) {
-              setActiveJobs(prev => new Map(prev).set(job.id, {
-                status: job.status,
-                type: job.job_type,
-                result: job.result,
-                payload: prev.get(job.id)?.payload
-              }));
-            }
-            
-            // ✅ Processar quando job completar
             if (job.status === 'COMPLETED') {
-              // ✅ MARCAR COMO PROCESSADO
-              setProcessedJobs(prev => new Set(prev).add(job.id));
-              
-              // 💡 SUGGESTIONS: Forçar re-render
+              // Força re-render para mostrar sugestões
               if (job.job_type === 'GENERATE_SUGGESTIONS') {
+                console.log('💡 Suggestions completed, forcing re-render');
                 setMessages(prev => [...prev]);
               }
               
-              // 📄 DEEP_SEARCH: Salvar relatório
+              // Recarrega dados para deep search
               if (job.job_type === 'DEEP_SEARCH') {
+                console.log('🔍 Deep search completed, reloading conversations');
                 loadConversations();
-                if (activeConversationId) {
-                  handleSelectChat(activeConversationId);
-                }
               }
               
-              // ✅ Remover job completado após 10 segundos EXCETO sugestões
+              // ✅ LÓGICA DE REMOÇÃO CONDICIONAL
               setTimeout(() => {
                 setActiveJobs(prev => {
                   const newJobs = new Map(prev);
-                  // Só remover se NÃO for job de sugestões
+                  // 🔒 NUNCA remove jobs de sugestões
                   if (job.job_type !== 'GENERATE_SUGGESTIONS') {
+                    console.log('🗑️ Removing completed job:', job.id);
                     newJobs.delete(job.id);
+                  } else {
+                    console.log('📌 Keeping suggestions job:', job.id);
                   }
                   return newJobs;
                 });
@@ -754,151 +761,57 @@ const AIChatPage = () => {
             }
           }
           
-          // Handle deep search updates (existing logic)
+          // Handle deep search specific progress
           if (job.id === deepSearchJobId) {
-          
-          // Update progress based on status
-          switch (job.status) {
-            case 'PENDING':
-              setDeepSearchProgress(0);
-              break;
-            case 'DECOMPOSING':
-              setDeepSearchProgress(1);
-              break;
-            case 'RESEARCHING':
-              setDeepSearchProgress(2);
-              break;
-            case 'SYNTHESIZING':
-              setDeepSearchProgress(3);
-              break;
-            case 'COMPLETED':
-              setDeepSearchProgress(4);
-              
-              // Save conversation and messages to database
-              (async () => {
-                try {
-                  const { data: { session } } = await supabase.auth.getSession();
-                  if (!session) return;
-                  
-                  // Create or use existing conversation
-                  let conversationId = activeConversationId;
-                  if (!conversationId) {
-                    const { data: newConv, error: convError } = await supabase
-                      .from('conversations')
-                      .insert({
-                        user_id: session.user.id,
-                        title: job.input_payload.query.substring(0, 100)
-                      })
-                      .select()
-                      .single();
-                    
-                    if (!convError && newConv) {
-                      conversationId = newConv.id;
-                      setActiveConversationId(conversationId);
-                    }
-                  }
-                  
-                  // Save messages to database
-                  if (conversationId) {
-                    // 1. Save user message
-                    await supabase.from('messages').insert({
-                      conversation_id: conversationId,
-                      role: 'user',
-                      content: job.input_payload.query
-                    });
-                    
-                    // 2. Save report
-                    await supabase.from('messages').insert({
-                      conversation_id: conversationId,
-                      role: 'assistant',
-                      content: job.result
-                    });
-                    
-                    // Reload conversations list
-                    loadConversations();
-                  }
-                } catch (error) {
-                  console.error('Error saving conversation:', error);
-                }
-              })();
-              
-              // Add report to local messages
-              const reportMessage: Message = {
-                id: `${activeConversationId}-${Date.now()}`,
-                content: job.result,
-                isUser: false,
-                timestamp: new Date(),
-                isReport: true,
-                reportTitle: job.input_payload.query
-              };
-              
-              setMessages(prev => [...prev, reportMessage]);
-              
-              // ✅ BUSCAR suggestionsJobId do Deep Search job
-              (async () => {
-                try {
-                  const { data: deepSearchJob } = await supabase
-                    .from('jobs')
-                    .select('intermediate_data')
-                    .eq('id', job.id)
-                    .single();
-                  
-                  const intermediateData = deepSearchJob?.intermediate_data as { suggestionsJobId?: string } | null;
-                  const suggestionsJobId = intermediateData?.suggestionsJobId;
-                  
-                  if (suggestionsJobId) {
-                    setActiveJobs(prev => new Map(prev).set(suggestionsJobId, {
-                      status: 'PENDING',
-                      type: 'GENERATE_SUGGESTIONS',
-                    }));
-                    
-                    setMessages(prev => prev.map(msg => 
-                      msg.id === reportMessage.id 
-                        ? { ...msg, suggestionsJobId }
-                        : msg
-                    ));
-                  }
-                } catch (error) {
-                  console.error('Error fetching suggestions job ID:', error);
-                }
-              })();
-              
-              toast({
-                title: "Pesquisa Concluída",
-                description: "O relatório foi gerado com sucesso!",
-              });
-              
-              // Close loader
-              setTimeout(() => {
+            switch (job.status) {
+              case 'PENDING':
+                setDeepSearchProgress(0);
+                break;
+              case 'DECOMPOSING':
+                setDeepSearchProgress(1);
+                break;
+              case 'RESEARCHING':
+                setDeepSearchProgress(2);
+                break;
+              case 'SYNTHESIZING':
+                setDeepSearchProgress(3);
+                break;
+              case 'COMPLETED':
+                setDeepSearchProgress(4);
+                toast({
+                  title: "Pesquisa Concluída",
+                  description: "O relatório foi gerado com sucesso!",
+                });
+                setTimeout(() => {
+                  setDeepSearchJobId(null);
+                  setDeepSearchProgress(0);
+                  setIsDeepSearchLoading(false);
+                }, 1500);
+                break;
+              case 'FAILED':
+                toast({
+                  title: "Erro na Pesquisa",
+                  description: job.error_log || 'Erro desconhecido',
+                  variant: "destructive",
+                });
                 setDeepSearchJobId(null);
                 setDeepSearchProgress(0);
                 setIsDeepSearchLoading(false);
-              }, 1500);
-              break;
-            case 'FAILED':
-              toast({
-                title: "Erro na Pesquisa",
-                description: job.error_log || 'Erro desconhecido',
-                variant: "destructive",
-              });
-              
-              setDeepSearchJobId(null);
-              setDeepSearchProgress(0);
-              setIsDeepSearchLoading(false);
-              break;
-          }
+                break;
+            }
           }
         }
       )
       .subscribe((status) => {
-        console.log('📡 Job subscription status:', status);
+        console.log('📡 Channel subscription status:', status);
       });
     
+    // ✅ LIMPEZA RIGOROSA
     return () => {
-      console.log('🔌 Unsubscribing from job updates');
-      jobChannel.unsubscribe();
+      console.log('🔌 Cleaning up job listener for conversation:', activeConversationId);
+      supabase.removeChannel(channel);
     };
-  }, [deepSearchJobId]);
+  }, [activeConversationId]);
 
 
   // Scroll to bottom when messages change
