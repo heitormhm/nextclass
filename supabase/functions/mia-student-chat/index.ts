@@ -54,6 +54,7 @@ serve(async (req) => {
           user_id: user.id,
           job_type: action,
           status: 'PENDING',
+          conversation_id: conversationId,
           input_payload: { 
             context: context?.context || context,
             topic: context?.topic || 'Tópico de Engenharia',
@@ -74,6 +75,7 @@ serve(async (req) => {
               user_id: user.id,
               job_type: 'LOG_ACADEMIC_INSIGHT',
               status: 'PENDING',
+              conversation_id: conversationId,
               input_payload: {
                 action: action.toLowerCase(),
                 topic: context?.topic || 'Tópico não especificado',
@@ -112,7 +114,8 @@ serve(async (req) => {
           user_id: user.id,
           job_type: 'DEEP_SEARCH',
           status: 'PENDING',
-          input_payload: { query: message }
+          conversation_id: conversationId,
+          input_payload: { query: message, conversationId: conversationId }
         })
         .select()
         .single();
@@ -444,9 +447,10 @@ Resposta: ${assistantMessage.substring(0, 300)}...`;
           user_id: user.id,
           job_type: 'GENERATE_SUGGESTIONS',
           status: 'PENDING',
+          conversation_id: activeConversationId,
           input_payload: { 
-            context: assistantMessage, // Usar a resposta recém-gerada como contexto
-            topic: message.substring(0, 100), // Extrair tópico da pergunta do usuário
+            context: assistantMessage,
+            topic: message.substring(0, 100),
             conversationId: activeConversationId
           }
         })

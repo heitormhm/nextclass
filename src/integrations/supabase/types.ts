@@ -296,6 +296,7 @@ export type Database = {
       }
       jobs: {
         Row: {
+          conversation_id: string | null
           created_at: string
           error_log: string | null
           id: string
@@ -308,6 +309,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          conversation_id?: string | null
           created_at?: string
           error_log?: string | null
           id?: string
@@ -320,6 +322,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          conversation_id?: string | null
           created_at?: string
           error_log?: string | null
           id?: string
@@ -331,7 +334,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jobs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lectures: {
         Row: {

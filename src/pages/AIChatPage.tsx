@@ -704,6 +704,7 @@ const AIChatPage = () => {
     }
 
     console.log('📡 Setting up job listener for conversation:', activeConversationId);
+    processedJobsRef.current.clear();
 
     const channel = supabase
       .channel(`jobs-conversation-${activeConversationId}`)
@@ -720,17 +721,17 @@ const AIChatPage = () => {
           
           console.log('📬 Job update received:', job.id, job.status, job.job_type);
           
-          // ✅ CORREÇÃO 2: ANTI-LOOP MELHORADO - Marca job como "em processamento" na primeira vez
+          // ✅ ANTI-LOOP: Se já foi processado, ignora
           if (processedJobsRef.current.has(job.id)) {
             console.log('⏭️ Job already being tracked, skipping:', job.id);
             return;
           }
 
-          // ✅ Adicionar ao ref IMEDIATAMENTE (não esperar COMPLETED)
+          // ✅ Adicionar ao ref IMEDIATAMENTE
           processedJobsRef.current.add(job.id);
           console.log('📌 Job now being tracked:', job.id);
           
-          // ✅ CORREÇÃO 1: COMPARAÇÃO PROFUNDA - Só atualiza se houve mudança real
+          // ✅ COMPARAÇÃO PROFUNDA
           setActiveJobs(prev => {
             const currentJob = prev.get(job.id);
             
@@ -741,11 +742,10 @@ const AIChatPage = () => {
               
               if (!hasChanged) {
                 console.log('⏭️ No changes detected for job:', job.id);
-                return prev; // ← Retorna o MESMO Map (sem re-render)
+                return prev;
               }
             }
             
-            // Mudança detectada → Criar novo Map
             const newJobs = new Map(prev);
             newJobs.set(job.id, {
               status: job.status,
