@@ -129,6 +129,16 @@ export default {
             transform: "translateY(-20px) translateX(10px)"
           }
         },
+        "gradient-xy": {
+          "0%, 100%": {
+            "background-size": "400% 400%",
+            "background-position": "left center"
+          },
+          "50%": {
+            "background-size": "200% 200%",
+            "background-position": "right center"
+          }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -136,6 +146,7 @@ export default {
         "fade-in": "fade-in 0.5s ease-out",
         "draw-line": "draw-line 3s ease-in-out infinite",
         "float": "float 6s ease-in-out infinite",
+        "gradient-xy": "gradient-xy 15s ease infinite",
       },
     },
   },

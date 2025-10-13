@@ -135,8 +135,12 @@ const AIChatPage = () => {
   };
 
   const handleOpenQuiz = (quizId: string) => {
-    setSelectedQuizId(quizId);
-    setIsQuizModalOpen(true);
+    navigate(`/quiz/${quizId}`, {
+      state: {
+        fromChat: true,
+        conversationId: activeConversationId
+      }
+    });
   };
 
   const handleOpenFlashcards = (setId: string) => {
@@ -532,7 +536,22 @@ const AIChatPage = () => {
         timestamp: new Date(msg.created_at),
       }));
 
-      setMessages(loadedMessages);
+      // Carregar sugestões salvas
+      const { data: savedSuggestions } = await supabase
+        .from('conversation_suggestions')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('message_index', { ascending: true });
+
+      const messagesWithSuggestions = loadedMessages.map((msg, idx) => {
+        const suggestion = savedSuggestions?.find(s => s.message_index === idx);
+        return {
+          ...msg,
+          suggestions: suggestion?.suggestions?.suggestions || null
+        };
+      });
+
+      setMessages(messagesWithSuggestions);
       setActiveConversationId(conversationId);
       setShowMobileHistory(false);
     } catch (error) {
@@ -669,56 +688,12 @@ const AIChatPage = () => {
             // ✅ NAVEGAÇÃO AUTOMÁTICA quando job completar
             if (job.status === 'COMPLETED') {
               
-              // 🎯 QUIZ: Navegar automaticamente
-              if (job.job_type === 'GENERATE_QUIZ') {
-                try {
-                  const resultData = JSON.parse(job.result);
-                  const { quizId, title, questionCount } = resultData;
-                  
-                  toast({
-                    title: "✅ Quiz Pronto!",
-                    description: `${title} com ${questionCount} perguntas. Redirecionando...`,
-                    duration: 2000,
-                  });
-                  
-                  setTimeout(() => {
-                    navigate(`/quiz/${quizId}`);
-                  }, 1000);
-                  
-                } catch (error) {
-                  console.error('Error parsing quiz result:', error);
-                  handleOpenQuiz(job.result);
-                }
-              }
-              
-              // 🎴 FLASHCARDS: Abrir modal automaticamente
-              if (job.job_type === 'GENERATE_FLASHCARDS') {
-                try {
-                  const resultData = JSON.parse(job.result);
-                  const { flashcardSetId, title, cardCount } = resultData;
-                  
-                  toast({
-                    title: "✅ Flashcards Prontos!",
-                    description: `${title} com ${cardCount} cards. Abrindo...`,
-                    duration: 2000,
-                  });
-                  
-                  setTimeout(() => {
-                    handleOpenFlashcards(flashcardSetId);
-                  }, 1000);
-                  
-                } catch (error) {
-                  console.error('Error parsing flashcard result:', error);
-                  handleOpenFlashcards(job.result);
-                }
-              }
-              
               // 💡 SUGGESTIONS: Forçar re-render
               if (job.job_type === 'GENERATE_SUGGESTIONS') {
                 setMessages(prev => [...prev]);
               }
               
-              // 📄 DEEP_SEARCH: Recarregar conversa
+              // 📄 DEEP_SEARCH: Salvar relatório
               if (job.job_type === 'DEEP_SEARCH') {
                 loadConversations();
                 if (activeConversationId) {

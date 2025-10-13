@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -43,6 +43,9 @@ const QuizPage = () => {
   
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromChat = location.state?.fromChat || false;
+  const conversationId = location.state?.conversationId;
   const lectureId = id || '1';
 
   useEffect(() => {
@@ -316,7 +319,7 @@ const QuizPage = () => {
   if (loading) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-pink-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-pink-200 animate-gradient-xy flex items-center justify-center">
           <Card className="border-0 shadow-lg bg-white/60 backdrop-blur-xl p-8">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -338,7 +341,7 @@ const QuizPage = () => {
     
     return (
       <MainLayout>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-pink-50">
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-pink-200 animate-gradient-xy">
           <div className="container mx-auto px-4 py-8">
             <div className="max-w-3xl mx-auto space-y-6">
               {/* Score Card */}
@@ -379,11 +382,19 @@ const QuizPage = () => {
                         </p>
                       </div>
                       <div className="flex gap-4 justify-center flex-wrap">
-                        <Button variant="outline" asChild size="lg">
-                          <Link to="/courses">
-                            <ChevronLeft className="h-4 w-4 mr-2" />
-                            Voltar aos Cursos
-                          </Link>
+                        <Button 
+                          variant="outline" 
+                          size="lg"
+                          onClick={() => {
+                            if (fromChat && conversationId) {
+                              navigate('/aichat', { state: { conversationId } });
+                            } else {
+                              navigate('/courses');
+                            }
+                          }}
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-2" />
+                          Voltar {fromChat ? 'ao Chat' : 'aos Cursos'}
                         </Button>
                         <Button 
                           onClick={() => window.location.reload()}
@@ -476,14 +487,22 @@ const QuizPage = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-pink-50">
+      <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-pink-200 animate-gradient-xy">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center gap-4 mb-6">
-              <Button variant="ghost" size="icon" asChild>
-                <Link to="/courses">
-                  <ChevronLeft className="h-5 w-5" />
-                </Link>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => {
+                  if (fromChat && conversationId) {
+                    navigate('/aichat', { state: { conversationId } });
+                  } else {
+                    navigate('/courses');
+                  }
+                }}
+              >
+                <ChevronLeft className="h-5 w-5" />
               </Button>
               <h1 className="text-xl font-semibold">Quiz Interativo</h1>
             </div>

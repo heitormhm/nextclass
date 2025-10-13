@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Lightbulb, FileQuestion, Layers } from "lucide-react";
+import { FileQuestion, Layers } from "lucide-react";
 
 interface ActionButtonsProps {
   messageContent: string;
@@ -11,16 +11,6 @@ interface ActionButtonsProps {
 export const ActionButtons = ({ messageContent, topic, onAction, disabled }: ActionButtonsProps) => {
   return (
     <div className="flex gap-2 mt-3 flex-wrap">
-      <Button
-        size="sm"
-        onClick={() => onAction('GENERATE_SUGGESTIONS', { context: messageContent, topic })}
-        disabled={disabled}
-        className="bg-pink-500 hover:bg-pink-600 text-white"
-      >
-        <Lightbulb className="w-4 h-4 mr-1" />
-        Sugestões
-      </Button>
-      
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_QUIZ', { context: messageContent, topic })}

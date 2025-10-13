@@ -118,6 +118,38 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_suggestions: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          id: string
+          message_index: number
+          suggestions: Json
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          message_index: number
+          suggestions: Json
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          message_index?: number
+          suggestions?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_suggestions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string
