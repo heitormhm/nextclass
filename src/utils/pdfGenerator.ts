@@ -86,7 +86,42 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
   doc.setDrawColor(236, 72, 153);
   doc.setLineWidth(1.5);
   doc.line(margin + 20, yPosition + 2, pageWidth - margin - 20, yPosition + 2);
-  yPosition += 18;
+  yPosition += 10;
+
+  // Extract H2 titles for table of contents
+  const extractH2Titles = (content: string): string[] => {
+    const h2Pattern = /^##\s+(\d+\.\s+)?(.+)$/gm;
+    const titles: string[] = [];
+    let match;
+    while ((match = h2Pattern.exec(content)) !== null) {
+      titles.push(match[2].trim());
+    }
+    return titles;
+  };
+
+  // Add visual index
+  const sectionTitles = extractH2Titles(content);
+  if (sectionTitles.length > 0) {
+    yPosition += 8;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(110, 89, 165);
+    doc.text('Conteúdo:', margin, yPosition);
+    yPosition += 7;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    
+    sectionTitles.forEach((title, index) => {
+      doc.text(`${index + 1}. ${title}`, margin + 5, yPosition);
+      yPosition += 6;
+    });
+    
+    yPosition += 10;
+  } else {
+    yPosition += 8;
+  }
 
   // Process content
   doc.setTextColor(50, 50, 50); // Dark gray for better readability
@@ -163,44 +198,89 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     // Check if line starts with # (must be first character or after whitespace)
     const trimmedLine = line.trim();
     if (trimmedLine.startsWith('###')) {
-      yPosition += 3; // Extra spacing before subsection
-      doc.setFontSize(13);
+      yPosition += 6; // Extra spacing before subsection
+      doc.setFontSize(14); // Increased from 13
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(110, 89, 165);
+      
+      // Add decorative marker
+      doc.setFillColor(236, 72, 153);
+      doc.circle(margin - 3, yPosition - 2, 1.5, 'F'); // Pink circle
+      
       const headerText = trimmedLine.replace(/^###\s*/, '');
-      const headerLines = doc.splitTextToSize(headerText, contentWidth);
+      
+      // Check for special keywords and add icons
+      const lowerHeader = headerText.toLowerCase();
+      if (lowerHeader.includes('aplicaç') || lowerHeader.includes('prática')) {
+        // Lightbulb icon
+        doc.setDrawColor(236, 72, 153);
+        doc.setLineWidth(0.5);
+        doc.circle(margin - 8, yPosition - 2, 2, 'S');
+        doc.line(margin - 8, yPosition, margin - 8, yPosition + 2);
+      } else if (lowerHeader.includes('importante') || lowerHeader.includes('atenção') || lowerHeader.includes('nota')) {
+        // Alert icon
+        doc.setFillColor(255, 215, 0);
+        doc.circle(margin - 8, yPosition - 2, 2.5, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+        doc.text('!', margin - 8.5, yPosition - 0.5);
+        doc.setFontSize(14);
+        doc.setTextColor(110, 89, 165);
+      }
+      
+      const headerLines = doc.splitTextToSize(headerText, contentWidth - 5);
       headerLines.forEach((hLine: string) => {
-        doc.text(hLine, margin, yPosition);
+        doc.text(hLine, margin + 3, yPosition);
         yPosition += 7;
       });
-      yPosition += 1;
+      
+      // Add subtle underline
+      doc.setDrawColor(236, 72, 153);
+      doc.setLineWidth(0.3);
+      doc.line(margin + 3, yPosition, margin + 60, yPosition);
+      yPosition += 4;
+      
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
     } else if (trimmedLine.startsWith('##') && !trimmedLine.startsWith('###')) {
-      yPosition += 5; // Extra spacing before section
-      doc.setFontSize(15);
+      yPosition += 10; // More spacing before section
+      doc.setFontSize(16); // Slightly larger
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(110, 89, 165);
-      const headerText = trimmedLine.replace(/^##\s*/, '');
+      const headerText = trimmedLine.replace(/^##\s*(\d+\.\s+)?/, ''); // Remove ## and optional numbering
       const headerLines = doc.splitTextToSize(headerText, contentWidth);
       headerLines.forEach((hLine: string) => {
         doc.text(hLine, margin, yPosition);
-        yPosition += 8;
+        yPosition += 9;
       });
-      // Add subtle underline for sections
+      // Add elegant underline for sections
       doc.setDrawColor(236, 72, 153);
-      doc.setLineWidth(0.5);
-      doc.line(margin, yPosition, margin + 40, yPosition);
-      yPosition += 2;
+      doc.setLineWidth(0.8);
+      doc.line(margin, yPosition, margin + 50, yPosition);
+      yPosition += 5;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
     } else if (trimmedLine.startsWith('#') && !trimmedLine.startsWith('##')) {
+      // H1 headers with decorative numbering
+      const match = trimmedLine.match(/^#\s+(\d+)\.\s*(.+)/);
+      const headerText = match ? match[2] : trimmedLine.replace(/^#\s*/, '');
+      
       // Skip first H1 if it's a duplicate of the main title
-      const headerText = trimmedLine.replace(/^#\s*/, '');
       if (headerText.toLowerCase() !== title.toLowerCase() || pageCount > 1) {
-        yPosition += 8;
+        yPosition += 12;
+        
+        // Add decorative section number if present
+        if (match) {
+          const sectionNumber = match[1];
+          doc.setFontSize(32);
+          doc.setTextColor(236, 72, 153); // Pink
+          doc.setFont('helvetica', 'bold');
+          doc.text(sectionNumber, margin, yPosition);
+          yPosition += 10;
+        }
+        
         doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(110, 89, 165);
@@ -209,7 +289,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
           doc.text(hLine, margin, yPosition);
           yPosition += 10;
         });
-        yPosition += 2;
+        yPosition += 4;
       }
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
@@ -263,10 +343,51 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
 
         // Check if line contains mathematical formulas (equations with = or extensive use of subscripts/superscripts)
         const lineText = segments.map(s => s.text).join('');
-        const isMathFormula = /[=²³⁰¹⁴⁵⁶⁷⁸⁹ṁ]/.test(lineText) || 
+        const isMathFormula = /[=²³⁰¹⁴⁵⁶⁷⁸⁹ṁΔ]/.test(lineText) || 
                               lineText.includes('->') || 
                               lineText.includes('∑') ||
                               /\b[A-Z]_[a-z]+/.test(lineText);
+        
+        // Check if this is an important equation (has = and variables)
+        const isImportantEquation = lineText.includes('=') && 
+                                     /[A-Z]{1,2}[₀₁₂₃₄₅₆₇₈₉]?/.test(lineText) &&
+                                     lineText.trim().split(' ').length < 15; // Not too long
+        
+        // If it's an important equation, render it in a highlighted box
+        if (isImportantEquation) {
+          // Check for page break
+          if (yPosition > pageHeight - footerHeight - 25) {
+            addFooter(pageCount, 0);
+            doc.addPage();
+            pageCount++;
+            isFirstPage = false;
+            yPosition = margin + 5;
+          }
+          
+          yPosition += 5;
+          
+          // Background box
+          doc.setFillColor(248, 248, 250);
+          doc.roundedRect(margin - 5, yPosition - 6, contentWidth + 10, 16, 2, 2, 'F');
+          
+          // Border
+          doc.setDrawColor(110, 89, 165);
+          doc.setLineWidth(0.5);
+          doc.roundedRect(margin - 5, yPosition - 6, contentWidth + 10, 16, 2, 2, 'S');
+          
+          // Render equation centered and bold
+          doc.setFontSize(13);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(60, 60, 60);
+          doc.text(lineText.trim(), pageWidth / 2, yPosition + 2, { align: 'center' });
+          
+          yPosition += 18;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(12);
+          doc.setTextColor(50, 50, 50);
+          
+          return []; // Don't process this line further
+        }
 
         segments.forEach((segment) => {
           // For math formulas, try to keep them together more aggressively
@@ -362,11 +483,15 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
           if (!segment.text.trim() && segment.text !== ' ') return;
 
           if (segment.citation) {
-            // Citations - smaller superscript style
+            // Citations - smaller superscript style with subtle background
+            doc.setFillColor(250, 248, 255); // Very light purple
+            const citationWidth = doc.getTextWidth(segment.text);
+            doc.rect(xPosition - 0.5, yPosition - 4.5, citationWidth + 1, 5, 'F');
+            
             doc.setFontSize(9);
             doc.setTextColor(110, 89, 165);
             doc.text(segment.text, xPosition, yPosition - 1);
-            xPosition += doc.getTextWidth(segment.text) + 1;
+            xPosition += citationWidth + 2;
             doc.setFontSize(12);
             doc.setTextColor(50, 50, 50);
           } else {
@@ -378,12 +503,12 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
           }
         });
 
-        yPosition += 7;
+        yPosition += 8; // Increased from 7 for better readability
       });
     }
     // Empty line - add consistent spacing
     else {
-      yPosition += 5;
+      yPosition += 6; // Increased from 5
     }
   });
 
@@ -440,4 +565,4 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
   // Save the PDF
   const fileName = `relatorio-${title.substring(0, 30).replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.pdf`;
   doc.save(fileName);
-};
+}
