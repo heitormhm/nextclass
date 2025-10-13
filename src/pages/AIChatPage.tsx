@@ -141,11 +141,33 @@ const AIChatPage = () => {
         conversationId: activeConversationId
       }
     });
+    
+    // ✅ Remover job após abrir quiz
+    setActiveJobs(prev => {
+      const newJobs = new Map(prev);
+      for (const [jobId, job] of prev.entries()) {
+        if (job.type === 'GENERATE_QUIZ' && job.result?.includes(quizId)) {
+          newJobs.delete(jobId);
+        }
+      }
+      return newJobs;
+    });
   };
 
   const handleOpenFlashcards = (setId: string) => {
     setSelectedFlashcardSetId(setId);
     setIsFlashcardModalOpen(true);
+    
+    // ✅ Remover job após abrir flashcards
+    setActiveJobs(prev => {
+      const newJobs = new Map(prev);
+      for (const [jobId, job] of prev.entries()) {
+        if (job.type === 'GENERATE_FLASHCARDS' && job.result?.includes(setId)) {
+          newJobs.delete(jobId);
+        }
+      }
+      return newJobs;
+    });
   };
 
   // Handler para clicar em uma sugestão
@@ -679,12 +701,17 @@ const AIChatPage = () => {
           
           // Update active jobs state
           if (activeJobs.has(job.id)) {
-            setActiveJobs(prev => new Map(prev).set(job.id, {
-              status: job.status,
-              type: job.job_type,
-              result: job.result,
-              payload: prev.get(job.id)?.payload
-            }));
+            const currentJob = activeJobs.get(job.id);
+            
+            // ✅ Só atualizar se status ou result realmente mudou
+            if (currentJob?.status !== job.status || currentJob?.result !== job.result) {
+              setActiveJobs(prev => new Map(prev).set(job.id, {
+                status: job.status,
+                type: job.job_type,
+                result: job.result,
+                payload: prev.get(job.id)?.payload
+              }));
+            }
             
             // ✅ NAVEGAÇÃO AUTOMÁTICA quando job completar
             if (job.status === 'COMPLETED') {
@@ -702,14 +729,14 @@ const AIChatPage = () => {
                 }
               }
               
-              // ✅ Remover job completado após 3 segundos
+              // ✅ Remover job completado após 10 segundos (tempo para usuário ver e clicar)
               setTimeout(() => {
                 setActiveJobs(prev => {
                   const newJobs = new Map(prev);
                   newJobs.delete(job.id);
                   return newJobs;
                 });
-              }, 3000);
+              }, 10000);
             }
           }
           
@@ -1067,6 +1094,16 @@ const AIChatPage = () => {
                               disabled={isLoading}
                             />
                           )}
+
+                          {/* Job Status - Exibir status de processamento */}
+                          {!message.isUser && Array.from(activeJobs.entries()).map(([jobId, job]) => (
+                            <JobStatus
+                              key={jobId}
+                              job={job}
+                              onOpenQuiz={handleOpenQuiz}
+                              onOpenFlashcards={handleOpenFlashcards}
+                            />
+                          ))}
 
                           {/* Suggestions Buttons */}
                           {!message.isUser && message.suggestionsJobId && (
