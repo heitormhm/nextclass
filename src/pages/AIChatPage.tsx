@@ -817,15 +817,50 @@ const AIChatPage = () => {
                           {message.isReport && (
                             <Button
                               onClick={() => {
-                                generateReportPDF({
+                                console.log('🎯 Iniciando geração de PDF...');
+                                console.log('📄 Conteúdo:', message.content.substring(0, 200) + '...');
+                                console.log('📏 Tamanho do conteúdo:', message.content.length, 'caracteres');
+                                
+                                const result = generateReportPDF({
                                   content: message.content,
                                   title: message.reportTitle || 'Relatório de Pesquisa',
-                                  logoSvg: '', // Will be handled in the PDF generator
+                                  logoSvg: '',
                                 });
-                                toast({
-                                  title: "PDF Gerado",
-                                  description: "O relatório foi gerado e o download iniciou.",
-                                });
+                                
+                                if (result.success) {
+                                  let description = "O relatório foi gerado e o download iniciou.";
+                                  
+                                  if (result.stats) {
+                                    description += `\n\nEstatísticas:\n`;
+                                    description += `• ${result.stats.content.h1Count + result.stats.content.h2Count + result.stats.content.h3Count} títulos\n`;
+                                    description += `• ${result.stats.content.paragraphCount} parágrafos\n`;
+                                    description += `• ${result.stats.pdf.pageCount} páginas geradas`;
+                                  }
+                                  
+                                  if (result.warnings && result.warnings.length > 0) {
+                                    description += `\n\n⚠️ Avisos:\n${result.warnings.join('\n')}`;
+                                  }
+                                  
+                                  toast({
+                                    title: "✅ PDF Gerado com Sucesso",
+                                    description,
+                                    duration: 5000,
+                                  });
+                                } else {
+                                  toast({
+                                    title: "❌ Erro ao Gerar PDF",
+                                    description: result.error || "Erro desconhecido",
+                                    variant: "destructive",
+                                    duration: 7000,
+                                  });
+                                  
+                                  // Log detalhado para debug
+                                  console.error('❌ Falha na geração do PDF');
+                                  console.error('Erro:', result.error);
+                                  if (result.stats) {
+                                    console.error('Stats:', result.stats);
+                                  }
+                                }
                               }}
                               className="mt-4 w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
                             >

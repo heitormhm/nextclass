@@ -6,7 +6,140 @@ interface PDFOptions {
   logoSvg?: string;
 }
 
-export const generateReportPDF = ({ content, title }: PDFOptions): void => {
+interface ContentAnalysis {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  stats: {
+    totalCharacters: number;
+    totalLines: number;
+    h1Count: number;
+    h2Count: number;
+    h3Count: number;
+    paragraphCount: number;
+    equationCount: number;
+  };
+}
+
+interface PDFValidation {
+  isValid: boolean;
+  errors: string[];
+  pageCount: number;
+  estimatedContentPages: number;
+}
+
+interface PDFGenerationResult {
+  success: boolean;
+  error?: string;
+  warnings?: string[];
+  stats?: {
+    content: ContentAnalysis['stats'];
+    pdf: {
+      pageCount: number;
+      estimatedPages: number;
+    };
+  };
+}
+
+// Fase 1: Análise de Conteúdo
+const analyzeContent = (content: string): ContentAnalysis => {
+  const analysis: ContentAnalysis = {
+    isValid: true,
+    errors: [],
+    warnings: [],
+    stats: {
+      totalCharacters: content.length,
+      totalLines: content.split('\n').length,
+      h1Count: 0,
+      h2Count: 0,
+      h3Count: 0,
+      paragraphCount: 0,
+      equationCount: 0
+    }
+  };
+
+  // Validações críticas
+  if (!content || content.trim().length === 0) {
+    analysis.isValid = false;
+    analysis.errors.push('Conteúdo vazio');
+    return analysis;
+  }
+
+  if (content.trim().length < 100) {
+    analysis.isValid = false;
+    analysis.errors.push('Conteúdo muito curto (menos de 100 caracteres)');
+  }
+
+  // Contar elementos
+  const lines = content.split('\n');
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed.match(/^#\s+[^#]/)) analysis.stats.h1Count++;
+    if (trimmed.match(/^##\s+[^#]/)) analysis.stats.h2Count++;
+    if (trimmed.match(/^###\s+/)) analysis.stats.h3Count++;
+    if (trimmed.includes('=') && trimmed.length < 100) analysis.stats.equationCount++;
+    if (trimmed.length > 20 && !trimmed.match(/^#{1,3}\s+/)) analysis.stats.paragraphCount++;
+  });
+
+  // Validações de estrutura
+  if (analysis.stats.h1Count === 0 && analysis.stats.h2Count === 0) {
+    analysis.warnings.push('Nenhum título encontrado no conteúdo');
+  }
+
+  if (analysis.stats.paragraphCount === 0) {
+    analysis.warnings.push('Nenhum parágrafo de texto encontrado');
+  }
+
+  return analysis;
+};
+
+// Fase 2: Validação do PDF Gerado
+const validateGeneratedPDF = (doc: jsPDF, contentAnalysis: ContentAnalysis): PDFValidation => {
+  const validation: PDFValidation = {
+    isValid: true,
+    errors: [],
+    pageCount: doc.getNumberOfPages(),
+    estimatedContentPages: Math.ceil(contentAnalysis.stats.totalCharacters / 2000)
+  };
+
+  // Validação 1: Número mínimo de páginas
+  if (validation.pageCount < 2) {
+    validation.isValid = false;
+    validation.errors.push(`PDF tem apenas ${validation.pageCount} página(s). Esperado: pelo menos 2 páginas`);
+  }
+
+  // Validação 2: Verificar se o número de páginas faz sentido
+  if (contentAnalysis.stats.totalCharacters > 3000 && validation.pageCount < 2) {
+    validation.isValid = false;
+    validation.errors.push(`Conteúdo muito grande (${contentAnalysis.stats.totalCharacters} caracteres) mas PDF tem apenas ${validation.pageCount} página(s)`);
+  }
+
+  // Validação 3: Verificar se não está muito pequeno
+  if (validation.pageCount < Math.floor(validation.estimatedContentPages * 0.5)) {
+    validation.errors.push(`PDF pode estar incompleto. Esperado: ~${validation.estimatedContentPages} páginas, gerado: ${validation.pageCount} páginas`);
+  }
+
+  return validation;
+};
+
+export const generateReportPDF = ({ content, title }: PDFOptions): PDFGenerationResult => {
+  console.log('🔍 FASE 1: Analisando conteúdo...');
+  
+  // FASE 1: Análise do conteúdo
+  const contentAnalysis = analyzeContent(content);
+  
+  console.log('📊 Análise do conteúdo:', contentAnalysis);
+  
+  if (!contentAnalysis.isValid) {
+    console.error('❌ Conteúdo inválido:', contentAnalysis.errors);
+    return {
+      success: false,
+      error: `Conteúdo inválido: ${contentAnalysis.errors.join(', ')}`,
+    };
+  }
+
+  console.log('✅ Conteúdo válido. Iniciando geração do PDF...');
+  console.log('📈 Estatísticas:', contentAnalysis.stats);
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -106,13 +239,21 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
   doc.setFontSize(12); // Professional 12pt font
   doc.setFont('helvetica', 'normal');
 
-  // Fase 1: Clean unwanted content
+  // Fase 5: Função de limpeza mais conservadora
   const cleanContent = (content: string): string => {
-    return content
-      // Remove AI introductory phrases
-      .replace(/^(Com certeza|Claro|Segue o relatório|Certamente|Perfeito|Ótimo)\.?.*?[\n\r]+/gm, '')
-      // Remove empty lines after removal
-      .replace(/^\s*[\n\r]+/gm, '');
+    console.log('🧹 Limpando conteúdo...');
+    console.log('📏 Tamanho original:', content.length);
+    
+    const cleaned = content
+      // Remover APENAS frases introdutórias NO INÍCIO
+      .replace(/^(Com certeza|Claro|Segue o relatório|Certamente|Perfeito|Ótimo)[^\n]*\n+/i, '')
+      // Reduzir múltiplas linhas vazias (máximo 2)
+      .replace(/\n{3,}/g, '\n\n');
+    
+    console.log('📏 Tamanho após limpeza:', cleaned.length);
+    console.log('📝 Primeiras 200 caracteres:', cleaned.substring(0, 200));
+    
+    return cleaned;
   };
 
   // Fase 4: Preprocess citations and mathematical notation
@@ -171,13 +312,6 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
   };
 
   const { text: preprocessedContent, references } = preprocessCitationsAndMath(cleanContent(content));
-  
-  // Correção 5: Validate content is not empty
-  if (!preprocessedContent || preprocessedContent.trim().length < 100) {
-    console.error('❌ Conteúdo vazio ou muito curto após preprocessamento:', preprocessedContent.length, 'caracteres');
-    console.error('Conteúdo original tinha:', content.length, 'caracteres');
-    return;
-  }
   
   console.log('✅ Conteúdo preprocessado:', preprocessedContent.length, 'caracteres');
   
@@ -239,16 +373,25 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
 
   const lines = preprocessedContent.split('\n').map(line => preprocessMathNotation(line));
   
-  // Correção 2: Add debug logs
-  console.log('✅ Total de linhas para processar:', lines.length);
+  // Fase 6: Debug logs detalhados
+  console.log(`📝 Processando ${lines.length} linhas de conteúdo`);
+  console.log(`📊 Títulos detectados para índice: ${sectionTitles.length}`);
+
+  let processedLines = 0;
+  let h1Rendered = 0;
+  let h2Rendered = 0;
+  let h3Rendered = 0;
+  let paragraphsRendered = 0;
   
   // Correção 3: Track first H1 to avoid skipping all H1s
   let firstH1Rendered = false;
   
   lines.forEach((line, lineIndex) => {
-    // Log progress every 50 lines
-    if (lineIndex % 50 === 0) {
-      console.log(`📝 Processando linha ${lineIndex}/${lines.length}`);
+    processedLines++;
+    
+    // Log progress every 20 lines
+    if (lineIndex % 20 === 0) {
+      console.log(`⏳ Processando linha ${lineIndex + 1}/${lines.length}`);
     }
     // Check if we need a new page
     if (yPosition > pageHeight - footerHeight - 20) {
@@ -264,6 +407,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     
     // Check H3 first (###)
     if (trimmedLine.match(/^###\s+/)) {
+      h3Rendered++;
       yPosition += 8; // Increased spacing
       doc.setFontSize(15); // Increased from 14
       doc.setFont('helvetica', 'bold');
@@ -319,6 +463,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     }
     // Check H2 next (## but not ###)
     else if (trimmedLine.match(/^##\s+/) && !trimmedLine.startsWith('###')) {
+      h2Rendered++;
       yPosition += 10;
       doc.setFontSize(15); // Reduced from 16
       doc.setFont('helvetica', 'bold');
@@ -370,6 +515,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
         const shouldSkip = isDuplicateTitle && !firstH1Rendered;
         
         if (!shouldSkip) {
+          h1Rendered++;
           firstH1Rendered = true;
           console.log('✅ Renderizando H1:', headerText);
           
@@ -415,6 +561,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
       
       // Render important equations in highlighted box
       if (isImportantEquation) {
+        paragraphsRendered++;
         console.log('🧮 Equação importante detectada:', cleanText.substring(0, 50));
         
         // Check for page break
@@ -630,6 +777,14 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     }
   });
 
+  // Fase 6: Log final de estatísticas
+  console.log(`✅ Processamento concluído:`);
+  console.log(`   • Linhas processadas: ${processedLines}`);
+  console.log(`   • H1 renderizados: ${h1Rendered}`);
+  console.log(`   • H2 renderizados: ${h2Rendered}`);
+  console.log(`   • H3 renderizados: ${h3Rendered}`);
+  console.log(`   • Parágrafos: ${paragraphsRendered}`);
+
   // Add References section if there are citations
   if (references.length > 0) {
     // Check if we need a new page
@@ -680,7 +835,53 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     addFooter(i, totalPages);
   }
 
-  // Save the PDF
+  console.log(`   • Páginas totais: ${totalPages}`);
+
+  console.log('🔍 FASE 3: Validando PDF gerado...');
+  
+  // FASE 3: Validar PDF gerado
+  const pdfValidation = validateGeneratedPDF(doc, contentAnalysis);
+  
+  console.log('📊 Validação do PDF:', pdfValidation);
+  
+  if (!pdfValidation.isValid) {
+    console.error('❌ PDF inválido:', pdfValidation.errors);
+    return {
+      success: false,
+      error: `PDF gerado está inválido: ${pdfValidation.errors.join(', ')}`,
+      warnings: contentAnalysis.warnings,
+      stats: {
+        content: contentAnalysis.stats,
+        pdf: {
+          pageCount: pdfValidation.pageCount,
+          estimatedPages: pdfValidation.estimatedContentPages
+        }
+      }
+    };
+  }
+
+  // Avisos (não bloqueiam o download)
+  if (contentAnalysis.warnings.length > 0) {
+    console.warn('⚠️ Avisos:', contentAnalysis.warnings);
+  }
+
+  console.log('✅ PDF validado. Iniciando download...');
+
+  // FASE 4: Download
   const fileName = `relatorio-${title.substring(0, 30).replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.pdf`;
   doc.save(fileName);
+  
+  console.log('✅ Download iniciado:', fileName);
+
+  return {
+    success: true,
+    warnings: contentAnalysis.warnings,
+    stats: {
+      content: contentAnalysis.stats,
+      pdf: {
+        pageCount: pdfValidation.pageCount,
+        estimatedPages: pdfValidation.estimatedContentPages
+      }
+    }
+  };
 }
