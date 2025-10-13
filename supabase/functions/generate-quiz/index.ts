@@ -33,42 +33,57 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an AI that creates educational quizzes for engineering students. Generate a comprehensive quiz based ONLY on the lecture transcript provided. 
-            
-            IMPORTANT: Questions must be technical and relevant to engineering concepts discussed in the lecture. Focus on:
-            - Engineering principles (thermodynamics, mechanics, circuits, structures, materials, etc.)
-            - Technical calculations and analysis
-            - Design principles and methodologies
-            - Engineering problem-solving approaches
-            
-            For each question, you MUST include:
-            1. The question text (focused on engineering concepts)
-            2. The type (multiple-choice, true-false, fill-blank, or short-answer)
-            3. Options (for multiple-choice) - all options must be technically plausible
-            4. The correct answer
-            5. An explanation with technical reasoning
-            6. A sourceTimestamp (in "MM:SS" format) pointing to where in the lecture this concept was discussed
-            
-            Return ONLY valid JSON in this exact format:
-            {
-              "questions": [
-                {
-                  "id": 1,
-                  "type": "multiple-choice",
-                  "question": "Question text here",
-                  "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                  "correctAnswer": 0,
-                  "explanation": "Explanation text",
-                  "sourceTimestamp": "12:34"
-                }
-              ]
-            }
-            
-            Generate 8-10 questions with a good mix of question types. Focus on testing understanding of engineering concepts, calculations, and applications.`
+            content: `🇧🇷 CRITICAL: You MUST generate ALL content in BRAZILIAN PORTUGUESE (pt-BR).
+
+Você é um criador de quizzes educacionais para estudantes de engenharia em PORTUGUÊS DO BRASIL.
+Gere um quiz baseado APENAS no conteúdo da aula fornecida.
+
+⚠️ IDIOMA OBRIGATÓRIO:
+- TODO o texto deve estar em português do Brasil
+- Perguntas em português
+- Todas as 4 opções de resposta em português  
+- Explicações em português
+- NUNCA use inglês
+
+IMPORTANTE: Perguntas devem ser técnicas e relevantes aos conceitos de engenharia discutidos na aula. Foque em:
+- Princípios de engenharia (termodinâmica, mecânica, circuitos, estruturas, materiais, etc.)
+- Cálculos técnicos e análise
+- Princípios de design e metodologias
+- Abordagens de resolução de problemas de engenharia
+
+Para cada pergunta, você DEVE incluir:
+1. O texto da pergunta (focado em conceitos de engenharia)
+2. O tipo (multiple-choice, true-false, fill-blank, ou short-answer)
+3. Opções (para múltipla escolha) - todas as opções devem ser tecnicamente plausíveis
+4. A resposta correta
+5. Uma explicação com raciocínio técnico
+6. Um sourceTimestamp (formato "MM:SS") apontando onde na aula este conceito foi discutido
+
+Retorne APENAS JSON válido neste formato exato (SEM markdown):
+{
+  "questions": [
+    {
+      "id": 1,
+      "type": "multiple-choice",
+      "question": "O que é pressão hidrostática?",
+      "options": [
+        "Pressão exercida por um fluido em repouso",
+        "Pressão de um gás em movimento",
+        "Força aplicada em uma superfície sólida",
+        "Energia potencial de um líquido"
+      ],
+      "correctAnswer": 0,
+      "explanation": "A pressão hidrostática é a pressão exercida por um fluido em repouso devido ao seu peso.",
+      "sourceTimestamp": "12:34"
+    }
+  ]
+}
+
+Gere 8-10 perguntas com uma boa mistura de tipos. Foque em testar compreensão de conceitos de engenharia, cálculos e aplicações.`
           },
           {
             role: 'user',
-            content: `Generate an engineering-focused quiz based on this lecture transcript:\n\n${transcript || 'Sample lecture about structural analysis, stress calculations in beams, and deflection limits in engineering design.'}`
+            content: `Gere um quiz focado em engenharia baseado nesta transcrição de aula:\n\n${transcript || 'Aula de exemplo sobre análise estrutural, cálculo de tensões em vigas e limites de deflexão em projetos de engenharia.'}`
           }
         ],
       }),
@@ -95,14 +110,21 @@ serve(async (req) => {
     let quizData;
     try {
       // ✅ Extrair JSON de markdown, se presente
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      let jsonMatch = content.match(/\{[\s\S]*\}/);
       
       if (!jsonMatch) {
         console.error('No JSON found in AI response:', content);
         throw new Error('No valid JSON structure in AI response');
       }
       
-      quizData = JSON.parse(jsonMatch[0]);
+      // ✅ Sanitizar JSON removendo markdown
+      let sanitizedJson = jsonMatch[0]
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .replace(/\n\s*\n/g, '\n')
+        .trim();
+      
+      quizData = JSON.parse(sanitizedJson);
       
       // ✅ Validar estrutura
       if (!quizData.questions || !Array.isArray(quizData.questions)) {
@@ -111,6 +133,10 @@ serve(async (req) => {
       }
       
       console.log(`✅ Parsed ${quizData.questions.length} questions successfully`);
+      console.log('🌐 Language check:', {
+        hasPortuguese: JSON.stringify(quizData.questions).includes('ã') || JSON.stringify(quizData.questions).includes('ç'),
+        firstQuestion: quizData.questions[0]?.question?.substring(0, 80)
+      });
     } catch (parseError) {
       console.error('Failed to parse quiz data:', parseError);
       console.error('Raw content:', content.substring(0, 500));
