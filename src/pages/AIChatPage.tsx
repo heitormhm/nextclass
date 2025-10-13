@@ -816,12 +816,12 @@ const AIChatPage = () => {
 
                           {message.isReport && (
                             <Button
-                  onClick={() => {
+                  onClick={async () => {
                     console.log('🎯 Iniciando geração de PDF...');
                     console.log('📄 Conteúdo:', message.content.substring(0, 200) + '...');
                     console.log('📏 Tamanho do conteúdo:', message.content.length, 'caracteres');
                     
-                    const result = generateReportPDF({
+                    const result = await generateReportPDF({
                       content: message.content,
                       title: message.reportTitle || 'Relatório de Pesquisa',
                       logoSvg: '',

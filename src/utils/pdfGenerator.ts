@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { loadUnicodeFont, unicodeFontConfig } from './unicodeFont';
 
 interface PDFOptions {
   content: string;
@@ -301,63 +302,11 @@ const isEquation = (line: string): boolean => {
   return hasEquals && hasMathSymbols && notTooLong && notSentence;
 };
 
-// FASE 1 (Nova): Normalizar símbolos Unicode para renderização
-// FASE 2: Expandido para incluir mais variantes Unicode
+// ✅ FASE 7: Normalização DESABILITADA - usando fonte Unicode nativa
+// Símbolos matemáticos agora são renderizados diretamente com DejaVu Sans
 const normalizeScientificSymbols = (text: string): string => {
-  const symbolMap: Record<string, string> = {
-    // Todas as variantes de Delta
-    'Δ': 'Delta',      // U+0394 (Greek Capital Delta)
-    '∆': 'Delta',      // U+2206 (Increment)
-    'δ': 'delta',      // U+03B4 (Greek Small Delta)
-    '𝚫': 'Delta',      // U+1D6AB (Mathematical Bold Capital Delta)
-    
-    // Outras letras gregas (todas as variantes)
-    'π': 'pi',
-    'Π': 'Pi',
-    'θ': 'theta',
-    'Θ': 'Theta',
-    'ω': 'omega',
-    'Ω': 'Omega',
-    'Σ': 'Sigma',
-    'σ': 'sigma',
-    'α': 'alpha',
-    'β': 'beta',
-    'γ': 'gamma',
-    'λ': 'lambda',
-    'μ': 'mu',
-    'ν': 'nu',
-    'ρ': 'rho',
-    'τ': 'tau',
-    'φ': 'phi',
-    'ψ': 'psi',
-    
-    // Operadores matemáticos
-    '∫': 'integral',
-    '√': 'sqrt',
-    '∞': 'infinito',
-    '≈': '~=',
-    '≠': '!=',
-    '≤': '<=',
-    '≥': '>=',
-    '×': 'x',
-    '÷': '/',
-    '±': '+/-',
-    '∂': 'd',
-    '∇': 'nabla',
-  };
-  
-  let normalized = text;
-  
-  // Processar em ordem de caracteres mais específicos primeiro
-  Object.entries(symbolMap)
-    .sort((a, b) => b[0].length - a[0].length)
-    .forEach(([unicode, ascii]) => {
-      // Usar replace global com escape de caracteres especiais
-      const escaped = unicode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      normalized = normalized.replace(new RegExp(escaped, 'g'), ascii);
-    });
-  
-  return normalized;
+  // NÃO normalizar mais - retornar texto original com símbolos Unicode
+  return text;
 };
 
 // FASE 2 (Melhorias): Remover formatação markdown inline para cálculo
@@ -418,11 +367,11 @@ const formatReferences = (text: string): {
 
 // ============= GERAÇÃO DO PDF =============
 
-const generatePDFDocument = (content: string, title: string): { 
+const generatePDFDocument = async (content: string, title: string): Promise<{ 
   doc: jsPDF; 
   renderStats: RenderStats;
   sectionAnchors: SectionAnchor[];
-} => {
+}> => {
   const renderStats: RenderStats = {
     h1: 0,
     h2: 0,
@@ -442,6 +391,22 @@ const generatePDFDocument = (content: string, title: string): {
     unit: 'mm',
     format: 'a4',
   });
+
+  // ✅ FASE 7: Adicionar fonte Unicode para suportar símbolos matemáticos
+  try {
+    const fontBase64 = await loadUnicodeFont();
+    doc.addFileToVFS(unicodeFontConfig.fontFileName, fontBase64);
+    doc.addFont(
+      unicodeFontConfig.fontFileName, 
+      unicodeFontConfig.fontName, 
+      unicodeFontConfig.fontStyle
+    );
+    doc.setFont(unicodeFontConfig.fontName);
+    console.log('✅ Fonte Unicode carregada: símbolos matemáticos (Δ, π, θ, ω, etc.) serão renderizados nativamente');
+  } catch (error) {
+    console.warn('⚠️ Erro ao carregar fonte Unicode, usando fonte padrão:', error);
+    doc.setFont('helvetica');
+  }
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -1080,7 +1045,8 @@ const checkVisualQuality = (doc: jsPDF, renderStats: RenderStats, contentAnalysi
 };
 
 // FASE 6: Função Principal com Auto-Diagnóstico
-export const generateReportPDF = ({ content, title }: PDFOptions): PDFGenerationResult => {
+export const generateReportPDF = async ({ content, title }: PDFOptions): Promise<PDFGenerationResult> => {
+  console.log('🚀 Iniciando geração de PDF com 7 fases de validação...');
   console.log('🔍 FASE 1: Analisando conteúdo...');
   
   const contentAnalysis = analyzeContent(content);
@@ -1100,7 +1066,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): PDFGeneration
 
   // FASE 2: Primeira tentativa de geração
   console.log('🎯 FASE 2: Gerando PDF (Tentativa 1)...');
-  let result = generatePDFDocument(content, title);
+  let result = await generatePDFDocument(content, title);
   let doc = result.doc;
   let renderStats = result.renderStats;
   
@@ -1126,7 +1092,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): PDFGeneration
       
       // FASE 5: Regeneração
       console.log('🔄 FASE 5: Regenerando PDF com correções aplicadas...');
-      result = generatePDFDocument(content, title);
+      result = await generatePDFDocument(content, title);
       doc = result.doc;
       renderStats = result.renderStats;
       
