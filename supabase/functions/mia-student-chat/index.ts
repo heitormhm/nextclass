@@ -434,12 +434,46 @@ Resposta: ${assistantMessage.substring(0, 300)}...`;
       }
     }
 
+    // 🔥 CRIAR JOB DE SUGESTÕES AUTOMATICAMENTE
+    let suggestionsJobId: string | null = null;
+
+    try {
+      const { data: suggestionsJob, error: suggestionError } = await supabaseAdmin
+        .from('jobs')
+        .insert({
+          user_id: user.id,
+          job_type: 'GENERATE_SUGGESTIONS',
+          status: 'PENDING',
+          input_payload: { 
+            context: assistantMessage, // Usar a resposta recém-gerada como contexto
+            topic: message.substring(0, 100), // Extrair tópico da pergunta do usuário
+            conversationId: activeConversationId
+          }
+        })
+        .select()
+        .single();
+
+      if (!suggestionError && suggestionsJob) {
+        suggestionsJobId = suggestionsJob.id;
+        
+        // Invocar job-runner (fire-and-forget)
+        supabaseAdmin.functions.invoke('job-runner', {
+          body: { jobId: suggestionsJob.id }
+        }).catch(err => console.error('Error invoking job-runner for suggestions:', err));
+        
+        console.log(`✨ Suggestions job created: ${suggestionsJob.id}`);
+      }
+    } catch (error) {
+      console.error('Failed to create suggestions job:', error);
+      // Não bloquear a resposta principal se falhar
+    }
 
     return new Response(
       JSON.stringify({ 
         response: assistantMessage,
         conversationId: activeConversationId,
         conversationTitle: conversationTitle,
+        suggestionsJobId: suggestionsJobId, // ✅ NOVO CAMPO
         success: true 
       }),
       { 

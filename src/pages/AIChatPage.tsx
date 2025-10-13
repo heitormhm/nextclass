@@ -14,6 +14,7 @@ import { ActionButtons } from "@/components/ActionButtons";
 import { JobStatus } from "@/components/JobStatus";
 import { QuizModal } from "@/components/QuizModal";
 import { FlashcardModal } from "@/components/FlashcardModal";
+import { SuggestionsButtons } from "@/components/SuggestionsButtons";
 
 interface AttachedFile {
   name: string;
@@ -30,6 +31,7 @@ interface Message {
   file?: AttachedFile;
   isReport?: boolean;
   reportTitle?: string;
+  suggestionsJobId?: string; // ✅ NOVO CAMPO
 }
 
 interface Conversation {
@@ -132,6 +134,72 @@ const AIChatPage = () => {
     setIsFlashcardModalOpen(true);
   };
 
+  // Handler para clicar em uma sugestão
+  const handleSuggestionClick = async (suggestion: string) => {
+    console.log(`🔍 Suggestion clicked: "${suggestion}"`);
+    
+    // Adicionar mensagem do usuário no chat
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        content: suggestion,
+        isUser: true,
+        timestamp: new Date(),
+      },
+    ]);
+    
+    // Iniciar Deep Search automaticamente
+    setIsDeepSearchLoading(true);
+    setIsDeepSearch(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Não autenticado');
+      }
+      
+      const { data, error } = await supabase.functions.invoke('mia-student-chat', {
+        body: {
+          message: suggestion,
+          isDeepSearch: true,
+          conversationId: activeConversationId,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      
+      if (error) throw error;
+      
+      if (data.jobId) {
+        setDeepSearchJobId(data.jobId);
+        setDeepSearchProgress(0);
+        
+        // Adicionar ao activeJobs para tracking
+        setActiveJobs(prev => new Map(prev).set(data.jobId, {
+          status: 'PENDING',
+          type: 'DEEP_SEARCH'
+        }));
+        
+        toast({
+          title: "Pesquisa Profunda Iniciada",
+          description: "Acompanhe o progresso na interface.",
+        });
+      }
+    } catch (error) {
+      console.error('Error starting deep search from suggestion:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível iniciar a pesquisa profunda.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeepSearchLoading(false);
+      setIsDeepSearch(false);
+    }
+  };
+
   const handleSendMessage = async () => {
     if ((!inputMessage.trim() && !attachedFile) || isLoading) return;
 
@@ -200,8 +268,17 @@ const AIChatPage = () => {
           content: functionData.response,
           isUser: false,
           timestamp: new Date(),
+          suggestionsJobId: functionData.suggestionsJobId || undefined,
         };
         setMessages(prev => [...prev, assistantMessage]);
+        
+        // Adicionar job de sugestões ao activeJobs se existir
+        if (functionData.suggestionsJobId) {
+          setActiveJobs(prev => new Map(prev).set(functionData.suggestionsJobId, {
+            status: 'PENDING',
+            type: 'GENERATE_SUGGESTIONS'
+          }));
+        }
 
         // Update conversation ID if this was the first message
         if (functionData.conversationId && !activeConversationId) {
@@ -581,7 +658,14 @@ const AIChatPage = () => {
             // Reload messages when job completes
             if (job.status === 'COMPLETED') {
               loadConversations();
-              handleSelectChat(activeConversationId!);
+              if (activeConversationId) {
+                handleSelectChat(activeConversationId);
+              }
+              
+              // Forçar re-render quando sugestões completarem
+              if (job.job_type === 'GENERATE_SUGGESTIONS') {
+                setMessages(prev => [...prev]);
+              }
             }
           }
           
@@ -908,6 +992,16 @@ const AIChatPage = () => {
                               topic={message.content.split('\n')[0].substring(0, 50)}
                               onAction={handleAction}
                               disabled={isLoading}
+                            />
+                          )}
+
+                          {/* Suggestions Buttons */}
+                          {!message.isUser && message.suggestionsJobId && (
+                            <SuggestionsButtons
+                              suggestionsJobId={message.suggestionsJobId}
+                              activeJobs={activeJobs}
+                              onSuggestionClick={handleSuggestionClick}
+                              disabled={isLoading || isDeepSearchLoading}
                             />
                           )}
 

@@ -358,7 +358,47 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
       })
       .eq('id', job.id);
 
-    console.log(`✅ [${job.id}] Job completed successfully`);
+    console.log(`✅ [${job.id}] Deep search completed`);
+    
+    // 🔥 CRIAR JOB DE SUGESTÕES APÓS DEEP SEARCH
+    try {
+      console.log(`💡 Creating suggestions job for Deep Search ${job.id}`);
+      
+      const { data: suggestionsJob, error: suggestionError } = await supabaseAdmin
+        .from('jobs')
+        .insert({
+          user_id: job.user_id,
+          job_type: 'GENERATE_SUGGESTIONS',
+          status: 'PENDING',
+          input_payload: { 
+            context: report,
+            topic: job.input_payload.query,
+            conversationId: job.input_payload.conversationId
+          }
+        })
+        .select()
+        .single();
+
+      if (!suggestionError && suggestionsJob) {
+        await supabaseAdmin
+          .from('jobs')
+          .update({
+            intermediate_data: {
+              ...job.intermediate_data,
+              suggestionsJobId: suggestionsJob.id
+            }
+          })
+          .eq('id', job.id);
+        
+        supabaseAdmin.functions.invoke('job-runner', {
+          body: { jobId: suggestionsJob.id }
+        }).catch((err: Error) => console.error('Error invoking suggestions job:', err));
+        
+        console.log(`✨ Suggestions job ${suggestionsJob.id} created for Deep Search`);
+      }
+    } catch (error) {
+      console.error('Failed to create suggestions after Deep Search:', error);
+    }
   } catch (error) {
     console.error('Error in RESEARCHING state:', error);
     throw error;
@@ -370,57 +410,113 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
 // =========================
 
 async function handleGenerateSuggestions(job: any, supabaseAdmin: any, lovableApiKey: string) {
-  console.log(`💡 [${job.id}] Generating suggestions`);
+  console.log(`💡 [${job.id}] Generating topic suggestions`);
   
   const { context, topic } = job.input_payload;
   
   const systemPrompt = `Você é um assistente educacional especializado em engenharia.
-Sua tarefa é gerar 3 sugestões de aprofundamento sobre o tópico fornecido.
+Sua tarefa é gerar 3-4 perguntas de aprofundamento sobre o tópico discutido.
 
-FORMATO DE RESPOSTA (JSON):
+REGRAS:
+- Cada sugestão deve ser uma PERGUNTA COMPLETA que pode iniciar uma pesquisa profunda
+- As perguntas devem cobrir diferentes aspectos: teórico, prático, aplicação real, comparação
+- Seja específico e relevante ao contexto fornecido
+- Use linguagem clara e direta
+- Limite: 15 palavras por pergunta
+
+FORMATO DE RESPOSTA (JSON puro):
 {
   "suggestions": [
-    {
-      "title": "Título curto da sugestão",
-      "description": "Descrição breve (1-2 frases)",
-      "difficulty": "iniciante|intermediário|avançado"
-    }
+    "Como calcular a eficiência térmica de motores a combustão?",
+    "Quais são as aplicações práticas da Segunda Lei da Termodinâmica?",
+    "Como a entropia afeta processos industriais reais?"
   ]
 }`;
   
-  const userPrompt = `Tópico: ${topic}\nContexto: ${typeof context === 'string' ? context.substring(0, 500) : JSON.stringify(context).substring(0, 500)}`;
+  const userPrompt = `Tópico discutido: ${topic}\n\nContexto da conversa:\n${typeof context === 'string' ? context.substring(0, 800) : JSON.stringify(context).substring(0, 800)}`;
   
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-    }),
-  });
-  
-  if (!response.ok) throw new Error(`AI error: ${response.status}`);
-  
-  const data = await response.json();
-  const suggestionsText = data.choices[0].message.content;
-  const jsonMatch = suggestionsText.match(/\{[\s\S]*\}/);
-  const suggestions = jsonMatch ? JSON.parse(jsonMatch[0]) : { suggestions: [] };
-  
-  await supabaseAdmin
-    .from('jobs')
-    .update({
-      status: 'COMPLETED',
-      result: JSON.stringify(suggestions)
-    })
-    .eq('id', job.id);
-  
-  console.log(`✅ [${job.id}] Suggestions generated`);
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 300,
+      }),
+    });
+    
+    if (!response.ok) {
+      console.error(`AI error: ${response.status}`);
+      throw new Error(`AI Gateway error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const suggestionsText = data.choices[0].message.content;
+    const jsonMatch = suggestionsText.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      console.warn('No JSON found in AI response, using fallback');
+      const fallbackSuggestions = {
+        suggestions: [
+          `Como aprofundar mais sobre ${topic.substring(0, 50)}?`,
+          `Quais são as aplicações práticas deste conceito?`,
+          `Como esse tema se relaciona com outros conceitos de engenharia?`
+        ]
+      };
+      
+      await supabaseAdmin
+        .from('jobs')
+        .update({
+          status: 'COMPLETED',
+          result: JSON.stringify(fallbackSuggestions)
+        })
+        .eq('id', job.id);
+      
+      return;
+    }
+    
+    const suggestions = JSON.parse(jsonMatch[0]);
+    
+    if (!suggestions.suggestions || !Array.isArray(suggestions.suggestions)) {
+      throw new Error('Invalid suggestions format');
+    }
+    
+    await supabaseAdmin
+      .from('jobs')
+      .update({
+        status: 'COMPLETED',
+        result: JSON.stringify(suggestions)
+      })
+      .eq('id', job.id);
+    
+    console.log(`✅ [${job.id}] ${suggestions.suggestions.length} suggestions generated`);
+    
+  } catch (error) {
+    console.error(`Error generating suggestions:`, error);
+    
+    const fallbackSuggestions = {
+      suggestions: [
+        `Aprofundar mais sobre ${topic.substring(0, 50)}`,
+        "Ver aplicações práticas deste conceito",
+        "Explorar conceitos relacionados"
+      ]
+    };
+    
+    await supabaseAdmin
+      .from('jobs')
+      .update({
+        status: 'COMPLETED',
+        result: JSON.stringify(fallbackSuggestions)
+      })
+      .eq('id', job.id);
+  }
 }
 
 async function handleGenerateQuiz(job: any, supabaseAdmin: any, lovableApiKey: string) {
@@ -678,6 +774,8 @@ async function runJob(jobId: string) {
       await handleGenerateFlashcards(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'LOG_ACADEMIC_INSIGHT') {
       await handleLogInsight(job, supabaseAdmin);
+    } else if (job.job_type === 'GENERATE_SUGGESTIONS') {
+      await handleGenerateSuggestions(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'DEEP_SEARCH') {
       switch (job.status) {
         case 'PENDING':
