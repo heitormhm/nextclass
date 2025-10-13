@@ -94,9 +94,26 @@ serve(async (req) => {
     // Parse the JSON response
     let quizData;
     try {
-      quizData = JSON.parse(content);
+      // ✅ Extrair JSON de markdown, se presente
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      
+      if (!jsonMatch) {
+        console.error('No JSON found in AI response:', content);
+        throw new Error('No valid JSON structure in AI response');
+      }
+      
+      quizData = JSON.parse(jsonMatch[0]);
+      
+      // ✅ Validar estrutura
+      if (!quizData.questions || !Array.isArray(quizData.questions)) {
+        console.error('Invalid quiz structure:', quizData);
+        throw new Error('Quiz data missing questions array');
+      }
+      
+      console.log(`✅ Parsed ${quizData.questions.length} questions successfully`);
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response:', content);
+      console.error('Failed to parse quiz data:', parseError);
+      console.error('Raw content:', content.substring(0, 500));
       throw new Error('Failed to parse quiz data from AI response');
     }
 

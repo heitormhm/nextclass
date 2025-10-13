@@ -539,6 +539,8 @@ async function handleGenerateQuiz(job: any, supabaseAdmin: any, lovableApiKey: s
     const systemPrompt = `Você é um criador de quizzes educacionais para engenharia.
 Gere 6-9 perguntas de múltipla escolha baseadas no conteúdo fornecido.
 
+⚠️ IMPORTANTE: Retorne APENAS o JSON puro, sem markdown, sem formatação adicional.
+
 FORMATO JSON:
 {
   "questions": [
@@ -570,6 +572,11 @@ FORMATO JSON:
     
     const data = await response.json();
     const quizJson = data.choices[0].message.content;
+
+    // ✅ Log para debug
+    console.log('📄 Raw AI response (first 300 chars):', quizJson.substring(0, 300));
+    console.log('📄 Has markdown wrapper:', quizJson.includes('```'));
+    console.log('📄 Has JSON structure:', /\{[\s\S]*\}/.test(quizJson));
     
     await supabaseAdmin
       .from('jobs')
@@ -582,8 +589,37 @@ FORMATO JSON:
     await selfInvoke(job.id);
     
   } else if (job.status === 'SYNTHESIZING') {
+    // ✅ Extrair e validar JSON
     const jsonMatch = job.intermediate_data.quizData.match(/\{[\s\S]*\}/);
-    const quizData = jsonMatch ? JSON.parse(jsonMatch[0]) : { questions: [] };
+
+    if (!jsonMatch) {
+      console.error('❌ No JSON found in quiz data');
+      await supabaseAdmin
+        .from('jobs')
+        .update({
+          status: 'FAILED',
+          result: JSON.stringify({ error: 'Failed to extract quiz data from AI response' })
+        })
+        .eq('id', job.id);
+      throw new Error('No JSON structure found in AI response');
+    }
+
+    const quizData = JSON.parse(jsonMatch[0]);
+
+    // ✅ Validar que há perguntas
+    if (!quizData.questions || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
+      console.error('❌ Invalid quiz structure:', quizData);
+      await supabaseAdmin
+        .from('jobs')
+        .update({
+          status: 'FAILED',
+          result: JSON.stringify({ error: 'Quiz generated with no questions' })
+        })
+        .eq('id', job.id);
+      throw new Error('Quiz data is invalid or empty');
+    }
+
+    console.log(`✅ Validated quiz with ${quizData.questions.length} questions`);
     
     const { data: newQuiz, error: quizError } = await supabaseAdmin
       .from('generated_quizzes')
@@ -632,6 +668,8 @@ async function handleGenerateFlashcards(job: any, supabaseAdmin: any, lovableApi
     const systemPrompt = `Você é um criador de flashcards educacionais para engenharia.
 Gere 8-12 flashcards baseados no conteúdo fornecido.
 
+⚠️ IMPORTANTE: Retorne APENAS o JSON puro, sem markdown, sem formatação adicional.
+
 FORMATO JSON:
 {
   "cards": [
@@ -661,6 +699,11 @@ FORMATO JSON:
     
     const data = await response.json();
     const flashcardsJson = data.choices[0].message.content;
+
+    // ✅ Log para debug
+    console.log('📄 Raw AI response (first 300 chars):', flashcardsJson.substring(0, 300));
+    console.log('📄 Has markdown wrapper:', flashcardsJson.includes('```'));
+    console.log('📄 Has JSON structure:', /\{[\s\S]*\}/.test(flashcardsJson));
     
     await supabaseAdmin
       .from('jobs')
@@ -673,8 +716,37 @@ FORMATO JSON:
     await selfInvoke(job.id);
     
   } else if (job.status === 'SYNTHESIZING') {
+    // ✅ Extrair e validar JSON
     const jsonMatch = job.intermediate_data.flashcardsData.match(/\{[\s\S]*\}/);
-    const flashcardsData = jsonMatch ? JSON.parse(jsonMatch[0]) : { cards: [] };
+
+    if (!jsonMatch) {
+      console.error('❌ No JSON found in flashcards data');
+      await supabaseAdmin
+        .from('jobs')
+        .update({
+          status: 'FAILED',
+          result: JSON.stringify({ error: 'Failed to extract flashcards from AI response' })
+        })
+        .eq('id', job.id);
+      throw new Error('No JSON structure found in AI response');
+    }
+
+    const flashcardsData = JSON.parse(jsonMatch[0]);
+
+    // ✅ Validar que há cards
+    if (!flashcardsData.cards || !Array.isArray(flashcardsData.cards) || flashcardsData.cards.length === 0) {
+      console.error('❌ Invalid flashcards structure:', flashcardsData);
+      await supabaseAdmin
+        .from('jobs')
+        .update({
+          status: 'FAILED',
+          result: JSON.stringify({ error: 'Flashcards generated with no cards' })
+        })
+        .eq('id', job.id);
+      throw new Error('Flashcards data is invalid or empty');
+    }
+
+    console.log(`✅ Validated flashcards with ${flashcardsData.cards.length} cards`);
     
     const { data: newSet, error: setError } = await supabaseAdmin
       .from('generated_flashcard_sets')
