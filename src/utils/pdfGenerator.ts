@@ -99,26 +99,48 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     return titles;
   };
 
-  // Add visual index
+  // Fase 6: Improved visual index
   const sectionTitles = extractH2Titles(content);
   if (sectionTitles.length > 0) {
-    yPosition += 8;
-    doc.setFontSize(11);
+    yPosition += 6;
+    
+    // Background box for index
+    const indexHeight = (sectionTitles.length * 6) + 15;
+    doc.setFillColor(250, 248, 255); // Very light purple
+    doc.roundedRect(margin - 5, yPosition - 3, contentWidth + 10, indexHeight, 3, 3, 'F');
+    
+    // Subtle border
+    doc.setDrawColor(110, 89, 165);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin - 5, yPosition - 3, contentWidth + 10, indexHeight, 3, 3, 'S');
+    
+    // Title with icon
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(110, 89, 165);
-    doc.text('Conteúdo:', margin, yPosition);
-    yPosition += 7;
+    doc.text('📑 Conteúdo', margin, yPosition + 3);
+    yPosition += 10;
+    
+    // Decorative line
+    doc.setDrawColor(236, 72, 153);
+    doc.setLineWidth(0.3);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 5;
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(80, 80, 80);
+    doc.setTextColor(70, 70, 70);
+    
+    // Icons by section type
+    const sectionIcons = ['📖', '🔬', '⚙️', '💡', '🚀', '🎯', '📚'];
     
     sectionTitles.forEach((title, index) => {
-      doc.text(`${index + 1}. ${title}`, margin + 5, yPosition);
+      const icon = sectionIcons[index] || '•';
+      doc.text(`${icon} ${index + 1}. ${title}`, margin + 3, yPosition);
       yPosition += 6;
     });
     
-    yPosition += 10;
+    yPosition += 8;
   } else {
     yPosition += 8;
   }
@@ -128,10 +150,18 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
   doc.setFontSize(12); // Professional 12pt font
   doc.setFont('helvetica', 'normal');
 
-  // Preprocess citations and mathematical notation
+  // Fase 1: Clean unwanted content
+  const cleanContent = (content: string): string => {
+    return content
+      // Remove AI introductory phrases
+      .replace(/^(Com certeza|Claro|Segue o relatório|Certamente|Perfeito|Ótimo)\.?.*?[\n\r]+/gm, '')
+      // Remove empty lines after removal
+      .replace(/^\s*[\n\r]+/gm, '');
+  };
+
+  // Fase 4: Preprocess citations and mathematical notation
   const preprocessCitationsAndMath = (content: string): { text: string; references: string[] } => {
     const references: string[] = [];
-    let citationIndex = 1;
     
     // Extract and number citations
     let processedText = content.replace(/\[(\d+)\]/g, (match, num) => {
@@ -140,6 +170,10 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
     
     // Improve mathematical notation
     processedText = processedText
+      // Convert "U, "H, "S, "G to ΔU, ΔH, ΔS, ΔG
+      .replace(/"([UHSGATVP])\b/g, 'Δ$1')
+      .replace(/\bDelta\s*([UHSGATVP])/g, 'Δ$1')
+      
       // Greek symbols
       .replace(/\\Delta\s*/g, 'Δ')
       .replace(/\\delta/g, 'δ')
@@ -150,29 +184,37 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
       .replace(/\\alpha/g, 'α')
       .replace(/\\beta/g, 'β')
       .replace(/\\gamma/g, 'γ')
+      .replace(/\\eta/g, 'η')
+      .replace(/\\mu/g, 'μ')
       
       // Subscripts and superscripts
       .replace(/\^2/g, '²')
       .replace(/\^3/g, '³')
+      .replace(/\^-1/g, '⁻¹')
       .replace(/P_1/g, 'P₁')
       .replace(/P_2/g, 'P₂')
       .replace(/V_1/g, 'V₁')
       .replace(/V_2/g, 'V₂')
       .replace(/T_1/g, 'T₁')
       .replace(/T_2/g, 'T₂')
+      .replace(/H_1/g, 'H₁')
+      .replace(/H_2/g, 'H₂')
+      .replace(/S_1/g, 'S₁')
+      .replace(/S_2/g, 'S₂')
       
-      // Clean up quotes around formulas
+      // Remove quotes around variables
+      .replace(/"([A-Z][₀₁₂₃₄₅₆₇₈₉]?)"/g, '$1')
       .replace(/"([A-Z])/g, '$1')
-      .replace(/([A-Z])"/g, '$1')
+      .replace(/([A-Z₀₁₂₃₄₅₆₇₈₉])"/g, '$1')
       
       // Improve spacing in equations
-      .replace(/([=+\-×÷])/g, ' $1 ')
+      .replace(/([=+\-×÷><])/g, ' $1 ')
       .replace(/\s+/g, ' '); // Normalize multiple spaces
     
     return { text: processedText, references };
   };
 
-  const { text: preprocessedContent, references } = preprocessCitationsAndMath(content);
+  const { text: preprocessedContent, references } = preprocessCitationsAndMath(cleanContent(content));
   
   // Preprocess individual lines for additional math notation
   const preprocessMathNotation = (text: string): string => {
@@ -194,95 +236,126 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
       yPosition = margin + 5;
     }
 
-    // Handle markdown headers with improved styling and proper wrapping
-    // Check if line starts with # (must be first character or after whitespace)
+    // Fase 2 & 3: Handle markdown headers with correct hierarchy detection
     const trimmedLine = line.trim();
-    if (trimmedLine.startsWith('###')) {
-      yPosition += 6; // Extra spacing before subsection
-      doc.setFontSize(14); // Increased from 13
+    
+    // Check H3 first (###)
+    if (trimmedLine.match(/^###\s+/)) {
+      yPosition += 8; // Increased spacing
+      doc.setFontSize(15); // Increased from 14
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(110, 89, 165);
       
-      // Add decorative marker
+      // Larger circular marker
       doc.setFillColor(236, 72, 153);
-      doc.circle(margin - 3, yPosition - 2, 1.5, 'F'); // Pink circle
+      doc.circle(margin - 4, yPosition - 2, 2.5, 'F'); // Increased radius to 2.5
       
       const headerText = trimmedLine.replace(/^###\s*/, '');
       
-      // Check for special keywords and add icons
+      // Background shadow behind text
+      const textWidth = doc.getTextWidth(headerText);
+      doc.setFillColor(250, 245, 255); // Very light purple
+      doc.roundedRect(margin + 2, yPosition - 6, textWidth + 6, 9, 1, 1, 'F');
+      
+      // Contextual icons
       const lowerHeader = headerText.toLowerCase();
       if (lowerHeader.includes('aplicaç') || lowerHeader.includes('prática')) {
-        // Lightbulb icon
+        // More visible lightbulb icon
         doc.setDrawColor(236, 72, 153);
-        doc.setLineWidth(0.5);
-        doc.circle(margin - 8, yPosition - 2, 2, 'S');
-        doc.line(margin - 8, yPosition, margin - 8, yPosition + 2);
+        doc.setLineWidth(0.8);
+        doc.circle(margin - 10, yPosition - 2, 2.5, 'S');
+        doc.line(margin - 10, yPosition + 1, margin - 10, yPosition + 3);
       } else if (lowerHeader.includes('importante') || lowerHeader.includes('atenção') || lowerHeader.includes('nota')) {
-        // Alert icon
-        doc.setFillColor(255, 215, 0);
-        doc.circle(margin - 8, yPosition - 2, 2.5, 'F');
+        // More prominent alert icon
+        doc.setFillColor(255, 193, 7); // Stronger yellow
+        doc.circle(margin - 10, yPosition - 2, 3, 'F');
         doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.text('!', margin - 8.5, yPosition - 0.5);
-        doc.setFontSize(14);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('!', margin - 10.5, yPosition + 0.5);
+        doc.setFontSize(15);
         doc.setTextColor(110, 89, 165);
       }
       
-      const headerLines = doc.splitTextToSize(headerText, contentWidth - 5);
+      // Render text
+      const headerLines = doc.splitTextToSize(headerText, contentWidth - 10);
       headerLines.forEach((hLine: string) => {
-        doc.text(hLine, margin + 3, yPosition);
-        yPosition += 7;
+        doc.text(hLine, margin + 5, yPosition);
+        yPosition += 8;
       });
       
-      // Add subtle underline
+      // Longer and more visible underline
       doc.setDrawColor(236, 72, 153);
-      doc.setLineWidth(0.3);
-      doc.line(margin + 3, yPosition, margin + 60, yPosition);
-      yPosition += 4;
+      doc.setLineWidth(0.5);
+      doc.line(margin + 5, yPosition + 1, margin + 80, yPosition + 1); // Increased from 60 to 80
+      yPosition += 6;
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
-    } else if (trimmedLine.startsWith('##') && !trimmedLine.startsWith('###')) {
-      yPosition += 10; // More spacing before section
-      doc.setFontSize(16); // Slightly larger
+    }
+    // Check H2 next (## but not ###)
+    else if (trimmedLine.match(/^##\s+/) && !trimmedLine.startsWith('###')) {
+      yPosition += 10;
+      doc.setFontSize(15); // Reduced from 16
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(110, 89, 165);
-      const headerText = trimmedLine.replace(/^##\s*(\d+\.\s+)?/, ''); // Remove ## and optional numbering
-      const headerLines = doc.splitTextToSize(headerText, contentWidth);
-      headerLines.forEach((hLine: string) => {
-        doc.text(hLine, margin, yPosition);
-        yPosition += 9;
-      });
-      // Add elegant underline for sections
+      
+      // Capture numbering like "2.1." or "2."
+      const headerMatch = trimmedLine.match(/^##\s+(\d+\.?\d*\.?\s+)?(.+)$/);
+      const headerNumber = headerMatch ? headerMatch[1]?.trim() : '';
+      const headerText = headerMatch ? headerMatch[2] : trimmedLine.replace(/^##\s+/, '');
+      
+      // Render number in dark gray (not pink)
+      if (headerNumber) {
+        doc.setTextColor(80, 80, 80);
+        doc.text(headerNumber, margin, yPosition);
+        const numWidth = doc.getTextWidth(headerNumber);
+        
+        // Render text next to number
+        doc.setTextColor(110, 89, 165);
+        doc.text(headerText, margin + numWidth + 2, yPosition);
+      } else {
+        doc.text(headerText, margin, yPosition);
+      }
+      
+      yPosition += 9;
+      
+      // Elegant underline
       doc.setDrawColor(236, 72, 153);
-      doc.setLineWidth(0.8);
-      doc.line(margin, yPosition, margin + 50, yPosition);
-      yPosition += 5;
+      doc.setLineWidth(0.6);
+      doc.line(margin, yPosition, margin + 40, yPosition);
+      yPosition += 6;
+      
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
-    } else if (trimmedLine.startsWith('#') && !trimmedLine.startsWith('##')) {
-      // H1 headers with decorative numbering
+    }
+    // Check H1 last (# but not ## or ###)
+    else if (trimmedLine.match(/^#\s+[^#]/) && !trimmedLine.startsWith('##')) {
+      // H1 only for main numbered sections (# 1. Introduction)
       const match = trimmedLine.match(/^#\s+(\d+)\.\s*(.+)/);
-      const headerText = match ? match[2] : trimmedLine.replace(/^#\s*/, '');
       
-      // Skip first H1 if it's a duplicate of the main title
-      if (headerText.toLowerCase() !== title.toLowerCase() || pageCount > 1) {
-        yPosition += 12;
+      if (match) {
+        const sectionNumber = match[1];
+        const headerText = match[2];
         
-        // Add decorative section number if present
-        if (match) {
-          const sectionNumber = match[1];
-          doc.setFontSize(32);
-          doc.setTextColor(236, 72, 153); // Pink
-          doc.setFont('helvetica', 'bold');
-          doc.text(sectionNumber, margin, yPosition);
-          yPosition += 10;
+        // Skip if duplicate of main title
+        if (headerText.toLowerCase() === title.toLowerCase()) {
+          return; // Don't render
         }
         
-        doc.setFontSize(18);
+        yPosition += 14;
+        
+        // Large decorative number in pink
+        doc.setFontSize(36);
+        doc.setTextColor(236, 72, 153);
         doc.setFont('helvetica', 'bold');
+        doc.text(sectionNumber, margin, yPosition);
+        yPosition += 12;
+        
+        // Section title in purple
+        doc.setFontSize(18);
         doc.setTextColor(110, 89, 165);
         const headerLines = doc.splitTextToSize(headerText, contentWidth);
         headerLines.forEach((hLine: string) => {
@@ -291,6 +364,7 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
         });
         yPosition += 4;
       }
+      
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(50, 50, 50);
@@ -341,22 +415,27 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
         let currentLine: TextSegment[] = [];
         let currentWidth = 0;
 
-        // Check if line contains mathematical formulas (equations with = or extensive use of subscripts/superscripts)
+        // Fase 5: Improved equation detection and rendering
         const lineText = segments.map(s => s.text).join('');
         const isMathFormula = /[=²³⁰¹⁴⁵⁶⁷⁸⁹ṁΔ]/.test(lineText) || 
                               lineText.includes('->') || 
                               lineText.includes('∑') ||
                               /\b[A-Z]_[a-z]+/.test(lineText);
         
-        // Check if this is an important equation (has = and variables)
-        const isImportantEquation = lineText.includes('=') && 
-                                     /[A-Z]{1,2}[₀₁₂₃₄₅₆₇₈₉]?/.test(lineText) &&
-                                     lineText.trim().split(' ').length < 15; // Not too long
+        // Improved detection of important equations
+        const cleanText = lineText.replace(/\[\d+\]/g, '').trim();
+        const hasEquals = cleanText.includes('=');
+        const hasVariables = /[ΔUHSGPVT][₀₁₂₃₄₅₆₇₈₉]?/.test(cleanText) || 
+                              /[A-Z]{1,2}[₀₁₂₃₄₅₆₇₈₉]/.test(cleanText);
+        const isShort = cleanText.split(/\s+/).length < 20;
+        const noVerbs = !/\b(é|são|está|estão|foi|foram|será|serão)\b/i.test(cleanText);
         
-        // If it's an important equation, render it in a highlighted box
+        const isImportantEquation = hasEquals && hasVariables && isShort && noVerbs;
+        
+        // Render important equations in highlighted box
         if (isImportantEquation) {
           // Check for page break
-          if (yPosition > pageHeight - footerHeight - 25) {
+          if (yPosition > pageHeight - footerHeight - 30) {
             addFooter(pageCount, 0);
             doc.addPage();
             pageCount++;
@@ -364,29 +443,37 @@ export const generateReportPDF = ({ content, title }: PDFOptions): void => {
             yPosition = margin + 5;
           }
           
-          yPosition += 5;
+          yPosition += 6;
           
-          // Background box
-          doc.setFillColor(248, 248, 250);
-          doc.roundedRect(margin - 5, yPosition - 6, contentWidth + 10, 16, 2, 2, 'F');
+          // Mathematical icon
+          doc.setFontSize(16);
+          doc.setTextColor(110, 89, 165);
+          doc.text('≡', margin - 8, yPosition + 4);
           
-          // Border
+          // Background box with gradient effect (simulated)
+          doc.setFillColor(248, 248, 252); // Very light blue
+          doc.roundedRect(margin - 3, yPosition - 4, contentWidth + 6, 18, 2, 2, 'F');
+          
+          // Stronger purple border
           doc.setDrawColor(110, 89, 165);
-          doc.setLineWidth(0.5);
-          doc.roundedRect(margin - 5, yPosition - 6, contentWidth + 10, 16, 2, 2, 'S');
+          doc.setLineWidth(0.8);
+          doc.roundedRect(margin - 3, yPosition - 4, contentWidth + 6, 18, 2, 2, 'S');
           
-          // Render equation centered and bold
-          doc.setFontSize(13);
+          // Clean citations from equation for rendering
+          const cleanEquation = lineText.replace(/\[\d+\]/g, '').trim();
+          
+          // Render centered bold equation
+          doc.setFontSize(14); // Increased from 13
           doc.setFont('helvetica', 'bold');
-          doc.setTextColor(60, 60, 60);
-          doc.text(lineText.trim(), pageWidth / 2, yPosition + 2, { align: 'center' });
+          doc.setTextColor(40, 40, 40);
+          doc.text(cleanEquation, pageWidth / 2, yPosition + 5, { align: 'center' });
           
-          yPosition += 18;
+          yPosition += 22;
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(12);
           doc.setTextColor(50, 50, 50);
           
-          return []; // Don't process this line further
+          return []; // Don't process further
         }
 
         segments.forEach((segment) => {
