@@ -1099,8 +1099,64 @@ const AIChatPage = () => {
             }
             
             if (job.job_type === 'DEEP_SEARCH') {
-              console.log('🔍 Deep search complete, reloading');
-              loadConversations();
+              console.log('🔍 Deep search complete, loading report and suggestions');
+              
+              // Usar IIFE async para recarregar mensagens
+              (async () => {
+                // 1. Extrair suggestionsJobId do intermediate_data
+                const suggestionsJobId = job.intermediate_data?.suggestionsJobId;
+                console.log('📌 Suggestions Job ID:', suggestionsJobId);
+                
+                // 2. Recarregar mensagens da conversa (inclui relatório)
+                const { data: messagesData, error: messagesError } = await supabase
+                  .from('messages')
+                  .select('*')
+                  .eq('conversation_id', activeConversationId)
+                  .order('created_at', { ascending: true });
+                
+                if (!messagesError && messagesData) {
+                  const loadedMessages: Message[] = messagesData.map((msg: any) => ({
+                    id: msg.id,
+                    content: msg.content,
+                    isUser: msg.role === 'user',
+                    timestamp: new Date(msg.created_at),
+                    isReport: false,
+                    reportTitle: undefined,
+                  }));
+                  
+                  // 3. Associar suggestionsJobId à última mensagem (relatório)
+                  if (suggestionsJobId && loadedMessages.length > 0) {
+                    const lastMessage = loadedMessages[loadedMessages.length - 1];
+                    lastMessage.suggestionsJobId = suggestionsJobId;
+                    
+                    // 4. Adicionar job de sugestões ao activeJobs para tracking
+                    const { data: suggestionJob } = await supabase
+                      .from('jobs')
+                      .select('*')
+                      .eq('id', suggestionsJobId)
+                      .maybeSingle();
+                    
+                    if (suggestionJob) {
+                      setActiveJobs(prev => {
+                        const newJobs = new Map(prev);
+                        newJobs.set(suggestionsJobId, {
+                          status: suggestionJob.status,
+                          type: suggestionJob.job_type,
+                          result: suggestionJob.result,
+                          payload: suggestionJob.input_payload
+                        });
+                        return newJobs;
+                      });
+                    }
+                  }
+                  
+                  setMessages(loadedMessages);
+                  console.log('✅ Messages reloaded with suggestions');
+                }
+                
+                // 5. Atualizar lista de conversações
+                loadConversations();
+              })();
             }
           }
             
