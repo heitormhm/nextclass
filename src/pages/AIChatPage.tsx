@@ -1101,6 +1101,9 @@ const AIChatPage = () => {
             if (job.job_type === 'DEEP_SEARCH') {
               console.log('🔍 Deep search complete, loading report and suggestions');
               
+              // ✅ FECHAR MODAL IMEDIATAMENTE
+              setIsDeepSearchLoading(false);
+              
               // Usar IIFE async para recarregar mensagens
               (async () => {
                 // 1. Extrair suggestionsJobId do intermediate_data
@@ -1115,14 +1118,20 @@ const AIChatPage = () => {
                   .order('created_at', { ascending: true });
                 
                 if (!messagesError && messagesData) {
-                  const loadedMessages: Message[] = messagesData.map((msg: any) => ({
-                    id: msg.id,
-                    content: msg.content,
-                    isUser: msg.role === 'user',
-                    timestamp: new Date(msg.created_at),
-                    isReport: false,
-                    reportTitle: undefined,
-                  }));
+                  // ✅ Detectar relatórios por tamanho e role
+                  const loadedMessages: Message[] = messagesData.map((msg: any) => {
+                    const isReport = msg.role === 'assistant' && msg.content.length > 1000;
+                    const reportTitle = isReport ? 'Relatório de Pesquisa Profunda' : undefined;
+                    
+                    return {
+                      id: msg.id,
+                      content: msg.content,
+                      isUser: msg.role === 'user',
+                      timestamp: new Date(msg.created_at),
+                      isReport: isReport,
+                      reportTitle: reportTitle,
+                    };
+                  });
                   
                   // 3. Associar suggestionsJobId à última mensagem (relatório)
                   if (suggestionsJobId && loadedMessages.length > 0) {
