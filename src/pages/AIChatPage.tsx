@@ -1049,6 +1049,25 @@ const AIChatPage = () => {
                 console.log('🔍 Deep search complete, reloading');
                 loadConversations();
               }
+              
+              // ✅ Navegação automática para quiz recém-criado
+              if (job.job_type === 'GENERATE_QUIZ' && job.result) {
+                try {
+                  const result = JSON.parse(job.result);
+                  if (result.quizId) {
+                    console.log('🎯 Auto-navigating to quiz:', result.quizId);
+                    toast({
+                      title: "Quiz criado!",
+                      description: "Redirecionando...",
+                    });
+                    setTimeout(() => {
+                      navigate(`/quiz/${result.quizId}`);
+                    }, 1500);
+                  }
+                } catch (e) {
+                  console.error('Error parsing quiz result:', e);
+                }
+              }
             }
             
             // ✅ CLEANUP: Remove jobs completados após delay (exceto sugestões)
