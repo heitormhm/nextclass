@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
+import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -176,12 +177,12 @@ const QuizPage = () => {
                     onClick={() => !showQuestionFeedback && handleAnswer(question.id, index.toString())}
                     disabled={showQuestionFeedback}
                     className={`
-                      w-full p-4 text-left rounded-xl border-2 transition-all duration-200
-                      ${!showQuestionFeedback && !isSelected ? 'border-gray-200 bg-white hover:border-primary hover:bg-primary/5' : ''}
-                      ${!showQuestionFeedback && isSelected ? 'border-primary bg-primary/10' : ''}
-                      ${showResult && isCorrect ? 'border-green-500 bg-green-50' : ''}
-                      ${showResult && isSelected && !isCorrect ? 'border-red-500 bg-red-50' : ''}
-                      ${showResult && !isSelected && !isCorrect ? 'border-gray-200 bg-gray-50 opacity-60' : ''}
+                      w-full p-4 text-left rounded-xl border-2 transition-all duration-300
+                      ${!showQuestionFeedback && !isSelected ? 'border-slate-200 bg-white/40 hover:border-primary hover:bg-white/60 hover:scale-[1.02]' : ''}
+                      ${!showQuestionFeedback && isSelected ? 'border-primary bg-white/80 scale-[1.02] shadow-lg' : ''}
+                      ${showResult && isCorrect ? 'border-green-500 bg-green-50/80 animate-fade-in' : ''}
+                      ${showResult && isSelected && !isCorrect ? 'border-red-500 bg-red-50/80 animate-fade-in' : ''}
+                      ${showResult && !isSelected && !isCorrect ? 'border-slate-200 bg-white/20 opacity-50' : ''}
                       ${!showQuestionFeedback ? 'cursor-pointer' : 'cursor-not-allowed'}
                     `}
                   >
@@ -286,24 +287,24 @@ const QuizPage = () => {
         </div>
 
         {showQuestionFeedback && userAnswer && (
-          <div className={`p-5 rounded-xl border-2 ${
+          <div className={`p-5 rounded-xl border-2 animate-fade-in transition-all ${
             userAnswer.isCorrect 
-              ? 'bg-green-50 border-green-200' 
-              : 'bg-red-50 border-red-200'
+              ? 'bg-green-50/80 border-green-300 shadow-lg' 
+              : 'bg-orange-50/80 border-orange-300 shadow-lg'
           }`}>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-3 mb-3">
               {userAnswer.isCorrect ? (
                 <CheckCircle className="h-6 w-6 text-green-600" />
               ) : (
-                <XCircle className="h-6 w-6 text-red-600" />
+                <XCircle className="h-6 w-6 text-orange-600" />
               )}
               <span className={`font-bold text-lg ${
-                userAnswer.isCorrect ? 'text-green-700' : 'text-red-700'
+                userAnswer.isCorrect ? 'text-green-700' : 'text-orange-700'
               }`}>
-                {userAnswer.isCorrect ? 'Correto!' : 'Incorreto'}
+                {userAnswer.isCorrect ? '✅ Correto!' : '💡 Vamos aprender!'}
               </span>
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed">
+            <p className="text-sm text-slate-700 leading-relaxed pl-9">
               {question.explanation}
             </p>
           </div>
@@ -328,8 +329,15 @@ const QuizPage = () => {
   if (loading) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-pink-200 animate-gradient-xy flex items-center justify-center">
-          <Card className="border-0 shadow-lg bg-white/60 backdrop-blur-xl p-8">
+        <div className="relative min-h-screen bg-slate-50 flex items-center justify-center">
+          {/* Gradient Blobs */}
+          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full filter blur-3xl opacity-50 animate-float" />
+          <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50 animate-float" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40 animate-float" style={{ animationDelay: '4s' }} />
+          
+          <BackgroundRippleEffect />
+          
+          <Card className="relative z-10 border-0 shadow-sm bg-white/20 backdrop-blur-xl p-8 animate-fade-in">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
               <div className="text-center">
@@ -350,11 +358,18 @@ const QuizPage = () => {
     
     return (
       <MainLayout>
-        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-pink-200 animate-gradient-xy">
-          <div className="container mx-auto px-4 py-8">
+        <div className="relative min-h-screen bg-slate-50">
+          {/* Gradient Blobs */}
+          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full filter blur-3xl opacity-50 animate-float" />
+          <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50 animate-float" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40 animate-float" style={{ animationDelay: '4s' }} />
+          
+          <BackgroundRippleEffect />
+          
+          <div className="relative z-10 container mx-auto px-4 py-8">
             <div className="max-w-3xl mx-auto space-y-6">
               {/* Score Card */}
-              <Card className="border-0 shadow-lg bg-white/60 backdrop-blur-xl overflow-hidden">
+              <Card className="border-0 shadow-sm bg-white/20 backdrop-blur-xl overflow-hidden animate-fade-in">
                 <div className="bg-gradient-to-r from-pink-500 to-purple-500 p-1">
                   <div className="bg-white/90 backdrop-blur-xl">
                     <CardHeader className="text-center pb-6 pt-8">
@@ -420,7 +435,7 @@ const QuizPage = () => {
 
               {/* Remediation Section - Incorrect Answers Review */}
               {incorrectAnswers.length > 0 && (
-                <Card className="border-0 shadow-lg bg-white/60 backdrop-blur-xl">
+                <Card className="border-0 shadow-sm bg-white/20 backdrop-blur-xl animate-fade-in">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <BookOpen className="h-5 w-5" />
@@ -496,10 +511,17 @@ const QuizPage = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-pink-200 animate-gradient-xy">
-        <div className="container mx-auto px-4 py-8">
+      <div className="relative min-h-screen bg-slate-50">
+        {/* Gradient Blobs */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full filter blur-3xl opacity-50 animate-float" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50 animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40 animate-float" style={{ animationDelay: '4s' }} />
+        
+        <BackgroundRippleEffect />
+        
+        <div className="relative z-10 container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-4 mb-8 animate-fade-in">
               <Button 
                 variant="ghost" 
                 size="icon"
@@ -510,28 +532,32 @@ const QuizPage = () => {
                     navigate('/courses');
                   }
                 }}
+                className="hover:scale-110 transition-transform"
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
-              <h1 className="text-xl font-semibold">Quiz Interativo</h1>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800">Quiz Interativo</h1>
+                <p className="text-sm text-slate-600">Teste seus conhecimentos</p>
+              </div>
             </div>
 
-            <div className="mb-8">
+            <div className="mb-8 bg-white/20 backdrop-blur-xl rounded-xl p-6 shadow-sm animate-fade-in">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-foreground-muted">Progresso do Quiz</span>
-                <span className="text-sm font-semibold">
+                <span className="text-sm font-medium text-slate-700">Progresso do Quiz</span>
+                <span className="text-sm font-bold text-primary">
                   Pergunta {currentQuestion} de {totalQuestions}
                 </span>
               </div>
-              <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div className="relative h-3 bg-slate-200/50 rounded-full overflow-hidden">
                 <div 
-                  className="absolute h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-500 transition-all duration-500 ease-out"
+                  className="absolute h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-500 transition-all duration-500 ease-out shadow-lg"
                   style={{ width: `${progress}%` }}
                 />
               </div>
             </div>
 
-            <Card className="border-0 shadow-lg bg-white/60 backdrop-blur-xl">
+            <Card className="border-0 shadow-sm bg-white/20 backdrop-blur-xl animate-fade-in">
               <CardHeader>
                 <CardTitle className="text-xl">Quiz Gerado por IA</CardTitle>
                 <p className="text-foreground-muted">Baseado no conteúdo da aula</p>
