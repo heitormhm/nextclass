@@ -188,7 +188,7 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-[95vw] sm:max-w-4xl h-[90vh] sm:h-[80vh] p-0 overflow-hidden mx-2 sm:mx-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b">
+        <div className="flex items-center justify-between p-4 sm:p-6 pt-12 border-b">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold">Flashcards Interativos</h2>
             <p className="text-sm text-muted-foreground">

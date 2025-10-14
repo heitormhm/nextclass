@@ -11,29 +11,16 @@ interface ActionButtonsProps {
 }
 
 export const ActionButtons = ({ messageContent, topic, onAction, disabled, activeJobs, messageJobIds }: ActionButtonsProps) => {
-  // ✅ Verificar se ESTA mensagem tem jobs de quiz ou flashcard concluídos
-  const hasCompletedQuiz = messageJobIds?.some(jobId => {
-    const job = activeJobs?.get(jobId);
-    return job && job.type === 'GENERATE_QUIZ' && job.status === 'COMPLETED';
-  });
-
-  const hasCompletedFlashcards = messageJobIds?.some(jobId => {
-    const job = activeJobs?.get(jobId);
-    return job && job.type === 'GENERATE_FLASHCARDS' && job.status === 'COMPLETED';
-  });
-
-  // ✅ Se qualquer job desta mensagem estiver ativo ou completo, esconder botões
-  const hasActiveOrCompletedJobs = messageJobIds?.some(jobId => {
-    const job = activeJobs?.get(jobId);
-    return job && ['PENDING', 'SYNTHESIZING', 'COMPLETED'].includes(job.status);
-  });
-  
-  // ✅ Se há jobs, não renderizar ActionButtons
-  if (hasActiveOrCompletedJobs) {
-    console.log('🚫 ActionButtons hidden: jobs exist for this message');
+  // 🔍 VERIFICAÇÃO 1: Se esta mensagem JÁ tem jobs associados, não mostrar botões
+  if (messageJobIds && messageJobIds.length > 0) {
+    console.log('🚫 ActionButtons hidden: message already has jobs', {
+      messageJobIds,
+      jobCount: messageJobIds.length
+    });
     return null;
   }
   
+  // 🔍 VERIFICAÇÃO 2: Se há jobs globais ativos do mesmo tipo
   const hasActiveQuizJob = Array.from(activeJobs?.entries() || []).some(
     ([_, job]) => job.type === 'GENERATE_QUIZ' && 
                  (job.status === 'PENDING' || job.status === 'SYNTHESIZING')

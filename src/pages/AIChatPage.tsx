@@ -798,6 +798,70 @@ const AIChatPage = () => {
     }
   };
 
+  // 🆕 Função para deletar quiz
+  const handleDeleteQuiz = async (quizId: string) => {
+    try {
+      console.log('🗑️ Deleting quiz:', quizId);
+      
+      const { error } = await supabase
+        .from('generated_quizzes')
+        .delete()
+        .eq('id', quizId);
+      
+      if (error) throw error;
+      
+      // Atualizar estado local
+      setConversationContent(prev => ({
+        ...prev,
+        quizzes: prev.quizzes.filter(q => q.id !== quizId)
+      }));
+      
+      toast({
+        title: "Quiz excluído",
+        description: "O quiz foi removido com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao excluir quiz",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // 🆕 Função para deletar flashcards
+  const handleDeleteFlashcards = async (setId: string) => {
+    try {
+      console.log('🗑️ Deleting flashcard set:', setId);
+      
+      const { error } = await supabase
+        .from('generated_flashcard_sets')
+        .delete()
+        .eq('id', setId);
+      
+      if (error) throw error;
+      
+      // Atualizar estado local
+      setConversationContent(prev => ({
+        ...prev,
+        flashcards: prev.flashcards.filter(f => f.id !== setId)
+      }));
+      
+      toast({
+        title: "Flashcards excluídos",
+        description: "O conjunto de flashcards foi removido com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error deleting flashcards:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao excluir flashcards",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteConversation = async (conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -1125,6 +1189,7 @@ const AIChatPage = () => {
                         itemCount={quiz.questions?.length || 0}
                         createdAt={quiz.created_at}
                         onOpen={() => handleOpenQuiz(quiz.id)}
+                        onDelete={() => handleDeleteQuiz(quiz.id)}
                       />
                     ))}
                     {conversationContent.flashcards.map((set) => (
@@ -1135,6 +1200,7 @@ const AIChatPage = () => {
                         itemCount={set.cards?.length || 0}
                         createdAt={set.created_at}
                         onOpen={() => handleOpenFlashcards(set.id)}
+                        onDelete={() => handleDeleteFlashcards(set.id)}
                       />
                     ))}
                   </div>
@@ -1288,9 +1354,9 @@ const AIChatPage = () => {
                             : <code className="block bg-background/50 p-3 rounded text-xs font-mono overflow-x-auto my-2 text-foreground" {...props} />,
                         pre: ({node, ...props}) => <pre className="bg-background/50 p-3 rounded overflow-x-auto my-2" {...props} />,
                         a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer" {...props} />,
-                        ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-1 my-2 text-foreground" {...props} />,
-                        ol: ({node, ...props}) => <ol className="list-decimal list-inside space-y-1 my-2 text-foreground" {...props} />,
-                        li: ({node, ...props}) => <li className="text-foreground" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 space-y-1 my-2 text-foreground" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 space-y-1 my-2 text-foreground" {...props} />,
+                        li: ({node, ...props}) => <li className="text-foreground pl-1" {...props} />,
                         blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/50 pl-4 italic my-2 text-foreground/80" {...props} />,
                         sup: ({node, ...props}) => <sup className="text-primary font-semibold" {...props} />,
                       }}

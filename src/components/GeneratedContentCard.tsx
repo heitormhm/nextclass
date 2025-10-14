@@ -1,4 +1,4 @@
-import { FileQuestion, Layers } from "lucide-react";
+import { FileQuestion, Layers, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -8,6 +8,7 @@ interface GeneratedContentCardProps {
   itemCount: number;
   createdAt: string;
   onOpen: () => void;
+  onDelete: () => void;
 }
 
 export const GeneratedContentCard = ({ 
@@ -15,14 +16,15 @@ export const GeneratedContentCard = ({
   title, 
   itemCount, 
   createdAt, 
-  onOpen 
+  onOpen,
+  onDelete
 }: GeneratedContentCardProps) => {
   const Icon = type === 'quiz' ? FileQuestion : Layers;
   const label = type === 'quiz' ? 'Quiz' : 'Flashcards';
   const countLabel = type === 'quiz' ? 'perguntas' : 'cards';
   
   return (
-    <Card className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 hover:shadow-md transition-shadow">
+    <Card className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 hover:shadow-md transition-shadow group">
       <div className="flex items-start gap-3">
         <div className="p-2 bg-gradient-to-br from-pink-500 to-purple-500 rounded-lg">
           <Icon className="w-5 h-5 text-white" />
@@ -35,13 +37,27 @@ export const GeneratedContentCard = ({
             {itemCount} {countLabel} • {new Date(createdAt).toLocaleDateString('pt-BR')}
           </p>
         </div>
-        <Button
-          onClick={onOpen}
-          size="sm"
-          className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shrink-0"
-        >
-          Abrir
-        </Button>
+        <div className="flex gap-1 shrink-0">
+          <Button
+            onClick={onOpen}
+            size="sm"
+            className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+          >
+            Abrir
+          </Button>
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            size="sm"
+            variant="ghost"
+            className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600"
+            title={`Excluir ${label}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     </Card>
   );
