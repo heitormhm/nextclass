@@ -1208,7 +1208,7 @@ const AIChatPage = () => {
               )}
 
               {/* Chat History List */}
-              <div className="flex-1 space-y-2 overflow-y-auto">
+              <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
                 <h3 className="text-sm font-medium text-foreground-muted px-2">Conversas Recentes</h3>
                 
                 {conversations.length === 0 ? (

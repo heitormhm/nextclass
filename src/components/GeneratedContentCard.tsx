@@ -51,8 +51,8 @@ export const GeneratedContentCard = ({
               onDelete();
             }}
             size="sm"
-            variant="ghost"
-            className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600"
+            variant="outline"
+            className="opacity-0 group-hover:opacity-100 transition-all duration-200 border-gray-200 hover:border-red-300 hover:bg-red-50 hover:text-red-600 hover:scale-105"
             title={`Excluir ${label}`}
           >
             <Trash2 className="w-4 h-4" />
