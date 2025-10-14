@@ -748,10 +748,13 @@ const AIChatPage = () => {
   };
 
   const handleSelectChat = async (conversationId: string) => {
+    console.log('🔄 Switching conversation, cleaning up previous state');
+    
+    // 🔒 LIMPEZA TOTAL: Remover todos os jobs da conversa anterior
     setActiveJobs(new Map());
     processedJobsRef.current.clear();
     
-    console.log('🔄 Switched to conversation:', conversationId);
+    console.log('✅ State cleaned, loading new conversation:', conversationId);
     
     try {
       // Load messages for this conversation
@@ -780,12 +783,55 @@ const AIChatPage = () => {
         .eq('conversation_id', conversationId)
         .order('message_index', { ascending: true });
 
+      // 🆕 RECONSTRUIR activeJobs para jobs de sugestões
+      if (savedSuggestions && savedSuggestions.length > 0) {
+        const suggestionJobs = new Map();
+        
+        for (const suggestion of savedSuggestions) {
+          // Buscar o job correspondente
+          const { data: job } = await supabase
+            .from('jobs')
+            .select('*')
+            .eq('conversation_id', conversationId)
+            .eq('job_type', 'GENERATE_SUGGESTIONS')
+            .eq('status', 'COMPLETED')
+            .limit(1)
+            .maybeSingle();
+          
+          if (job) {
+            suggestionJobs.set(job.id, {
+              status: 'COMPLETED',
+              type: 'GENERATE_SUGGESTIONS',
+              result: job.result,
+              payload: job.input_payload
+            });
+          }
+        }
+        
+        if (suggestionJobs.size > 0) {
+          setActiveJobs(suggestionJobs);
+          console.log('✅ Reconstructed', suggestionJobs.size, 'suggestion jobs');
+        }
+      }
+
       const messagesWithSuggestions = loadedMessages.map((msg, idx) => {
         const suggestion = savedSuggestions?.find(s => s.message_index === idx);
         const suggestionsData = suggestion?.suggestions as { suggestions?: string[] } | null;
+        
+        // 🆕 ADICIONAR suggestionsJobId à mensagem se houver sugestão
+        let suggestionsJobId: string | undefined;
+        if (suggestion) {
+          // Buscar o jobId do activeJobs
+          const suggestionJobEntry = Array.from(activeJobs.entries()).find(
+            ([_, job]) => job.type === 'GENERATE_SUGGESTIONS'
+          );
+          suggestionsJobId = suggestionJobEntry?.[0];
+        }
+        
         return {
           ...msg,
-          suggestions: suggestionsData?.suggestions || null
+          suggestions: suggestionsData?.suggestions || null,
+          suggestionsJobId
         };
       });
 
@@ -999,7 +1045,7 @@ const AIChatPage = () => {
             clearTimeout(realtimeDebounceTimer);
           }
           
-          // ✅ Criar novo timer com debounce de 300ms
+          // ✅ Criar novo timer com debounce de 500ms (aumentado)
           const timer = setTimeout(() => {
             const job = payload.new as any;
             
@@ -1049,7 +1095,15 @@ const AIChatPage = () => {
           
           // ✅ Processar jobs terminados
           if (job.status === 'COMPLETED' || job.status === 'FAILED') {
-            console.log(`${job.status === 'COMPLETED' ? '✅' : '❌'} Job finished:`, job.id);
+            // 🔒 QUEBRA DE LOOP: Verificar se já processamos este job
+            if (processedJobsRef.current.has(job.id)) {
+              console.log('⏭️ Job already processed, skipping:', job.id);
+              return; // ✅ SAIR IMEDIATAMENTE
+            }
+            
+            // 🔒 Marcar como processado IMEDIATAMENTE
+            processedJobsRef.current.add(job.id);
+            console.log(`${job.status === 'COMPLETED' ? '✅' : '❌'} Job finished and marked as processed:`, job.id);
             
           if (job.status === 'COMPLETED') {
             if (job.job_type === 'GENERATE_SUGGESTIONS') {
@@ -1169,8 +1223,8 @@ const AIChatPage = () => {
             }
           }
             
-            // ✅ CLEANUP: Remove jobs completados após delay (exceto sugestões)
-            if (job.job_type !== 'GENERATE_SUGGESTIONS') {
+            // ✅ CLEANUP: Remove jobs completados após delay (EXCETO sugestões)
+            if (job.status === 'COMPLETED' && job.job_type !== 'GENERATE_SUGGESTIONS') {
               setTimeout(() => {
                 console.log('🗑️ Cleaning up completed job:', job.id);
                 setActiveJobs(prev => {
@@ -1179,6 +1233,11 @@ const AIChatPage = () => {
                   return newJobs;
                 });
               }, 10000);
+            }
+            
+            // 🔒 Jobs de sugestões NUNCA são removidos automaticamente
+            if (job.job_type === 'GENERATE_SUGGESTIONS') {
+              console.log('📌 Suggestions job will persist indefinitely:', job.id);
             }
           }
           
@@ -1210,7 +1269,7 @@ const AIChatPage = () => {
               setDeepSearchProgress(0);
             }
           }
-          }, 300); // ✅ 300ms debounce
+          }, 500); // ✅ Aumentado de 300ms para 500ms
           
           setRealtimeDebounceTimer(timer);
         }
