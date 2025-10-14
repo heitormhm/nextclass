@@ -49,34 +49,43 @@ const QuizPage = () => {
   const lectureId = id || '1';
 
   useEffect(() => {
-    const generateQuiz = async () => {
+    const loadQuizFromDB = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke('generate-quiz', {
-          body: { 
-            lectureId,
-            transcript: 'Sample engineering lecture transcript about structural analysis, stress and strain calculations in steel beams, deflection limits, and load distribution in engineering design.'
-          }
-        });
+        // ✅ Carregar quiz do banco de dados ao invés de gerar novo
+        const { data, error } = await supabase
+          .from('generated_quizzes')
+          .select('*')
+          .eq('id', lectureId)
+          .single();
 
         if (error) throw error;
 
-        if (data.success && data.quiz.questions) {
-          setQuizQuestions(data.quiz.questions);
-          setTotalQuestions(data.totalQuestions);
-        } else {
-          throw new Error('Invalid quiz data received');
-        }
+        // Converter formato do banco para formato esperado
+        const questions = Array.isArray(data.questions) ? data.questions : [];
+        const convertedQuestions = questions.map((q: any, idx: number) => ({
+          id: idx + 1,
+          type: 'multiple-choice',
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          sourceTimestamp: '00:00'
+        }));
+
+        setQuizQuestions(convertedQuestions as QuizQuestion[]);
+        setTotalQuestions(convertedQuestions.length);
       } catch (error) {
-        console.error('Error generating quiz:', error);
-        toast.error('Erro ao gerar quiz. Por favor, tente novamente.');
+        console.error('Error loading quiz:', error);
+        toast.error('Erro ao carregar quiz. Redirecionando...');
+        setTimeout(() => navigate('/ai-chat'), 2000);
       } finally {
         setLoading(false);
       }
     };
 
-    generateQuiz();
-  }, [lectureId]);
+    loadQuizFromDB();
+  }, [lectureId, navigate]);
 
   const progress = totalQuestions > 0 ? (currentQuestion / totalQuestions) * 100 : 0;
   const currentQuestionData = quizQuestions.find(q => q.id === currentQuestion);
