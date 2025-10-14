@@ -1,6 +1,7 @@
 import { FileQuestion, Layers, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface GeneratedContentCardProps {
   type: 'quiz' | 'flashcard';
@@ -23,6 +24,9 @@ export const GeneratedContentCard = ({
   const label = type === 'quiz' ? 'Quiz' : 'Flashcards';
   const countLabel = type === 'quiz' ? 'perguntas' : 'cards';
   
+  // Verificar se foi criado há menos de 5 minutos
+  const isNew = (Date.now() - new Date(createdAt).getTime()) < 5 * 60 * 1000;
+  
   return (
     <Card className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 hover:shadow-md transition-shadow group">
       <div className="flex items-start gap-3">
@@ -30,11 +34,23 @@ export const GeneratedContentCard = ({
           <Icon className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-sm text-gray-900 truncate">
-            {title}
-          </h4>
+          <div className="flex items-center gap-2">
+            <h4 className="font-medium text-sm text-gray-900 truncate flex-1">
+              {title}
+            </h4>
+            {isNew && (
+              <Badge className="bg-green-500 text-white text-xs px-1.5 py-0 shrink-0">
+                Novo!
+              </Badge>
+            )}
+          </div>
           <p className="text-xs text-gray-600 mt-1">
-            {itemCount} {countLabel} • {new Date(createdAt).toLocaleDateString('pt-BR')}
+            {itemCount} {countLabel} • {new Date(createdAt).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
           </p>
         </div>
         <div className="flex gap-1 shrink-0">

@@ -1181,28 +1181,44 @@ const AIChatPage = () => {
                     📚 Conteúdo Gerado
                   </h3>
                   <div className="space-y-2">
-                    {conversationContent.quizzes.map((quiz) => (
-                      <GeneratedContentCard
-                        key={quiz.id}
-                        type="quiz"
-                        title={quiz.title}
-                        itemCount={quiz.questions?.length || 0}
-                        createdAt={quiz.created_at}
-                        onOpen={() => handleOpenQuiz(quiz.id)}
-                        onDelete={() => handleDeleteQuiz(quiz.id)}
-                      />
-                    ))}
-                    {conversationContent.flashcards.map((set) => (
-                      <GeneratedContentCard
-                        key={set.id}
-                        type="flashcard"
-                        title={set.title}
-                        itemCount={set.cards?.length || 0}
-                        createdAt={set.created_at}
-                        onOpen={() => handleOpenFlashcards(set.id)}
-                        onDelete={() => handleDeleteFlashcards(set.id)}
-                      />
-                    ))}
+                    {conversationContent.quizzes
+                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                      .map((quiz) => {
+                        // Extrair tópico principal do título
+                        const topicMatch = quiz.title.match(/sobre (.+)/i) || quiz.title.match(/Quiz:?\s*(.+)/i);
+                        const displayTitle = topicMatch ? topicMatch[1] : quiz.title;
+                        
+                        return (
+                          <GeneratedContentCard
+                            key={quiz.id}
+                            type="quiz"
+                            title={displayTitle}
+                            itemCount={quiz.questions?.length || 0}
+                            createdAt={quiz.created_at}
+                            onOpen={() => handleOpenQuiz(quiz.id)}
+                            onDelete={() => handleDeleteQuiz(quiz.id)}
+                          />
+                        );
+                      })}
+                    {conversationContent.flashcards
+                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                      .map((set) => {
+                        // Extrair tópico principal do título
+                        const topicMatch = set.title.match(/sobre (.+)/i) || set.title.match(/Flashcards:?\s*(.+)/i);
+                        const displayTitle = topicMatch ? topicMatch[1] : set.title;
+                        
+                        return (
+                          <GeneratedContentCard
+                            key={set.id}
+                            type="flashcard"
+                            title={displayTitle}
+                            itemCount={set.cards?.length || 0}
+                            createdAt={set.created_at}
+                            onOpen={() => handleOpenFlashcards(set.id)}
+                            onDelete={() => handleDeleteFlashcards(set.id)}
+                          />
+                        );
+                      })}
                   </div>
                 </div>
               )}

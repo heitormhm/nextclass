@@ -19,7 +19,9 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log(`Generating quiz for lecture ${lectureId}`);
+    console.log(`🎯 Generating quiz for lecture ${lectureId}`);
+    console.log(`📄 Transcript preview (first 200 chars):`, transcript?.substring(0, 200) || 'No transcript provided');
+    console.log(`📊 Transcript length:`, transcript?.length || 0, 'characters');
 
     // Call Lovable AI Gateway to generate quiz questions
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
