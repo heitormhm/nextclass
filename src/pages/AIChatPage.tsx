@@ -1118,6 +1118,30 @@ const AIChatPage = () => {
             }
             
             console.log('✏️ Updating job state:', job.id, job.status);
+            
+            // Map status → progress para Deep Search
+            if (job.job_type === 'DEEP_SEARCH') {
+              const stepNumber = parseInt(job.intermediate_data?.step || '0', 10);
+              
+              if (stepNumber > 0) {
+                console.log(`📊 [Deep Search] Progress update: Step ${stepNumber}`);
+                setDeepSearchProgress(stepNumber);
+              }
+              
+              // Fallback: mapear status diretamente se step não estiver disponível
+              if (!job.intermediate_data?.step) {
+                const statusToProgress: Record<string, number> = {
+                  'PENDING': 0,
+                  'DECOMPOSING': 1,
+                  'RESEARCHING': 2,
+                  'COMPLETED': 4
+                };
+                const progress = statusToProgress[job.status] || 0;
+                console.log(`📊 [Deep Search] Progress update (fallback): ${progress}`);
+                setDeepSearchProgress(progress);
+              }
+            }
+            
             const newJobs = new Map(prev);
             newJobs.set(job.id, {
               ...currentJob,
@@ -1330,7 +1354,7 @@ const AIChatPage = () => {
             // ✅ Modal closing logic removed - handled by primary logic at line ~1117
             // This debounce block now only tracks intermediate progress updates
           }
-          }, 500); // ✅ Aumentado de 300ms para 500ms
+          }, 100); // ✅ Reduzido para 100ms para processar COMPLETED mais rápido
           
           setRealtimeDebounceTimer(timer);
         }

@@ -192,7 +192,8 @@ Exemplo de formato de resposta:
         status: 'DECOMPOSING',
         intermediate_data: {
           decomposed_questions: decomposedQuestions,
-          pendingCompleted: true  // ✅ Marcar estado como processado
+          pendingCompleted: true,
+          step: '1'
         }
       })
       .eq('id', job.id);
@@ -248,7 +249,8 @@ async function handleDecomposingState(job: any, supabaseAdmin: any, braveApiKey:
       intermediate_data: {
         ...job.intermediate_data,
         search_results: searchResults,
-        decomposingCompleted: true  // ✅ Marcar estado como processado
+        decomposingCompleted: true,
+        step: '2'
       }
     })
     .eq('id', job.id);
@@ -403,7 +405,12 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
       .from('jobs')
       .update({
         status: 'COMPLETED',
-        result: report
+        result: report,
+        intermediate_data: {
+          ...job.intermediate_data,
+          researchingCompleted: true,
+          step: '3'
+        }
       })
       .eq('id', job.id);
 
