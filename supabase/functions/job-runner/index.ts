@@ -547,32 +547,7 @@ FORMATO DE RESPOSTA (JSON puro):
 async function handleGenerateQuiz(job: any, supabaseAdmin: any, lovableApiKey: string) {
   console.log(`📝 [${job.id}] Generating quiz`);
   
-  let { context, topic, conversationId } = job.input_payload;
-  
-  // ✅ NOVO: Extrair tópico real se vier com texto inválido
-  if (topic && (topic.includes('Olá!') || topic.includes('Que ótimo') || topic.length > 100)) {
-    console.log('⚠️ Topic appears to be invalid, extracting from context...');
-    
-    // Tentar extrair de headers markdown (## Título)
-    const headerMatch = context.match(/##\s+([^\n]+)/);
-    if (headerMatch) {
-      topic = headerMatch[1].trim();
-      console.log(`✅ Extracted topic from header: ${topic}`);
-    } else {
-      // Tentar extrair do início do contexto (primeiras palavras significativas)
-      const words = context.split(/\s+/).filter((w: string) => 
-        w.length > 3 && !['sobre', 'para', 'como', 'você', 'Olá'].includes(w)
-      );
-      topic = words.slice(0, 3).join(' ');
-      console.log(`✅ Extracted topic from keywords: ${topic}`);
-    }
-  }
-  
-  console.log(`🎯 Final topic for quiz: "${topic}"`);
-  console.log('📄 Context details:', {
-    contextLength: typeof context === 'string' ? context.length : JSON.stringify(context).length,
-    contextPreview: typeof context === 'string' ? context.substring(0, 150) : JSON.stringify(context).substring(0, 150)
-  });
+  const { context, topic, conversationId } = job.input_payload;
   
   if (job.status === 'PENDING') {
     const systemPrompt = `🇧🇷 CRITICAL: You MUST generate ALL content in BRAZILIAN PORTUGUESE (pt-BR).

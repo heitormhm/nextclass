@@ -47,35 +47,6 @@ serve(async (req) => {
     if (action && ['GENERATE_SUGGESTIONS', 'GENERATE_QUIZ', 'GENERATE_FLASHCARDS'].includes(action)) {
       console.log(`🎯 Interactive action requested: ${action}`);
       
-      // ✅ Extrair o tópico real da última mensagem do usuário
-      const { data: lastUserMessage } = await supabaseAdmin
-        .from('messages')
-        .select('content')
-        .eq('conversation_id', conversationId)
-        .eq('role', 'user')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      const userTopic = lastUserMessage?.content || 'Tópico de Engenharia';
-
-      // Buscar a última resposta da assistente para contexto
-      const { data: lastAssistantMessage } = await supabaseAdmin
-        .from('messages')
-        .select('content')
-        .eq('conversation_id', conversationId)
-        .eq('role', 'assistant')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      const contextContent = lastAssistantMessage?.content || context?.context || context;
-
-      console.log('📝 Job payload details:', {
-        topic: userTopic.substring(0, 100),
-        contextLength: typeof contextContent === 'string' ? contextContent.length : 'not string'
-      });
-      
       // Create main job
       const { data: newJob, error: jobError } = await supabaseAdmin
         .from('jobs')
@@ -85,8 +56,8 @@ serve(async (req) => {
           status: 'PENDING',
           conversation_id: conversationId,
           input_payload: { 
-            context: contextContent,
-            topic: userTopic, // ✅ Tópico real da pergunta do usuário
+            context: context?.context || context,
+            topic: context?.topic || 'Tópico de Engenharia',
             conversationId: conversationId
           }
         })
