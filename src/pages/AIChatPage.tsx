@@ -1162,7 +1162,8 @@ const AIChatPage = () => {
           }
           
           // ✅ DEEP SEARCH: Fechar modal (só executa na primeira vez)
-          if (job.job_type === 'DEEP_SEARCH' && job.status === 'COMPLETED') {
+          if (job.job_type === 'DEEP_SEARCH' && 
+              (job.status === 'COMPLETED' || job.intermediate_data?.step === '4')) {
             console.log('🔍 [Deep Search] Step 1: Closing modal');
             
             // Cancelar timeout de segurança

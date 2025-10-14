@@ -268,8 +268,37 @@ async function handleResearchingState(job: any, supabaseAdmin: any, lovableApiKe
   
   console.log(`📝 [${job.id}] Handling RESEARCHING state - Synthesizing report`);
   
-  const query = job.input_payload.query;
-  const searchResults = job.intermediate_data.search_results || [];
+  // ✅ Atualizar para step 3 ANTES de sintetizar
+  const { error: stepUpdateError } = await supabaseAdmin
+    .from('jobs')
+    .update({
+      intermediate_data: {
+        ...job.intermediate_data,
+        step: '3'
+      }
+    })
+    .eq('id', job.id);
+    
+  if (stepUpdateError) {
+    console.error('❌ Error updating to step 3:', stepUpdateError);
+  } else {
+    console.log('✅ Updated job to step 3 (synthesizing)');
+  }
+  
+  // Recarregar job para pegar o intermediate_data atualizado
+  const { data: updatedJob, error: reloadError } = await supabaseAdmin
+    .from('jobs')
+    .select('*')
+    .eq('id', job.id)
+    .single();
+    
+  if (reloadError || !updatedJob) {
+    console.error('❌ Error reloading job:', reloadError);
+    return;
+  }
+  
+  const query = updatedJob.input_payload.query;
+  const searchResults = updatedJob.intermediate_data.search_results || [];
 
   if (searchResults.length === 0) {
     throw new Error('No search results found');
@@ -407,9 +436,9 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
         status: 'COMPLETED',
         result: report,
         intermediate_data: {
-          ...job.intermediate_data,
+          ...updatedJob.intermediate_data,
           researchingCompleted: true,
-          step: '3'
+          step: '4'
         }
       })
       .eq('id', job.id);
