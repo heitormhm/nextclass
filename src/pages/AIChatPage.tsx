@@ -85,6 +85,7 @@ const AIChatPage = () => {
     flashcards: any[];
   }>({ quizzes: [], flashcards: [] });
   const [deepSearchTimeoutId, setDeepSearchTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [isCreatingDeepSearch, setIsCreatingDeepSearch] = useState(false);  // ✅ NOVO: Prevenir múltiplas invocações
 
   const deepSearchSteps = [
     { text: "A decompor a pergunta em tópicos..." },
@@ -479,6 +480,14 @@ const AIChatPage = () => {
 
       // Handle deep search response
       if (isDeepSearch && functionData.jobId) {
+        // ✅ PREVENIR MÚLTIPLAS CRIAÇÕES
+        if (isCreatingDeepSearch) {
+          console.warn('⚠️ Deep search already in progress, ignoring duplicate request');
+          return;
+        }
+        
+        setIsCreatingDeepSearch(true);
+        
         setDeepSearchJobId(functionData.jobId);
         setIsDeepSearchLoading(true);
         setDeepSearchProgress(0);
@@ -509,6 +518,11 @@ const AIChatPage = () => {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, assistantMessage]);
+        
+        // ✅ Limpar flag após 5 segundos
+        setTimeout(() => {
+          setIsCreatingDeepSearch(false);
+        }, 5000);
       } else {
         // Normal chat response
         const assistantMessage: Message = {
@@ -1113,7 +1127,17 @@ const AIChatPage = () => {
             return newJobs;
           });
           
-          // ✅ DEEP SEARCH: Sempre fechar modal quando job completar (ANTES do processedJobsRef)
+          // ✅ ORDEM CORRETA: Marcar como processado PRIMEIRO
+          if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+            if (processedJobsRef.current.has(job.id)) {
+              console.log('⏭️ Job already processed, skipping:', job.id);
+              return; // ✅ SAIR IMEDIATAMENTE
+            }
+            processedJobsRef.current.add(job.id);
+            console.log(`✅ Job marked as processed:`, job.id);
+          }
+          
+          // ✅ DEEP SEARCH: Fechar modal (só executa na primeira vez)
           if (job.job_type === 'DEEP_SEARCH' && job.status === 'COMPLETED') {
             console.log('🔍 [Deep Search] Step 1: Closing modal');
             
@@ -1125,25 +1149,47 @@ const AIChatPage = () => {
             }
             
             setIsDeepSearchLoading(false);
+            setDeepSearchProgress(4);
+            
+            setTimeout(() => {
+              setDeepSearchProgress(0);
+            }, 2000);
             
             console.log('🔍 [Deep Search] Step 2: Reloading conversations');
             loadConversations();
             
+            // ✅ VERIFICAR SE TEMOS CONVERSA ATIVA
+            if (!activeConversationId) {
+              console.warn('🔍 [Deep Search] No active conversation, skipping message reload');
+              return;
+            }
+            
             console.log('🔍 [Deep Search] Step 3: Fetching messages');
             (async () => {
-              const { data: messagesData, error } = await supabase
-                .from('messages')
-                .select('*')
-                .eq('conversation_id', activeConversationId)
-                .order('created_at', { ascending: true });
-              
-              if (error) {
-                console.error('🔍 [Deep Search] Error fetching messages:', error);
-                return;
-              }
-              
-              console.log('🔍 [Deep Search] Step 4: Mapping', messagesData?.length, 'messages');
-              if (messagesData) {
+              try {
+                const { data: messagesData, error } = await supabase
+                  .from('messages')
+                  .select('*')
+                  .eq('conversation_id', activeConversationId)
+                  .order('created_at', { ascending: true });
+                
+                if (error) {
+                  console.error('🔍 [Deep Search] Error fetching messages:', error);
+                  toast({
+                    title: "Erro ao Carregar Relatório",
+                    description: "Por favor, recarregue a página para ver os resultados.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                if (!messagesData || messagesData.length === 0) {
+                  console.warn('🔍 [Deep Search] No messages found, forcing reload');
+                  await loadConversations();
+                  return;
+                }
+                
+                console.log('🔍 [Deep Search] Step 4: Mapping', messagesData.length, 'messages');
                 const loadedMessages: Message[] = messagesData.map((msg: any) => ({
                   id: msg.id,
                   content: msg.content,
@@ -1156,6 +1202,13 @@ const AIChatPage = () => {
                 
                 setMessages(loadedMessages);
                 console.log('🔍 [Deep Search] ✅ Complete! Messages updated');
+              } catch (error) {
+                console.error('🔍 [Deep Search] Unexpected error:', error);
+                toast({
+                  title: "Erro Inesperado",
+                  description: "Por favor, recarregue a página.",
+                  variant: "destructive",
+                });
               }
             })();
             
@@ -1185,18 +1238,7 @@ const AIChatPage = () => {
             }
           }
           
-          // ✅ Processar jobs terminados (COM proteção de processedJobsRef)
-          if (job.status === 'COMPLETED' || job.status === 'FAILED') {
-            // 🔒 QUEBRA DE LOOP: Verificar se já processamos este job
-            if (processedJobsRef.current.has(job.id)) {
-              console.log('⏭️ Job already processed, skipping:', job.id);
-              return; // ✅ SAIR IMEDIATAMENTE
-            }
-            
-            // 🔒 Marcar como processado IMEDIATAMENTE
-            processedJobsRef.current.add(job.id);
-            console.log(`${job.status === 'COMPLETED' ? '✅' : '❌'} Job finished and marked as processed:`, job.id);
-            
+          // ✅ Processar outros tipos de jobs (já marcados como processados acima)
           if (job.status === 'COMPLETED') {
             if (job.job_type === 'GENERATE_SUGGESTIONS') {
               console.log('💡 Suggestions ready');
@@ -1256,22 +1298,21 @@ const AIChatPage = () => {
             }
           }
             
-            // ✅ CLEANUP: Remove jobs completados após delay (EXCETO sugestões)
-            if (job.status === 'COMPLETED' && job.job_type !== 'GENERATE_SUGGESTIONS') {
-              setTimeout(() => {
-                console.log('🗑️ Cleaning up completed job:', job.id);
-                setActiveJobs(prev => {
-                  const newJobs = new Map(prev);
-                  newJobs.delete(job.id);
-                  return newJobs;
-                });
-              }, 10000);
-            }
-            
-            // 🔒 Jobs de sugestões NUNCA são removidos automaticamente
-            if (job.job_type === 'GENERATE_SUGGESTIONS') {
-              console.log('📌 Suggestions job will persist indefinitely:', job.id);
-            }
+          // ✅ CLEANUP: Remove jobs completados após delay (EXCETO sugestões)
+          if (job.status === 'COMPLETED' && job.job_type !== 'GENERATE_SUGGESTIONS') {
+            setTimeout(() => {
+              console.log('🗑️ Cleaning up completed job:', job.id);
+              setActiveJobs(prev => {
+                const newJobs = new Map(prev);
+                newJobs.delete(job.id);
+                return newJobs;
+              });
+            }, 10000);
+          }
+          
+          // 🔒 Jobs de sugestões NUNCA são removidos automaticamente
+          if (job.job_type === 'GENERATE_SUGGESTIONS') {
+            console.log('📌 Suggestions job will persist indefinitely:', job.id);
           }
           
           if (job.id === deepSearchJobId) {

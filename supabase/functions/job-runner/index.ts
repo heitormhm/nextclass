@@ -122,6 +122,12 @@ async function executeWebSearch(
 // =========================
 
 async function handlePendingState(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  // ✅ IDEMPOTÊNCIA: Verificar se já processamos este estado
+  if (job.intermediate_data?.pendingCompleted) {
+    console.log(`⏭️ [${job.id}] PENDING state already processed, skipping`);
+    return;
+  }
+  
   console.log(`🔄 [${job.id}] Handling PENDING state - Decomposing query`);
   
   const query = job.input_payload.query;
@@ -185,7 +191,8 @@ Exemplo de formato de resposta:
       .update({
         status: 'DECOMPOSING',
         intermediate_data: {
-          decomposed_questions: decomposedQuestions
+          decomposed_questions: decomposedQuestions,
+          pendingCompleted: true  // ✅ Marcar estado como processado
         }
       })
       .eq('id', job.id);
@@ -199,6 +206,12 @@ Exemplo de formato de resposta:
 }
 
 async function handleDecomposingState(job: any, supabaseAdmin: any, braveApiKey: string) {
+  // ✅ IDEMPOTÊNCIA: Verificar se já executamos as buscas
+  if (job.intermediate_data?.decomposingCompleted) {
+    console.log(`⏭️ [${job.id}] DECOMPOSING state already processed, skipping`);
+    return;
+  }
+  
   console.log(`🔍 [${job.id}] Handling DECOMPOSING state - Executing web searches`);
   
   const decomposedQuestions = job.intermediate_data.decomposed_questions || [];
@@ -234,7 +247,8 @@ async function handleDecomposingState(job: any, supabaseAdmin: any, braveApiKey:
       status: 'RESEARCHING',
       intermediate_data: {
         ...job.intermediate_data,
-        search_results: searchResults
+        search_results: searchResults,
+        decomposingCompleted: true  // ✅ Marcar estado como processado
       }
     })
     .eq('id', job.id);
@@ -244,6 +258,12 @@ async function handleDecomposingState(job: any, supabaseAdmin: any, braveApiKey:
 }
 
 async function handleResearchingState(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  // ✅ IDEMPOTÊNCIA: Verificar se já sintetizamos o relatório
+  if (job.intermediate_data?.researchingCompleted) {
+    console.log(`⏭️ [${job.id}] RESEARCHING state already processed, skipping`);
+    return;
+  }
+  
   console.log(`📝 [${job.id}] Handling RESEARCHING state - Synthesizing report`);
   
   const query = job.input_payload.query;
@@ -935,8 +955,10 @@ async function handleLogInsight(job: any, supabaseAdmin: any) {
 // =========================
 
 async function runJob(jobId: string) {
+  const startTime = Date.now();
   console.log(`\n========================================`);
   console.log(`🚀 Job Runner started for: ${jobId}`);
+  console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
   console.log(`========================================\n`);
 
   const supabaseAdmin = createClient(
@@ -1019,6 +1041,9 @@ async function runJob(jobId: string) {
     } catch (updateError) {
       console.error('Failed to update job as failed:', updateError);
     }
+  } finally {
+    const duration = Date.now() - startTime;
+    console.log(`\n⏱️ Job ${jobId} completed in ${duration}ms\n`);
   }
 }
 
