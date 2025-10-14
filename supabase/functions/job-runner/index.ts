@@ -547,13 +547,39 @@ FORMATO DE RESPOSTA (JSON puro):
 async function handleGenerateQuiz(job: any, supabaseAdmin: any, lovableApiKey: string) {
   console.log(`📝 [${job.id}] Generating quiz`);
   
-  const { context, topic, conversationId } = job.input_payload;
+  let { context, topic, conversationId } = job.input_payload;
+  
+  // ✅ VALIDAÇÃO DE TOPIC
+  if (!topic || topic === 'Tópico de Engenharia' || topic.length > 100 || topic.includes('Olá!')) {
+    console.log('⚠️ Invalid topic detected, attempting extraction from context...');
+    
+    // Tentar extrair de markdown headers
+    const headerMatch = context.match(/##\s+([^\n]+)/);
+    if (headerMatch) {
+      topic = headerMatch[1].replace(/\*\*/g, '').trim();
+      console.log(`✅ Extracted topic from header: "${topic}"`);
+    } else {
+      // Extrair primeiras palavras-chave significativas
+      const words = context.split(/\s+/).filter((w: string) => 
+        w.length > 4 && 
+        !['sobre', 'para', 'como', 'você', 'Olá!', 'Que', 'ótimo'].includes(w)
+      );
+      topic = words.slice(0, 3).join(' ');
+      console.log(`✅ Extracted topic from keywords: "${topic}"`);
+    }
+  }
+  
+  console.log(`🎯 Final topic for quiz: "${topic}"`);
+  console.log(`📚 Context length: ${context.length} chars`);
+  console.log(`📄 Context preview (first 200): ${context.substring(0, 200)}`);
   
   if (job.status === 'PENDING') {
     const systemPrompt = `🇧🇷 CRITICAL: You MUST generate ALL content in BRAZILIAN PORTUGUESE (pt-BR).
 
+⚠️ **RESTRIÇÃO CRÍTICA**: Você DEVE gerar um quiz baseado EXCLUSIVAMENTE no conteúdo fornecido no campo 'context'. É PROIBIDO usar qualquer conhecimento externo ou informações que não estejam presentes no texto. O 'topic' serve apenas para contextualização, mas as perguntas e respostas devem ser derivadas APENAS do 'context'.
+
 Você é um criador de quizzes educacionais para engenharia em PORTUGUÊS DO BRASIL.
-Gere 6-9 perguntas de múltipla escolha baseadas no conteúdo fornecido.
+Gere 6-9 perguntas de múltipla escolha baseadas SOMENTE no conteúdo fornecido.
 
 ⚠️ IDIOMA OBRIGATÓRIO: 
 - TODO texto deve estar em português do Brasil

@@ -47,6 +47,39 @@ serve(async (req) => {
     if (action && ['GENERATE_SUGGESTIONS', 'GENERATE_QUIZ', 'GENERATE_FLASHCARDS'].includes(action)) {
       console.log(`🎯 Interactive action requested: ${action}`);
       
+      // ✅ Buscar última mensagem do usuário para topic
+      const { data: lastUserMessage } = await supabaseAdmin
+        .from('messages')
+        .select('content')
+        .eq('conversation_id', conversationId)
+        .eq('role', 'user')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      const userTopic = lastUserMessage?.content?.substring(0, 100) || 'Tópico de Engenharia';
+      console.log('📝 Extracted topic from user:', userTopic);
+      
+      // ✅ Buscar penúltima mensagem da assistente (ignorar confirmações)
+      const { data: assistantMessages } = await supabaseAdmin
+        .from('messages')
+        .select('content')
+        .eq('conversation_id', conversationId)
+        .eq('role', 'assistant')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      // Filtrar mensagens de confirmação de quiz/flashcard
+      const educationalContent = assistantMessages?.find(msg => 
+        !msg.content.includes('Quiz criado com sucesso') &&
+        !msg.content.includes('Flashcards criados com sucesso') &&
+        msg.content.length > 200
+      );
+      
+      const contextContent = educationalContent?.content || 'Conteúdo educacional não encontrado';
+      console.log('📚 Context length:', contextContent.length);
+      console.log('📄 Context preview:', contextContent.substring(0, 150));
+      
       // Create main job
       const { data: newJob, error: jobError } = await supabaseAdmin
         .from('jobs')
@@ -56,8 +89,8 @@ serve(async (req) => {
           status: 'PENDING',
           conversation_id: conversationId,
           input_payload: { 
-            context: context?.context || context,
-            topic: context?.topic || 'Tópico de Engenharia',
+            context: contextContent,
+            topic: userTopic,
             conversationId: conversationId
           }
         })

@@ -1039,17 +1039,69 @@ const AIChatPage = () => {
           if (job.status === 'COMPLETED' || job.status === 'FAILED') {
             console.log(`${job.status === 'COMPLETED' ? '✅' : '❌'} Job finished:`, job.id);
             
-            if (job.status === 'COMPLETED') {
-              if (job.job_type === 'GENERATE_SUGGESTIONS') {
-                console.log('💡 Suggestions ready');
-                setMessages(prev => [...prev]);
-              }
-              
-              if (job.job_type === 'DEEP_SEARCH') {
-                console.log('🔍 Deep search complete, reloading');
-                loadConversations();
+          if (job.status === 'COMPLETED') {
+            if (job.job_type === 'GENERATE_SUGGESTIONS') {
+              console.log('💡 Suggestions ready');
+              setMessages(prev => [...prev]);
+            }
+            
+            // ✅ Auto-navegação para quiz
+            if (job.job_type === 'GENERATE_QUIZ') {
+              try {
+                const result = JSON.parse(job.result);
+                if (result.quizId) {
+                  toast({
+                    title: "Quiz Pronto!",
+                    description: `${result.title} criado com ${result.questionCount} perguntas. Redirecionando...`,
+                    duration: 2000,
+                  });
+                  
+                  setTimeout(() => {
+                    console.log('🎯 Auto-navigating to quiz:', result.quizId);
+                    navigate(`/quiz/${result.quizId}`, {
+                      state: {
+                        fromChat: true,
+                        conversationId: activeConversationId
+                      }
+                    });
+                  }, 1500);
+                }
+              } catch (e) {
+                console.error('Error parsing quiz result:', e);
               }
             }
+            
+            // ✅ Auto-navegação para flashcards
+            if (job.job_type === 'GENERATE_FLASHCARDS') {
+              try {
+                const result = JSON.parse(job.result);
+                if (result.setId) {
+                  toast({
+                    title: "Flashcards Prontos!",
+                    description: `${result.title} criado com ${result.cardCount} cards. Redirecionando...`,
+                    duration: 2000,
+                  });
+                  
+                  setTimeout(() => {
+                    console.log('📚 Auto-navigating to flashcards:', result.setId);
+                    navigate(`/flashcards/${result.setId}`, {
+                      state: {
+                        fromChat: true,
+                        conversationId: activeConversationId
+                      }
+                    });
+                  }, 1500);
+                }
+              } catch (e) {
+                console.error('Error parsing flashcard result:', e);
+              }
+            }
+            
+            if (job.job_type === 'DEEP_SEARCH') {
+              console.log('🔍 Deep search complete, reloading');
+              loadConversations();
+            }
+          }
             
             // ✅ CLEANUP: Remove jobs completados após delay (exceto sugestões)
             if (job.job_type !== 'GENERATE_SUGGESTIONS') {
