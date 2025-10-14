@@ -16,7 +16,6 @@ import { ActionButtons } from "@/components/ActionButtons";
 import { JobStatus } from "@/components/JobStatus";
 import { QuizModal } from "@/components/QuizModal";
 import { FlashcardModal } from "@/components/FlashcardModal";
-import { QuizModal } from "@/components/QuizModal";
 import { GeneratedContentCard } from "@/components/GeneratedContentCard";
 import { SuggestionsButtons } from "@/components/SuggestionsButtons";
 import ReactMarkdown from 'react-markdown';
@@ -80,7 +79,6 @@ const AIChatPage = () => {
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [selectedFlashcardSetId, setSelectedFlashcardSetId] = useState<string | null>(null);
   const [openQuizModal, setOpenQuizModal] = useState(false);
-  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [conversationContent, setConversationContent] = useState<{
     quizzes: any[];
     flashcards: any[];
