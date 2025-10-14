@@ -1286,21 +1286,8 @@ const AIChatPage = () => {
               }
             }
             
-            if (job.status === 'COMPLETED') {
-              setIsDeepSearchLoading(false);
-              setDeepSearchJobId(null);
-              setDeepSearchProgress(4);
-              
-              setTimeout(() => {
-                setDeepSearchProgress(0);
-              }, 2000);
-            }
-            
-            if (job.status === 'FAILED') {
-              setIsDeepSearchLoading(false);
-              setDeepSearchJobId(null);
-              setDeepSearchProgress(0);
-            }
+            // ✅ Modal closing logic removed - handled by primary logic at line ~1117
+            // This debounce block now only tracks intermediate progress updates
           }
           }, 500); // ✅ Aumentado de 300ms para 500ms
           
