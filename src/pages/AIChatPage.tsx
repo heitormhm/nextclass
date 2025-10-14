@@ -84,6 +84,7 @@ const AIChatPage = () => {
     quizzes: any[];
     flashcards: any[];
   }>({ quizzes: [], flashcards: [] });
+  const [deepSearchTimeoutId, setDeepSearchTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   const deepSearchSteps = [
     { text: "A decompor a pergunta em tópicos..." },
@@ -481,6 +482,25 @@ const AIChatPage = () => {
         setDeepSearchJobId(functionData.jobId);
         setIsDeepSearchLoading(true);
         setDeepSearchProgress(0);
+        
+        // ✅ TIMEOUT DE SEGURANÇA: Fechar modal após 3 minutos
+        const timeout = setTimeout(() => {
+          console.warn('⏰ Deep search timeout reached (3 min), forcing modal close');
+          setIsDeepSearchLoading(false);
+          
+          toast({
+            title: "Tempo Limite Atingido",
+            description: "A pesquisa profunda demorou mais do que esperado. Recarregue a página para ver os resultados.",
+            variant: "destructive",
+            duration: 5000,
+          });
+          
+          // Forçar reload de mensagens
+          loadConversations();
+        }, 180000); // 3 minutos
+        
+        setDeepSearchTimeoutId(timeout);
+        console.log('⏱️ Deep search timeout started (3 min)');
         
         const assistantMessage: Message = {
           id: `${activeConversationId}-${Date.now()}`,
@@ -1093,7 +1113,79 @@ const AIChatPage = () => {
             return newJobs;
           });
           
-          // ✅ Processar jobs terminados
+          // ✅ DEEP SEARCH: Sempre fechar modal quando job completar (ANTES do processedJobsRef)
+          if (job.job_type === 'DEEP_SEARCH' && job.status === 'COMPLETED') {
+            console.log('🔍 [Deep Search] Step 1: Closing modal');
+            
+            // Cancelar timeout de segurança
+            if (deepSearchTimeoutId) {
+              clearTimeout(deepSearchTimeoutId);
+              setDeepSearchTimeoutId(null);
+              console.log('⏱️ Deep search timeout cancelled');
+            }
+            
+            setIsDeepSearchLoading(false);
+            
+            console.log('🔍 [Deep Search] Step 2: Reloading conversations');
+            loadConversations();
+            
+            console.log('🔍 [Deep Search] Step 3: Fetching messages');
+            (async () => {
+              const { data: messagesData, error } = await supabase
+                .from('messages')
+                .select('*')
+                .eq('conversation_id', activeConversationId)
+                .order('created_at', { ascending: true });
+              
+              if (error) {
+                console.error('🔍 [Deep Search] Error fetching messages:', error);
+                return;
+              }
+              
+              console.log('🔍 [Deep Search] Step 4: Mapping', messagesData?.length, 'messages');
+              if (messagesData) {
+                const loadedMessages: Message[] = messagesData.map((msg: any) => ({
+                  id: msg.id,
+                  content: msg.content,
+                  isUser: msg.role === 'user',
+                  timestamp: new Date(msg.created_at),
+                  isReport: msg.metadata?.isReport || false,
+                  reportTitle: msg.metadata?.reportTitle || undefined,
+                  suggestionsJobId: job.intermediate_data?.suggestionsJobId,
+                }));
+                
+                setMessages(loadedMessages);
+                console.log('🔍 [Deep Search] ✅ Complete! Messages updated');
+              }
+            })();
+            
+            // ✅ Extrair e trackear suggestionsJobId
+            const suggestionsJobId = job.intermediate_data?.suggestionsJobId;
+            
+            if (suggestionsJobId) {
+              supabase
+                .from('jobs')
+                .select('*')
+                .eq('id', suggestionsJobId)
+                .maybeSingle()
+                .then(({ data: suggestionJob }) => {
+                  if (suggestionJob) {
+                    setActiveJobs(prev => {
+                      const newJobs = new Map(prev);
+                      newJobs.set(suggestionsJobId, {
+                        status: suggestionJob.status,
+                        type: suggestionJob.job_type,
+                        result: suggestionJob.result,
+                        payload: suggestionJob.input_payload
+                      });
+                      return newJobs;
+                    });
+                  }
+                });
+            }
+          }
+          
+          // ✅ Processar jobs terminados (COM proteção de processedJobsRef)
           if (job.status === 'COMPLETED' || job.status === 'FAILED') {
             // 🔒 QUEBRA DE LOOP: Verificar se já processamos este job
             if (processedJobsRef.current.has(job.id)) {
@@ -1160,65 +1252,6 @@ const AIChatPage = () => {
                 }
               } catch (e) {
                 console.error('Error parsing flashcard result:', e);
-              }
-            }
-            
-            if (job.job_type === 'DEEP_SEARCH') {
-              console.log('🔍 Deep search complete, reloading messages');
-              
-              // ✅ 1. Fechar modal imediatamente
-              setIsDeepSearchLoading(false);
-              
-              // ✅ 2. Recarregar conversações (já traz mensagens)
-              loadConversations();
-              
-              // ✅ 3. Recarregar mensagens da conversa atual
-              (async () => {
-                const { data: messagesData } = await supabase
-                  .from('messages')
-                  .select('*')
-                  .eq('conversation_id', activeConversationId)
-                  .order('created_at', { ascending: true });
-                
-                if (messagesData) {
-                  const loadedMessages: Message[] = messagesData.map((msg: any) => ({
-                    id: msg.id,
-                    content: msg.content,
-                    isUser: msg.role === 'user',
-                    timestamp: new Date(msg.created_at),
-                    isReport: msg.metadata?.isReport || false,
-                    reportTitle: msg.metadata?.reportTitle || undefined,
-                    suggestionsJobId: job.intermediate_data?.suggestionsJobId,
-                  }));
-                  
-                  setMessages(loadedMessages);
-                }
-              })();
-              
-              // ✅ 4. Extrair e trackear suggestionsJobId
-              const suggestionsJobId = job.intermediate_data?.suggestionsJobId;
-              
-              if (suggestionsJobId) {
-                supabase
-                  .from('jobs')
-                  .select('*')
-                  .eq('id', suggestionsJobId)
-                  .maybeSingle()
-                  .then(({ data: suggestionJob }) => {
-                    if (suggestionJob) {
-                      setActiveJobs(prev => {
-                        const newJobs = new Map(prev);
-                        newJobs.set(suggestionsJobId, {
-                          status: suggestionJob.status,
-                          type: suggestionJob.job_type,
-                          result: suggestionJob.result,
-                          payload: suggestionJob.input_payload
-                        });
-                        return newJobs;
-                      });
-                      console.log('✅ Suggestions job tracked:', suggestionsJobId);
-                    }
-                  });
               }
             }
           }
