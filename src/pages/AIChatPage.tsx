@@ -72,6 +72,7 @@ const AIChatPage = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
+  const [realtimeDebounceTimer, setRealtimeDebounceTimer] = useState<NodeJS.Timeout | null>(null);
   const [activeJobs, setActiveJobs] = useState<Map<string, any>>(new Map());
   const processedJobsRef = useRef<Set<string>>(new Set());
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
@@ -762,11 +763,14 @@ const AIChatPage = () => {
 
       if (error) throw error;
 
-      const loadedMessages: Message[] = messagesData.map((msg) => ({
+      // ✅ Usar metadata.isReport para identificar relatórios
+      const loadedMessages: Message[] = messagesData.map((msg: any) => ({
         id: msg.id,
         content: msg.content,
         isUser: msg.role === 'user',
         timestamp: new Date(msg.created_at),
+        isReport: msg.metadata?.isReport || false,
+        reportTitle: msg.metadata?.reportTitle || undefined,
       }));
 
       // Carregar sugestões salvas
@@ -990,23 +994,30 @@ const AIChatPage = () => {
           filter: `conversation_id=eq.${activeConversationId}`
         },
         (payload) => {
-          const job = payload.new as any;
-          
-          console.log('📬 Job update received:', {
-            id: job.id,
-            status: job.status,
-            type: job.job_type,
-            conversationId: job.conversation_id
-          });
-          
-          // ✅ VERIFICAÇÃO 1: Job pertence a esta conversa?
-          if (job.conversation_id !== activeConversationId) {
-            console.log('⏭️ Job from different conversation, skipping');
-            return;
+          // ✅ Limpar timer anterior para debounce
+          if (realtimeDebounceTimer) {
+            clearTimeout(realtimeDebounceTimer);
           }
           
-          // ✅ VERIFICAÇÃO 2: Mudança real no estado?
-          setActiveJobs(prev => {
+          // ✅ Criar novo timer com debounce de 300ms
+          const timer = setTimeout(() => {
+            const job = payload.new as any;
+            
+            console.log('📬 Job update received:', {
+              id: job.id,
+              status: job.status,
+              type: job.job_type,
+              conversationId: job.conversation_id
+            });
+            
+            // ✅ VERIFICAÇÃO 1: Job pertence a esta conversa?
+            if (job.conversation_id !== activeConversationId) {
+              console.log('⏭️ Job from different conversation, skipping');
+              return;
+            }
+            
+            // ✅ VERIFICAÇÃO 2: Mudança real no estado?
+            setActiveJobs(prev => {
             const currentJob = prev.get(job.id);
             
             // Se job não existe, criar
@@ -1099,52 +1110,47 @@ const AIChatPage = () => {
             }
             
             if (job.job_type === 'DEEP_SEARCH') {
-              console.log('🔍 Deep search complete, loading report and suggestions');
+              console.log('🔍 Deep search complete, reloading messages');
               
-              // ✅ FECHAR MODAL IMEDIATAMENTE
+              // ✅ 1. Fechar modal imediatamente
               setIsDeepSearchLoading(false);
               
-              // Usar IIFE async para recarregar mensagens
+              // ✅ 2. Recarregar conversações (já traz mensagens)
+              loadConversations();
+              
+              // ✅ 3. Recarregar mensagens da conversa atual
               (async () => {
-                // 1. Extrair suggestionsJobId do intermediate_data
-                const suggestionsJobId = job.intermediate_data?.suggestionsJobId;
-                console.log('📌 Suggestions Job ID:', suggestionsJobId);
-                
-                // 2. Recarregar mensagens da conversa (inclui relatório)
-                const { data: messagesData, error: messagesError } = await supabase
+                const { data: messagesData } = await supabase
                   .from('messages')
                   .select('*')
                   .eq('conversation_id', activeConversationId)
                   .order('created_at', { ascending: true });
                 
-                if (!messagesError && messagesData) {
-                  // ✅ Detectar relatórios por tamanho e role
-                  const loadedMessages: Message[] = messagesData.map((msg: any) => {
-                    const isReport = msg.role === 'assistant' && msg.content.length > 1000;
-                    const reportTitle = isReport ? 'Relatório de Pesquisa Profunda' : undefined;
-                    
-                    return {
-                      id: msg.id,
-                      content: msg.content,
-                      isUser: msg.role === 'user',
-                      timestamp: new Date(msg.created_at),
-                      isReport: isReport,
-                      reportTitle: reportTitle,
-                    };
-                  });
+                if (messagesData) {
+                  const loadedMessages: Message[] = messagesData.map((msg: any) => ({
+                    id: msg.id,
+                    content: msg.content,
+                    isUser: msg.role === 'user',
+                    timestamp: new Date(msg.created_at),
+                    isReport: msg.metadata?.isReport || false,
+                    reportTitle: msg.metadata?.reportTitle || undefined,
+                    suggestionsJobId: job.intermediate_data?.suggestionsJobId,
+                  }));
                   
-                  // 3. Associar suggestionsJobId à última mensagem (relatório)
-                  if (suggestionsJobId && loadedMessages.length > 0) {
-                    const lastMessage = loadedMessages[loadedMessages.length - 1];
-                    lastMessage.suggestionsJobId = suggestionsJobId;
-                    
-                    // 4. Adicionar job de sugestões ao activeJobs para tracking
-                    const { data: suggestionJob } = await supabase
-                      .from('jobs')
-                      .select('*')
-                      .eq('id', suggestionsJobId)
-                      .maybeSingle();
-                    
+                  setMessages(loadedMessages);
+                }
+              })();
+              
+              // ✅ 4. Extrair e trackear suggestionsJobId
+              const suggestionsJobId = job.intermediate_data?.suggestionsJobId;
+              
+              if (suggestionsJobId) {
+                supabase
+                  .from('jobs')
+                  .select('*')
+                  .eq('id', suggestionsJobId)
+                  .maybeSingle()
+                  .then(({ data: suggestionJob }) => {
                     if (suggestionJob) {
                       setActiveJobs(prev => {
                         const newJobs = new Map(prev);
@@ -1156,16 +1162,10 @@ const AIChatPage = () => {
                         });
                         return newJobs;
                       });
+                      console.log('✅ Suggestions job tracked:', suggestionsJobId);
                     }
-                  }
-                  
-                  setMessages(loadedMessages);
-                  console.log('✅ Messages reloaded with suggestions');
-                }
-                
-                // 5. Atualizar lista de conversações
-                loadConversations();
-              })();
+                  });
+              }
             }
           }
             
@@ -1210,6 +1210,9 @@ const AIChatPage = () => {
               setDeepSearchProgress(0);
             }
           }
+          }, 300); // ✅ 300ms debounce
+          
+          setRealtimeDebounceTimer(timer);
         }
       )
       .subscribe((status) => {

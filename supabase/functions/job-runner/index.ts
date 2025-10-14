@@ -363,6 +363,21 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
 
     console.log(`✅ Report generated (${report.length} characters)`);
 
+    // ✅ SALVAR RELATÓRIO COMO MENSAGEM NO CHAT
+    await supabaseAdmin
+      .from('messages')
+      .insert({
+        conversation_id: job.input_payload.conversationId,
+        role: 'assistant',
+        content: report,
+        metadata: {
+          isReport: true,
+          reportTitle: 'Relatório de Pesquisa Profunda'
+        }
+      });
+
+    console.log('✅ Report saved as message');
+
     // Update job as completed
     await supabaseAdmin
       .from('jobs')
@@ -972,8 +987,6 @@ async function runJob(jobId: string) {
       await handleGenerateFlashcards(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'LOG_ACADEMIC_INSIGHT') {
       await handleLogInsight(job, supabaseAdmin);
-    } else if (job.job_type === 'GENERATE_SUGGESTIONS') {
-      await handleGenerateSuggestions(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'DEEP_SEARCH') {
       switch (job.status) {
         case 'PENDING':
