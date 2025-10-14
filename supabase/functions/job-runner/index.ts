@@ -267,25 +267,44 @@ async function handleResearchingState(job: any, supabaseAdmin: any, lovableApiKe
   }
   
   console.log(`📝 [${job.id}] Handling RESEARCHING state - Synthesizing report`);
+  console.log(`🔍 [${job.id}] Current intermediate_data BEFORE step 3 update:`, JSON.stringify(job.intermediate_data, null, 2));
   
   // ✅ Atualizar para step 3 ANTES de sintetizar
+  const newIntermediateData = {
+    ...job.intermediate_data,
+    step: '3',
+    synthesisStarted: new Date().toISOString()
+  };
+  
+  console.log(`📤 [${job.id}] Attempting to update to step 3...`);
   const { error: stepUpdateError } = await supabaseAdmin
     .from('jobs')
     .update({
-      intermediate_data: {
-        ...job.intermediate_data,
-        step: '3'
-      }
+      intermediate_data: newIntermediateData
     })
     .eq('id', job.id);
     
   if (stepUpdateError) {
-    console.error('❌ Error updating to step 3:', stepUpdateError);
+    console.error(`❌ [${job.id}] Error updating to step 3:`, stepUpdateError);
   } else {
-    console.log('✅ Updated job to step 3 (synthesizing)');
+    console.log(`✅ [${job.id}] Database update command sent for step 3`);
   }
   
-  // Recarregar job para pegar o intermediate_data atualizado
+  // 🔍 VALIDAR que a atualização foi persistida
+  const { data: validationJob, error: validationError } = await supabaseAdmin
+    .from('jobs')
+    .select('intermediate_data')
+    .eq('id', job.id)
+    .single();
+    
+  if (validationError) {
+    console.error(`❌ [${job.id}] Error validating step 3 update:`, validationError);
+  } else {
+    console.log(`🔍 [${job.id}] Step after update (validation):`, validationJob?.intermediate_data?.step);
+    console.log(`🔍 [${job.id}] Full intermediate_data after step 3:`, JSON.stringify(validationJob?.intermediate_data, null, 2));
+  }
+  
+  // Recarregar job completo para usar daqui pra frente
   const { data: updatedJob, error: reloadError } = await supabaseAdmin
     .from('jobs')
     .select('*')
@@ -293,7 +312,7 @@ async function handleResearchingState(job: any, supabaseAdmin: any, lovableApiKe
     .single();
     
   if (reloadError || !updatedJob) {
-    console.error('❌ Error reloading job:', reloadError);
+    console.error(`❌ [${job.id}] Error reloading job:`, reloadError);
     return;
   }
   
@@ -429,19 +448,45 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
 
     console.log('✅ Report saved as message');
 
-    // Update job as completed
-    await supabaseAdmin
+    // Update job as completed with step 4
+    const finalIntermediateData = {
+      ...updatedJob.intermediate_data,
+      researchingCompleted: true,
+      step: '4',
+      completedAt: new Date().toISOString()
+    };
+    
+    console.log(`📤 [${job.id}] Attempting to mark as COMPLETED with step 4...`);
+    console.log(`📋 [${job.id}] Final intermediate_data:`, JSON.stringify(finalIntermediateData, null, 2));
+    
+    const { error: completionError } = await supabaseAdmin
       .from('jobs')
       .update({
         status: 'COMPLETED',
         result: report,
-        intermediate_data: {
-          ...updatedJob.intermediate_data,
-          researchingCompleted: true,
-          step: '4'
-        }
+        intermediate_data: finalIntermediateData
       })
       .eq('id', job.id);
+      
+    if (completionError) {
+      console.error(`❌ [${job.id}] Error marking job as completed:`, completionError);
+      throw completionError;
+    }
+    
+    // 🔍 VALIDAR que o COMPLETED foi persistido
+    const { data: finalValidation, error: finalValidationError } = await supabaseAdmin
+      .from('jobs')
+      .select('status, intermediate_data')
+      .eq('id', job.id)
+      .single();
+      
+    if (finalValidationError) {
+      console.error(`❌ [${job.id}] Error validating final state:`, finalValidationError);
+    } else {
+      console.log(`🔍 [${job.id}] Final validation - Status:`, finalValidation?.status);
+      console.log(`🔍 [${job.id}] Final validation - Step:`, finalValidation?.intermediate_data?.step);
+      console.log(`🔍 [${job.id}] Final validation - researchingCompleted:`, finalValidation?.intermediate_data?.researchingCompleted);
+    }
 
     console.log(`✅ [${job.id}] Deep search completed`);
     

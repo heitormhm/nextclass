@@ -1119,17 +1119,23 @@ const AIChatPage = () => {
             
             console.log('✏️ Updating job state:', job.id, job.status);
             
-            // Map status → progress para Deep Search
+            // Map status → progress para Deep Search COM LOGS DETALHADOS
             if (job.job_type === 'DEEP_SEARCH') {
+              console.log('🔍 [Deep Search] Realtime update received:', {
+                jobId: job.id,
+                status: job.status,
+                step: job.intermediate_data?.step,
+                researchingCompleted: job.intermediate_data?.researchingCompleted,
+                full_intermediate_data: job.intermediate_data
+              });
+              
               const stepNumber = parseInt(job.intermediate_data?.step || '0', 10);
               
               if (stepNumber > 0) {
-                console.log(`📊 [Deep Search] Progress update: Step ${stepNumber}`);
+                console.log(`📊 [Deep Search] Setting progress to step: ${stepNumber}`);
                 setDeepSearchProgress(stepNumber);
-              }
-              
-              // Fallback: mapear status diretamente se step não estiver disponível
-              if (!job.intermediate_data?.step) {
+              } else {
+                // Fallback: mapear status diretamente se step não estiver disponível
                 const statusToProgress: Record<string, number> = {
                   'PENDING': 0,
                   'DECOMPOSING': 1,
@@ -1137,7 +1143,7 @@ const AIChatPage = () => {
                   'COMPLETED': 4
                 };
                 const progress = statusToProgress[job.status] || 0;
-                console.log(`📊 [Deep Search] Progress update (fallback): ${progress}`);
+                console.log(`📊 [Deep Search] Fallback - Setting progress from status ${job.status}: ${progress}`);
                 setDeepSearchProgress(progress);
               }
             }
@@ -1161,10 +1167,14 @@ const AIChatPage = () => {
             console.log(`✅ Job marked as processed:`, job.id);
           }
           
-          // ✅ DEEP SEARCH: Fechar modal (só executa na primeira vez)
-          if (job.job_type === 'DEEP_SEARCH' && 
-              (job.status === 'COMPLETED' || job.intermediate_data?.step === '4')) {
-            console.log('🔍 [Deep Search] Step 1: Closing modal');
+          // ✅ DEEP SEARCH: Fechar modal quando COMPLETED (simplificado)
+          if (job.job_type === 'DEEP_SEARCH' && job.status === 'COMPLETED') {
+            console.log('🔍 [Deep Search] Job COMPLETED - Closing modal');
+            console.log('🔍 [Deep Search] Final job state:', {
+              status: job.status,
+              step: job.intermediate_data?.step,
+              researchingCompleted: job.intermediate_data?.researchingCompleted
+            });
             
             // Cancelar timeout de segurança
             if (deepSearchTimeoutId) {
