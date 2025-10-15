@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { FileQuestion, Layers } from "lucide-react";
+import { FileQuestion, Layers, Lightbulb } from "lucide-react";
 
 interface ActionButtonsProps {
   messageContent: string;
@@ -31,6 +31,11 @@ export const ActionButtons = ({ messageContent, topic, onAction, disabled, activ
                  (job.status === 'PENDING' || job.status === 'SYNTHESIZING')
   );
 
+  const hasActiveSuggestionsJob = Array.from(activeJobs?.entries() || []).some(
+    ([_, job]) => job.type === 'GENERATE_SUGGESTIONS' && 
+                 (job.status === 'PENDING' || job.status === 'SYNTHESIZING')
+  );
+
   return (
     <div className="flex gap-2 mt-3 flex-wrap">
       <Button
@@ -51,6 +56,16 @@ export const ActionButtons = ({ messageContent, topic, onAction, disabled, activ
       >
         <Layers className="w-4 h-4 mr-1" />
         Criar Flashcards
+      </Button>
+
+      <Button
+        size="sm"
+        onClick={() => onAction('GENERATE_SUGGESTIONS', { context: messageContent, topic })}
+        disabled={disabled || hasActiveSuggestionsJob}
+        className="bg-purple-500 hover:bg-purple-600 text-white"
+      >
+        <Lightbulb className="w-4 h-4 mr-1" />
+        Sugestões
       </Button>
     </div>
   );

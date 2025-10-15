@@ -476,6 +476,7 @@ export type Database = {
           id: string
           metadata: Json | null
           role: string
+          suggestions_job_id: string | null
         }
         Insert: {
           content: string
@@ -484,6 +485,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           role: string
+          suggestions_job_id?: string | null
         }
         Update: {
           content?: string
@@ -492,6 +494,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           role?: string
+          suggestions_job_id?: string | null
         }
         Relationships: [
           {
@@ -499,6 +502,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_suggestions_job_id_fkey"
+            columns: ["suggestions_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]

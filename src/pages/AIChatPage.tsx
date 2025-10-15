@@ -852,7 +852,7 @@ const AIChatPage = () => {
       // Load messages for this conversation
       const { data: messagesData, error } = await supabase
         .from('messages')
-        .select('*')
+        .select('*, suggestions_job_id')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
@@ -866,6 +866,7 @@ const AIChatPage = () => {
         timestamp: new Date(msg.created_at),
         isReport: msg.metadata?.isReport || false,
         reportTitle: msg.metadata?.reportTitle || undefined,
+        suggestionsJobId: msg.suggestions_job_id || undefined,
       }));
 
       // Carregar sugestões salvas

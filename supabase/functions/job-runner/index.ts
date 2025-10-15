@@ -729,6 +729,24 @@ FORMATO DE RESPOSTA (JSON puro):
           message_index: job.input_payload.messageIndex || 0,
           suggestions: suggestions
         });
+      
+      // 🆕 Criar mensagem da Mia com as sugestões formatadas
+      const suggestionText = `📚 Aqui estão algumas sugestões para aprofundar seus estudos sobre **${job.input_payload.topic || 'este tema'}**:
+
+${suggestions.suggestions.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n\n')}
+
+💡 *Clique em qualquer sugestão abaixo para continuar explorando!*`;
+      
+      await supabaseAdmin
+        .from('messages')
+        .insert({
+          conversation_id: job.input_payload.conversationId,
+          role: 'assistant',
+          content: suggestionText,
+          suggestions_job_id: job.id
+        });
+      
+      console.log(`✨ Created new message with suggestions for conversation ${job.input_payload.conversationId}`);
     }
     
     console.log(`✅ [${job.id}] ${suggestions.suggestions.length} suggestions generated`);
