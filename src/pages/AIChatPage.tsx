@@ -1125,7 +1125,10 @@ const AIChatPage = () => {
       if (job.job_type === 'GENERATE_SUGGESTIONS') {
         console.log('💡 Suggestions completed, reloading messages');
         
-        // 🆕 Recarregar mensagens para mostrar nova mensagem de sugestões
+        // Aguardar um pouco para garantir que a mensagem foi inserida
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Recarregar mensagens para mostrar nova mensagem de sugestões
         if (activeConversationId) {
           const { data: messagesData } = await supabase
             .from('messages')
@@ -1145,7 +1148,12 @@ const AIChatPage = () => {
             }));
             
             setMessages(loadedMessages);
-            console.log('✅ Messages reloaded, new suggestions should appear');
+            console.log('✅ Messages reloaded after suggestions:', loadedMessages.length);
+            
+            // Scroll para o final para mostrar a nova mensagem
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
           }
         }
       }

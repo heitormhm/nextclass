@@ -16,7 +16,18 @@ export const SuggestionsButtons = ({
 }: SuggestionsButtonsProps) => {
   const job = activeJobs.get(suggestionsJobId);
   
-  if (!job) return null;
+  console.log('🔍 SuggestionsButtons render:', {
+    suggestionsJobId,
+    hasJob: !!job,
+    jobStatus: job?.status,
+    jobType: job?.type,
+    hasResult: !!job?.result
+  });
+  
+  if (!job) {
+    console.warn('⚠️ Job not found in activeJobs for:', suggestionsJobId);
+    return null;
+  }
   
   // Mostrar loading enquanto processa
   if (job.status === 'PENDING') {
@@ -43,7 +54,7 @@ export const SuggestionsButtons = ({
             <span>Continue explorando:</span>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
             {suggestions.map((suggestion: string, index: number) => (
               <Button
                 key={index}

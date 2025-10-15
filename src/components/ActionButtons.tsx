@@ -37,35 +37,35 @@ export const ActionButtons = ({ messageContent, topic, onAction, disabled, activ
   );
 
   return (
-    <div className="flex gap-2 sm:gap-3 mt-4 flex-wrap items-center">
+    <div className="flex gap-2 sm:gap-3 mt-4 w-full">
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_QUIZ', { context: messageContent, topic })}
         disabled={disabled || hasActiveQuizJob}
-        className="flex-1 sm:flex-none bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 px-6 py-2.5 rounded-xl"
+        className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 px-3 sm:px-6 py-2.5 rounded-xl"
       >
-        <FileQuestion className="w-4 h-4 mr-2" />
-        <span className="font-bold text-sm">Criar Quiz</span>
+        <FileQuestion className="w-4 h-4 mr-1 sm:mr-2" />
+        <span className="font-bold text-xs sm:text-sm">Criar Quiz</span>
       </Button>
       
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_FLASHCARDS', { context: messageContent, topic })}
         disabled={disabled || hasActiveFlashcardJob}
-        className="flex-1 sm:flex-none bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 px-6 py-2.5 rounded-xl"
+        className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 px-3 sm:px-6 py-2.5 rounded-xl"
       >
-        <Layers className="w-4 h-4 mr-2" />
-        <span className="font-bold text-sm">Criar Flashcards</span>
+        <Layers className="w-4 h-4 mr-1 sm:mr-2" />
+        <span className="font-bold text-xs sm:text-sm">Criar Flashcards</span>
       </Button>
 
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_SUGGESTIONS', { context: messageContent, topic })}
         disabled={disabled || hasActiveSuggestionsJob}
-        className="flex-1 sm:flex-none bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 px-6 py-2.5 rounded-xl"
+        className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 px-3 sm:px-6 py-2.5 rounded-xl"
       >
-        <Lightbulb className="w-4 h-4 mr-2" />
-        <span className="font-bold text-sm">Sugestões</span>
+        <Lightbulb className="w-4 h-4 mr-1 sm:mr-2" />
+        <span className="font-bold text-xs sm:text-sm">Sugestões</span>
       </Button>
     </div>
   );
