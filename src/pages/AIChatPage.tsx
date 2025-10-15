@@ -433,19 +433,59 @@ const AIChatPage = () => {
   const handleSendMessage = async () => {
     if ((!inputMessage.trim() && !attachedFile) || isLoading) return;
 
-    // 🔒 VALIDAÇÃO CRÍTICA: Não permitir Deep Search sem conversation_id
-    if (isDeepSearch && !activeConversationId) {
-      console.error('❌ Cannot start Deep Search: activeConversationId is null');
-      toast({
-        title: "Erro",
-        description: "Por favor, crie uma conversa primeiro antes de iniciar a pesquisa profunda.",
-        variant: "destructive",
-      });
-      return;
+    // 🔒 Criar conversa automaticamente se não existir
+    let conversationId = activeConversationId;
+    
+    if (!conversationId) {
+      console.log('📝 No active conversation, creating new one...');
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          toast({
+            title: "Erro",
+            description: "Você precisa estar autenticado para enviar mensagens.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Criar nova conversa com título baseado na mensagem
+        const title = inputMessage.trim().slice(0, 50) || "Nova Conversa";
+        
+        const { data: newConversation, error: conversationError } = await supabase
+          .from('conversations')
+          .insert({
+            user_id: session.user.id,
+            title: title,
+          })
+          .select()
+          .single();
+
+        if (conversationError) throw conversationError;
+        
+        conversationId = newConversation.id;
+        setActiveConversationId(conversationId);
+        
+        console.log('✅ New conversation created:', conversationId);
+        
+        // Recarregar lista de conversas
+        loadConversations();
+        
+      } catch (error) {
+        console.error('❌ Error creating conversation:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar a conversa.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
     }
 
     const userMessage: Message = {
-      id: `${activeConversationId}-${Date.now()}`,
+      id: `${conversationId}-${Date.now()}`,
       content: inputMessage || "Arquivo anexado",
       isUser: true,
       timestamp: new Date(),
@@ -475,7 +515,7 @@ const AIChatPage = () => {
           fileType: currentFile?.type,
           fileName: currentFile?.name,
           isDeepSearch,
-          conversationId: activeConversationId,
+          conversationId: conversationId,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -494,7 +534,7 @@ const AIChatPage = () => {
         console.log(`\n🟢 JOB-CREATION [Deep Search]:`, JSON.stringify({
           timestamp: new Date().toISOString(),
           jobId: functionData.jobId,
-          conversationId: activeConversationId,
+          conversationId: conversationId,
           query: currentMessage,
           isDeepSearch: true
         }, null, 2));
