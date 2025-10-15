@@ -615,13 +615,21 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
           .eq('id', job.id);
         
         // Vincular o job de sugestões à última mensagem da Mia
-        await supabaseAdmin
+        const { data: lastMessage } = await supabaseAdmin
           .from('messages')
-          .update({ suggestions_job_id: suggestionsJob.id })
+          .select('id')
           .eq('conversation_id', job.input_payload.conversationId)
           .eq('role', 'assistant')
           .order('created_at', { ascending: false })
-          .limit(1);
+          .limit(1)
+          .single();
+        
+        if (lastMessage) {
+          await supabaseAdmin
+            .from('messages')
+            .update({ suggestions_job_id: suggestionsJob.id })
+            .eq('id', lastMessage.id);
+        }
         
         supabaseAdmin.functions.invoke('job-runner', {
           body: { jobId: suggestionsJob.id }

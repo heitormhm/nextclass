@@ -894,28 +894,8 @@ const AIChatPage = () => {
         console.log('✅ Loaded', suggestionJobsData.length, 'suggestion jobs');
       }
 
-      const messagesWithSuggestions = loadedMessages.map((msg, idx) => {
-        const suggestion = savedSuggestions?.find(s => s.message_index === idx);
-        const suggestionsData = suggestion?.suggestions as { suggestions?: string[] } | null;
-        
-        // 🆕 ADICIONAR suggestionsJobId à mensagem se houver sugestão
-        let suggestionsJobId: string | undefined;
-        if (suggestion) {
-          // Buscar o jobId do activeJobs
-          const suggestionJobEntry = Array.from(activeJobs.entries()).find(
-            ([_, job]) => job.type === 'GENERATE_SUGGESTIONS'
-          );
-          suggestionsJobId = suggestionJobEntry?.[0];
-        }
-        
-        return {
-          ...msg,
-          suggestions: suggestionsData?.suggestions || null,
-          suggestionsJobId
-        };
-      });
-
-      setMessages(messagesWithSuggestions);
+      // As mensagens já têm suggestionsJobId carregado do banco de dados
+      setMessages(loadedMessages);
       setActiveConversationId(conversationId);
       setShowMobileHistory(false);
       loadConversationContent(conversationId);
