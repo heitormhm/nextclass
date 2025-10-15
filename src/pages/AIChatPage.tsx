@@ -1795,8 +1795,10 @@ const AIChatPage = () => {
                     </div>
                   )}
 
-                          {/* Add action buttons for Mia's responses */}
-                      {!message.isUser && message.content.length > 100 && (
+                      {/* Add action buttons for Mia's responses */}
+                      {!message.isUser && 
+                       message.content.length > 100 && 
+                       !(message.jobIds && message.jobIds.length > 0 && message.content.length < 500) && (
                         <ActionButtons
                           messageContent={message.content}
                           topic={message.content.split('\n')[0].substring(0, 50)}
