@@ -614,11 +614,20 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
           })
           .eq('id', job.id);
         
+        // Vincular o job de sugestões à última mensagem da Mia
+        await supabaseAdmin
+          .from('messages')
+          .update({ suggestions_job_id: suggestionsJob.id })
+          .eq('conversation_id', job.input_payload.conversationId)
+          .eq('role', 'assistant')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
         supabaseAdmin.functions.invoke('job-runner', {
           body: { jobId: suggestionsJob.id }
         }).catch((err: Error) => console.error('Error invoking suggestions job:', err));
         
-        console.log(`✨ Suggestions job ${suggestionsJob.id} created for Deep Search`);
+        console.log(`✨ Suggestions job ${suggestionsJob.id} created and linked for Deep Search`);
       }
     } catch (error) {
       console.error('Failed to create suggestions after Deep Search:', error);

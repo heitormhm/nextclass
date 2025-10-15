@@ -869,42 +869,29 @@ const AIChatPage = () => {
         suggestionsJobId: msg.suggestions_job_id || undefined,
       }));
 
-      // Carregar sugestões salvas
-      const { data: savedSuggestions } = await supabase
-        .from('conversation_suggestions')
+      // Carregar TODOS os jobs de sugestões desta conversa
+      const { data: suggestionJobsData } = await supabase
+        .from('jobs')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('message_index', { ascending: true });
+        .eq('job_type', 'GENERATE_SUGGESTIONS')
+        .eq('status', 'COMPLETED');
 
-      // 🆕 RECONSTRUIR activeJobs para jobs de sugestões
-      if (savedSuggestions && savedSuggestions.length > 0) {
-        const suggestionJobs = new Map();
-        
-        for (const suggestion of savedSuggestions) {
-          // Buscar o job correspondente
-          const { data: job } = await supabase
-            .from('jobs')
-            .select('*')
-            .eq('conversation_id', conversationId)
-            .eq('job_type', 'GENERATE_SUGGESTIONS')
-            .eq('status', 'COMPLETED')
-            .limit(1)
-            .maybeSingle();
-          
-          if (job) {
-            suggestionJobs.set(job.id, {
+      // Atualizar activeJobs com todos os jobs encontrados
+      if (suggestionJobsData && suggestionJobsData.length > 0) {
+        setActiveJobs(prevJobs => {
+          const newJobs = new Map(prevJobs);
+          suggestionJobsData.forEach(job => {
+            newJobs.set(job.id, {
               status: 'COMPLETED',
               type: 'GENERATE_SUGGESTIONS',
               result: job.result,
               payload: job.input_payload
             });
-          }
-        }
-        
-        if (suggestionJobs.size > 0) {
-          setActiveJobs(suggestionJobs);
-          console.log('✅ Reconstructed', suggestionJobs.size, 'suggestion jobs');
-        }
+          });
+          return newJobs;
+        });
+        console.log('✅ Loaded', suggestionJobsData.length, 'suggestion jobs');
       }
 
       const messagesWithSuggestions = loadedMessages.map((msg, idx) => {

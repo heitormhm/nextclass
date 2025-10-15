@@ -37,35 +37,35 @@ export const ActionButtons = ({ messageContent, topic, onAction, disabled, activ
   );
 
   return (
-    <div className="flex gap-2 mt-3 flex-wrap">
+    <div className="flex gap-2 sm:gap-3 mt-4 flex-wrap items-center">
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_QUIZ', { context: messageContent, topic })}
         disabled={disabled || hasActiveQuizJob}
-        className="bg-pink-500 hover:bg-pink-600 text-white"
+        className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0 px-4 py-2"
       >
-        <FileQuestion className="w-4 h-4 mr-1" />
-        Criar Quiz
+        <FileQuestion className="w-4 h-4 mr-2" />
+        <span className="font-semibold">Criar Quiz</span>
       </Button>
       
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_FLASHCARDS', { context: messageContent, topic })}
         disabled={disabled || hasActiveFlashcardJob}
-        className="bg-pink-500 hover:bg-pink-600 text-white"
+        className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0 px-4 py-2"
       >
-        <Layers className="w-4 h-4 mr-1" />
-        Criar Flashcards
+        <Layers className="w-4 h-4 mr-2" />
+        <span className="font-semibold">Criar Flashcards</span>
       </Button>
 
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_SUGGESTIONS', { context: messageContent, topic })}
         disabled={disabled || hasActiveSuggestionsJob}
-        className="bg-purple-500 hover:bg-purple-600 text-white"
+        className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0 px-4 py-2"
       >
-        <Lightbulb className="w-4 h-4 mr-1" />
-        Sugestões
+        <Lightbulb className="w-4 h-4 mr-2" />
+        <span className="font-semibold">Sugestões</span>
       </Button>
     </div>
   );
