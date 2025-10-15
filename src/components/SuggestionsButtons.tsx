@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 interface SuggestionsButtonsProps {
   suggestionsJobId: string;
@@ -14,23 +16,67 @@ export const SuggestionsButtons = ({
   onSuggestionClick,
   disabled 
 }: SuggestionsButtonsProps) => {
-  const job = activeJobs.get(suggestionsJobId);
+  const [jobData, setJobData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   
-  console.log('🔍 SuggestionsButtons render:', {
-    suggestionsJobId,
-    hasJob: !!job,
-    jobStatus: job?.status,
-    jobType: job?.type,
-    hasResult: !!job?.result
-  });
+  useEffect(() => {
+    const loadJob = async () => {
+      // Primeiro tentar do cache
+      const cachedJob = activeJobs.get(suggestionsJobId);
+      
+      if (cachedJob) {
+        console.log('✅ Job found in cache:', suggestionsJobId);
+        setJobData(cachedJob);
+        return;
+      }
+      
+      // Se não estiver em cache, buscar do banco
+      console.log('🔍 Job not in cache, fetching from database:', suggestionsJobId);
+      setLoading(true);
+      
+      try {
+        const { data } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('id', suggestionsJobId)
+          .maybeSingle();
+        
+        if (data && data.status === 'COMPLETED') {
+          console.log('✅ Job loaded from database:', suggestionsJobId);
+          setJobData({
+            status: 'COMPLETED',
+            type: data.job_type,
+            result: data.result
+          });
+        } else {
+          console.warn('⚠️ Job not found or not completed:', suggestionsJobId);
+        }
+      } catch (error) {
+        console.error('Error loading job:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadJob();
+  }, [suggestionsJobId, activeJobs]);
   
-  if (!job) {
-    console.warn('⚠️ Job not found in activeJobs for:', suggestionsJobId);
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 mt-3 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
+        <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+        <p className="text-sm text-purple-700 dark:text-purple-300">Carregando sugestões...</p>
+      </div>
+    );
+  }
+  
+  if (!jobData) {
+    console.warn('⚠️ No job data available for:', suggestionsJobId);
     return null;
   }
   
   // Mostrar loading enquanto processa
-  if (job.status === 'PENDING') {
+  if (jobData.status === 'PENDING') {
     return (
       <div className="flex items-center gap-2 mt-3 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
         <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
@@ -40,9 +86,9 @@ export const SuggestionsButtons = ({
   }
   
   // Mostrar botões quando completar
-  if (job.status === 'COMPLETED' && job.result) {
+  if (jobData.status === 'COMPLETED' && jobData.result) {
     try {
-      const parsed = JSON.parse(job.result);
+      const parsed = JSON.parse(jobData.result);
       const suggestions = parsed.suggestions || [];
       
       if (suggestions.length === 0) return null;

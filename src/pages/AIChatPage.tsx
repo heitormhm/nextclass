@@ -1124,17 +1124,21 @@ const AIChatPage = () => {
     if (job.status === 'COMPLETED') {
       if (job.job_type === 'GENERATE_SUGGESTIONS') {
         console.log('💡 Suggestions completed, reloading messages');
+        console.log('🔍 Current activeConversationId:', activeConversationId);
+        console.log('🔍 Current messages count:', messages.length);
         
-        // Aguardar um pouco para garantir que a mensagem foi inserida
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Aguardar 1 segundo para garantir que a mensagem foi inserida
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Recarregar mensagens para mostrar nova mensagem de sugestões
         if (activeConversationId) {
-          const { data: messagesData } = await supabase
+          const { data: messagesData, error } = await supabase
             .from('messages')
             .select('*, suggestions_job_id')
             .eq('conversation_id', activeConversationId)
             .order('created_at', { ascending: true });
+          
+          console.log('📊 Reloaded messages:', messagesData?.length, 'Error:', error);
           
           if (messagesData) {
             const loadedMessages: Message[] = messagesData.map((msg: any) => ({
@@ -1147,13 +1151,16 @@ const AIChatPage = () => {
               suggestionsJobId: msg.suggestions_job_id || undefined,
             }));
             
+            console.log('✅ Messages mapped:', loadedMessages.length);
+            console.log('🔍 Messages with suggestionsJobId:', 
+              loadedMessages.filter(m => m.suggestionsJobId).length);
+            
             setMessages(loadedMessages);
-            console.log('✅ Messages reloaded after suggestions:', loadedMessages.length);
             
             // Scroll para o final para mostrar a nova mensagem
             setTimeout(() => {
               messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
+            }, 200);
           }
         }
       }
