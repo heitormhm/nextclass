@@ -684,14 +684,26 @@ async function handleGenerateSuggestions(job: any, supabaseAdmin: any, lovableAp
   const { context, topic } = job.input_payload;
   
   const systemPrompt = `Você é um assistente educacional especializado em engenharia.
-Sua tarefa é gerar 3-4 perguntas de aprofundamento sobre o tópico discutido.
+Sua tarefa é gerar 3-4 perguntas de aprofundamento ESPECÍFICAS sobre o conteúdo do relatório.
 
-REGRAS:
-- Cada sugestão deve ser uma PERGUNTA COMPLETA que pode iniciar uma pesquisa profunda
-- As perguntas devem cobrir diferentes aspectos: teórico, prático, aplicação real, comparação
-- Seja específico e relevante ao contexto fornecido
-- Use linguagem clara e direta
-- Limite: 15 palavras por pergunta
+REGRAS CRÍTICAS:
+- EXTRAIA conceitos técnicos, métodos, e termos específicos do contexto fornecido
+- Use NOMES PRÓPRIOS de teorias, leis, métodos mencionados no texto
+- Cada pergunta deve INCLUIR termos técnicos específicos do relatório (ex: "Método dos Elementos Finitos", "cargas dinâmicas")
+- Cubra aspectos: aplicações práticas, casos de uso, limitações, comparações entre métodos
+- EVITE perguntas genéricas como "Como aprofundar mais sobre..."
+- Seja direto e técnico
+- Limite: 18 palavras por pergunta
+
+EXEMPLOS DE BOAS PERGUNTAS:
+✅ "Quais são as limitações do Método dos Elementos Finitos em estruturas com cargas concentradas?"
+✅ "Como a teoria de Euler-Bernoulli se aplica em vigas de grande esbeltez?"
+✅ "Qual a diferença entre análise linear e não-linear em distribuição de cargas?"
+
+EXEMPLOS DE PERGUNTAS RUINS:
+❌ "Como aprofundar mais sobre: Tópico de Engenharia?"
+❌ "Quais são as aplicações práticas deste conceito?"
+❌ "Como esse tema se relaciona com outros conceitos?"
 
 FORMATO DE RESPOSTA (JSON puro):
 {
@@ -702,7 +714,15 @@ FORMATO DE RESPOSTA (JSON puro):
   ]
 }`;
   
-  const userPrompt = `Tópico discutido: ${topic}\n\nContexto da conversa:\n${typeof context === 'string' ? context.substring(0, 800) : JSON.stringify(context).substring(0, 800)}`;
+  const contextText = typeof context === 'string' ? context : JSON.stringify(context);
+  const extendedContext = contextText.substring(0, 2500);
+  
+  const userPrompt = `Tópico principal: ${topic}
+
+CONTEXTO DO RELATÓRIO (use os termos técnicos deste texto para gerar perguntas):
+${extendedContext}
+
+Gere 3-4 perguntas específicas usando os conceitos, métodos e termos técnicos mencionados acima.`;
   
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -729,10 +749,10 @@ FORMATO DE RESPOSTA (JSON puro):
         console.warn('⚠️ AI quota exceeded, using fallback suggestions');
         const fallbackSuggestions = {
           suggestions: [
-            `Como aprofundar mais sobre: ${topic.substring(0, 60)}?`,
-            `Quais são as aplicações práticas deste conceito?`,
-            `Como esse tema se relaciona com outros conceitos relacionados?`,
-            `Quais são os desafios mais comuns ao trabalhar com este tópico?`
+            `Quais são as aplicações práticas de ${topic} em projetos reais?`,
+            `Como ${topic} se relaciona com análise estrutural computacional?`,
+            `Quais são os principais desafios na implementação de ${topic}?`,
+            `Que ferramentas de software auxiliam na análise de ${topic}?`
           ]
         };
         
@@ -761,9 +781,9 @@ FORMATO DE RESPOSTA (JSON puro):
       console.warn('No JSON found in AI response, using fallback');
       const fallbackSuggestions = {
         suggestions: [
-          `Como aprofundar mais sobre ${topic.substring(0, 50)}?`,
-          `Quais são as aplicações práticas deste conceito?`,
-          `Como esse tema se relaciona com outros conceitos de engenharia?`
+          `Quais são as aplicações práticas de ${topic} em projetos de engenharia?`,
+          `Como ${topic} se relaciona com resistência dos materiais?`,
+          `Quais ferramentas computacionais auxiliam na análise de ${topic}?`
         ]
       };
       
