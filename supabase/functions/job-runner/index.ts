@@ -514,7 +514,7 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
           .from('jobs')
           .update({
             intermediate_data: {
-              ...job.intermediate_data,
+              ...finalIntermediateData, // ✅ Use the final completed state
               suggestionsJobId: suggestionsJob.id
             }
           })

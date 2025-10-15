@@ -1167,8 +1167,9 @@ const AIChatPage = () => {
             console.log(`✅ Job marked as processed:`, job.id);
           }
           
-          // ✅ DEEP SEARCH: Fechar modal quando COMPLETED (simplificado)
-          if (job.job_type === 'DEEP_SEARCH' && job.status === 'COMPLETED') {
+          // ✅ DEEP SEARCH: Fechar modal quando COMPLETED OU step === '4' (dual condition)
+          if (job.job_type === 'DEEP_SEARCH' && 
+              (job.status === 'COMPLETED' || job.intermediate_data?.step === '4')) {
             console.log('🔍 [Deep Search] Job COMPLETED - Closing modal');
             console.log('🔍 [Deep Search] Final job state:', {
               status: job.status,
