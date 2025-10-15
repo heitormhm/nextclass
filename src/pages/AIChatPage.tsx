@@ -433,6 +433,17 @@ const AIChatPage = () => {
   const handleSendMessage = async () => {
     if ((!inputMessage.trim() && !attachedFile) || isLoading) return;
 
+    // 🔒 VALIDAÇÃO CRÍTICA: Não permitir Deep Search sem conversation_id
+    if (isDeepSearch && !activeConversationId) {
+      console.error('❌ Cannot start Deep Search: activeConversationId is null');
+      toast({
+        title: "Erro",
+        description: "Por favor, crie uma conversa primeiro antes de iniciar a pesquisa profunda.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const userMessage: Message = {
       id: `${activeConversationId}-${Date.now()}`,
       content: inputMessage || "Arquivo anexado",
