@@ -107,9 +107,9 @@ export const SuggestionsButtons = ({
                 variant="outline"
                 onClick={() => onSuggestionClick(suggestion)}
                 disabled={disabled}
-                className="justify-start text-left h-auto py-3 px-4 border-2 border-purple-300 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:border-purple-500 dark:hover:border-purple-500 text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 transition-all duration-200 rounded-lg shadow-sm hover:shadow-md"
+                className="justify-start text-left h-auto min-h-[60px] py-4 px-4 border-2 border-purple-300 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:border-purple-500 dark:hover:border-purple-500 text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 transition-all duration-200 rounded-lg shadow-sm hover:shadow-md whitespace-normal"
               >
-                <span className="text-sm font-medium leading-relaxed">{suggestion}</span>
+                <span className="text-sm font-medium leading-normal break-words w-full">{suggestion}</span>
               </Button>
             ))}
           </div>
