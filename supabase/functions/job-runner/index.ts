@@ -663,12 +663,8 @@ async function createSuggestionsMessage(job: any, supabaseAdmin: any, suggestion
       suggestions: suggestions
     });
   
-  // Criar mensagem formatada da Mia
-  const suggestionText = `📚 Aqui estão algumas sugestões para aprofundar seus estudos sobre **${job.input_payload.topic || 'este tema'}**:
-
-${suggestions.suggestions.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n\n')}
-
-💡 *Clique em qualquer sugestão abaixo para continuar explorando!*`;
+  // Criar mensagem simples - os botões serão renderizados pelo componente SuggestionsButtons
+  const suggestionText = `✨ **Continue explorando** sobre **${job.input_payload.topic || 'este tema'}**:`;
   
   await supabaseAdmin
     .from('messages')
@@ -676,7 +672,7 @@ ${suggestions.suggestions.map((s: string, i: number) => `${i + 1}. ${s}`).join('
       conversation_id: job.input_payload.conversationId,
       role: 'assistant',
       content: suggestionText,
-      suggestions_job_id: job.id
+      suggestions_job_id: job.id // Este campo dispara o componente SuggestionsButtons
     });
   
   console.log(`✨ Created new message with suggestions for conversation ${job.input_payload.conversationId}`);
