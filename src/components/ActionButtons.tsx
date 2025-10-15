@@ -42,30 +42,30 @@ export const ActionButtons = ({ messageContent, topic, onAction, disabled, activ
         size="sm"
         onClick={() => onAction('GENERATE_QUIZ', { context: messageContent, topic })}
         disabled={disabled || hasActiveQuizJob}
-        className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0 px-4 py-2"
+        className="flex-1 sm:flex-none bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 px-6 py-2.5 rounded-xl"
       >
         <FileQuestion className="w-4 h-4 mr-2" />
-        <span className="font-semibold">Criar Quiz</span>
+        <span className="font-bold text-sm">Criar Quiz</span>
       </Button>
       
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_FLASHCARDS', { context: messageContent, topic })}
         disabled={disabled || hasActiveFlashcardJob}
-        className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0 px-4 py-2"
+        className="flex-1 sm:flex-none bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 px-6 py-2.5 rounded-xl"
       >
         <Layers className="w-4 h-4 mr-2" />
-        <span className="font-semibold">Criar Flashcards</span>
+        <span className="font-bold text-sm">Criar Flashcards</span>
       </Button>
 
       <Button
         size="sm"
         onClick={() => onAction('GENERATE_SUGGESTIONS', { context: messageContent, topic })}
         disabled={disabled || hasActiveSuggestionsJob}
-        className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-200 border-0 px-4 py-2"
+        className="flex-1 sm:flex-none bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 px-6 py-2.5 rounded-xl"
       >
         <Lightbulb className="w-4 h-4 mr-2" />
-        <span className="font-semibold">Sugestões</span>
+        <span className="font-bold text-sm">Sugestões</span>
       </Button>
     </div>
   );

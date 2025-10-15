@@ -650,6 +650,38 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
 // INTERACTIVE ACTION HANDLERS
 // =========================
 
+// 🆕 Função auxiliar para criar mensagem de sugestões
+async function createSuggestionsMessage(job: any, supabaseAdmin: any, suggestions: any) {
+  if (!job.input_payload.conversationId) return;
+  
+  // Salvar na tabela conversation_suggestions
+  await supabaseAdmin
+    .from('conversation_suggestions')
+    .insert({
+      conversation_id: job.input_payload.conversationId,
+      message_index: job.input_payload.messageIndex || 0,
+      suggestions: suggestions
+    });
+  
+  // Criar mensagem formatada da Mia
+  const suggestionText = `📚 Aqui estão algumas sugestões para aprofundar seus estudos sobre **${job.input_payload.topic || 'este tema'}**:
+
+${suggestions.suggestions.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n\n')}
+
+💡 *Clique em qualquer sugestão abaixo para continuar explorando!*`;
+  
+  await supabaseAdmin
+    .from('messages')
+    .insert({
+      conversation_id: job.input_payload.conversationId,
+      role: 'assistant',
+      content: suggestionText,
+      suggestions_job_id: job.id
+    });
+  
+  console.log(`✨ Created new message with suggestions for conversation ${job.input_payload.conversationId}`);
+}
+
 async function handleGenerateSuggestions(job: any, supabaseAdmin: any, lovableApiKey: string) {
   console.log(`💡 [${job.id}] Generating topic suggestions`);
   
@@ -695,6 +727,33 @@ FORMATO DE RESPOSTA (JSON puro):
     
     if (!response.ok) {
       console.error(`AI error: ${response.status}`);
+      
+      // 🆕 Fallback para erro 402 (sem créditos)
+      if (response.status === 402) {
+        console.warn('⚠️ AI quota exceeded, using fallback suggestions');
+        const fallbackSuggestions = {
+          suggestions: [
+            `Como aprofundar mais sobre: ${topic.substring(0, 60)}?`,
+            `Quais são as aplicações práticas deste conceito?`,
+            `Como esse tema se relaciona com outros conceitos relacionados?`,
+            `Quais são os desafios mais comuns ao trabalhar com este tópico?`
+          ]
+        };
+        
+        // Atualizar job como COMPLETED com fallback
+        await supabaseAdmin
+          .from('jobs')
+          .update({
+            status: 'COMPLETED',
+            result: JSON.stringify(fallbackSuggestions)
+          })
+          .eq('id', job.id);
+        
+        // Criar mensagem com sugestões fallback
+        await createSuggestionsMessage(job, supabaseAdmin, fallbackSuggestions);
+        return;
+      }
+      
       throw new Error(`AI Gateway error: ${response.status}`);
     }
     
@@ -737,34 +796,8 @@ FORMATO DE RESPOSTA (JSON puro):
       })
       .eq('id', job.id);
     
-    // Salvar sugestões na tabela para persistência
-    if (job.input_payload.conversationId) {
-      await supabaseAdmin
-        .from('conversation_suggestions')
-        .insert({
-          conversation_id: job.input_payload.conversationId,
-          message_index: job.input_payload.messageIndex || 0,
-          suggestions: suggestions
-        });
-      
-      // 🆕 Criar mensagem da Mia com as sugestões formatadas
-      const suggestionText = `📚 Aqui estão algumas sugestões para aprofundar seus estudos sobre **${job.input_payload.topic || 'este tema'}**:
-
-${suggestions.suggestions.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n\n')}
-
-💡 *Clique em qualquer sugestão abaixo para continuar explorando!*`;
-      
-      await supabaseAdmin
-        .from('messages')
-        .insert({
-          conversation_id: job.input_payload.conversationId,
-          role: 'assistant',
-          content: suggestionText,
-          suggestions_job_id: job.id
-        });
-      
-      console.log(`✨ Created new message with suggestions for conversation ${job.input_payload.conversationId}`);
-    }
+    // Criar mensagem com as sugestões usando a função auxiliar
+    await createSuggestionsMessage(job, supabaseAdmin, suggestions);
     
     console.log(`✅ [${job.id}] ${suggestions.suggestions.length} suggestions generated`);
     

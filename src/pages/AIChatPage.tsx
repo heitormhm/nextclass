@@ -1054,7 +1054,7 @@ const AIChatPage = () => {
 
   // ============= HELPER FUNCTIONS FOR JOB PROCESSING =============
   
-  const processJobUpdate = (job: any, currentConversationId: string | null) => {
+  const processJobUpdate = async (job: any, currentConversationId: string | null) => {
     console.log('📬 Processing job update:', {
       id: job.id,
       status: job.status,
@@ -1123,8 +1123,31 @@ const AIChatPage = () => {
     // ✅ Processar outros tipos de jobs
     if (job.status === 'COMPLETED') {
       if (job.job_type === 'GENERATE_SUGGESTIONS') {
-        console.log('💡 Suggestions ready');
-        setMessages(prev => [...prev]);
+        console.log('💡 Suggestions completed, reloading messages');
+        
+        // 🆕 Recarregar mensagens para mostrar nova mensagem de sugestões
+        if (activeConversationId) {
+          const { data: messagesData } = await supabase
+            .from('messages')
+            .select('*, suggestions_job_id')
+            .eq('conversation_id', activeConversationId)
+            .order('created_at', { ascending: true });
+          
+          if (messagesData) {
+            const loadedMessages: Message[] = messagesData.map((msg: any) => ({
+              id: msg.id,
+              content: msg.content,
+              isUser: msg.role === 'user',
+              timestamp: new Date(msg.created_at),
+              isReport: msg.metadata?.isReport || false,
+              reportTitle: msg.metadata?.reportTitle || undefined,
+              suggestionsJobId: msg.suggestions_job_id || undefined,
+            }));
+            
+            setMessages(loadedMessages);
+            console.log('✅ Messages reloaded, new suggestions should appear');
+          }
+        }
       }
       
       // ✅ Auto-navegação para quiz

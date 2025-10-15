@@ -37,23 +37,22 @@ export const SuggestionsButtons = ({
       if (suggestions.length === 0) return null;
       
       return (
-        <div className="mt-4 space-y-2 animate-in fade-in-50 duration-300">
-          <div className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 font-medium">
-            <Sparkles className="h-4 w-4" />
+        <div className="mt-4 space-y-3 animate-in fade-in-50 duration-500">
+          <div className="flex items-center gap-2 text-sm font-bold text-purple-600 dark:text-purple-400">
+            <Sparkles className="h-5 w-5" />
             <span>Continue explorando:</span>
           </div>
           
-          <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {suggestions.map((suggestion: string, index: number) => (
               <Button
                 key={index}
                 variant="outline"
-                size="sm"
                 onClick={() => onSuggestionClick(suggestion)}
                 disabled={disabled}
-                className="justify-start text-left h-auto py-2 px-3 border-purple-300 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:border-purple-400 dark:hover:border-purple-600 text-purple-700 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-200 transition-all"
+                className="justify-start text-left h-auto py-3 px-4 border-2 border-purple-300 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:border-purple-500 dark:hover:border-purple-500 text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 transition-all duration-200 rounded-lg shadow-sm hover:shadow-md"
               >
-                <span className="text-xs leading-relaxed">{suggestion}</span>
+                <span className="text-sm font-medium leading-relaxed">{suggestion}</span>
               </Button>
             ))}
           </div>
