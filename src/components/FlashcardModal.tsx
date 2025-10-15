@@ -186,13 +186,18 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[95vw] sm:max-w-4xl h-[90vh] sm:h-[80vh] p-0 overflow-hidden mx-2 sm:mx-0">
+      <DialogContent className="max-w-6xl h-[95vh] p-0 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 pt-12 border-b">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold">Flashcards Interativos</h2>
-            <p className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between p-6 pt-12 border-b bg-gradient-to-r from-primary/5 to-secondary/5">
+          <div className="flex-1">
+            <h2 className="text-2xl sm:text-3xl font-bold">Flashcards Interativos</h2>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               Card {currentCardIndex + 1} de {flashcards.length}
+              {flashcardSetId && reviewedCards.size > 0 && (
+                <span className="ml-2 text-primary font-semibold">
+                  • {correctCards.size}/{reviewedCards.size} acertos ({Math.round((correctCards.size / reviewedCards.size) * 100)}%)
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -211,15 +216,15 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
         </div>
 
         {/* 3D Flashcard Deck with Navigation Arrows */}
-        <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-primary/5 to-secondary/10 relative">
+        <div className="flex-1 flex items-center justify-center p-8 bg-gradient-to-br from-primary/5 to-secondary/10 relative">
           {/* Left Navigation Arrow */}
           <Button
             variant="ghost"
             size="icon"
             onClick={handlePrevious}
-            className="absolute left-2 sm:left-8 top-1/2 -translate-y-1/2 h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-background/80 hover:bg-background shadow-lg z-20"
+            className="absolute left-4 sm:left-12 top-1/2 -translate-y-1/2 h-14 w-14 sm:h-20 sm:w-20 rounded-full bg-background/90 hover:bg-background shadow-2xl z-20 border-2 border-border"
           >
-            <ChevronLeft className="h-6 w-6 sm:h-8 sm:w-8" />
+            <ChevronLeft className="h-7 w-7 sm:h-10 sm:w-10" />
           </Button>
 
           {/* Right Navigation Arrow */}
@@ -227,12 +232,12 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
             variant="ghost"
             size="icon"
             onClick={handleNext}
-            className="absolute right-2 sm:right-8 top-1/2 -translate-y-1/2 h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-background/80 hover:bg-background shadow-lg z-20"
+            className="absolute right-4 sm:right-12 top-1/2 -translate-y-1/2 h-14 w-14 sm:h-20 sm:w-20 rounded-full bg-background/90 hover:bg-background shadow-2xl z-20 border-2 border-border"
           >
-            <ChevronRight className="h-6 w-6 sm:h-8 sm:w-8" />
+            <ChevronRight className="h-7 w-7 sm:h-10 sm:w-10" />
           </Button>
 
-          <div className="relative w-full max-w-2xl h-64 sm:h-80">
+          <div className="relative w-full max-w-3xl h-96 sm:h-[500px]">
             {/* Background Cards (Deck Effect) */}
             <div className="absolute inset-0 flex items-center justify-center">
               {[...Array(3)].map((_, index) => (
@@ -250,32 +255,34 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
 
             {/* Main Card with 3D Flip */}
             <div 
-              className="relative w-full h-full cursor-pointer"
+              className="relative w-full h-full cursor-pointer transform transition-transform hover:scale-[1.02]"
               style={{ perspective: '1000px', zIndex: 10 }}
               onClick={handleCardClick}
             >
               <div
-                className={`relative w-full h-full transition-transform duration-700 transform-style-3d ${
-                  isFlipped ? 'rotate-y-180' : ''
-                }`}
+                className="relative w-full h-full transition-all duration-600 ease-out transform-style-3d"
+                style={{ 
+                  transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                  transition: 'transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                }}
               >
                 {/* Front of Card (Question) */}
-                <div className="absolute inset-0 w-full h-full rounded-2xl border-2 border-primary/20 bg-card shadow-2xl p-4 sm:p-8 flex flex-col justify-between backface-hidden">
-                  <div className="flex-1 flex items-center justify-center text-center">
-                  <h3 className="text-lg sm:text-2xl font-semibold leading-tight text-foreground">
-                    {currentCard.question || currentCard.front || 'Sem pergunta'}
+                <div className="absolute inset-0 w-full h-full rounded-2xl border-2 border-primary/20 bg-card shadow-2xl p-6 sm:p-12 flex flex-col justify-between backface-hidden">
+                  <div className="flex-1 flex items-center justify-center text-center px-4">
+                    <h3 className="text-xl sm:text-3xl font-bold leading-tight text-foreground">
+                      {currentCard.question || currentCard.front || 'Sem pergunta'}
                     </h3>
                   </div>
 
                   {/* Tags */}
                   {currentCard.tags && currentCard.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 justify-center mt-4 sm:mt-6">
+                    <div className="flex flex-wrap gap-2 justify-center mt-6 sm:mt-8 pt-4 border-t border-border/50">
                       {currentCard.tags.map((tag, index) => (
                         <Badge
                           key={index}
                           variant="outline"
-                          className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium border ${
-                            tagColors[tag as keyof typeof tagColors] || 'bg-gray-100 text-gray-800 border-gray-200'
+                          className={`px-3 sm:px-4 py-1.5 text-sm sm:text-base font-semibold border-2 shadow-sm ${
+                            tagColors[tag as keyof typeof tagColors] || 'bg-gray-100 text-gray-800 border-gray-300'
                           }`}
                         >
                           {tag}
@@ -284,34 +291,36 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
                     </div>
                   )}
 
-                  <div className="absolute top-4 right-4 bg-primary/10 rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center">
-                    <span className="text-xs font-bold text-primary">
+                  <div className="absolute top-6 right-6 bg-gradient-to-br from-primary/20 to-primary/30 rounded-full w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center border-2 border-primary/40 shadow-lg">
+                    <span className="text-base sm:text-lg font-bold text-primary">
                       {currentCardIndex + 1}
                     </span>
                   </div>
 
-                  <div className="absolute top-4 left-4 text-xs text-muted-foreground">
-                    Pergunta
+                  <div className="absolute top-6 left-6">
+                    <Badge variant="outline" className="bg-background/80 backdrop-blur-sm border-2 font-semibold text-xs sm:text-sm px-3 py-1">
+                      📝 Pergunta
+                    </Badge>
                   </div>
                 </div>
 
                 {/* Back of Card (Answer) */}
-                <div className="absolute inset-0 w-full h-full rounded-2xl border-2 border-secondary/20 bg-secondary/5 shadow-2xl p-4 sm:p-8 flex flex-col justify-between backface-hidden rotate-y-180">
-                  <div className="flex-1 flex items-center justify-center text-center">
-                  <p className="text-base sm:text-xl leading-relaxed text-foreground">
-                    {currentCard.answer || currentCard.back || 'Sem resposta'}
+                <div className="absolute inset-0 w-full h-full rounded-2xl border-2 border-secondary/20 bg-secondary/5 shadow-2xl p-6 sm:p-12 flex flex-col justify-between backface-hidden rotate-y-180">
+                  <div className="flex-1 flex items-center justify-center text-center px-4">
+                    <p className="text-lg sm:text-2xl leading-relaxed text-foreground font-medium">
+                      {currentCard.answer || currentCard.back || 'Sem resposta'}
                     </p>
                   </div>
 
                   {/* Tags */}
                   {currentCard.tags && currentCard.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 justify-center mt-4 sm:mt-6">
+                    <div className="flex flex-wrap gap-2 justify-center mt-6 sm:mt-8 pt-4 border-t border-border/50">
                       {currentCard.tags.map((tag, index) => (
                         <Badge
                           key={index}
                           variant="outline"
-                          className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium border ${
-                            tagColors[tag as keyof typeof tagColors] || 'bg-gray-100 text-gray-800 border-gray-200'
+                          className={`px-3 sm:px-4 py-1.5 text-sm sm:text-base font-semibold border-2 shadow-sm ${
+                            tagColors[tag as keyof typeof tagColors] || 'bg-gray-100 text-gray-800 border-gray-300'
                           }`}
                         >
                           {tag}
@@ -320,14 +329,16 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
                     </div>
                   )}
 
-                  <div className="absolute top-4 right-4 bg-secondary/20 rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center">
-                    <span className="text-xs font-bold text-secondary">
+                  <div className="absolute top-6 right-6 bg-gradient-to-br from-secondary/20 to-secondary/30 rounded-full w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center border-2 border-secondary/40 shadow-lg">
+                    <span className="text-base sm:text-lg font-bold text-secondary">
                       {currentCardIndex + 1}
                     </span>
                   </div>
 
-                  <div className="absolute top-4 left-4 text-xs text-muted-foreground">
-                    Resposta
+                  <div className="absolute top-6 left-6">
+                    <Badge variant="outline" className="bg-background/80 backdrop-blur-sm border-2 font-semibold text-xs sm:text-sm px-3 py-1">
+                      💡 Resposta
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -336,46 +347,58 @@ export function FlashcardModal({ open, onOpenChange, moduleId, flashcardSetId }:
         </div>
 
         {/* Progress Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 p-4 sm:p-6 border-t bg-background/50">
-          {/* Progress Dots */}
-          <div className="flex items-center gap-2">
-            {flashcards.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setCurrentCardIndex(index);
-                  setIsFlipped(false);
-                }}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  index === currentCardIndex
-                    ? 'bg-primary scale-125'
-                    : 'bg-border hover:bg-primary/50'
-                }`}
-              />
-            ))}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 p-6 border-t bg-background/50">
+          {/* Progress Dots with Review Status */}
+          <div className="flex items-center gap-2.5">
+            {flashcards.map((_, index) => {
+              const isReviewed = reviewedCards.has(index);
+              const isCorrect = correctCards.has(index);
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setCurrentCardIndex(index);
+                    setIsFlipped(false);
+                  }}
+                  className={`w-4 h-4 rounded-full transition-all ${
+                    index === currentCardIndex
+                      ? 'bg-primary scale-150 ring-4 ring-primary/30'
+                      : isReviewed
+                      ? isCorrect 
+                        ? 'bg-green-500 scale-110' 
+                        : 'bg-red-400 scale-110'
+                      : 'bg-border hover:bg-primary/50 hover:scale-125'
+                  }`}
+                  aria-label={`Card ${index + 1}${isReviewed ? (isCorrect ? ' - Acertou' : ' - Errou') : ''}`}
+                />
+              );
+            })}
           </div>
 
-          <div className="text-sm text-muted-foreground text-center">
-            Clique no card para ver a resposta
+          <div className="flex items-center gap-2 text-sm sm:text-base text-muted-foreground bg-primary/5 px-4 py-2 rounded-full border border-primary/20">
+            <span className="font-medium">✨ Clique no card para revelar a resposta</span>
           </div>
 
           {/* Action Buttons for Generated Flashcards */}
           {flashcardSetId && isFlipped && !reviewedCards.has(currentCardIndex) && (
-            <div className="flex gap-2">
+            <div className="flex gap-3 items-center">
               <Button
                 onClick={() => handleCardResult(false)}
                 variant="outline"
-                size="sm"
-                className="px-4"
+                size="lg"
+                className="px-6 py-3 border-2 border-red-300 hover:bg-red-50 hover:border-red-400 transition-all"
               >
-                ❌ Errei
+                <span className="text-lg mr-2">❌</span>
+                <span className="font-semibold">Errei</span>
               </Button>
               <Button
                 onClick={() => handleCardResult(true)}
-                size="sm"
-                className="bg-green-500 hover:bg-green-600 text-white px-4"
+                size="lg"
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-3 shadow-lg transition-all"
               >
-                ✅ Acertei
+                <span className="text-lg mr-2">✅</span>
+                <span className="font-semibold">Acertei</span>
               </Button>
             </div>
           )}

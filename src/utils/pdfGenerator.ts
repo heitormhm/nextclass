@@ -1183,12 +1183,20 @@ const validatePDFQuality = (
   };
 };
 
+// Helper to clean repetitive footers
+const cleanFooters = (content: string): string => {
+  // Remove "Gerado por NextClass AI Página X de Y..." patterns
+  return content.replace(/Gerado\s+por\s+NextClass\s+AI\s+Página.*?\d{4}/gi, '');
+};
+
 // FASE 6: Função Principal com Auto-Diagnóstico
 export const generateReportPDF = async ({ content, title }: PDFOptions): Promise<PDFGenerationResult> => {
   console.log('🚀 Iniciando geração de PDF com 7 fases de validação...');
   console.log('🔍 FASE 1: Analisando conteúdo...');
   
-  const contentAnalysis = analyzeContent(content);
+  // Clean footers before processing
+  const cleanedContent = cleanFooters(content);
+  const contentAnalysis = analyzeContent(cleanedContent);
   
   console.log('📊 Análise do conteúdo:', contentAnalysis);
   
@@ -1205,7 +1213,7 @@ export const generateReportPDF = async ({ content, title }: PDFOptions): Promise
 
   // FASE 2: Primeira tentativa de geração
   console.log('🎯 FASE 2: Gerando PDF (Tentativa 1)...');
-  let result = await generatePDFDocument(content, title);
+  let result = await generatePDFDocument(cleanedContent, title);
   let doc = result.doc;
   let renderStats = result.renderStats;
   
@@ -1231,7 +1239,7 @@ export const generateReportPDF = async ({ content, title }: PDFOptions): Promise
       
       // FASE 5: Regeneração
       console.log('🔄 FASE 5: Regenerando PDF com correções aplicadas...');
-      result = await generatePDFDocument(content, title);
+      result = await generatePDFDocument(cleanedContent, title);
       doc = result.doc;
       renderStats = result.renderStats;
       

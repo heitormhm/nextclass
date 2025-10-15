@@ -438,6 +438,16 @@ Sua tarefa é sintetizar um relatório acadêmico completo, profundo e tecnicame
 ## 6. Conclusão
 [Síntese objetiva dos pontos principais e relevância para a prática profissional.]
 
+## 7. Tópicos Sugeridos para Aprofundamento
+
+Com base nesta análise, recomendo explorar os seguintes tópicos para expandir seu conhecimento:
+
+1. **[Tópico 1]**: [Breve descrição do por quê é relevante para compreender melhor o tema principal]
+2. **[Tópico 2]**: [Breve descrição do por quê é relevante]
+3. **[Tópico 3]**: [Breve descrição do por quê é relevante]
+
+Estes tópicos complementam a compreensão de [tema principal] e podem ser explorados através de pesquisas adicionais ou consultas com o assistente AI.
+
 ## Referências Bibliográficas
 [Lista numerada no formato acadêmico:
 [1] Título da Fonte - Instituição/Autor - URL

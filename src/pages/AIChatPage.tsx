@@ -1759,6 +1759,18 @@ const AIChatPage = () => {
                         h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-3 mb-2 text-foreground" {...props} />,
                         p: ({node, ...props}) => <p className="mb-2 text-foreground" {...props} />,
                         strong: ({node, ...props}) => <strong className="font-bold text-foreground" {...props} />,
+                        div: ({node, className, ...props}: any) => {
+                          if (className === 'math math-display') {
+                            return <div className="my-4 overflow-x-auto text-center" {...props} />;
+                          }
+                          return <div className={className} {...props} />;
+                        },
+                        span: ({node, className, ...props}: any) => {
+                          if (className === 'math math-inline') {
+                            return <span className="mx-1" {...props} />;
+                          }
+                          return <span className={className} {...props} />;
+                        },
                         code: ({node, inline, ...props}: any) => 
                           inline 
                             ? <code className="bg-background/50 px-1.5 py-0.5 rounded text-xs font-mono text-primary" {...props} />
