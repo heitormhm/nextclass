@@ -477,9 +477,16 @@ const AIChatPage = () => {
       }
 
       console.log('Function response:', functionData);
-
+      
       // Handle deep search response
       if (isDeepSearch && functionData.jobId) {
+        console.log(`\n🟢 JOB-CREATION [Deep Search]:`, JSON.stringify({
+          timestamp: new Date().toISOString(),
+          jobId: functionData.jobId,
+          conversationId: activeConversationId,
+          query: currentMessage,
+          isDeepSearch: true
+        }, null, 2));
         // ✅ PREVENIR MÚLTIPLAS CRIAÇÕES
         if (isCreatingDeepSearch) {
           console.warn('⚠️ Deep search already in progress, ignoring duplicate request');
@@ -1051,6 +1058,12 @@ const AIChatPage = () => {
     }
 
     console.log('📡 Setting up job listener for conversation:', activeConversationId);
+    console.log(`\n📡 REALTIME-SETUP [Deep Search]:`, JSON.stringify({
+      timestamp: new Date().toISOString(),
+      channelName: `jobs-conversation-${activeConversationId}`,
+      activeConversationId: activeConversationId,
+      filter: `conversation_id=eq.${activeConversationId}`
+    }, null, 2));
     activeChannelRef.current = activeConversationId;
 
     // ✅ Limpar apenas jobs de outras conversas do processedJobsRef
@@ -1074,6 +1087,16 @@ const AIChatPage = () => {
           filter: `conversation_id=eq.${activeConversationId}`
         },
         (payload) => {
+          // 🚨 LOG CRUS DO PAYLOAD - ABSOLUTAMENTE PRIMEIRO
+          console.log(`\n📬 RAW-REALTIME-EVENT:`, JSON.stringify({
+            timestamp: new Date().toISOString(),
+            eventType: payload.eventType,
+            table: payload.table,
+            schema: payload.schema,
+            new: payload.new,
+            old: payload.old
+          }, null, 2));
+          
           // ✅ Limpar timer anterior para debounce
           if (realtimeDebounceTimer) {
             clearTimeout(realtimeDebounceTimer);
@@ -1132,7 +1155,15 @@ const AIChatPage = () => {
               const stepNumber = parseInt(job.intermediate_data?.step || '0', 10);
               
               if (stepNumber > 0) {
-                console.log(`📊 [Deep Search] Setting progress to step: ${stepNumber}`);
+                console.log(`\n📊 PROGRESS-UPDATE [Deep Search]:`, JSON.stringify({
+                  timestamp: new Date().toISOString(),
+                  action: 'setDeepSearchProgress',
+                  jobId: job.id,
+                  previousProgress: deepSearchProgress,
+                  newProgress: stepNumber,
+                  source: 'intermediate_data.step',
+                  fullIntermediateData: job.intermediate_data
+                }, null, 2));
                 setDeepSearchProgress(stepNumber);
               } else {
                 // Fallback: mapear status diretamente se step não estiver disponível
@@ -1143,7 +1174,14 @@ const AIChatPage = () => {
                   'COMPLETED': 4
                 };
                 const progress = statusToProgress[job.status] || 0;
-                console.log(`📊 [Deep Search] Fallback - Setting progress from status ${job.status}: ${progress}`);
+                console.log(`\n📊 PROGRESS-UPDATE-FALLBACK [Deep Search]:`, JSON.stringify({
+                  timestamp: new Date().toISOString(),
+                  action: 'setDeepSearchProgress (fallback)',
+                  jobId: job.id,
+                  status: job.status,
+                  mappedProgress: progress,
+                  reason: 'No step in intermediate_data'
+                }, null, 2));
                 setDeepSearchProgress(progress);
               }
             }
@@ -1170,12 +1208,16 @@ const AIChatPage = () => {
           // ✅ DEEP SEARCH: Fechar modal quando COMPLETED OU step === '4' (dual condition)
           if (job.job_type === 'DEEP_SEARCH' && 
               (job.status === 'COMPLETED' || job.intermediate_data?.step === '4')) {
-            console.log('🔍 [Deep Search] Job COMPLETED - Closing modal');
-            console.log('🔍 [Deep Search] Final job state:', {
-              status: job.status,
-              step: job.intermediate_data?.step,
-              researchingCompleted: job.intermediate_data?.researchingCompleted
-            });
+            console.log(`\n🎯 MODAL-CLOSING [Deep Search]:`, JSON.stringify({
+              timestamp: new Date().toISOString(),
+              jobId: job.id,
+              trigger: job.status === 'COMPLETED' ? 'status:COMPLETED' : 'step:4',
+              finalState: {
+                status: job.status,
+                step: job.intermediate_data?.step,
+                researchingCompleted: job.intermediate_data?.researchingCompleted
+              }
+            }, null, 2));
             
             // Cancelar timeout de segurança
             if (deepSearchTimeoutId) {

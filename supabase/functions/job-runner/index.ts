@@ -186,17 +186,49 @@ Exemplo de formato de resposta:
     console.log(`✅ Decomposed into ${decomposedQuestions.length} questions`);
 
     // Update job status and save intermediate data
-    await supabaseAdmin
+    const updatePayload = {
+      status: 'DECOMPOSING',
+      intermediate_data: {
+        decomposed_questions: decomposedQuestions,
+        pendingCompleted: true,
+        step: '1'
+      }
+    };
+    
+    console.log(`\n🔵 DB-UPDATE-INTENT [handlePendingState]:`, JSON.stringify({
+      jobId: job.id,
+      action: 'Setting status to DECOMPOSING and step to 1',
+      payload: updatePayload
+    }, null, 2));
+    
+    const { error: updateError } = await supabaseAdmin
       .from('jobs')
-      .update({
-        status: 'DECOMPOSING',
-        intermediate_data: {
-          decomposed_questions: decomposedQuestions,
-          pendingCompleted: true,
-          step: '1'
-        }
-      })
+      .update(updatePayload)
       .eq('id', job.id);
+    
+    if (updateError) {
+      console.error(`❌ DB-UPDATE-FAILED [handlePendingState]:`, updateError);
+      throw updateError;
+    } else {
+      console.log(`✅ DB-UPDATE-SUCCESS [handlePendingState]`);
+    }
+    
+    // Validar que foi persistido
+    const { data: validatedJob, error: validationError } = await supabaseAdmin
+      .from('jobs')
+      .select('intermediate_data, status')
+      .eq('id', job.id)
+      .single();
+    
+    if (validationError) {
+      console.error(`❌ DB-VALIDATION-FAILED [handlePendingState]:`, validationError);
+    } else {
+      console.log(`🔍 DB-VALIDATION-SUCCESS [handlePendingState]:`, JSON.stringify({
+        status: validatedJob.status,
+        step: validatedJob.intermediate_data?.step,
+        pendingCompleted: validatedJob.intermediate_data?.pendingCompleted
+      }, null, 2));
+    }
 
     // Self-invoke for next state
     await selfInvoke(job.id);
@@ -242,18 +274,51 @@ async function handleDecomposingState(job: any, supabaseAdmin: any, braveApiKey:
   console.log(`✅ Total search results collected: ${searchResults.reduce((acc, r) => acc + r.sources.length, 0)} sources`);
 
   // Update job status and save search results
-  await supabaseAdmin
+  const updatePayload = {
+    status: 'RESEARCHING',
+    intermediate_data: {
+      ...job.intermediate_data,
+      search_results: searchResults,
+      decomposingCompleted: true,
+      step: '2'
+    }
+  };
+  
+  console.log(`\n🔵 DB-UPDATE-INTENT [handleDecomposingState]:`, JSON.stringify({
+    jobId: job.id,
+    action: 'Setting status to RESEARCHING and step to 2',
+    payload: updatePayload
+  }, null, 2));
+  
+  const { error: updateError } = await supabaseAdmin
     .from('jobs')
-    .update({
-      status: 'RESEARCHING',
-      intermediate_data: {
-        ...job.intermediate_data,
-        search_results: searchResults,
-        decomposingCompleted: true,
-        step: '2'
-      }
-    })
+    .update(updatePayload)
     .eq('id', job.id);
+  
+  if (updateError) {
+    console.error(`❌ DB-UPDATE-FAILED [handleDecomposingState]:`, updateError);
+    throw updateError;
+  } else {
+    console.log(`✅ DB-UPDATE-SUCCESS [handleDecomposingState]`);
+  }
+  
+  // Validar que foi persistido
+  const { data: validatedJob, error: validationError } = await supabaseAdmin
+    .from('jobs')
+    .select('intermediate_data, status')
+    .eq('id', job.id)
+    .single();
+  
+  if (validationError) {
+    console.error(`❌ DB-VALIDATION-FAILED [handleDecomposingState]:`, validationError);
+  } else {
+    console.log(`🔍 DB-VALIDATION-SUCCESS [handleDecomposingState]:`, JSON.stringify({
+      status: validatedJob.status,
+      step: validatedJob.intermediate_data?.step,
+      decomposingCompleted: validatedJob.intermediate_data?.decomposingCompleted,
+      searchResultsCount: validatedJob.intermediate_data?.search_results?.length
+    }, null, 2));
+  }
 
   // Self-invoke for next state
   await selfInvoke(job.id);
@@ -276,7 +341,13 @@ async function handleResearchingState(job: any, supabaseAdmin: any, lovableApiKe
     synthesisStarted: new Date().toISOString()
   };
   
-  console.log(`📤 [${job.id}] Attempting to update to step 3...`);
+  console.log(`\n🔵 DB-UPDATE-INTENT [handleResearchingState - Step 3]:`, JSON.stringify({
+    jobId: job.id,
+    action: 'Setting step to 3 before AI synthesis',
+    currentStep: job.intermediate_data?.step,
+    newStep: '3'
+  }, null, 2));
+  
   const { error: stepUpdateError } = await supabaseAdmin
     .from('jobs')
     .update({
@@ -285,23 +356,26 @@ async function handleResearchingState(job: any, supabaseAdmin: any, lovableApiKe
     .eq('id', job.id);
     
   if (stepUpdateError) {
-    console.error(`❌ [${job.id}] Error updating to step 3:`, stepUpdateError);
+    console.error(`❌ DB-UPDATE-FAILED [Step 3]:`, stepUpdateError);
+    throw stepUpdateError;
   } else {
-    console.log(`✅ [${job.id}] Database update command sent for step 3`);
+    console.log(`✅ DB-UPDATE-SUCCESS [Step 3]`);
   }
   
-  // 🔍 VALIDAR que a atualização foi persistida
-  const { data: validationJob, error: validationError } = await supabaseAdmin
+  // Validação IMEDIATA
+  const { data: validatedStep3, error: validationError } = await supabaseAdmin
     .from('jobs')
     .select('intermediate_data')
     .eq('id', job.id)
     .single();
-    
+  
   if (validationError) {
-    console.error(`❌ [${job.id}] Error validating step 3 update:`, validationError);
+    console.error(`❌ DB-VALIDATION-FAILED [Step 3]:`, validationError);
   } else {
-    console.log(`🔍 [${job.id}] Step after update (validation):`, validationJob?.intermediate_data?.step);
-    console.log(`🔍 [${job.id}] Full intermediate_data after step 3:`, JSON.stringify(validationJob?.intermediate_data, null, 2));
+    console.log(`🔍 DB-VALIDATION-SUCCESS [Step 3]:`, JSON.stringify({
+      step: validatedStep3?.intermediate_data?.step,
+      synthesisStarted: validatedStep3?.intermediate_data?.synthesisStarted
+    }, null, 2));
   }
   
   // Recarregar job completo para usar daqui pra frente
@@ -456,24 +530,31 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
       completedAt: new Date().toISOString()
     };
     
-    console.log(`📤 [${job.id}] Attempting to mark as COMPLETED with step 4...`);
-    console.log(`📋 [${job.id}] Final intermediate_data:`, JSON.stringify(finalIntermediateData, null, 2));
+    const finalPayload = {
+      status: 'COMPLETED',
+      result: report,
+      intermediate_data: finalIntermediateData
+    };
+    
+    console.log(`\n🔵 DB-UPDATE-INTENT [handleResearchingState - COMPLETED]:`, JSON.stringify({
+      jobId: job.id,
+      action: 'Setting status to COMPLETED and step to 4',
+      payload: finalPayload
+    }, null, 2));
     
     const { error: completionError } = await supabaseAdmin
       .from('jobs')
-      .update({
-        status: 'COMPLETED',
-        result: report,
-        intermediate_data: finalIntermediateData
-      })
+      .update(finalPayload)
       .eq('id', job.id);
       
     if (completionError) {
-      console.error(`❌ [${job.id}] Error marking job as completed:`, completionError);
+      console.error(`❌ DB-UPDATE-FAILED [COMPLETED]:`, completionError);
       throw completionError;
+    } else {
+      console.log(`✅ DB-UPDATE-SUCCESS [COMPLETED]`);
     }
     
-    // 🔍 VALIDAR que o COMPLETED foi persistido
+    // Validação CRÍTICA
     const { data: finalValidation, error: finalValidationError } = await supabaseAdmin
       .from('jobs')
       .select('status, intermediate_data')
@@ -481,11 +562,14 @@ Sintetize um relatório académico completo sobre este tema, usando APENAS as fo
       .single();
       
     if (finalValidationError) {
-      console.error(`❌ [${job.id}] Error validating final state:`, finalValidationError);
+      console.error(`❌ DB-VALIDATION-FAILED [COMPLETED]:`, finalValidationError);
     } else {
-      console.log(`🔍 [${job.id}] Final validation - Status:`, finalValidation?.status);
-      console.log(`🔍 [${job.id}] Final validation - Step:`, finalValidation?.intermediate_data?.step);
-      console.log(`🔍 [${job.id}] Final validation - researchingCompleted:`, finalValidation?.intermediate_data?.researchingCompleted);
+      console.log(`🔍 DB-VALIDATION-SUCCESS [COMPLETED]:`, JSON.stringify({
+        status: finalValidation?.status,
+        step: finalValidation?.intermediate_data?.step,
+        researchingCompleted: finalValidation?.intermediate_data?.researchingCompleted,
+        completedAt: finalValidation?.intermediate_data?.completedAt
+      }, null, 2));
     }
 
     console.log(`✅ [${job.id}] Deep search completed`);
@@ -1074,6 +1158,12 @@ async function runJob(jobId: string) {
     }
 
     console.log(`📋 Job found: ${job.job_type} - Status: ${job.status}`);
+    console.log(`📊 JOB INITIAL STATE:`, JSON.stringify({ 
+      id: job.id, 
+      status: job.status, 
+      job_type: job.job_type,
+      intermediate_data: job.intermediate_data 
+    }, null, 2));
 
     // 2. Check if already in terminal state
     if (job.status === 'COMPLETED' || job.status === 'FAILED') {
