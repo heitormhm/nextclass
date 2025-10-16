@@ -85,10 +85,10 @@ const ReviewPage = () => {
         if (Array.isArray(set.cards)) {
           set.cards.forEach((card: any) => {
             reviewCards.push({
-              review_id: `${set.id}_${card.term}`,
-              card_id: card.term,
-              term: card.term,
-              definition: card.definition,
+              review_id: `${set.id}_${card.front}`,
+              card_id: card.front,
+              term: card.front,
+              definition: card.back,
               course_name: set.topic,
               last_reviewed: null,
               review_count: 0
