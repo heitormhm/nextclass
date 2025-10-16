@@ -149,22 +149,38 @@ const ProactiveRecommendationWidget = () => {
   // If no recommendation, show empty state
   if (!recommendation) {
     return (
-      <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in font-['Manrope']">
+      <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl hover:shadow-md transition-all duration-300 animate-fade-in font-['Manrope'] flex flex-col min-h-[280px]">
         <CardHeader className="pb-4">
-          <div>
-            <CardTitle className="text-xl font-semibold">Recomendação Inteligente</CardTitle>
-            <p className="text-sm text-gray-400 mt-0.5">
-              Baseado no seu desempenho recente
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Sparkles className="h-6 w-6 text-pink-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-xl font-semibold">Recomendação Inteligente</CardTitle>
+              <p className="text-sm text-gray-400 mt-0.5">
+                Baseado no seu desempenho recente
+              </p>
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4 pt-2">
-          <div className="text-center p-6 bg-muted/50 rounded-lg">
-            <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground">
-              Continue interagindo com a plataforma e em breve teremos recomendações personalizadas para você!
-            </p>
+        <CardContent className="space-y-5 pt-2 flex flex-col justify-between flex-1">
+          <div className="space-y-4">
+            <div className="bg-gradient-to-br from-pink-50/50 to-purple-50/50 p-6 rounded-xl border border-pink-100/50">
+              <div className="text-center space-y-2">
+                <Sparkles className="h-12 w-12 mx-auto text-pink-500 mb-2" />
+                <p className="text-base font-medium text-gray-600">
+                  Continue interagindo com a plataforma e em breve teremos recomendações personalizadas para você!
+                </p>
+              </div>
+            </div>
           </div>
+          <Button 
+            onClick={() => navigate('/aichat')}
+            className="w-full group bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02] h-12"
+          >
+            Converse com a Mia!
+            <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+          </Button>
         </CardContent>
       </Card>
     );

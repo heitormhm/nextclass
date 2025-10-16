@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Brain, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -45,9 +46,6 @@ export const FlashcardsSection = () => {
     fetchFlashcardSets();
   }, [user]);
 
-  const handleReviewSet = (setId: string) => {
-    navigate(`/review?setId=${setId}`);
-  };
 
   if (isLoading) {
     return (
@@ -113,20 +111,13 @@ export const FlashcardsSection = () => {
             key={set.id}
             className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
           >
-            <div className="flex-1">
-              <h4 className="font-medium text-sm">{set.title}</h4>
-              <p className="text-xs text-muted-foreground">
-                {set.topic} • {Array.isArray(set.cards) ? set.cards.length : 0} cards
-              </p>
-            </div>
-            <Button
-              onClick={() => handleReviewSet(set.id)}
-              size="sm"
-              variant="ghost"
-            >
-              Revisar
-              <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
+              <div>
+                <h4 className="font-semibold text-lg mb-2">{set.title}</h4>
+                <p className="text-sm text-gray-400 mb-3">{set.topic}</p>
+                <Badge variant="secondary" className="text-xs">
+                  {Array.isArray(set.cards) ? set.cards.length : 0} cards
+                </Badge>
+              </div>
           </div>
         ))}
       </CardContent>

@@ -34,24 +34,74 @@ const ReviewPage = () => {
   const fetchDueReviews = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase.functions.invoke('get-due-reviews');
-
-      if (error) {
-        console.error('Error from edge function:', error);
-        toast.error('Erro ao carregar flashcards para revisão');
-        setIsCompleted(true); // Show completion screen on error
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsCompleted(true);
         return;
       }
 
-      if (data?.reviews && data.reviews.length > 0) {
-        setReviews(data.reviews);
-      } else {
+      // Buscar todos os conjuntos de flashcards do usuário
+      const { data: sets, error: setsError } = await supabase
+        .from('generated_flashcard_sets')
+        .select('id, title, topic, cards, created_at')
+        .eq('user_id', user.id);
+
+      if (setsError) throw setsError;
+      if (!sets || sets.length === 0) {
         setIsCompleted(true);
+        return;
       }
+
+      // Buscar últimas revisões
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from('flashcard_reviews')
+        .select('lecture_id, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (reviewsError) throw reviewsError;
+
+      // Calcular flashcards devido (repetição espaçada - simplificado: 1 dia)
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+      const reviewMap = new Map(
+        (reviewsData || []).map(r => [r.lecture_id, new Date(r.created_at)])
+      );
+
+      const dueSets = sets.filter(set => {
+        const lastReview = reviewMap.get(set.id);
+        return !lastReview || lastReview < oneDayAgo;
+      });
+
+      if (dueSets.length === 0) {
+        setIsCompleted(true);
+        return;
+      }
+
+      // Transformar em formato de Review (flatten cards)
+      const reviewCards: Review[] = [];
+      dueSets.forEach(set => {
+        if (Array.isArray(set.cards)) {
+          set.cards.forEach((card: any) => {
+            reviewCards.push({
+              review_id: `${set.id}_${card.term}`,
+              card_id: card.term,
+              term: card.term,
+              definition: card.definition,
+              course_name: set.topic,
+              last_reviewed: null,
+              review_count: 0
+            });
+          });
+        }
+      });
+
+      setReviews(reviewCards);
     } catch (error) {
       console.error('Error fetching reviews:', error);
       toast.error('Erro ao carregar flashcards para revisão');
-      setIsCompleted(true); // Show completion screen on error
+      setIsCompleted(true);
     } finally {
       setIsLoading(false);
     }
@@ -69,17 +119,25 @@ const ReviewPage = () => {
     try {
       setIsSubmitting(true);
       const currentReview = reviews[currentIndex];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const { error } = await supabase.functions.invoke('submit-review-feedback', {
-        body: {
-          review_id: currentReview.review_id,
-          correct
-        }
-      });
+      // Extrair lecture_id do review_id (formato: "setId_term")
+      const [lectureId] = currentReview.review_id.split('_');
 
-      if (error) throw error;
+      // Salvar feedback na tabela flashcard_reviews
+      await supabase
+        .from('flashcard_reviews')
+        .insert({
+          user_id: user.id,
+          lecture_id: lectureId,
+          topic: currentReview.course_name,
+          percentage: correct ? 100 : 0,
+          correct_count: correct ? 1 : 0,
+          total_count: 1
+        });
 
-      // Move to next card
+      // Próximo card
       if (currentIndex + 1 < reviews.length) {
         setCurrentIndex(currentIndex + 1);
         setIsFlipped(false);
