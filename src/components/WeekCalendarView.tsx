@@ -66,9 +66,8 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
     return colorMap[color] || colorMap['azul'];
   };
 
-  // Generate week days starting from Sunday
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
+  // Generate 5 consecutive days starting from selectedDate
+  const weekDays = Array.from({ length: 5 }, (_, i) => addDays(selectedDate, i));
 
   // Time slots (6h to 23h = 18 hours)
   const timeSlots = Array.from({ length: 18 }, (_, i) => i + 6);
@@ -160,7 +159,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
           <div
             key={hour}
             className="absolute left-0 right-0 border-t border-border"
-            style={{ top: `${hour * 60}px` }}
+            style={{ top: `${(hour - 6) * 60}px` }}
           >
             <div className="absolute -top-3 left-2 text-xs text-foreground-muted bg-white px-2 py-1 rounded-sm z-0">
               {format(new Date(2024, 0, 1, hour), 'HH:mm')}
@@ -215,10 +214,10 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
         style={{ top: `${top}px`, height: `${height}px`, minHeight: '40px' }}
         onClick={() => onEventClick?.(event)}
       >
-                        <div className={cn(
-                          "flex flex-col h-full justify-between relative z-[10]",
-                          height > 60 && event.category && "pb-6"
-                        )}>
+                <div className={cn(
+                  "flex flex-col h-full justify-between relative z-[10]",
+                  event.category && "pb-6"
+                )}>
                           <div>
                             <div className={cn(
                               "text-xs font-semibold truncate",
