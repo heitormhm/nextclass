@@ -57,9 +57,7 @@ const AnnotationPage = () => {
   const [dialogTags, setDialogTags] = useState<string[]>([]);
   const [dialogTagInput, setDialogTagInput] = useState('');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
-  const [isEditorFocused, setIsEditorFocused] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [cursorPosition, setCursorPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     if (location.state?.prePopulatedContent) {
@@ -67,6 +65,13 @@ const AnnotationPage = () => {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  // Set initial content once on mount
+  useEffect(() => {
+    if (editorRef.current && content && !editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = content;
+    }
+  }, []);
 
   const executeCommand = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -425,27 +430,6 @@ const AnnotationPage = () => {
     }
   };
 
-  const handleEditorFocus = () => {
-    setIsEditorFocused(true);
-    updateCursorPosition();
-  };
-
-  const handleEditorBlur = () => {
-    setTimeout(() => setIsEditorFocused(false), 200);
-  };
-
-  const updateCursorPosition = () => {
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      setCursorPosition({
-        top: rect.top + window.scrollY,
-        left: rect.left + window.scrollX
-      });
-    }
-  };
-
   const handleStartVoiceTranscription = async () => {
     console.log('🎤 Iniciando transcrição de voz');
     setIsRecording(true);
@@ -586,10 +570,6 @@ const AnnotationPage = () => {
                   contentEditable
                   suppressContentEditableWarning={true}
                   onInput={handleInput}
-                  onFocus={handleEditorFocus}
-                  onBlur={handleEditorBlur}
-                  onClick={updateCursorPosition}
-                  onKeyUp={updateCursorPosition}
                   className={cn(
                     'min-h-[700px] p-8 rounded-lg',
                     'focus:outline-none focus:ring-2 focus:ring-primary/20',
@@ -603,7 +583,6 @@ const AnnotationPage = () => {
                   )}
                   data-placeholder="Comece a escrever sua anotação..."
                   style={{ lineHeight: '1.8', fontSize: '17px' }}
-                  dangerouslySetInnerHTML={content ? { __html: content } : undefined}
                 />
               </CardContent>
             </Card>
@@ -629,6 +608,25 @@ const AnnotationPage = () => {
                 
                 <Button variant="ghost" size="sm" onClick={handleHighlight} title="Destacar">
                   <Highlighter className="h-4 w-4" />
+                </Button>
+                
+                <div className="w-px h-6 bg-gray-300 mx-1" />
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleStartVoiceTranscription} 
+                  title="Transcrever Voz"
+                  disabled={isRecording}
+                  className={cn(
+                    isRecording && "bg-red-100 text-red-600"
+                  )}
+                >
+                  {isRecording ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
                 </Button>
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
@@ -659,31 +657,6 @@ const AnnotationPage = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Floating Voice Transcription Button */}
-        {isEditorFocused && (
-          <Button
-            onClick={handleStartVoiceTranscription}
-            className="fixed z-50 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-xs px-3 py-1 rounded-full shadow-lg flex items-center gap-1"
-            style={{
-              top: `${cursorPosition.top - 40}px`,
-              left: `${cursorPosition.left}px`,
-            }}
-            disabled={isRecording}
-          >
-            {isRecording ? (
-              <>
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Gravando...
-              </>
-            ) : (
-              <>
-                <Mic className="h-3 w-3" />
-                Transcrever voz
-              </>
-            )}
-          </Button>
-        )}
 
         {/* Floating AI Assistant Button com Dropdown */}
         <DropdownMenu>
@@ -758,8 +731,8 @@ const AnnotationPage = () => {
         {/* Save Dialog com Tags e PDF - REDESENHADO */}
         <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
           <DialogContent className="max-w-2xl bg-white/95 backdrop-blur-2xl border-0 shadow-2xl">
-            <DialogHeader className="text-center pb-4 border-b">
-              <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+            <DialogHeader className="text-center pb-6 border-b">
+              <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent py-2">
                 Salvar Anotação
               </DialogTitle>
             </DialogHeader>
@@ -848,18 +821,18 @@ const AnnotationPage = () => {
             </div>
             
             {/* Footer com Botões Melhor Posicionados */}
-            <DialogFooter className="flex flex-row justify-end gap-3 pt-6 border-t">
+            <DialogFooter className="flex flex-row items-center justify-between pt-6 border-t gap-4">
               <Button 
                 variant="outline" 
                 onClick={() => setShowSaveDialog(false)}
                 disabled={isSaving}
-                className="px-8 py-6 text-base font-medium rounded-xl border-2 hover:bg-gray-50"
+                className="flex-1 px-8 py-6 text-base font-medium rounded-xl border-2 hover:bg-gray-50"
               >
                 Cancelar
               </Button>
               <Button 
                 onClick={handleFinalSave}
-                className="px-8 py-6 text-base font-semibold rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg"
+                className="flex-1 px-8 py-6 text-base font-semibold rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg"
                 disabled={isSaving}
               >
                 {isSaving ? (
