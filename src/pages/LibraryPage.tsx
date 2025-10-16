@@ -3,6 +3,9 @@ import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import LibraryCard from '@/components/LibraryCard';
 import MainLayout from '@/components/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +30,8 @@ const LibraryPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [materials, setMaterials] = useState<LibraryMaterial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchMaterials = async () => {
@@ -89,33 +94,114 @@ const LibraryPage = () => {
   // Filter materials based on search
   const filteredMaterials = materials.filter(material => {
     const matchesSearch = material.title.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+    
+    const matchesSubject = selectedSubjects.length === 0 || 
+                          selectedSubjects.includes(material.classes?.name || '');
+    
+    const matchesType = selectedTypes.length === 0 || 
+                       selectedTypes.includes(material.file_type);
+    
+    return matchesSearch && matchesSubject && matchesType;
   });
 
   return (
     <MainLayout>
       <div className="container mx-auto px-6 py-8">
-        {/* Header Section - Mobile optimized typography */}
-        <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">Biblioteca de Recursos</h1>
+        {/* Header Section - ALINHADO */}
+        <div className="mb-8 max-w-xl">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">
+            Biblioteca de Recursos
+          </h1>
           <p className="text-sm sm:text-base lg:text-lg text-foreground-muted">
             Acesse manuais técnicos, projetos, vídeos e diagramas dos seus professores
           </p>
         </div>
 
-          {/* Search Bar */}
-          <div className="mb-8">
-            <div className="relative max-w-xl">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground-muted w-5 h-5" />
-              <Input
-                type="text"
-                placeholder="Buscar materiais..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+        {/* Search Bar - MESMO ALINHAMENTO */}
+        <div className="mb-8">
+          <div className="relative max-w-xl">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground-muted w-5 h-5" />
+            <Input
+              type="text"
+              placeholder="Buscar materiais..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
+        </div>
+
+        {/* Filters Panel - APENAS QUANDO HOUVER MATERIAIS */}
+        {materials.length > 0 && (
+          <div className="mb-6 max-w-4xl">
+            <Card className="p-4 bg-white/60 backdrop-blur-xl border-0 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Filtro por Matéria */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Matéria</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from(new Set(materials.map(m => m.classes?.name).filter(Boolean))).map(subject => (
+                      <Badge
+                        key={subject}
+                        variant={selectedSubjects.includes(subject!) ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => {
+                          setSelectedSubjects(prev => 
+                            prev.includes(subject!) 
+                              ? prev.filter(s => s !== subject) 
+                              : [...prev, subject!]
+                          );
+                        }}
+                      >
+                        {subject}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Filtro por Tipo */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Tipo de Conteúdo</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from(new Set(materials.map(m => m.file_type))).map(type => (
+                      <Badge
+                        key={type}
+                        variant={selectedTypes.includes(type) ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => {
+                          setSelectedTypes(prev => 
+                            prev.includes(type) 
+                              ? prev.filter(t => t !== type) 
+                              : [...prev, type]
+                          );
+                        }}
+                      >
+                        {type}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Botão Limpar */}
+                <div className="flex items-end">
+                  {(selectedSubjects.length > 0 || selectedTypes.length > 0) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedSubjects([]);
+                        setSelectedTypes([]);
+                      }}
+                      className="w-full"
+                    >
+                      Limpar filtros
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
 
           {/* Results Count */}
           <div className="mb-6">

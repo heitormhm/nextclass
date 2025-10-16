@@ -39,39 +39,9 @@ const AnnotationPage = () => {
   const { user } = useAuth();
   const editorRef = useRef<HTMLDivElement>(null);
   
-  const defaultContent = `
-    <div class="space-y-6">
-      <div>
-        <h2 class="text-lg font-semibold text-gray-800 mb-3">📌 Pontos-chave da Aula</h2>
-        <ul class="list-disc pl-6 space-y-2">
-          <li class="text-gray-700">Anatomia básica do sistema cardiovascular</li>
-          <li class="text-gray-700">Principais patologias cardíacas</li>
-          <li class="text-gray-700">Métodos de análise em termodinâmica</li>
-        </ul>
-      </div>
-      
-      <div>
-        <h2 class="text-lg font-semibold text-gray-800 mb-3">❓ Minhas Dúvidas</h2>
-        <ol class="list-decimal pl-6 space-y-2">
-          <li class="text-gray-700">Como diferenciar sopros fisiológicos de patológicos?</li>
-          <li class="text-gray-700">Qual a importância do diagrama P-V na análise de processos?</li>
-        </ol>
-      </div>
-      
-      <div>
-        <h2 class="text-lg font-semibold text-gray-800 mb-3">📝 Resumo Pessoal</h2>
-        <p class="text-gray-700">
-          A aula de hoje foi fundamental para entender os conceitos básicos da termodinâmica. 
-          <span class="bg-yellow-200 px-1">A anatomia do coração</span> é essencial para compreender 
-          as patologias que serão estudadas nos próximos módulos.
-        </p>
-      </div>
-    </div>
-  `;
-
-  const [content, setContent] = useState(defaultContent);
-  const [title, setTitle] = useState('Anotações sobre Introdução à Termodinâmica');
-  const [tags, setTags] = useState<string[]>(['Termodinâmica', 'Importante']);
+  const [content, setContent] = useState('');
+  const [title, setTitle] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterials | null>(null);
@@ -200,26 +170,63 @@ const AnnotationPage = () => {
 
   const generateTagsWithAI = async () => {
     if (!content.trim()) {
-      toast.error('Escreva algum conteúdo primeiro');
+      toast.error('Escreva conteúdo primeiro');
       return;
     }
 
     setIsGeneratingTags(true);
+    
     try {
-      const { data, error } = await supabase.functions.invoke('generate-annotation-tags', {
-        body: { content, title }
-      });
+      const { data: jobData, error: jobError } = await supabase
+        .from('jobs')
+        .insert({
+          user_id: user.id,
+          job_type: 'generate_annotation_tags',
+          status: 'PENDING',
+          input_payload: { 
+            content, 
+            title,
+            annotation_id: id 
+          }
+        })
+        .select()
+        .single();
+
+      if (jobError) throw jobError;
+
+      toast.success('Tags sendo geradas...');
       
-      if (error) throw error;
+      const pollInterval = setInterval(async () => {
+        const { data: updatedJob } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('id', jobData.id)
+          .single();
+
+        if (updatedJob?.status === 'COMPLETED') {
+          clearInterval(pollInterval);
+          const tags = JSON.parse(updatedJob.result || '[]');
+          setSuggestedTags(tags);
+          toast.success('Tags sugeridas geradas!');
+          setIsGeneratingTags(false);
+        } else if (updatedJob?.status === 'FAILED') {
+          clearInterval(pollInterval);
+          toast.error('Erro ao gerar tags');
+          setIsGeneratingTags(false);
+        }
+      }, 2000);
+
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        if (isGeneratingTags) {
+          setIsGeneratingTags(false);
+          toast.error('Tempo esgotado');
+        }
+      }, 30000);
       
-      if (data?.tags) {
-        setSuggestedTags(data.tags);
-        toast.success('Tags sugeridas geradas!');
-      }
     } catch (error) {
-      console.error('Error generating tags:', error);
-      toast.error('Erro ao gerar tags');
-    } finally {
+      console.error('Error creating job:', error);
+      toast.error('Erro ao criar tarefa');
       setIsGeneratingTags(false);
     }
   };
@@ -271,27 +278,37 @@ const AnnotationPage = () => {
   };
 
   const handleGenerateStudyMaterials = async () => {
+    if (!content.trim()) {
+      toast.error('Escreva conteúdo antes de gerar materiais');
+      return;
+    }
+
     setIsGenerating(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('generate-study-materials', {
-        body: { content },
-      });
+      const { data, error } = await supabase
+        .from('jobs')
+        .insert({
+          user_id: user.id,
+          job_type: 'generate_study_materials',
+          status: 'PENDING',
+          input_payload: { 
+            content, 
+            title,
+            annotation_id: id 
+          }
+        })
+        .select()
+        .single();
 
-      if (error) {
-        console.error('Error generating study materials:', error);
-        toast.error('Erro ao gerar materiais de estudo. Tente novamente.');
-        setIsGenerating(false);
-        return;
-      }
+      if (error) throw error;
 
-      if (data) {
-        setStudyMaterials(data);
-        toast.success('Materiais de estudo gerados com sucesso!');
-      }
+      toast.success('Materiais sendo gerados em segundo plano! Você será notificado quando estiverem prontos.');
+      
+      navigate('/dashboard');
     } catch (error) {
-      console.error('Unexpected error:', error);
-      toast.error('Erro inesperado. Tente novamente.');
+      console.error('Error creating job:', error);
+      toast.error('Erro ao criar tarefa de geração');
     } finally {
       setIsGenerating(false);
     }
@@ -367,14 +384,16 @@ const AnnotationPage = () => {
                       '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2',
                       '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2',
                       '[&_li]:text-gray-700',
-                      '[&_p]:text-gray-700 [&_p]:leading-relaxed'
+                      '[&_p]:text-gray-700 [&_p]:leading-relaxed',
+                      !content && 'empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text'
                     )}
+                    data-placeholder="Comece a escrever sua anotação..."
                     style={{ lineHeight: '1.6', fontSize: '16px' }}
                   />
 
-                  {/* Sticky Toolbar */}
-                  <div className="sticky bottom-6 mt-6">
-                    <Card className="shadow-xl border-0 bg-white">
+                  {/* Floating Toolbar - CENTRALIZADA */}
+                  <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 mt-6">
+                    <Card className="shadow-2xl border-0 bg-white">
                       <CardContent className="p-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <Button
@@ -463,27 +482,35 @@ const AnnotationPage = () => {
 
             {/* Right Column - Sidebar */}
             <div className="lg:col-span-4 space-y-6">
-              {/* Source Panel */}
-              <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                    Fonte da Aula
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto text-primary hover:text-primary/80"
-                    onClick={() => navigate('/lecture/1')}
-                  >
-                    Introdução à Termodinâmica
-                  </Button>
-                  <p className="text-sm text-foreground-muted mt-1">
-                    Módulo 1 • Aula ao vivo
-                  </p>
-                </CardContent>
-              </Card>
+              {/* Source Panel - CONDICIONAL */}
+              {(location.state?.sourceType || location.state?.sourceId) && (
+                <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                      Fonte da Aula
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto text-primary hover:text-primary/80"
+                      onClick={() => {
+                        if (location.state?.sourceType === 'lecture') {
+                          navigate(`/lecture/${location.state.sourceId}`);
+                        } else if (location.state?.sourceType === 'internship') {
+                          navigate(`/internship/${location.state.sourceId}`);
+                        }
+                      }}
+                    >
+                      {location.state?.sourceName || 'Ver Fonte'}
+                    </Button>
+                    <p className="text-sm text-foreground-muted mt-1">
+                      {location.state?.sourceType === 'lecture' ? 'Aula' : 'Modo Estágio'}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Tags Panel */}
               <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
@@ -557,7 +584,7 @@ const AnnotationPage = () => {
                 </CardContent>
               </Card>
 
-              {/* AI Study Materials Panel */}
+              {/* AI Study Materials Panel - CONVERTIDO PARA JOB */}
               <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -565,57 +592,46 @@ const AnnotationPage = () => {
                     Materiais de Estudo com IA
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                   <Button
                     onClick={handleGenerateStudyMaterials}
-                    disabled={isGenerating}
-                    className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+                    disabled={isGenerating || !content.trim()}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
                   >
                     {isGenerating ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Gerando...
+                        Criando tarefa...
                       </>
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4 mr-2" />
-                        Gerar Materiais de Estudo
+                        Gerar Materiais (em background)
                       </>
                     )}
                   </Button>
-
-                  {studyMaterials && (
-                    <div className="space-y-4 mt-4">
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2">
-                          Flashcards ({studyMaterials.flashcards.length})
-                        </h4>
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
-                          {studyMaterials.flashcards.slice(0, 3).map((card, idx) => (
-                            <div key={idx} className="p-2 bg-white/50 rounded text-xs">
-                              <p className="font-medium">{card.front}</p>
-                              <p className="text-foreground-muted">{card.back.slice(0, 50)}...</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2">
-                          Perguntas de Quiz ({studyMaterials.quizQuestions.length})
-                        </h4>
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
-                          {studyMaterials.quizQuestions.slice(0, 3).map((q, idx) => (
-                            <div key={idx} className="p-2 bg-white/50 rounded text-xs">
-                              <p className="font-medium">{q.question.slice(0, 60)}...</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    A geração ocorre em segundo plano e você será notificado quando estiver pronta
+                  </p>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Floating AI Assistant Button */}
+            <Button
+              onClick={() => {
+                navigate('/chat', { 
+                  state: { 
+                    initialPrompt: `Gerar materiais de estudo sobre ${title || 'o conteúdo desta anotação'}` 
+                  } 
+                });
+              }}
+              className="fixed bottom-28 right-8 rounded-full w-14 h-14 shadow-2xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 z-40"
+              size="icon"
+              title="Pesquisar com IA Mia"
+            >
+              <Sparkles className="h-6 w-6 text-white" />
+            </Button>
           </div>
         </div>
       </div>

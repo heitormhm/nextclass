@@ -20,6 +20,7 @@ interface Annotation {
   content: string;
   source_type?: string;
   source_id?: string;
+  tags?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -65,7 +66,11 @@ const MyAnnotationsPage = () => {
   const filteredAnnotations = annotations.filter(annotation => {
     const matchesSearch = annotation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          annotation.content.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    
+    const matchesTags = selectedTags.length === 0 || 
+                       (annotation.tags && selectedTags.some(tag => annotation.tags?.includes(tag)));
+    
+    return matchesSearch && matchesTags;
   });
 
   const handleCourseToggle = (course: string) => {
@@ -89,8 +94,8 @@ const MyAnnotationsPage = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
+        {/* Page Header - ALINHADO */}
+        <div className="mb-8 max-w-xl">
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Minhas Anotações
           </h1>
@@ -101,7 +106,7 @@ const MyAnnotationsPage = () => {
 
         {/* Main Content Area */}
         <div className="max-w-7xl mx-auto">
-          {/* Search Bar */}
+          {/* Search Bar - MESMO ALINHAMENTO */}
           <div className="mb-8">
             <div className="relative max-w-xl">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
@@ -113,6 +118,41 @@ const MyAnnotationsPage = () => {
               />
             </div>
           </div>
+
+          {/* Filters Panel - APENAS QUANDO HOUVER ANOTAÇÕES */}
+          {annotations.length > 0 && (
+            <div className="mb-6 max-w-xl">
+              <Card className="p-4 bg-white/60 backdrop-blur-xl border-0 shadow-sm">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Filtrar por Tags</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from(new Set(annotations.flatMap(a => a.tags || []))).map(tag => (
+                        <Badge
+                          key={tag}
+                          variant={selectedTags.includes(tag) ? "default" : "outline"}
+                          className="cursor-pointer"
+                          onClick={() => handleTagToggle(tag)}
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  {selectedTags.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="text-xs"
+                    >
+                      Limpar filtros
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
 
           <div>
             {/* Results Count */}
