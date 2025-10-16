@@ -143,6 +143,45 @@ const AnnotationPage = () => {
     }
   }, []);
 
+  // Handle Enter key to prevent unwanted scroll
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const handleEnterKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          
+          const br1 = document.createElement('br');
+          const br2 = document.createElement('br');
+          
+          range.deleteContents();
+          range.insertNode(br2);
+          range.insertNode(br1);
+          
+          range.setStartAfter(br2);
+          range.setEndAfter(br2);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          
+          const scrollTop = editor.scrollTop;
+          setTimeout(() => {
+            editor.scrollTop = scrollTop;
+          }, 0);
+          
+          handleInput();
+        }
+      }
+    };
+
+    editor.addEventListener('keydown', handleEnterKey);
+    return () => editor.removeEventListener('keydown', handleEnterKey);
+  }, []);
+
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -525,79 +564,119 @@ const AnnotationPage = () => {
   };
 
   const handleStartVoiceTranscription = async () => {
-    console.log('🎤 Iniciando transcrição de voz');
-    setIsRecording(true);
-    
+    if (isRecording) {
+      console.log('⚠️ Já está gravando');
+      return;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('🎤 Solicitando acesso ao microfone...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100
+        } 
+      });
+      
+      const audioTracks = stream.getAudioTracks();
+      console.log('🎤 Microfone detectado:', audioTracks[0]?.label);
+      console.log('🎤 Configurações:', audioTracks[0]?.getSettings());
+      
       const mediaRecorder = new MediaRecorder(stream);
       const audioChunks: Blob[] = [];
-      
+
       mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
       };
-      
+
       mediaRecorder.onstop = async () => {
         console.log('🎤 Gravação finalizada, processando...');
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        
+        if (audioBlob.size === 0) {
+          console.error('❌ Áudio vazio capturado');
+          toast.error('Nenhum áudio foi capturado. Verifique as permissões do microfone.');
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        
+        console.log(`📊 Tamanho do áudio: ${(audioBlob.size / 1024).toFixed(2)} KB`);
+        
         const reader = new FileReader();
         
         reader.onloadend = async () => {
           const base64Audio = (reader.result as string).split(',')[1];
           
-          console.log('📤 Enviando áudio para transcrição');
-          const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-            body: { audio: base64Audio }
-          });
+          console.log('📤 Enviando áudio para transcrição...');
           
-          if (error) {
-            console.error('❌ Erro na transcrição:', error);
-            throw error;
-          }
-          
-          if (data?.text) {
-            console.log('✅ Transcrição recebida:', data.text);
+          try {
+            const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+              body: { audio: base64Audio }
+            });
             
-            // Inserir texto no cursor
-            const selection = window.getSelection();
-            if (selection && selection.rangeCount > 0) {
-              const range = selection.getRangeAt(0);
-              range.deleteContents();
-              const textNode = document.createTextNode(data.text + ' ');
-              range.insertNode(textNode);
+            if (error) {
+              console.error('❌ Erro na transcrição:', error);
               
-              // Move cursor para o final do texto inserido
-              range.setStartAfter(textNode);
-              range.setEndAfter(textNode);
-              selection.removeAllRanges();
-              selection.addRange(range);
+              if (error.message?.includes('OPENAI_API_KEY')) {
+                toast.error('API Key do OpenAI não configurada. Entre em contato com o suporte.');
+              } else {
+                toast.error(`Erro na transcrição: ${error.message || 'Erro desconhecido'}`);
+              }
+              throw error;
             }
             
-            if (editorRef.current) {
-              setContent(editorRef.current.innerHTML);
+            if (data?.text) {
+              console.log('✅ Transcrição recebida:', data.text);
+              
+              const selection = window.getSelection();
+              if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const textNode = document.createTextNode(data.text + ' ');
+                range.insertNode(textNode);
+                
+                range.setStartAfter(textNode);
+                range.setEndAfter(textNode);
+                selection.removeAllRanges();
+                selection.addRange(range);
+              }
+              
+              if (editorRef.current) {
+                setContent(editorRef.current.innerHTML);
+                saveToHistory(editorRef.current.innerHTML);
+              }
+              
+              toast.success('Transcrição inserida!');
+            } else {
+              console.warn('⚠️ Resposta sem texto:', data);
+              toast.warning('Nenhuma fala detectada. Tente falar mais próximo ao microfone.');
             }
-            
-            toast.success('Transcrição inserida!');
+          } catch (error) {
+            console.error('❌ Erro inesperado:', error);
           }
         };
         
         reader.readAsDataURL(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
       };
-      
+
       mediaRecorder.start();
-      toast.info('Gravando... (10 segundos)');
+      setIsRecording(true);
+      
+      toast.info('Gravando por 10 segundos...');
       
       setTimeout(() => {
         if (mediaRecorder.state === 'recording') {
           mediaRecorder.stop();
-          stream.getTracks().forEach(track => track.stop());
           setIsRecording(false);
         }
       }, 10000);
       
     } catch (error) {
       console.error('❌ Erro ao acessar microfone:', error);
-      toast.error('Erro ao acessar microfone');
+      toast.error('Erro ao acessar microfone. Verifique as permissões.');
       setIsRecording(false);
     }
   };
@@ -762,14 +841,17 @@ const AnnotationPage = () => {
                   variant="ghost" 
                   size="sm" 
                   onClick={handleStartVoiceTranscription} 
-                  title="Transcrever Voz"
+                  title="Transcrever Voz (10s)"
                   disabled={isRecording}
                   className={cn(
-                    isRecording && "bg-red-100 text-red-600"
+                    isRecording && "bg-red-100 text-red-600 animate-pulse"
                   )}
                 >
                   {isRecording ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="flex items-center gap-1">
+                      <Mic className="h-4 w-4" />
+                      <span className="text-xs">Gravando...</span>
+                    </div>
                   ) : (
                     <Mic className="h-4 w-4" />
                   )}
