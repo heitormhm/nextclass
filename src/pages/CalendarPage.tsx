@@ -26,6 +26,7 @@ interface CalendarEvent {
   isPersonalEvent?: boolean;
   color?: string;
   category?: string;
+  created_by?: string;
 }
 
 const CalendarPage = () => {
@@ -104,6 +105,7 @@ const CalendarPage = () => {
           isPersonalEvent: true,
           color: event.color || 'azul',
           category: event.category,
+          created_by: event.user_id,
         })),
         ...(classEvents || []).map(event => ({
           id: event.id,
@@ -118,6 +120,7 @@ const CalendarPage = () => {
           isPersonalEvent: false,
           color: event.color || 'azul',
           category: event.category,
+          created_by: undefined,
         }))
       ];
 
@@ -261,6 +264,40 @@ const CalendarPage = () => {
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
+  };
+
+  const handleEventDelete = async (eventId: string) => {
+    try {
+      const event = events.find(e => e.id === eventId);
+      if (!event) return;
+
+      if (!event.isPersonalEvent) {
+        toast.error('Você não pode deletar eventos da turma');
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (event.created_by !== user.id) {
+        toast.error('Você só pode deletar seus próprios eventos');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('personal_events')
+        .delete()
+        .eq('id', eventId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      toast.success('🗑️ Evento deletado', { duration: 2000 });
+      await fetchEvents();
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast.error('Erro ao deletar evento');
+    }
   };
 
   const handleEventUpdate = async (eventId: string, action: 'complete' | 'cancel') => {
@@ -485,11 +522,12 @@ const CalendarPage = () => {
                         </div>
                       </>
                       ) : (
-                        <WeekCalendarView
-                          events={events}
-                          selectedDate={selectedDate}
-                          onEventUpdate={handleEventUpdate}
-                        />
+                  <WeekCalendarView
+                    events={events}
+                    selectedDate={selectedDate}
+                    onEventUpdate={handleEventUpdate}
+                    onEventDelete={handleEventDelete}
+                  />
                       )}
                     </CardContent>
                   </Card>
@@ -500,17 +538,23 @@ const CalendarPage = () => {
             {/* Agenda Sidebar - Above calendar on mobile */}
             <div className="lg:col-span-1 order-1 lg:order-2">
               <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl lg:sticky lg:top-24 flex flex-col max-h-[600px]">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                      <Clock className="h-7 w-7 text-pink-600" />
+                <CardHeader className="pb-4 border-b border-gray-100">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="absolute -inset-2 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-2xl blur-md" />
+                      <div className="relative w-14 h-14 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl flex items-center justify-center shadow-sm">
+                        <Clock className="h-7 w-7 text-pink-600" />
+                      </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg font-semibold leading-tight">
-                        Agenda para {format(selectedDate, 'd')} de {format(selectedDate, 'MMMM', { locale: ptBR })}
+                      <CardTitle className="text-xl font-bold leading-tight bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                        {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
                       </CardTitle>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Seus compromissos do dia
+                      <p className="text-sm text-gray-600 mt-1.5 font-medium">
+                        {selectedDateEvents.length === 0 
+                          ? 'Nenhum compromisso agendado'
+                          : `${selectedDateEvents.length} ${selectedDateEvents.length === 1 ? 'compromisso' : 'compromissos'}`
+                        }
                       </p>
                     </div>
                   </div>
@@ -534,28 +578,37 @@ const CalendarPage = () => {
                         
                         return (
                           <Card key={event.id} className={cn(
-                            "p-4 bg-white/60 backdrop-blur-xl border-2 hover:shadow-xl hover:scale-[1.02] transition-all duration-300",
+                            "group relative p-4 bg-white/80 backdrop-blur-xl border-2 transition-all duration-300",
+                            "hover:shadow-xl hover:scale-[1.02] hover:border-pink-300",
                             colorClasses.border,
                             isCompleted && "opacity-60",
-                            isCancelled && "opacity-50 bg-gray-100"
+                            isCancelled && "opacity-40 bg-gray-50"
                           )}>
                             <div className="space-y-3">
+                              {/* Indicador de cor lateral */}
+                              <div className={cn(
+                                "w-1 h-full absolute left-0 top-0 bottom-0 rounded-l-lg",
+                                `bg-gradient-to-b ${colorClasses.bg}`
+                              )} />
+                              
                               <div className="flex items-start justify-between gap-3">
                                 <h3 className={cn(
-                                  "font-semibold text-gray-800 line-clamp-2 flex-1",
-                                  isCompleted && "line-through"
+                                  "font-bold text-gray-900 line-clamp-2 flex-1 pl-1",
+                                  isCompleted && "line-through text-gray-500"
                                 )}>
                                   {event.title}
                                 </h3>
-                                <Badge 
-                                  variant="outline"
-                                  className={cn(
-                                    "shrink-0 font-medium h-6 text-xs px-2",
-                                    `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
-                                  )}
-                                >
-                                  {getCategoryLabel(event.category)}
-                                </Badge>
+                                {!isCancelled && (
+                                  <Badge 
+                                    variant="outline"
+                                    className={cn(
+                                      "shrink-0 font-semibold h-6 text-[10px] px-2.5 shadow-sm",
+                                      `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border-2`
+                                    )}
+                                  >
+                                    {getCategoryLabel(event.category)}
+                                  </Badge>
+                                )}
                               </div>
                               
                               {/* Status Badge */}
@@ -596,10 +649,10 @@ const CalendarPage = () => {
                                     size="sm"
                                     variant="outline"
                                     title="Concluir evento"
-                                    className="flex-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-all h-7 px-2.5 text-xs whitespace-nowrap"
+                                    className="flex-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-all h-8 px-2.5 text-xs"
                                     onClick={() => handleEventUpdate(event.id, 'complete')}
                                   >
-                                    <Check className="h-3.5 w-3.5 mr-0.5" />
+                                    <Check className="h-3.5 w-3.5 mr-1" />
                                     Concluir
                                   </Button>
                                 )}
@@ -608,11 +661,22 @@ const CalendarPage = () => {
                                     size="sm"
                                     variant="outline"
                                     title="Cancelar evento"
-                                    className="flex-1 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 transition-all h-7 px-2.5 text-xs whitespace-nowrap"
+                                    className="flex-1 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 transition-all h-8 px-2.5 text-xs"
                                     onClick={() => handleEventUpdate(event.id, 'cancel')}
                                   >
-                                    <X className="h-3.5 w-3.5 mr-0.5" />
+                                    <X className="h-3.5 w-3.5 mr-1" />
                                     Cancelar
+                                  </Button>
+                                )}
+                                {event.isPersonalEvent && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    title="Deletar evento"
+                                    className="hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all h-8 w-8 p-0"
+                                    onClick={() => handleEventDelete(event.id)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
                               </div>

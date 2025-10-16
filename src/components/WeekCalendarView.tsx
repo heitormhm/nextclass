@@ -18,6 +18,7 @@ interface CalendarEvent {
   description?: string;
   color?: string;
   category?: string;
+  isPersonalEvent?: boolean;
 }
 
 interface WeekCalendarViewProps {
@@ -25,13 +26,15 @@ interface WeekCalendarViewProps {
   selectedDate: Date;
   onEventUpdate: (eventId: string, action: 'complete' | 'cancel') => void;
   onEventClick?: (event: CalendarEvent) => void;
+  onEventDelete?: (eventId: string) => void;
 }
 
 export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   events,
   selectedDate,
   onEventUpdate,
-  onEventClick
+  onEventClick,
+  onEventDelete
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -161,7 +164,10 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
             className="absolute left-0 right-0 border-t border-border"
             style={{ top: `${(hour - 6) * 60}px` }}
           >
-            <div className="absolute -top-3 left-2 text-xs text-foreground-muted bg-white px-2 py-1 rounded-sm z-0">
+            <div className={cn(
+              "absolute -top-3 left-2 text-xs bg-white px-2 py-1 rounded-sm z-0 shadow-sm",
+              hour === 6 ? "font-bold text-gray-800" : "text-foreground-muted"
+            )}>
               {format(new Date(2024, 0, 1, hour), 'HH:mm')}
             </div>
           </div>
@@ -268,17 +274,34 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                                 <X className="h-3 w-3" />
                               </Button>
                             )}
+                            
+                            {/* Botão Deletar - apenas para eventos pessoais */}
+                            {event.isPersonalEvent && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                title="Deletar evento"
+                                className="h-6 w-6 bg-white/90 hover:bg-red-100 hover:scale-110 text-red-600 transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEventDelete?.(event.id);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         </div>
 
-                        {/* Category badge */}
-            {event.category && (
+                        {/* Category badge - oculta se cancelado */}
+            {event.category && !isCancelled && (
               <Badge
                 variant="outline"
                 className={cn(
-                  "absolute bottom-1 left-1 text-[9px] px-1.5 z-[5] pointer-events-none",
-                  height > 60 ? "h-5" : "h-4 scale-90",
-                  `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
+                  "absolute left-1 text-[9px] px-1.5 py-0.5 z-[5] pointer-events-none shadow-sm",
+                  height > 80 ? "bottom-2" : "bottom-1",
+                  height > 60 ? "h-5 text-[10px]" : "h-4 scale-90",
+                  `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border-2`
                 )}
               >
                 {getCategoryLabel(event.category)}
