@@ -342,12 +342,12 @@ const CalendarPage = () => {
                           <div className="flex items-center justify-between mb-6">
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
                               onClick={() => viewMode === 'month' ? navigateMonth('prev') : navigateWeek('prev')}
                               className="hover:bg-pink-100 transition-colors"
+                              title={viewMode === 'month' ? 'Mês anterior' : 'Semana anterior'}
                             >
-                              <ChevronLeft className="h-4 w-4 mr-1" />
-                              {viewMode === 'month' ? 'Mês anterior' : 'Semana anterior'}
+                              <ChevronLeft className="h-5 w-5" />
                             </Button>
 
                             <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent capitalize">
@@ -360,12 +360,12 @@ const CalendarPage = () => {
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon"
                                 onClick={() => viewMode === 'month' ? navigateMonth('next') : navigateWeek('next')}
                                 className="hover:bg-pink-100 transition-colors"
+                                title={viewMode === 'month' ? 'Próximo mês' : 'Próxima semana'}
                               >
-                                {viewMode === 'month' ? 'Próximo mês' : 'Próxima semana'}
-                                <ChevronRight className="h-4 w-4 ml-1" />
+                                <ChevronRight className="h-5 w-5" />
                               </Button>
 
                               <div className="h-6 w-px bg-gray-300 mx-2" />

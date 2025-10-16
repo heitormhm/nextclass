@@ -67,8 +67,8 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   };
 
   // Generate week days starting from Sunday
-  const weekStart = startOfWeek(selectedDate, { locale: ptBR });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
   // Time slots (24 hours, each hour = 2 slots of 30min)
   const timeSlots = Array.from({ length: 24 }, (_, i) => i);
@@ -117,7 +117,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   return (
     <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-pink-100 overflow-hidden">
       {/* Week header */}
-      <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-border sticky top-0 bg-white/90 backdrop-blur-xl z-20">
+      <div className="grid grid-cols-[80px_repeat(5,1fr)] border-b border-border sticky top-0 bg-white/90 backdrop-blur-xl z-20">
         <div className="p-4 border-r border-border"></div>
         {weekDays.map((day, idx) => {
           const isCurrentDay = isToday(day);
@@ -160,7 +160,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
             className="absolute left-0 right-0 border-t border-border"
             style={{ top: `${hour * 60}px` }}
           >
-            <div className="absolute -top-3 left-2 text-xs text-foreground-muted bg-white px-2 py-1 rounded-sm">
+            <div className="absolute -top-3 left-2 text-xs text-foreground-muted bg-white px-2 py-1 rounded-sm z-0">
               {format(new Date(2024, 0, 1, hour), 'HH:mm')}
             </div>
           </div>
@@ -180,7 +180,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
           )}
 
           {/* Day columns with events */}
-          <div className="absolute inset-0 grid grid-cols-[80px_repeat(7,1fr)]">
+          <div className="absolute inset-0 grid grid-cols-[80px_repeat(5,1fr)]">
             <div className="border-r border-border"></div>
             {weekDays.map((day, dayIdx) => {
               const dayEvents = getEventsForDay(day);
@@ -214,7 +214,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
         onClick={() => onEventClick?.(event)}
       >
                         <div className={cn(
-                          "flex flex-col h-full justify-between relative z-20",
+                          "flex flex-col h-full justify-between relative z-[10]",
                           height > 60 && event.category && "pb-6"
                         )}>
                           <div>
@@ -236,7 +236,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 
                           {/* Action buttons - show on hover */}
                           <div className={cn(
-                            "flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 relative",
+                            "flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[60] relative",
                             height < 60 && "absolute -right-1 -top-1 bg-white rounded-lg shadow-lg p-1"
                           )}>
                             {!isCompleted && (
@@ -271,17 +271,18 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                         </div>
 
                         {/* Category badge */}
-        {height > 60 && event.category && (
-          <Badge
-            variant="outline"
-            className={cn(
-              "absolute bottom-1 left-1 h-5 text-[9px] px-1.5 z-[100] pointer-events-none",
-              `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
+            {event.category && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "absolute bottom-1 left-1 text-[9px] px-1.5 z-[5] pointer-events-none",
+                  height > 60 ? "h-5" : "h-4 scale-90",
+                  `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
+                )}
+              >
+                {getCategoryLabel(event.category)}
+              </Badge>
             )}
-          >
-            {getCategoryLabel(event.category)}
-          </Badge>
-        )}
                       </div>
                     );
                   })}
