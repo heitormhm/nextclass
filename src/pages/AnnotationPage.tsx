@@ -65,6 +65,10 @@ const AnnotationPage = () => {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isUndoRedoAction, setIsUndoRedoAction] = useState(false);
   const historyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Voice transcription refs
+  const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load existing annotation
   useEffect(() => {
@@ -151,35 +155,56 @@ const AnnotationPage = () => {
     const handleEnterKey = (e: KeyboardEvent) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
+        e.stopPropagation();
         
         const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          
-          const br1 = document.createElement('br');
-          const br2 = document.createElement('br');
-          
-          range.deleteContents();
-          range.insertNode(br2);
-          range.insertNode(br1);
-          
-          range.setStartAfter(br2);
-          range.setEndAfter(br2);
-          selection.removeAllRanges();
-          selection.addRange(range);
-          
-          const scrollTop = editor.scrollTop;
-          setTimeout(() => {
-            editor.scrollTop = scrollTop;
-          }, 0);
-          
-          handleInput();
-        }
+        if (!selection || selection.rangeCount === 0) return;
+        
+        const range = selection.getRangeAt(0);
+        
+        // Criar duas quebras de linha
+        const br1 = document.createElement('br');
+        const br2 = document.createElement('br');
+        
+        range.deleteContents();
+        range.insertNode(br2);
+        range.insertNode(br1);
+        
+        // Posicionar cursor após as quebras
+        range.setStartAfter(br2);
+        range.setEndAfter(br2);
+        range.collapse(true);
+        
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // Usar scrollIntoView no cursor em vez de forçar scrollTop
+        const tempSpan = document.createElement('span');
+        tempSpan.innerHTML = '&nbsp;';
+        range.insertNode(tempSpan);
+        
+        tempSpan.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest'
+        });
+        
+        // Remover span temporário
+        tempSpan.remove();
+        
+        // Restaurar seleção após scroll
+        range.setStartAfter(br2);
+        range.setEndAfter(br2);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // Salvar alterações
+        handleInput();
       }
     };
 
-    editor.addEventListener('keydown', handleEnterKey);
-    return () => editor.removeEventListener('keydown', handleEnterKey);
+    editor.addEventListener('keydown', handleEnterKey, true);
+    return () => editor.removeEventListener('keydown', handleEnterKey, true);
   }, []);
 
   // Keyboard shortcuts for undo/redo
@@ -197,6 +222,18 @@ const AnnotationPage = () => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [historyIndex, history]);
+
+  // Cleanup voice recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
+    };
+  }, []);
 
   const saveToHistory = (newContent: string) => {
     if (isUndoRedoAction) return; // Don't save during undo/redo
@@ -563,121 +600,111 @@ const AnnotationPage = () => {
     }
   };
 
-  const handleStartVoiceTranscription = async () => {
-    if (isRecording) {
-      console.log('⚠️ Já está gravando');
+  const startVoiceTranscription = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error('Seu navegador não suporta reconhecimento de voz.');
       return;
     }
 
     try {
-      console.log('🎤 Solicitando acesso ao microfone...');
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
-        } 
-      });
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
       
-      const audioTracks = stream.getAudioTracks();
-      console.log('🎤 Microfone detectado:', audioTracks[0]?.label);
-      console.log('🎤 Configurações:', audioTracks[0]?.getSettings());
-      
-      const mediaRecorder = new MediaRecorder(stream);
-      const audioChunks: Blob[] = [];
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'pt-PT';
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-        }
+      recognitionRef.current.onstart = () => {
+        setIsRecording(true);
+        toast.success('A ouvir... Fale naturalmente.');
       };
 
-      mediaRecorder.onstop = async () => {
-        console.log('🎤 Gravação finalizada, processando...');
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        
-        if (audioBlob.size === 0) {
-          console.error('❌ Áudio vazio capturado');
-          toast.error('Nenhum áudio foi capturado. Verifique as permissões do microfone.');
-          stream.getTracks().forEach(track => track.stop());
-          return;
-        }
-        
-        console.log(`📊 Tamanho do áudio: ${(audioBlob.size / 1024).toFixed(2)} KB`);
-        
-        const reader = new FileReader();
-        
-        reader.onloadend = async () => {
-          const base64Audio = (reader.result as string).split(',')[1];
-          
-          console.log('📤 Enviando áudio para transcrição...');
-          
-          try {
-            const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-              body: { audio: base64Audio }
-            });
-            
-            if (error) {
-              console.error('❌ Erro na transcrição:', error);
-              
-              if (error.message?.includes('OPENAI_API_KEY')) {
-                toast.error('API Key do OpenAI não configurada. Entre em contato com o suporte.');
-              } else {
-                toast.error(`Erro na transcrição: ${error.message || 'Erro desconhecido'}`);
-              }
-              throw error;
-            }
-            
-            if (data?.text) {
-              console.log('✅ Transcrição recebida:', data.text);
-              
-              const selection = window.getSelection();
-              if (selection && selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                const textNode = document.createTextNode(data.text + ' ');
-                range.insertNode(textNode);
-                
-                range.setStartAfter(textNode);
-                range.setEndAfter(textNode);
-                selection.removeAllRanges();
-                selection.addRange(range);
-              }
-              
-              if (editorRef.current) {
-                setContent(editorRef.current.innerHTML);
-                saveToHistory(editorRef.current.innerHTML);
-              }
-              
-              toast.success('Transcrição inserida!');
-            } else {
-              console.warn('⚠️ Resposta sem texto:', data);
-              toast.warning('Nenhuma fala detectada. Tente falar mais próximo ao microfone.');
-            }
-          } catch (error) {
-            console.error('❌ Erro inesperado:', error);
+      recognitionRef.current.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + ' ';
+          } else {
+            interimTranscript += transcript;
           }
-        };
-        
-        reader.readAsDataURL(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
+        }
+
+        // Inserir texto em tempo real no editor
+        if (editorRef.current) {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            
+            // Se temos resultado final, inserir permanentemente
+            if (finalTranscript) {
+              const textNode = document.createTextNode(finalTranscript);
+              range.insertNode(textNode);
+              
+              // Mover cursor para depois do texto
+              range.setStartAfter(textNode);
+              range.setEndAfter(textNode);
+              selection.removeAllRanges();
+              selection.addRange(range);
+              
+              // Salvar conteúdo
+              handleInput();
+            }
+          }
+        }
       };
 
-      mediaRecorder.start();
-      setIsRecording(true);
-      
-      toast.info('Gravando por 10 segundos...');
-      
-      setTimeout(() => {
-        if (mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-          setIsRecording(false);
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        
+        if (event.error === 'not-allowed') {
+          toast.error('Permissão negada. Permita acesso ao microfone.');
+        } else if (event.error !== 'no-speech') {
+          toast.error('Erro no reconhecimento de voz. Tente novamente.');
         }
-      }, 10000);
-      
+        
+        setIsRecording(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        // Reiniciar se ainda estamos gravando
+        if (isRecording) {
+          try {
+            recognitionRef.current.start();
+          } catch (error) {
+            console.error('Error restarting recognition:', error);
+            setIsRecording(false);
+          }
+        }
+      };
+
+      recognitionRef.current.start();
     } catch (error) {
-      console.error('❌ Erro ao acessar microfone:', error);
-      toast.error('Erro ao acessar microfone. Verifique as permissões.');
+      console.error('Error starting speech recognition:', error);
+      toast.error('Não foi possível iniciar o reconhecimento de voz.');
+    }
+  };
+
+  const stopVoiceTranscription = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
       setIsRecording(false);
+      toast.success('Transcrição parada.');
+      
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+    }
+  };
+
+  const handleVoiceToggle = () => {
+    if (isRecording) {
+      stopVoiceTranscription();
+    } else {
+      startVoiceTranscription();
     }
   };
 
@@ -840,17 +867,17 @@ const AnnotationPage = () => {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={handleStartVoiceTranscription} 
-                  title="Transcrever Voz (10s)"
-                  disabled={isRecording}
+                  onClick={handleVoiceToggle} 
+                  title={isRecording ? "Parar transcrição" : "Iniciar transcrição de voz"}
                   className={cn(
+                    "transition-all",
                     isRecording && "bg-red-100 text-red-600 animate-pulse"
                   )}
                 >
                   {isRecording ? (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       <Mic className="h-4 w-4" />
-                      <span className="text-xs">Gravando...</span>
+                      <span className="text-xs font-medium">Gravando...</span>
                     </div>
                   ) : (
                     <Mic className="h-4 w-4" />
