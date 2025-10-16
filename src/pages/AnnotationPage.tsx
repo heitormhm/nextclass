@@ -252,145 +252,83 @@ const AnnotationPage = () => {
     setIsProcessingAI(true);
     
     try {
-      console.log('📝 Criando job com payload:', { content: content.substring(0, 100), title, action: actionType });
+      console.log('📝 Enviando para edge function:', { action: actionType });
       
-      const { data: jobData, error } = await supabase
-        .from('jobs')
-        .insert({
-          user_id: user.id,
-          job_type: 'ai_text_formatting',
-          status: 'PENDING',
-          input_payload: { 
-            content, 
-            title,
-            action: actionType,
-            annotation_id: id 
-          }
-        })
-        .select()
-        .single();
+      // Chamar edge function DIRETAMENTE (não usa jobs)
+      const { data, error } = await supabase.functions.invoke('ai-text-formatting', {
+        body: { 
+          content, 
+          action: actionType 
+        }
+      });
 
       if (error) {
-        console.error('❌ Erro ao criar job:', error);
+        console.error('❌ Erro ao chamar edge function:', error);
         throw error;
       }
       
-      console.log('✅ Job criado:', jobData.id);
-      toast.success(`Processando com IA...`);
+      console.log('✅ Resposta recebida:', data);
       
-      const pollInterval = setInterval(async () => {
-        const { data: updatedJob } = await supabase
-          .from('jobs')
-          .select('*')
-          .eq('id', jobData.id)
-          .single();
-
-        if (updatedJob?.status === 'COMPLETED') {
-          clearInterval(pollInterval);
-          const result = JSON.parse(updatedJob.result || '{}');
-          
-          if (result.formattedContent) {
-            setContent(result.formattedContent);
-            if (editorRef.current) {
-              editorRef.current.innerHTML = result.formattedContent;
-            }
-            toast.success('Texto formatado com sucesso!');
-          }
-          
-          if (result.suggestions) {
-            toast.info(`Sugestões: ${result.suggestions}`);
-          }
-          
-          setIsProcessingAI(false);
-        } else if (updatedJob?.status === 'FAILED') {
-          clearInterval(pollInterval);
-          toast.error('Erro ao processar com IA');
-          setIsProcessingAI(false);
+      if (data?.formattedContent) {
+        setContent(data.formattedContent);
+        if (editorRef.current) {
+          editorRef.current.innerHTML = data.formattedContent;
         }
-      }, 2000);
-
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        if (isProcessingAI) {
-          setIsProcessingAI(false);
-          toast.error('Tempo esgotado');
-        }
-      }, 60000);
+        toast.success('Texto formatado com sucesso!');
+      }
+      
+      if (data?.suggestions) {
+        toast.info(`Sugestões: ${data.suggestions}`, {
+          duration: 8000,
+        });
+      }
+      
+      setIsProcessingAI(false);
       
     } catch (error) {
-      console.error('Error creating AI job:', error);
+      console.error('❌ Error processing with AI:', error);
       toast.error('Erro ao processar com IA');
       setIsProcessingAI(false);
     }
   };
 
   const generateTagsWithAI = async () => {
-    console.log('🏷️ Iniciando geração de tags');
-    
     if (!content.trim()) {
-      toast.error('Escreva conteúdo primeiro');
+      toast.error('Escreva conteúdo antes de gerar tags');
       return;
     }
 
     setIsGeneratingTags(true);
     
     try {
-      console.log('📝 Criando job para tags');
+      console.log('🏷️ Gerando tags com IA...');
       
-      const { data: jobData, error: jobError } = await supabase
-        .from('jobs')
-        .insert({
-          user_id: user.id,
-          job_type: 'generate_annotation_tags',
-          status: 'PENDING',
-          input_payload: { 
-            content, 
-            title,
-            annotation_id: id 
-          }
-        })
-        .select()
-        .single();
+      // Chamar edge function diretamente
+      const { data, error } = await supabase.functions.invoke('generate-annotation-tags', {
+        body: { 
+          content,
+          title: title || 'Sem título'
+        }
+      });
 
-      if (jobError) {
-        console.error('❌ Erro ao criar job de tags:', jobError);
-        throw jobError;
+      if (error) {
+        console.error('❌ Erro ao gerar tags:', error);
+        throw error;
       }
       
-      console.log('✅ Job de tags criado:', jobData.id);
-      toast.success('Tags sendo geradas...');
+      console.log('✅ Tags geradas:', data);
       
-      const pollInterval = setInterval(async () => {
-        const { data: updatedJob } = await supabase
-          .from('jobs')
-          .select('*')
-          .eq('id', jobData.id)
-          .single();
-
-        if (updatedJob?.status === 'COMPLETED') {
-          clearInterval(pollInterval);
-          const tags = JSON.parse(updatedJob.result || '[]');
-          setSuggestedTags(tags);
-          toast.success('Tags sugeridas geradas!');
-          setIsGeneratingTags(false);
-        } else if (updatedJob?.status === 'FAILED') {
-          clearInterval(pollInterval);
-          toast.error('Erro ao gerar tags');
-          setIsGeneratingTags(false);
-        }
-      }, 2000);
-
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        if (isGeneratingTags) {
-          setIsGeneratingTags(false);
-          toast.error('Tempo esgotado');
-        }
-      }, 30000);
+      if (data?.tags && Array.isArray(data.tags)) {
+        setSuggestedTags(data.tags);
+        toast.success('Tags geradas com sucesso!');
+      } else {
+        toast.error('Formato de resposta inválido');
+      }
       
     } catch (error) {
-      console.error('Error creating job:', error);
-      toast.error('Erro ao criar tarefa');
+      console.error('Error generating tags:', error);
+      toast.error('Erro ao gerar tags');
+    } finally {
       setIsGeneratingTags(false);
     }
   };
