@@ -5,42 +5,69 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SmartReviewWidget = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [dueFlashcardsCount, setDueFlashcardsCount] = useState<number>(0);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchDueFlashcards = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const { data, error } = await supabase.functions.invoke('get-student-dashboard-data');
-        
-        if (error) {
-          console.error('Error fetching flashcards data:', error);
-          // Gracefully default to 0 on error
+        // Get all flashcard sets for the user
+        const { data: sets, error: setsError } = await supabase
+          .from('generated_flashcard_sets')
+          .select('id, created_at')
+          .eq('user_id', user.id);
+
+        if (setsError) throw setsError;
+
+        if (!sets || sets.length === 0) {
           setDueFlashcardsCount(0);
+          setIsLoading(false);
           return;
         }
-        
-        // Robust data handling - default to 0 if data is invalid
-        const count = data?.dueFlashcardsCount;
-        if (typeof count === 'number' && !isNaN(count) && count >= 0) {
-          setDueFlashcardsCount(count);
-        } else {
-          setDueFlashcardsCount(0);
-        }
+
+        // Get all reviews for these sets
+        const { data: reviews, error: reviewsError } = await supabase
+          .from('flashcard_reviews')
+          .select('lecture_id, created_at')
+          .eq('user_id', user.id);
+
+        if (reviewsError) throw reviewsError;
+
+        // Calculate due flashcards using spaced repetition logic
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+        const reviewMap = new Map(
+          (reviews || []).map(r => [r.lecture_id, new Date(r.created_at)])
+        );
+
+        const dueCount = sets.filter(set => {
+          const lastReview = reviewMap.get(set.id);
+          // Due if never reviewed OR last review was more than 1 day ago
+          return !lastReview || lastReview < oneDayAgo;
+        }).length;
+
+        setDueFlashcardsCount(dueCount);
       } catch (error) {
-        console.error('Error fetching flashcards data:', error);
-        // Gracefully default to 0 on error
+        console.error('Error calculating due flashcards:', error);
         setDueFlashcardsCount(0);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    fetchDueFlashcards();
+  }, [user]);
 
   const handleStartReview = () => {
     navigate('/review');

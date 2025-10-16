@@ -1,30 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Search, BookOpen, Video, Briefcase, FileText, Library, Calendar, Play, Clock, Users, Brain, Sparkles } from 'lucide-react';
+import { Video, Briefcase, FileText, Library, Calendar, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import MainLayout from '@/components/MainLayout';
 import ProactiveRecommendationWidget from '@/components/dashboard/ProactiveRecommendationWidget';
 import SmartReviewWidget from '@/components/dashboard/SmartReviewWidget';
 import GamifiedProgressTracking from '@/components/dashboard/GamifiedProgressTracking';
+import { FlashcardsSection } from '@/components/dashboard/FlashcardsSection';
+import { UpcomingEventsSection } from '@/components/dashboard/UpcomingEventsSection';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-interface LearningPathItem {
-  id: string;
-  title: string;
-  time: string;
-  type: 'lecture' | 'case-study' | 'quiz' | 'live-session';
-  duration: string;
-  progress?: number;
-}
-
 const Dashboard = () => {
   const { firstName, loading: authLoading } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Create recommendation job on mount if needed
   React.useEffect(() => {
@@ -93,75 +83,6 @@ const Dashboard = () => {
     ensureRecommendation();
   }, []);
 
-  const todaySchedule: LearningPathItem[] = [
-    {
-      id: '1',
-      title: 'Termodinâmica: Ciclo de Rankine',
-      time: '09:00',
-      type: 'lecture',
-      duration: '45 min',
-      progress: 0
-    },
-    {
-      id: '2', 
-      title: 'Estudo de Caso: Análise de Tensão em Viga',
-      time: '10:30',
-      type: 'case-study',
-      duration: '30 min',
-      progress: 0
-    },
-    {
-      id: '3',
-      title: 'Teste: Leis de Kirchhoff',
-      time: '14:00',
-      type: 'quiz',
-      duration: '15 min',
-      progress: 0
-    },
-    {
-      id: '4',
-      title: 'Live: Otimização de Sistemas de Controle',
-      time: '16:00',
-      type: 'live-session',
-      duration: '60 min',
-      progress: 0
-    }
-  ];
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'lecture':
-        return <Play className="h-4 w-4" />;
-      case 'case-study':
-        return <FileText className="h-4 w-4" />;
-      case 'quiz':
-        return <Brain className="h-4 w-4" />;
-      case 'live-session':
-        return <Users className="h-4 w-4" />;
-      default:
-        return <BookOpen className="h-4 w-4" />;
-    }
-  };
-
-  const getActivityColor = (type: string) => {
-    switch (type) {
-      case 'lecture':
-        return 'bg-blue-500';
-      case 'case-study':
-        return 'bg-green-500';
-      case 'quiz':
-        return 'bg-purple-500';
-      case 'live-session':
-        return 'bg-red-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  const filteredSchedule = todaySchedule.filter(item =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <MainLayout>
       <div className="relative min-h-screen bg-slate-50">
@@ -203,9 +124,14 @@ const Dashboard = () => {
         {/* LAYER 2: Gamified Progress Tracking */}
         <GamifiedProgressTracking />
 
-        {/* LAYER 3: Utility Modules */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-          {/* Quick Menu */}
+        {/* LAYER 3: Content Sections - Flashcards and Events */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <FlashcardsSection />
+          <UpcomingEventsSection />
+        </div>
+
+        {/* LAYER 4: Utility Modules - Quick Access Menu */}
+        <div className="grid grid-cols-1 gap-6 lg:gap-8">
           <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in">
             <CardHeader>
               <CardTitle className="text-xl">Acesso Rápido</CardTitle>
@@ -214,7 +140,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-                {/* Mobile: Single column list, Desktop: Grid */}
+                {/* Mobile: Single column list */}
                 <div className="block md:hidden space-y-3">
                   <Link to="/courses">
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
@@ -461,58 +387,7 @@ const Dashboard = () => {
                 </div>
               </CardContent>
             </Card>
-
-          {/* Today's Schedule */}
-          <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in">
-              <CardHeader>
-                <CardTitle className="text-xl">Agenda de Hoje</CardTitle>
-                <CardDescription>
-                  Suas atividades programadas
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground-muted h-4 w-4" />
-                  <Input
-                    placeholder="Buscar atividades..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                {/* Schedule Items */}
-                <div className="space-y-3">
-                  {filteredSchedule.map((item) => (
-                    <div key={item.id} className="flex items-center gap-4 p-4 border border-border rounded-lg hover:border-primary/50 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${getActivityColor(item.type)}`} />
-                        <span className="text-sm font-medium text-foreground-muted min-w-[50px]">
-                          {item.time}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-foreground text-sm leading-tight mb-1">
-                          {item.title}
-                        </h4>
-                        <div className="flex items-center gap-2 text-xs text-foreground-muted">
-                          {getActivityIcon(item.type)}
-                          <span>{item.duration}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {filteredSchedule.length === 0 && (
-                  <div className="text-center py-8 text-foreground-muted">
-                    <p>Nenhuma atividade encontrada</p>
-                  </div>
-            )}
-          </CardContent>
-        </Card>
-        </div>
+          </div>
         </div>
       </div>
     </MainLayout>

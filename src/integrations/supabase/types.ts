@@ -47,6 +47,53 @@ export type Database = {
         }
         Relationships: []
       }
+      class_events: {
+        Row: {
+          class_id: string | null
+          created_at: string | null
+          description: string | null
+          end_time: string
+          event_date: string
+          event_type: string
+          id: string
+          location: string | null
+          start_time: string
+          title: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_time: string
+          event_date: string
+          event_type: string
+          id?: string
+          location?: string | null
+          start_time: string
+          title: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_time?: string
+          event_date?: string
+          event_type?: string
+          id?: string
+          location?: string | null
+          start_time?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_events_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_insights: {
         Row: {
           action_label: string | null
@@ -512,6 +559,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      personal_events: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_time: string
+          event_date: string
+          event_type: string | null
+          id: string
+          start_time: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_time: string
+          event_date: string
+          event_type?: string | null
+          id?: string
+          start_time: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_time?: string
+          event_date?: string
+          event_type?: string | null
+          id?: string
+          start_time?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       quiz_attempts: {
         Row: {
