@@ -162,41 +162,43 @@ const AnnotationPage = () => {
         
         const range = selection.getRangeAt(0);
         
-        // Criar duas quebras de linha
-        const br1 = document.createElement('br');
-        const br2 = document.createElement('br');
+        // Salvar posição de scroll atual
+        const currentScrollTop = editor.scrollTop;
+        
+        // Criar quebra de linha simples (um único br)
+        const br = document.createElement('br');
         
         range.deleteContents();
-        range.insertNode(br2);
-        range.insertNode(br1);
+        range.insertNode(br);
         
-        // Posicionar cursor após as quebras
-        range.setStartAfter(br2);
-        range.setEndAfter(br2);
+        // Criar um texto invisível após o br para manter o cursor visível
+        const textNode = document.createTextNode('\u200B'); // Zero-width space
+        range.setStartAfter(br);
+        range.insertNode(textNode);
+        
+        // Posicionar cursor após o texto invisível
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
         range.collapse(true);
         
         selection.removeAllRanges();
         selection.addRange(range);
         
-        // Usar scrollIntoView no cursor em vez de forçar scrollTop
-        const tempSpan = document.createElement('span');
-        tempSpan.innerHTML = '&nbsp;';
-        range.insertNode(tempSpan);
+        // Calcular nova posição de scroll baseada na posição do cursor
+        const rangeRect = range.getBoundingClientRect();
+        const editorRect = editor.getBoundingClientRect();
         
-        tempSpan.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-          inline: 'nearest'
-        });
-        
-        // Remover span temporário
-        tempSpan.remove();
-        
-        // Restaurar seleção após scroll
-        range.setStartAfter(br2);
-        range.setEndAfter(br2);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        // Se o cursor está abaixo da área visível, scroll para baixo
+        if (rangeRect.bottom > editorRect.bottom - 50) {
+          const scrollDelta = rangeRect.bottom - editorRect.bottom + 100;
+          editor.scrollTop = currentScrollTop + scrollDelta;
+        }
+        // Se o cursor está acima da área visível, scroll para cima
+        else if (rangeRect.top < editorRect.top + 50) {
+          const scrollDelta = editorRect.top - rangeRect.top + 100;
+          editor.scrollTop = currentScrollTop - scrollDelta;
+        }
+        // Caso contrário, manter scroll atual (não fazer nada)
         
         // Salvar alterações
         handleInput();
@@ -822,9 +824,9 @@ const AnnotationPage = () => {
 
         {/* Floating Toolbar - CENTRALIZADA E LARGA */}
         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30">
-          <Card className="shadow-2xl border-0 bg-white max-w-[95vw]">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+            <Card className="shadow-2xl border-0 bg-white min-w-[800px] max-w-[90vw]">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-1.5 flex-nowrap">
                 <Button variant="ghost" size="sm" onClick={() => executeCommand('bold')} title="Negrito">
                   <Bold className="h-4 w-4" />
                 </Button>
@@ -864,25 +866,25 @@ const AnnotationPage = () => {
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
                 
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleVoiceToggle} 
-                  title={isRecording ? "Parar transcrição" : "Iniciar transcrição de voz"}
-                  className={cn(
-                    "transition-all",
-                    isRecording && "bg-red-100 text-red-600 animate-pulse"
-                  )}
-                >
-                  {isRecording ? (
-                    <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleVoiceToggle} 
+                    title={isRecording ? "Parar transcrição" : "Iniciar transcrição de voz"}
+                    className={cn(
+                      "transition-all min-w-[40px]",
+                      isRecording && "bg-red-100 text-red-600 animate-pulse min-w-[110px]"
+                    )}
+                  >
+                    {isRecording ? (
+                      <div className="flex items-center gap-1.5 justify-center">
+                        <Mic className="h-4 w-4 flex-shrink-0" />
+                        <span className="text-xs font-medium whitespace-nowrap">Gravando</span>
+                      </div>
+                    ) : (
                       <Mic className="h-4 w-4" />
-                      <span className="text-xs font-medium">Gravando...</span>
-                    </div>
-                  ) : (
-                    <Mic className="h-4 w-4" />
-                  )}
-                </Button>
+                    )}
+                  </Button>
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
                 
