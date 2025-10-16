@@ -315,26 +315,24 @@ const CalendarPage = () => {
                               
                               {/* Event indicators - New Design */}
                               {hasEvents && (
-                                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
+                                <div className="absolute top-2 right-2">
                                   {dayEvents.length === 1 ? (
-                                    // 1 evento: mostrar bolinha única maior
+                                    // 1 evento: bolinha simples
                                     <div
                                       className={cn(
                                         "w-2 h-2 rounded-full shadow-md",
-                                        getEventTypeColor(dayEvents[0].type),
-                                        isSelected && "ring-2 ring-white"
+                                        getEventTypeColor(dayEvents[0].type)
                                       )}
                                     />
                                   ) : dayEvents.length === 2 ? (
-                                    // 2 eventos: mostrar 2 bolinhas lado a lado
-                                    <div className="flex gap-0.5">
+                                    // 2 eventos: duas bolinhas empilhadas verticalmente
+                                    <div className="flex flex-col gap-0.5">
                                       {dayEvents.slice(0, 2).map((event, idx) => (
                                         <div
                                           key={idx}
                                           className={cn(
                                             "w-1.5 h-1.5 rounded-full shadow-sm",
-                                            getEventTypeColor(event.type),
-                                            isSelected && "ring-1 ring-white/80"
+                                            getEventTypeColor(event.type)
                                           )}
                                         />
                                       ))}
@@ -343,7 +341,7 @@ const CalendarPage = () => {
                                     // 3+ eventos: mostrar badge com número
                                     <div
                                       className={cn(
-                                        "px-1.5 py-0.5 text-[10px] font-bold rounded-full shadow-sm",
+                                        "px-1.5 py-0.5 text-[9px] font-bold rounded-full shadow-sm",
                                         isSelected 
                                           ? "bg-white text-pink-600" 
                                           : "bg-gradient-to-r from-pink-500 to-purple-500 text-white"

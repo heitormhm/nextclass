@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Search, Filter } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Filter, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,105 +8,64 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import AnnotationCard from "@/components/AnnotationCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Annotation {
   id: string;
   title: string;
-  course: string;
-  lectureId: string;
-  lectureTitle: string;
-  timestamp: string;
-  tags: string[];
-  createdAt: string;
-  preview: string;
+  content: string;
+  source_type?: string;
+  source_id?: string;
+  created_at: string;
+  updated_at: string;
 }
 
-const mockAnnotations: Annotation[] = [
-  { 
-    id: '101', 
-    title: 'Anotações sobre Análise de Circuitos', 
-    course: 'Engenharia Elétrica',
-    lectureId: '1',
-    lectureTitle: 'Análise de Circuitos',
-    timestamp: '12:45',
-    tags: ['Circuitos', 'Lei de Ohm', 'Kirchhoff'],
-    createdAt: '2024-03-14',
-    preview: 'Cálculos da Lei de Ohm e aplicação das Leis de Kirchhoff em circuitos mistos. A análise começa pela identificação dos nós principais...'
-  },
-  { 
-    id: '102', 
-    title: 'Resumo do Estudo de Falha Estrutural', 
-    course: 'Engenharia Civil',
-    lectureId: '1',
-    lectureTitle: 'Análise Estrutural',
-    timestamp: '08:32',
-    tags: ['Estruturas', 'Fadiga', 'Materiais'],
-    createdAt: '2024-03-13',
-    preview: 'Análise da fadiga de material em viga de aço sob carga cíclica. Fatores contribuintes incluem amplitude de tensão e número de ciclos...'
-  },
-  { 
-    id: '103', 
-    title: 'Dúvidas sobre Termodinâmica', 
-    course: 'Engenharia Mecânica',
-    lectureId: '1',
-    lectureTitle: 'Termodinâmica Aplicada',
-    timestamp: '15:20',
-    tags: ['Termodinâmica', 'Ciclos', 'Eficiência'],
-    createdAt: '2024-03-12',
-    preview: 'Diferença entre ciclo de Rankine e ciclo de Carnot. Eficiência teórica versus eficiência real, considerando perdas por atrito e transferência de calor...'
-  },
-  { 
-    id: '104', 
-    title: 'Notas de Laboratório de Materiais', 
-    course: 'Ciência dos Materiais',
-    lectureId: '1',
-    lectureTitle: 'Propriedades Mecânicas',
-    timestamp: '22:10',
-    tags: ['Laboratório', 'Ensaios', 'Alumínio'],
-    createdAt: '2024-03-11',
-    preview: 'Resultados do ensaio de tração para o corpo de prova de alumínio. Módulo de Young calculado: 70 GPa. Limite de escoamento: 250 MPa...'
-  },
-  { 
-    id: '105', 
-    title: 'Interpretação de Diagramas de Fase', 
-    course: 'Ciência dos Materiais',
-    lectureId: '1',
-    lectureTitle: 'Transformações de Fase',
-    timestamp: '18:45',
-    tags: ['Diagramas', 'Fases', 'Microestrutura'],
-    createdAt: '2024-03-10',
-    preview: 'Análise do diagrama de fases Ferro-Carbono. Ponto eutetoide (0.76% C, 723°C) e suas implicações na formação de perlita...'
-  },
-  { 
-    id: '106', 
-    title: 'Conceitos de Controle Automático', 
-    course: 'Engenharia Mecânica',
-    lectureId: '1',
-    lectureTitle: 'Sistemas de Controle',
-    timestamp: '10:15',
-    tags: ['Controle', 'PID', 'Automação'],
-    createdAt: '2024-03-09',
-    preview: 'Fundamentos do controlador PID. Ajuste de ganhos proporcional, integral e derivativo para otimização de resposta do sistema...'
-  },
-];
-
 const MyAnnotationsPage = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [annotations] = useState<Annotation[]>(mockAnnotations);
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Extract unique courses and tags
-  const allCourses = Array.from(new Set(annotations.map(a => a.course)));
-  const allTags = Array.from(new Set(annotations.flatMap(a => a.tags)));
+  useEffect(() => {
+    const fetchAnnotations = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('annotations')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching annotations:', error);
+          toast.error('Erro ao carregar anotações');
+        } else {
+          setAnnotations(data || []);
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+        toast.error('Erro ao carregar anotações');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchAnnotations();
+  }, [user]);
 
   const filteredAnnotations = annotations.filter(annotation => {
     const matchesSearch = annotation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         annotation.preview.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCourse = selectedCourses.length === 0 || selectedCourses.includes(annotation.course);
-    const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => annotation.tags.includes(tag));
-    return matchesSearch && matchesCourse && matchesTags;
+                         annotation.content.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
   const handleCourseToggle = (course: string) => {
@@ -139,93 +99,22 @@ const MyAnnotationsPage = () => {
           </p>
         </div>
 
-        {/* Two-Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Sidebar - Filters */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Search */}
-            <Card className="bg-white/60 backdrop-blur-xl border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Search className="h-5 w-5" />
-                  Buscar
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Input
-                  placeholder="Pesquisar anotações..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Course Filter */}
-            <Card className="bg-white/60 backdrop-blur-xl border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Filter className="h-5 w-5" />
-                  Por Curso
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {allCourses.map(course => (
-                  <div key={course} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`course-${course}`}
-                      checked={selectedCourses.includes(course)}
-                      onCheckedChange={() => handleCourseToggle(course)}
-                    />
-                    <Label
-                      htmlFor={`course-${course}`}
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      {course}
-                    </Label>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Tag Filter */}
-            <Card className="bg-white/60 backdrop-blur-xl border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg">Por Tag</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {allTags.map(tag => (
-                  <div key={tag} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`tag-${tag}`}
-                      checked={selectedTags.includes(tag)}
-                      onCheckedChange={() => handleTagToggle(tag)}
-                    />
-                    <Label
-                      htmlFor={`tag-${tag}`}
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      {tag}
-                    </Label>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Clear Filters Button */}
-            {(selectedCourses.length > 0 || selectedTags.length > 0 || searchQuery) && (
-              <Button 
-                variant="outline" 
-                onClick={clearFilters}
-                className="w-full"
-              >
-                Limpar Filtros
-              </Button>
-            )}
+        {/* Main Content Area */}
+        <div className="max-w-7xl mx-auto">
+          {/* Search Bar */}
+          <div className="mb-8">
+            <div className="relative max-w-xl">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+              <Input
+                placeholder="Pesquisar anotações..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
 
-          {/* Main Content Area */}
-          <div className="lg:col-span-3">
+          <div>
             {/* Results Count */}
             <div className="mb-6">
               <p className="text-sm text-muted-foreground">
@@ -234,21 +123,39 @@ const MyAnnotationsPage = () => {
             </div>
 
             {/* Annotations Grid */}
-            {filteredAnnotations.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <Card key={i} className="p-6">
+                    <Skeleton className="h-6 w-3/4 mb-3" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-2/3 mb-4" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-6 w-20" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : filteredAnnotations.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredAnnotations.map((annotation) => (
-                  <AnnotationCard
-                    key={annotation.id}
-                    id={annotation.id}
-                    title={annotation.title}
-                    course={annotation.course}
-                    lectureId={annotation.lectureId}
-                    lectureTitle={annotation.lectureTitle}
-                    timestamp={annotation.timestamp}
-                    tags={annotation.tags}
-                    createdAt={annotation.createdAt}
-                    preview={annotation.preview}
-                  />
+                  <Card 
+                    key={annotation.id} 
+                    className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                    onClick={() => navigate(`/annotation/${annotation.id}`)}
+                  >
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      {annotation.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+                      {annotation.content.replace(/<[^>]*>/g, '').substring(0, 150)}...
+                    </p>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(annotation.created_at).toLocaleDateString('pt-BR')}
+                    </div>
+                  </Card>
                 ))}
               </div>
             ) : (
@@ -256,19 +163,25 @@ const MyAnnotationsPage = () => {
                 <div className="text-muted-foreground mb-4">
                   <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg">Nenhuma anotação encontrada</p>
-                  <p className="text-sm">Tente ajustar os filtros de pesquisa</p>
+                  <p className="text-sm">
+                    {annotations.length === 0 
+                      ? 'Crie sua primeira anotação clicando no botão abaixo' 
+                      : 'Tente ajustar o termo de pesquisa'}
+                  </p>
                 </div>
-                <Button 
-                  variant="outline" 
-                  onClick={clearFilters}
-                  className="mt-4"
-                >
-                  Limpar filtros
-                </Button>
               </div>
             )}
           </div>
         </div>
+
+        {/* Floating Action Button - Nova Anotação */}
+        <Button
+          onClick={() => navigate('/annotation/new')}
+          className="fixed bottom-8 right-8 rounded-full w-16 h-16 shadow-2xl bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 z-50"
+          size="icon"
+        >
+          <Plus className="h-8 w-8 text-white" />
+        </Button>
       </div>
     </MainLayout>
   );

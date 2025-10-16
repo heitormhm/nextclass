@@ -1,45 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import LibraryCard from '@/components/LibraryCard';
 import MainLayout from '@/components/MainLayout';
-
-const mockLibraryMaterials: LibraryMaterial[] = [
-  { id: 'lib-01', title: 'Manual de Fórmulas de Estruturas', description: 'Um guia completo para cálculo de vigas, treliças e pórticos.', type: 'PDF', category: 'Engenharia Civil', teacher: 'Prof. Emily Carter' },
-  { id: 'lib-02', title: 'Podcast: Fundamentos de Sinais e Sistemas', description: 'Série de áudios sobre a Transformada de Laplace e suas aplicações.', type: 'Áudio', category: 'Engenharia Elétrica', teacher: 'Prof. David Lee' },
-  { id: 'lib-03', title: 'Simulação de Fluidos em CFD', description: 'Vídeo demonstrativo de uma simulação de escoamento em software CFD.', type: 'Vídeo', category: 'Engenharia Mecânica', teacher: 'Prof. Ana Santos' },
-  { id: 'lib-04', title: 'Diagrama de Circuitos Lógicos', description: 'Infográfico detalhado com as principais portas lógicas e suas tabelas-verdade.', type: 'Imagem', category: 'Engenharia da Computação', teacher: 'Prof. Sarah Chen' },
-  { id: 'lib-05', title: 'Normas Técnicas de Materiais', description: 'Material complementar sobre as propriedades de aços-carbono.', type: 'PDF', category: 'Engenharia de Materiais', teacher: 'Prof. Michael Johnson' },
-  { id: 'lib-06', title: 'Tutorial de Programação em Python', description: 'Vídeo tutorial sobre estruturas de dados e algoritmos básicos.', type: 'Vídeo', category: 'Engenharia de Software', teacher: 'Prof. Sarah Chen' },
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface LibraryMaterial {
   id: string;
   title: string;
-  description: string;
-  type: 'PDF' | 'Vídeo' | 'Áudio' | 'Imagem';
-  category: string;
-  teacher: string;
+  file_type: string;
+  file_url: string;
+  class_id: string;
+  teacher_id: string;
+  created_at: string;
+  classes?: {
+    name: string;
+  };
 }
 
 const LibraryPage = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedTeacher, setSelectedTeacher] = useState('all');
+  const [materials, setMaterials] = useState<LibraryMaterial[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get unique categories and teachers from data
-  const categories = [...new Set(mockLibraryMaterials.map(item => item.category))];
-  const teachers = [...new Set(mockLibraryMaterials.map(item => item.teacher))];
-
-  // Filter materials based on search and filters
-  const filteredMaterials = mockLibraryMaterials.filter(material => {
-    const matchesSearch = material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         material.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || material.category === selectedCategory;
-    const matchesTeacher = selectedTeacher === 'all' || material.teacher === selectedTeacher;
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        // 1. Buscar turmas do aluno
+        const { data: enrollments } = await supabase
+          .from('turma_enrollments')
+          .select('turma_id')
+          .eq('aluno_id', user.id);
+        
+        if (!enrollments || enrollments.length === 0) {
+          setMaterials([]);
+          setIsLoading(false);
+          return;
+        }
+        
+        const turmaIds = enrollments.map(e => e.turma_id);
+        
+        // 2. Buscar classes das turmas (usando o campo correto)
+        const { data: classes } = await supabase
+          .from('classes')
+          .select('id')
+          .in('id', turmaIds);
+        
+        if (!classes || classes.length === 0) {
+          setMaterials([]);
+          setIsLoading(false);
+          return;
+        }
+        
+        const classIds = classes.map(c => c.id);
+        
+        // 3. Buscar materiais das classes
+        const { data: libraryData, error } = await supabase
+          .from('library_materials')
+          .select('*, classes(name)')
+          .in('class_id', classIds)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching library materials:', error);
+          toast.error('Erro ao carregar materiais');
+        } else {
+          setMaterials(libraryData || []);
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+        toast.error('Erro ao carregar materiais');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    return matchesSearch && matchesCategory && matchesTeacher;
+    fetchMaterials();
+  }, [user]);
+
+  // Filter materials based on search
+  const filteredMaterials = materials.filter(material => {
+    const matchesSearch = material.title.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
   });
 
   return (
@@ -53,48 +103,17 @@ const LibraryPage = () => {
           </p>
         </div>
 
-          {/* Search and Filter Controls */}
-          <div className="mb-8 space-y-4 sm:space-y-0 sm:flex sm:gap-4 sm:items-center">
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground-muted w-4 h-4" />
+          {/* Search Bar */}
+          <div className="mb-8">
+            <div className="relative max-w-xl">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground-muted w-5 h-5" />
               <Input
                 type="text"
                 placeholder="Buscar materiais..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-card border-border focus:border-primary focus:ring-primary"
+                className="pl-10"
               />
-            </div>
-
-            {/* Category Filter */}
-            <div className="min-w-[200px]">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="bg-card border-border">
-                  <SelectValue placeholder="Filtrar por Categoria" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  <SelectItem value="all">Todas as Categorias</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Teacher Filter */}
-            <div className="min-w-[200px]">
-              <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
-                <SelectTrigger className="bg-card border-border">
-                  <SelectValue placeholder="Filtrar por Professor" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  <SelectItem value="all">Todos os Professores</SelectItem>
-                  {teachers.map(teacher => (
-                    <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
@@ -106,10 +125,31 @@ const LibraryPage = () => {
           </div>
 
           {/* Library Grid */}
-          {filteredMaterials.length > 0 ? (
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <Card key={i} className="p-6">
+                  <Skeleton className="h-32 w-full mb-4" />
+                  <Skeleton className="h-5 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-2/3" />
+                </Card>
+              ))}
+            </div>
+          ) : filteredMaterials.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredMaterials.map((material) => (
-                <LibraryCard key={material.id} material={material} />
+                <LibraryCard 
+                  key={material.id} 
+                  material={{
+                    id: material.id,
+                    title: material.title,
+                    description: material.classes?.name || 'Material da turma',
+                    type: material.file_type as any,
+                    category: material.classes?.name || '',
+                    teacher: ''
+                  }} 
+                />
               ))}
             </div>
           ) : (
@@ -117,7 +157,9 @@ const LibraryPage = () => {
               <div className="text-6xl mb-4 text-foreground-muted">📚</div>
               <h3 className="text-xl font-medium text-foreground mb-2">Nenhum material encontrado</h3>
               <p className="text-foreground-muted">
-                Tente ajustar os filtros ou buscar por outros termos
+                {materials.length === 0 
+                  ? 'Seus professores ainda não compartilharam materiais' 
+                  : 'Tente ajustar o termo de pesquisa'}
               </p>
             </div>
           )}

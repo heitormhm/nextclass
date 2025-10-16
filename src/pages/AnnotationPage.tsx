@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   Bold, Italic, Underline, Highlighter, List, ListOrdered, 
   ImagePlus, Type, Save, ArrowLeft, BookOpen, Tag, 
-  Sparkles, X, Loader2
+  Sparkles, X, Loader2, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
 
 interface Flashcard {
@@ -35,6 +36,7 @@ const AnnotationPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
+  const { user } = useAuth();
   const editorRef = useRef<HTMLDivElement>(null);
   
   const defaultContent = `
@@ -73,6 +75,10 @@ const AnnotationPage = () => {
   const [tagInput, setTagInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterials | null>(null);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (location.state?.prePopulatedContent) {
@@ -88,14 +94,134 @@ const AnnotationPage = () => {
     }
   }, []);
 
-  const handleSave = () => {
-    toast.success('Anotações salvas com sucesso!');
-    console.log('Saving annotations:', { title, content, tags });
+  const generateTitleWithAI = async () => {
+    if (!content.trim()) {
+      toast.error('Escreva algum conteúdo primeiro');
+      return;
+    }
+
+    setIsGeneratingTitle(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-annotation-title', {
+        body: { content }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.title) {
+        setTitle(data.title);
+        toast.success('Título gerado por IA!');
+      }
+    } catch (error) {
+      console.error('Error generating title:', error);
+      toast.error('Erro ao gerar título');
+    } finally {
+      setIsGeneratingTitle(false);
+    }
   };
 
-  const handleSaveAndExit = () => {
-    handleSave();
-    navigate(-1);
+  const handleSave = async () => {
+    if (!user) {
+      toast.error('Você precisa estar logado');
+      return;
+    }
+
+    let finalTitle = title.trim();
+    
+    // Gerar título automaticamente se estiver vazio
+    if (!finalTitle && content.trim()) {
+      await generateTitleWithAI();
+      finalTitle = title.trim();
+    }
+
+    if (!finalTitle) {
+      toast.error('Por favor, adicione um título');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (id && id !== 'new') {
+        // Atualizar anotação existente
+        const { error } = await supabase
+          .from('annotations')
+          .update({
+            title: finalTitle,
+            content,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+      } else {
+        // Criar nova anotação
+        const { error } = await supabase
+          .from('annotations')
+          .insert({
+            user_id: user.id,
+            title: finalTitle,
+            content,
+            source_type: location.state?.sourceType,
+            source_id: location.state?.sourceId,
+          });
+        
+        if (error) throw error;
+      }
+      
+      toast.success('Anotação salva com sucesso!');
+    } catch (error) {
+      console.error('Error saving annotation:', error);
+      toast.error('Erro ao salvar anotação');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveAndExit = async () => {
+    await handleSave();
+    navigate('/annotations');
+  };
+
+  const handleExportPDF = async () => {
+    if (!title.trim() || !content.trim()) {
+      toast.error('Adicione título e conteúdo antes de exportar');
+      return;
+    }
+
+    try {
+      // Por enquanto, informar que a funcionalidade será adicionada em breve
+      toast.info('Funcionalidade de exportação PDF será adicionada em breve');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF');
+    }
+  };
+
+  const generateTagsWithAI = async () => {
+    if (!content.trim()) {
+      toast.error('Escreva algum conteúdo primeiro');
+      return;
+    }
+
+    setIsGeneratingTags(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-annotation-tags', {
+        body: { content, title }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.tags) {
+        setSuggestedTags(data.tags);
+        toast.success('Tags sugeridas geradas!');
+      }
+    } catch (error) {
+      console.error('Error generating tags:', error);
+      toast.error('Erro ao gerar tags');
+    } finally {
+      setIsGeneratingTags(false);
+    }
   };
 
   const handleHighlight = () => {
@@ -195,13 +321,28 @@ const AnnotationPage = () => {
                   placeholder="Título da Anotação"
                 />
               </div>
-              <Button
-                onClick={handleSaveAndExit}
-                className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Salvar e Sair
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleExportPDF}
+                  variant="outline"
+                  className="border-pink-500 text-pink-500 hover:bg-pink-50"
+                  disabled={isSaving}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar PDF
+                </Button>
+                <Button
+                  onClick={handleSaveAndExit}
+                  className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
+                  ) : (
+                    <><Save className="h-4 w-4 mr-2" />Salvar e Sair</>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -353,12 +494,49 @@ const AnnotationPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  <Button
+                    onClick={generateTagsWithAI}
+                    disabled={isGeneratingTags}
+                    variant="outline"
+                    size="sm"
+                    className="w-full mb-2"
+                  >
+                    {isGeneratingTags ? (
+                      <><Loader2 className="h-3 w-3 mr-2 animate-spin" />Gerando...</>
+                    ) : (
+                      <><Sparkles className="h-3 w-3 mr-2" />Sugerir Tags com IA</>
+                    )}
+                  </Button>
+                  
+                  {suggestedTags.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Sugestões de IA:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {suggestedTags.map((tag, idx) => (
+                          <Badge 
+                            key={idx} 
+                            variant="outline"
+                            className="cursor-pointer hover:bg-pink-100 transition-colors"
+                            onClick={() => {
+                              if (!tags.includes(tag)) {
+                                setTags([...tags, tag]);
+                                setSuggestedTags(suggestedTags.filter(t => t !== tag));
+                              }
+                            }}
+                          >
+                            + {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex gap-2">
                     <Input
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                      placeholder="Adicionar etiqueta..."
+                      placeholder="Adicionar manualmente..."
                       className="flex-1"
                     />
                     <Button onClick={handleAddTag} size="sm">
