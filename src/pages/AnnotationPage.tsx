@@ -3,7 +3,7 @@ import {
   Bold, Italic, Underline, Highlighter, List, ListOrdered, 
   ImagePlus, Type, Save, ArrowLeft, BookOpen, Tag, 
   Sparkles, X, Loader2, Download, CheckCircle2, FileText,
-  Maximize2, Minimize2, BookCheck, AlertTriangle
+  Maximize2, Minimize2, BookCheck, AlertTriangle, Mic
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +57,9 @@ const AnnotationPage = () => {
   const [dialogTags, setDialogTags] = useState<string[]>([]);
   const [dialogTagInput, setDialogTagInput] = useState('');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [isEditorFocused, setIsEditorFocused] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     if (location.state?.prePopulatedContent) {
@@ -234,6 +237,8 @@ const AnnotationPage = () => {
   };
 
   const handleAIAction = async (actionType: string) => {
+    console.log('🤖 Iniciando ação IA:', actionType);
+    
     if (!content.trim()) {
       toast.error('Escreva conteúdo antes de usar a IA');
       return;
@@ -242,6 +247,8 @@ const AnnotationPage = () => {
     setIsProcessingAI(true);
     
     try {
+      console.log('📝 Criando job com payload:', { content: content.substring(0, 100), title, action: actionType });
+      
       const { data: jobData, error } = await supabase
         .from('jobs')
         .insert({
@@ -258,8 +265,12 @@ const AnnotationPage = () => {
         .select()
         .single();
 
-      if (error) throw error;
-
+      if (error) {
+        console.error('❌ Erro ao criar job:', error);
+        throw error;
+      }
+      
+      console.log('✅ Job criado:', jobData.id);
       toast.success(`Processando com IA...`);
       
       const pollInterval = setInterval(async () => {
@@ -309,6 +320,8 @@ const AnnotationPage = () => {
   };
 
   const generateTagsWithAI = async () => {
+    console.log('🏷️ Iniciando geração de tags');
+    
     if (!content.trim()) {
       toast.error('Escreva conteúdo primeiro');
       return;
@@ -317,6 +330,8 @@ const AnnotationPage = () => {
     setIsGeneratingTags(true);
     
     try {
+      console.log('📝 Criando job para tags');
+      
       const { data: jobData, error: jobError } = await supabase
         .from('jobs')
         .insert({
@@ -332,8 +347,12 @@ const AnnotationPage = () => {
         .select()
         .single();
 
-      if (jobError) throw jobError;
-
+      if (jobError) {
+        console.error('❌ Erro ao criar job de tags:', jobError);
+        throw jobError;
+      }
+      
+      console.log('✅ Job de tags criado:', jobData.id);
       toast.success('Tags sendo geradas...');
       
       const pollInterval = setInterval(async () => {
@@ -406,6 +425,105 @@ const AnnotationPage = () => {
     }
   };
 
+  const handleEditorFocus = () => {
+    setIsEditorFocused(true);
+    updateCursorPosition();
+  };
+
+  const handleEditorBlur = () => {
+    setTimeout(() => setIsEditorFocused(false), 200);
+  };
+
+  const updateCursorPosition = () => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      setCursorPosition({
+        top: rect.top + window.scrollY,
+        left: rect.left + window.scrollX
+      });
+    }
+  };
+
+  const handleStartVoiceTranscription = async () => {
+    console.log('🎤 Iniciando transcrição de voz');
+    setIsRecording(true);
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      const audioChunks: Blob[] = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+      
+      mediaRecorder.onstop = async () => {
+        console.log('🎤 Gravação finalizada, processando...');
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        
+        reader.onloadend = async () => {
+          const base64Audio = (reader.result as string).split(',')[1];
+          
+          console.log('📤 Enviando áudio para transcrição');
+          const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+            body: { audio: base64Audio }
+          });
+          
+          if (error) {
+            console.error('❌ Erro na transcrição:', error);
+            throw error;
+          }
+          
+          if (data?.text) {
+            console.log('✅ Transcrição recebida:', data.text);
+            
+            // Inserir texto no cursor
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              range.deleteContents();
+              const textNode = document.createTextNode(data.text + ' ');
+              range.insertNode(textNode);
+              
+              // Move cursor para o final do texto inserido
+              range.setStartAfter(textNode);
+              range.setEndAfter(textNode);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
+            
+            if (editorRef.current) {
+              setContent(editorRef.current.innerHTML);
+            }
+            
+            toast.success('Transcrição inserida!');
+          }
+        };
+        
+        reader.readAsDataURL(audioBlob);
+      };
+      
+      mediaRecorder.start();
+      toast.info('Gravando... (10 segundos)');
+      
+      setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+          stream.getTracks().forEach(track => track.stop());
+          setIsRecording(false);
+        }
+      }, 10000);
+      
+    } catch (error) {
+      console.error('❌ Erro ao acessar microfone:', error);
+      toast.error('Erro ao acessar microfone');
+      setIsRecording(false);
+    }
+  };
+
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
@@ -437,7 +555,7 @@ const AnnotationPage = () => {
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="text-2xl font-bold bg-transparent border-none focus:outline-none w-full"
+                  className="text-2xl font-bold bg-transparent border-none focus:outline-none w-full text-center"
                   placeholder="Título da Anotação"
                 />
               </div>
@@ -466,8 +584,12 @@ const AnnotationPage = () => {
                 <div
                   ref={editorRef}
                   contentEditable
+                  suppressContentEditableWarning={true}
                   onInput={handleInput}
-                  dangerouslySetInnerHTML={{ __html: content }}
+                  onFocus={handleEditorFocus}
+                  onBlur={handleEditorBlur}
+                  onClick={updateCursorPosition}
+                  onKeyUp={updateCursorPosition}
                   className={cn(
                     'min-h-[700px] p-8 rounded-lg',
                     'focus:outline-none focus:ring-2 focus:ring-primary/20',
@@ -481,6 +603,7 @@ const AnnotationPage = () => {
                   )}
                   data-placeholder="Comece a escrever sua anotação..."
                   style={{ lineHeight: '1.8', fontSize: '17px' }}
+                  dangerouslySetInnerHTML={content ? { __html: content } : undefined}
                 />
               </CardContent>
             </Card>
@@ -537,11 +660,36 @@ const AnnotationPage = () => {
           </Card>
         </div>
 
+        {/* Floating Voice Transcription Button */}
+        {isEditorFocused && (
+          <Button
+            onClick={handleStartVoiceTranscription}
+            className="fixed z-50 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-xs px-3 py-1 rounded-full shadow-lg flex items-center gap-1"
+            style={{
+              top: `${cursorPosition.top - 40}px`,
+              left: `${cursorPosition.left}px`,
+            }}
+            disabled={isRecording}
+          >
+            {isRecording ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Gravando...
+              </>
+            ) : (
+              <>
+                <Mic className="h-3 w-3" />
+                Transcrever voz
+              </>
+            )}
+          </Button>
+        )}
+
         {/* Floating AI Assistant Button com Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              className="fixed bottom-28 right-8 rounded-full w-16 h-16 shadow-2xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 z-40"
+              className="fixed bottom-6 right-6 rounded-full w-16 h-16 shadow-2xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 z-40"
               size="icon"
               title="Assistente IA Mia"
               disabled={isProcessingAI}
@@ -607,16 +755,21 @@ const AnnotationPage = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Save Dialog com Tags e PDF */}
+        {/* Save Dialog com Tags e PDF - REDESENHADO */}
         <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">Salvar Anotação</DialogTitle>
+          <DialogContent className="max-w-2xl bg-white/95 backdrop-blur-2xl border-0 shadow-2xl">
+            <DialogHeader className="text-center pb-4 border-b">
+              <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                Salvar Anotação
+              </DialogTitle>
             </DialogHeader>
             
-            <div className="space-y-6 py-4">
-              <div>
-                <Label className="text-base font-semibold mb-3 block">Adicionar Tags</Label>
+            <div className="space-y-6 py-6">
+              {/* Seção Tags com Frosting */}
+              <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-lg">
+                <Label className="text-lg font-bold mb-4 block text-gray-800">
+                  Adicionar Tags
+                </Label>
                 
                 <Button
                   onClick={async () => {
@@ -626,18 +779,16 @@ const AnnotationPage = () => {
                     }
                   }}
                   disabled={isGeneratingTags}
-                  variant="outline"
-                  size="sm"
-                  className="w-full mb-3"
+                  className="w-full mb-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-6 rounded-xl shadow-lg"
                 >
                   {isGeneratingTags ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando tags...</>
+                    <><Loader2 className="h-5 w-5 mr-2 animate-spin" />Gerando tags...</>
                   ) : (
-                    <><Sparkles className="h-4 w-4 mr-2" />Sugerir Tags com IA</>
+                    <><Sparkles className="h-5 w-5 mr-2" />Sugerir Tags com IA</>
                   )}
                 </Button>
                 
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-4">
                   <Input
                     value={dialogTagInput}
                     onChange={(e) => setDialogTagInput(e.target.value)}
@@ -650,7 +801,7 @@ const AnnotationPage = () => {
                       }
                     }}
                     placeholder="Digite uma tag e pressione Enter..."
-                    className="flex-1"
+                    className="flex-1 bg-white/80 backdrop-blur-sm border-2 border-purple-200 focus:border-purple-500 rounded-xl px-4 py-3"
                   />
                   <Button 
                     onClick={() => {
@@ -659,7 +810,7 @@ const AnnotationPage = () => {
                         setDialogTagInput('');
                       }
                     }}
-                    size="sm"
+                    className="bg-pink-500 hover:bg-pink-600 text-white px-6 rounded-xl"
                   >
                     Adicionar
                   </Button>
@@ -667,10 +818,13 @@ const AnnotationPage = () => {
                 
                 <div className="flex flex-wrap gap-2">
                   {dialogTags.map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center gap-1 py-1 px-3">
+                    <Badge 
+                      key={index} 
+                      className="bg-gradient-to-r from-pink-100 to-purple-100 text-purple-700 border-2 border-purple-300 py-2 px-4 text-sm font-medium rounded-full flex items-center gap-2"
+                    >
                       {tag}
                       <X 
-                        className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                        className="h-4 w-4 cursor-pointer hover:text-red-600 transition-colors" 
                         onClick={() => setDialogTags(dialogTags.filter(t => t !== tag))} 
                       />
                     </Badge>
@@ -678,36 +832,40 @@ const AnnotationPage = () => {
                 </div>
               </div>
               
-              <div>
-                <Label className="text-base font-semibold mb-3 block">Exportar como PDF</Label>
+              {/* Seção PDF com Frosting */}
+              <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-lg">
+                <Label className="text-lg font-bold mb-4 block text-gray-800">
+                  Exportar como PDF
+                </Label>
                 <Button
                   onClick={handleExportPDF}
-                  variant="outline"
-                  className="w-full border-pink-500 text-pink-500 hover:bg-pink-50"
+                  className="w-full bg-white/80 backdrop-blur-sm border-2 border-pink-300 text-pink-600 hover:bg-pink-50 hover:border-pink-500 font-semibold py-6 rounded-xl shadow-lg transition-all"
                 >
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="h-5 w-5 mr-2" />
                   Exportar PDF
                 </Button>
               </div>
             </div>
             
-            <DialogFooter>
+            {/* Footer com Botões Melhor Posicionados */}
+            <DialogFooter className="flex flex-row justify-end gap-3 pt-6 border-t">
               <Button 
                 variant="outline" 
                 onClick={() => setShowSaveDialog(false)}
                 disabled={isSaving}
+                className="px-8 py-6 text-base font-medium rounded-xl border-2 hover:bg-gray-50"
               >
                 Cancelar
               </Button>
               <Button 
                 onClick={handleFinalSave}
-                className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+                className="px-8 py-6 text-base font-semibold rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg"
                 disabled={isSaving}
               >
                 {isSaving ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
+                  <><Loader2 className="h-5 w-5 mr-2 animate-spin" />Salvando...</>
                 ) : (
-                  <><Save className="h-4 w-4 mr-2" />Salvar e Sair</>
+                  <><Save className="h-5 w-5 mr-2" />Salvar e Sair</>
                 )}
               </Button>
             </DialogFooter>
