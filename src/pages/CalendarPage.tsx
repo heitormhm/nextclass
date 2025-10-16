@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, Check, X, Trash2, Video, Users, Calendar as CalendarIcon, List } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, Check, X, Trash2, Video, Users, Calendar as CalendarIcon, List, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -497,9 +497,9 @@ const CalendarPage = () => {
                             >
                               <span className="relative z-10">{format(date, 'd')}</span>
                               
-                              {/* Event indicators - Color-based dots */}
+                              {/* Event indicators - Vertical stacked dots */}
                               {hasEvents && (
-                                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1 items-center justify-center z-10">
+                                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex flex-col gap-0.5 items-center justify-center z-10">
                                   {dayEvents.slice(0, 3).map((event, idx) => (
                                     <div
                                       key={idx}
@@ -511,12 +511,12 @@ const CalendarPage = () => {
                                     />
                                   ))}
                                   {dayEvents.length > 3 && (
-                                    <span className={cn(
-                                      "text-[8px] font-bold ml-0.5",
-                                      isSelected ? "text-gray-700" : "text-pink-600"
-                                    )}>
-                                      +{dayEvents.length - 3}
-                                    </span>
+                                    <MoreHorizontal 
+                                      className={cn(
+                                        "h-2 w-2 transition-all",
+                                        isSelected ? "text-gray-700" : "text-pink-600"
+                                      )}
+                                    />
                                   )}
                                 </div>
                               )}
