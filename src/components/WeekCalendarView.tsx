@@ -122,26 +122,26 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
         {weekDays.map((day, idx) => {
           const isCurrentDay = isToday(day);
           return (
-              <div
-                key={idx}
-                className={cn(
-                  "p-4 text-center border-r border-border last:border-r-0 flex flex-col items-center justify-center",
-                  isCurrentDay && "bg-gradient-to-b from-pink-50 to-purple-50"
-                )}
-              >
-                <div className={cn(
-                  "text-sm font-medium",
-                  isCurrentDay ? "text-pink-600" : "text-foreground-muted"
-                )}>
-                  {format(day, 'EEE', { locale: ptBR })}
-                </div>
-                <div className={cn(
-                  "text-2xl font-bold mt-1",
-                  isCurrentDay && "text-pink-600"
-                )}>
-                  {format(day, 'd')}
-                </div>
-              </div>
+        <div
+          key={idx}
+          className={cn(
+            "p-3 text-center border-r border-border last:border-r-0 flex flex-col items-center justify-center min-h-[80px]",
+            isCurrentDay && "bg-gradient-to-b from-pink-50 to-purple-50"
+          )}
+        >
+          <div className={cn(
+            "text-xs font-medium uppercase tracking-wide",
+            isCurrentDay ? "text-pink-600" : "text-foreground-muted"
+          )}>
+            {format(day, 'EEE', { locale: ptBR })}
+          </div>
+          <div className={cn(
+            "text-3xl font-bold mt-1 leading-none",
+            isCurrentDay && "text-pink-600"
+          )}>
+            {format(day, 'd')}
+          </div>
+        </div>
           );
         })}
       </div>
@@ -154,17 +154,17 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
       >
         <div className="relative" style={{ height: `${24 * 60}px` }}>
           {/* Time labels and grid lines */}
-          {timeSlots.map((hour) => (
-            <div
-              key={hour}
-              className="absolute left-0 right-0 border-t border-border"
-              style={{ top: `${hour * 60}px` }}
-            >
-              <div className="absolute top-0 left-2 -translate-y-1/2 text-xs text-foreground-muted bg-white px-1.5 py-0.5">
-                {format(new Date(2024, 0, 1, hour), 'HH:mm')}
-              </div>
+        {timeSlots.map((hour) => (
+          <div
+            key={hour}
+            className="absolute left-0 right-0 border-t border-border"
+            style={{ top: `${hour * 60}px` }}
+          >
+            <div className="absolute -top-3 left-2 text-xs text-foreground-muted bg-white px-2 py-1 rounded-sm">
+              {format(new Date(2024, 0, 1, hour), 'HH:mm')}
             </div>
-          ))}
+          </div>
+        ))}
 
           {/* Now indicator */}
           {showNowIndicator && (
@@ -201,18 +201,18 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                     const colorClasses = getEventColorClasses(event.color);
                     
                     return (
-                      <div
-                        key={event.id}
-                        className={cn(
-                          "absolute left-1 right-1 rounded-lg p-2 cursor-pointer transition-all duration-300",
-                          "hover:scale-[1.03] hover:shadow-xl group",
-                          isCompleted && "opacity-60",
-                          isCancelled && "opacity-50 grayscale",
-                          !isCancelled && `bg-gradient-to-br ${colorClasses.bg} text-white shadow-md`
-                        )}
-                        style={{ top: `${top}px`, height: `${height}px`, minHeight: '40px' }}
-                        onClick={() => onEventClick?.(event)}
-                      >
+      <div
+        key={event.id}
+        className={cn(
+          "absolute left-1 right-1 rounded-lg p-2 cursor-pointer transition-all duration-300 isolate",
+          "hover:scale-[1.03] hover:shadow-xl hover:z-50 group",
+          isCompleted && "opacity-60",
+          isCancelled && "opacity-50 grayscale",
+          !isCancelled && `bg-gradient-to-br ${colorClasses.bg} text-white shadow-md`
+        )}
+        style={{ top: `${top}px`, height: `${height}px`, minHeight: '40px' }}
+        onClick={() => onEventClick?.(event)}
+      >
                         <div className={cn(
                           "flex flex-col h-full justify-between relative z-20",
                           height > 60 && event.category && "pb-6"
@@ -271,17 +271,17 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                         </div>
 
                         {/* Category badge */}
-            {height > 60 && event.category && (
-              <Badge
-                variant="outline"
-                className={cn(
-                  "absolute bottom-1 left-1 h-5 text-[9px] px-1.5 z-10",
-                  `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
-                )}
-              >
-                {getCategoryLabel(event.category)}
-              </Badge>
+        {height > 60 && event.category && (
+          <Badge
+            variant="outline"
+            className={cn(
+              "absolute bottom-1 left-1 h-5 text-[9px] px-1.5 z-[100] pointer-events-none",
+              `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
             )}
+          >
+            {getCategoryLabel(event.category)}
+          </Badge>
+        )}
                       </div>
                     );
                   })}
