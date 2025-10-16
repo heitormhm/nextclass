@@ -353,8 +353,15 @@ const AnnotationPage = () => {
     try {
       console.log('🪄 Gerando título com IA...');
       
+      // Extract plain text from HTML content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = content;
+      const plainTextContent = tempDiv.textContent || tempDiv.innerText || '';
+      
+      console.log('📄 Texto extraído (primeiros 200 chars):', plainTextContent.substring(0, 200));
+      
       const { data, error } = await supabase.functions.invoke('generate-annotation-title', {
-        body: { content }
+        body: { content: plainTextContent }
       });
 
       if (error) {
@@ -364,6 +371,7 @@ const AnnotationPage = () => {
       
       if (data?.title) {
         setTitle(data.title);
+        console.log('✅ Título gerado:', data.title);
         toast.success('Título gerado com sucesso!');
       }
       
