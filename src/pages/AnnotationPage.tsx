@@ -58,12 +58,61 @@ const AnnotationPage = () => {
   const [dialogTagInput, setDialogTagInput] = useState('');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isLoadingAnnotation, setIsLoadingAnnotation] = useState(false);
   
   // History state for undo/redo
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isUndoRedoAction, setIsUndoRedoAction] = useState(false);
   const historyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load existing annotation
+  useEffect(() => {
+    const loadAnnotation = async () => {
+      if (!id || id === 'new' || !user) return;
+      
+      setIsLoadingAnnotation(true);
+      try {
+        const { data, error } = await supabase
+          .from('annotations')
+          .select('*')
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error loading annotation:', error);
+          toast.error('Erro ao carregar anotação');
+          navigate('/annotations');
+          return;
+        }
+        
+        if (data) {
+          setTitle(data.title || '');
+          setContent(data.content || '');
+          setTags(data.tags || []);
+          
+          // Update editor content
+          if (editorRef.current) {
+            editorRef.current.innerHTML = data.content || '';
+          }
+          
+          // Initialize history
+          if (data.content) {
+            setHistory([data.content]);
+            setHistoryIndex(0);
+          }
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+        toast.error('Erro ao carregar anotação');
+      } finally {
+        setIsLoadingAnnotation(false);
+      }
+    };
+    
+    loadAnnotation();
+  }, [id, user, navigate]);
 
   useEffect(() => {
     if (location.state?.prePopulatedContent) {
@@ -556,6 +605,20 @@ const AnnotationPage = () => {
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
+
+  // Show loading indicator when loading an existing annotation
+  if (isLoadingAnnotation) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Carregando anotação...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
