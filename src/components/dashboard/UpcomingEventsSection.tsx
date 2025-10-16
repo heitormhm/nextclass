@@ -83,6 +83,28 @@ export const UpcomingEventsSection = () => {
     };
 
     fetchEvents();
+
+    // Realtime subscription for personal_events
+    const channel = supabase
+      .channel('upcoming-events-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'personal_events',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          console.log('New event detected, refetching...');
+          fetchEvents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const getEventIcon = (type: string) => {

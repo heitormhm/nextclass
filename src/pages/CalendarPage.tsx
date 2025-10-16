@@ -5,7 +5,6 @@ import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, Video, Users } from 'lu
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import { CalendarEventModal } from '@/components/CalendarEventModal';
@@ -27,7 +26,6 @@ interface CalendarEvent {
 const CalendarPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [activeFilter, setActiveFilter] = useState('todas');
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -91,7 +89,7 @@ const CalendarPage = () => {
         ...(personalEvents || []).map(event => ({
           id: event.id,
           title: event.title,
-          date: new Date(event.event_date),
+          date: new Date(event.event_date.split('T')[0] + 'T12:00:00'),
           startTime: event.start_time,
           endTime: event.end_time,
           type: (event.event_type || 'event') as 'online' | 'presencial',
@@ -100,7 +98,7 @@ const CalendarPage = () => {
         ...(classEvents || []).map(event => ({
           id: event.id,
           title: event.title,
-          date: new Date(event.event_date),
+          date: new Date(event.event_date.split('T')[0] + 'T12:00:00'),
           startTime: event.start_time,
           endTime: event.end_time,
           type: event.event_type as 'online' | 'presencial',
@@ -189,15 +187,8 @@ const CalendarPage = () => {
     }
   ];
 
-  const filteredEvents = events.filter(event => {
-    if (activeFilter === 'todas') return true;
-    if (activeFilter === 'online') return event.type === 'online';
-    if (activeFilter === 'presencial') return event.type === 'presencial';
-    return true;
-  });
-
   const getEventsForDate = (date: Date) => {
-    return filteredEvents.filter(event => isSameDay(event.date, date));
+    return events.filter(event => isSameDay(event.date, date));
   };
 
   const hasEventsOnDate = (date: Date) => {
@@ -248,23 +239,9 @@ const CalendarPage = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8 lg:items-start">
           {/* Main Calendar View */}
           <div className="lg:col-span-3 space-y-6 order-2 lg:order-1">
-              {/* Header - Mobile optimized */}
-              <div className="flex items-center justify-between gap-4">
-                <h1 className="text-2xl sm:text-3xl font-bold">Calendário</h1>
-              </div>
-
-              {/* Filter Tabs - Centralized */}
-              <Tabs value={activeFilter} onValueChange={setActiveFilter}>
-                <TabsList className="grid grid-cols-3 w-full max-w-2xl mx-auto h-auto p-1">
-                  <TabsTrigger value="todas" className="text-xs sm:text-sm px-2 sm:px-4 py-2">Todas</TabsTrigger>
-                  <TabsTrigger value="online" className="text-xs sm:text-sm px-2 sm:px-4 py-2">Online</TabsTrigger>
-                  <TabsTrigger value="presencial" className="text-xs sm:text-sm px-2 sm:px-4 py-2">Presencial</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value={activeFilter} className="mt-6">
                   {isLoading ? (
                     <Card className="border-0 shadow-sm">
                       <CardContent className="p-6 space-y-4">
@@ -336,25 +313,43 @@ const CalendarPage = () => {
                             >
                               <span>{format(date, 'd')}</span>
                               
-                              {/* Event indicators */}
+                              {/* Event indicators - New Design */}
                               {hasEvents && (
-                                <div className="absolute bottom-1.5 left-1/2 transform -translate-x-1/2 flex gap-1">
-                                  {dayEvents.slice(0, 2).map((event, eventIndex) => (
+                                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
+                                  {dayEvents.length === 1 ? (
+                                    // 1 evento: mostrar bolinha única maior
                                     <div
-                                      key={eventIndex}
                                       className={cn(
-                                        "w-1.5 h-1.5 rounded-full shadow-sm",
-                                        getEventTypeColor(event.type),
-                                        isSelected && "bg-white ring-1 ring-white/50"
+                                        "w-2 h-2 rounded-full shadow-md",
+                                        getEventTypeColor(dayEvents[0].type),
+                                        isSelected && "ring-2 ring-white"
                                       )}
                                     />
-                                  ))}
-                                  {dayEvents.length > 2 && (
-                                    <div className={cn(
-                                      "text-[10px] font-bold ml-0.5",
-                                      isSelected ? "text-white" : "text-gray-500"
-                                    )}>
-                                      +{dayEvents.length - 2}
+                                  ) : dayEvents.length === 2 ? (
+                                    // 2 eventos: mostrar 2 bolinhas lado a lado
+                                    <div className="flex gap-0.5">
+                                      {dayEvents.slice(0, 2).map((event, idx) => (
+                                        <div
+                                          key={idx}
+                                          className={cn(
+                                            "w-1.5 h-1.5 rounded-full shadow-sm",
+                                            getEventTypeColor(event.type),
+                                            isSelected && "ring-1 ring-white/80"
+                                          )}
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    // 3+ eventos: mostrar badge com número
+                                    <div
+                                      className={cn(
+                                        "px-1.5 py-0.5 text-[10px] font-bold rounded-full shadow-sm",
+                                        isSelected 
+                                          ? "bg-white text-pink-600" 
+                                          : "bg-gradient-to-r from-pink-500 to-purple-500 text-white"
+                                      )}
+                                    >
+                                      {dayEvents.length}
                                     </div>
                                   )}
                                 </div>
@@ -378,8 +373,6 @@ const CalendarPage = () => {
                       </CardContent>
                     </Card>
                   )}
-                </TabsContent>
-              </Tabs>
             </div>
 
             {/* Agenda Sidebar - Above calendar on mobile */}

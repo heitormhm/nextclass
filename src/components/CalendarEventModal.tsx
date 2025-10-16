@@ -107,7 +107,7 @@ export const CalendarEventModal = ({
 
       const eventData = {
         title: title.trim(),
-        event_date: format(date, 'yyyy-MM-dd'),
+        event_date: format(date, 'yyyy-MM-dd') + 'T00:00:00',
         start_time: startTime,
         end_time: endTime,
         category: finalCategory,
@@ -172,9 +172,9 @@ export const CalendarEventModal = ({
         [&::-webkit-scrollbar]:w-2
         [&::-webkit-scrollbar-track]:bg-gray-100
         [&::-webkit-scrollbar-track]:rounded-full
-        [&::-webkit-scrollbar-thumb]:bg-pink-300
+        [&::-webkit-scrollbar-thumb]:bg-gray-300
         [&::-webkit-scrollbar-thumb]:rounded-full
-        [&::-webkit-scrollbar-thumb:hover]:bg-pink-400">
+        [&::-webkit-scrollbar-thumb:hover]:bg-gray-400">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center">
