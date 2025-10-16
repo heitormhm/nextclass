@@ -101,11 +101,18 @@ export const UpcomingEventsSection = () => {
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Próximos Eventos
-          </CardTitle>
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Calendar className="h-6 w-6 text-pink-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-xl font-semibold">Próximos Eventos</CardTitle>
+              <p className="text-sm text-gray-400 mt-0.5">
+                Sua agenda dos próximos 7 dias
+              </p>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -119,11 +126,18 @@ export const UpcomingEventsSection = () => {
   if (events.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Próximos Eventos
-          </CardTitle>
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Calendar className="h-6 w-6 text-pink-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-xl font-semibold">Próximos Eventos</CardTitle>
+              <p className="text-sm text-gray-400 mt-0.5">
+                Sua agenda dos próximos 7 dias
+              </p>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 space-y-3">
