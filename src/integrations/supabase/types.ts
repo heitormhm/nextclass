@@ -49,7 +49,9 @@ export type Database = {
       }
       class_events: {
         Row: {
+          category: Database["public"]["Enums"]["event_category"] | null
           class_id: string | null
+          color: Database["public"]["Enums"]["event_color"] | null
           created_at: string | null
           description: string | null
           end_time: string
@@ -57,11 +59,14 @@ export type Database = {
           event_type: string
           id: string
           location: string | null
+          notes: string | null
           start_time: string
           title: string
         }
         Insert: {
+          category?: Database["public"]["Enums"]["event_category"] | null
           class_id?: string | null
+          color?: Database["public"]["Enums"]["event_color"] | null
           created_at?: string | null
           description?: string | null
           end_time: string
@@ -69,11 +74,14 @@ export type Database = {
           event_type: string
           id?: string
           location?: string | null
+          notes?: string | null
           start_time: string
           title: string
         }
         Update: {
+          category?: Database["public"]["Enums"]["event_category"] | null
           class_id?: string | null
+          color?: Database["public"]["Enums"]["event_color"] | null
           created_at?: string | null
           description?: string | null
           end_time?: string
@@ -81,6 +89,7 @@ export type Database = {
           event_type?: string
           id?: string
           location?: string | null
+          notes?: string | null
           start_time?: string
           title?: string
         }
@@ -560,36 +569,87 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          event_type: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       personal_events: {
         Row: {
+          category: Database["public"]["Enums"]["event_category"] | null
+          color: Database["public"]["Enums"]["event_color"] | null
           created_at: string | null
           description: string | null
           end_time: string
           event_date: string
           event_type: string | null
           id: string
+          notes: string | null
+          notification_email: boolean | null
+          notification_platform: boolean | null
           start_time: string
           title: string
           user_id: string
         }
         Insert: {
+          category?: Database["public"]["Enums"]["event_category"] | null
+          color?: Database["public"]["Enums"]["event_color"] | null
           created_at?: string | null
           description?: string | null
           end_time: string
           event_date: string
           event_type?: string | null
           id?: string
+          notes?: string | null
+          notification_email?: boolean | null
+          notification_platform?: boolean | null
           start_time: string
           title: string
           user_id: string
         }
         Update: {
+          category?: Database["public"]["Enums"]["event_category"] | null
+          color?: Database["public"]["Enums"]["event_color"] | null
           created_at?: string | null
           description?: string | null
           end_time?: string
           event_date?: string
           event_type?: string | null
           id?: string
+          notes?: string | null
+          notification_email?: boolean | null
+          notification_platform?: boolean | null
           start_time?: string
           title?: string
           user_id?: string
@@ -851,6 +911,26 @@ export type Database = {
     }
     Enums: {
       app_role: "student" | "teacher"
+      event_category:
+        | "sessao_estudo"
+        | "revisao_prova"
+        | "remarcacao_aula"
+        | "estagio"
+        | "atividade_avaliativa"
+        | "aula_online"
+        | "aula_presencial"
+        | "reuniao"
+        | "prazo"
+        | "outro"
+      event_color:
+        | "rosa"
+        | "roxo"
+        | "azul"
+        | "verde"
+        | "amarelo"
+        | "laranja"
+        | "vermelho"
+        | "cinza"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -979,6 +1059,28 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["student", "teacher"],
+      event_category: [
+        "sessao_estudo",
+        "revisao_prova",
+        "remarcacao_aula",
+        "estagio",
+        "atividade_avaliativa",
+        "aula_online",
+        "aula_presencial",
+        "reuniao",
+        "prazo",
+        "outro",
+      ],
+      event_color: [
+        "rosa",
+        "roxo",
+        "azul",
+        "verde",
+        "amarelo",
+        "laranja",
+        "vermelho",
+        "cinza",
+      ],
     },
   },
 } as const

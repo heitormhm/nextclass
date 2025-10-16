@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { format, addMonths, subMonths, isSameDay, isSameMonth, isToday } from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { format, addMonths, subMonths, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, Video, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
+import { CalendarEventModal } from '@/components/CalendarEventModal';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CalendarEvent {
   id: string;
@@ -24,9 +28,98 @@ const CalendarPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeFilter, setActiveFilter] = useState('todas');
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [userRole, setUserRole] = useState<'student' | 'teacher'>('student');
 
-  // Static event data
-  const events: CalendarEvent[] = [
+  // Fetch events from database
+  useEffect(() => {
+    fetchEvents();
+    fetchUserRole();
+  }, [currentDate]);
+
+  const fetchUserRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (data) {
+      setUserRole(data.role as 'student' | 'teacher');
+    }
+  };
+
+  const fetchEvents = async () => {
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const monthStart = startOfMonth(currentDate);
+      const monthEnd = endOfMonth(currentDate);
+
+      // Fetch personal events
+      const { data: personalEvents } = await supabase
+        .from('personal_events')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('event_date', monthStart.toISOString())
+        .lte('event_date', monthEnd.toISOString());
+
+      // Fetch class events (if enrolled)
+      const { data: enrollments } = await supabase
+        .from('turma_enrollments')
+        .select('turma_id')
+        .eq('aluno_id', user.id);
+
+      const enrolledClassIds = enrollments?.map(e => e.turma_id) || [];
+
+      const { data: classEvents } = await supabase
+        .from('class_events')
+        .select('*')
+        .in('class_id', enrolledClassIds)
+        .gte('event_date', monthStart.toISOString())
+        .lte('event_date', monthEnd.toISOString());
+
+      // Merge and format events
+      const allEvents: CalendarEvent[] = [
+        ...(personalEvents || []).map(event => ({
+          id: event.id,
+          title: event.title,
+          date: new Date(event.event_date),
+          startTime: event.start_time,
+          endTime: event.end_time,
+          type: (event.event_type || 'event') as 'online' | 'presencial',
+          description: event.notes || event.description,
+        })),
+        ...(classEvents || []).map(event => ({
+          id: event.id,
+          title: event.title,
+          date: new Date(event.event_date),
+          startTime: event.start_time,
+          endTime: event.end_time,
+          type: event.event_type as 'online' | 'presencial',
+          location: event.location,
+          description: event.description || event.notes,
+        }))
+      ];
+
+      setEvents(allEvents);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast.error('Erro ao carregar eventos');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Legacy static event data as fallback
+  const staticEvents: CalendarEvent[] = [
     {
       id: '1',
       title: 'Análise Termodinâmica',
@@ -161,24 +254,31 @@ const CalendarPage = () => {
               {/* Header - Mobile optimized */}
               <div className="flex items-center justify-between gap-4">
                 <h1 className="text-2xl sm:text-3xl font-bold">Calendário</h1>
-                <Button variant="outline" className="gap-2 min-h-[44px] px-3 sm:px-4">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Novo Evento</span>
-                  <span className="sm:hidden">Novo</span>
-                </Button>
               </div>
 
-              {/* Filter Tabs - Mobile optimized */}
+              {/* Filter Tabs - Centralized */}
               <Tabs value={activeFilter} onValueChange={setActiveFilter}>
-                <TabsList className="grid grid-cols-3 w-full max-w-md h-auto p-1">
+                <TabsList className="grid grid-cols-3 w-full max-w-2xl mx-auto h-auto p-1">
                   <TabsTrigger value="todas" className="text-xs sm:text-sm px-2 sm:px-4 py-2">Todas</TabsTrigger>
                   <TabsTrigger value="online" className="text-xs sm:text-sm px-2 sm:px-4 py-2">Online</TabsTrigger>
                   <TabsTrigger value="presencial" className="text-xs sm:text-sm px-2 sm:px-4 py-2">Presencial</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value={activeFilter} className="mt-6">
-                  <Card className="border-0 shadow-sm">
-                    <CardContent className="p-6">
+                  {isLoading ? (
+                    <Card className="border-0 shadow-sm">
+                      <CardContent className="p-6 space-y-4">
+                        <Skeleton className="h-10 w-full" />
+                        <div className="grid grid-cols-7 gap-2">
+                          {Array.from({ length: 42 }).map((_, i) => (
+                            <Skeleton key={i} className="h-12 w-full" />
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="border-0 shadow-sm">
+                      <CardContent className="p-6">
                       {/* Calendar Header */}
                       <div className="flex items-center justify-between mb-6">
                         <Button
@@ -272,8 +372,9 @@ const CalendarPage = () => {
                           <span className="text-sm text-foreground-muted">Aulas Presenciais</span>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
               </Tabs>
             </div>
@@ -348,7 +449,11 @@ const CalendarPage = () => {
                   
                   {/* Add to Calendar Button */}
                   <div className="pt-4 border-t">
-                    <Button className="w-full bg-primary hover:bg-primary-light" size="sm">
+                    <Button 
+                      onClick={() => setShowEventModal(true)}
+                      className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white" 
+                      size="sm"
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Adicionar ao meu calendário
                     </Button>
@@ -357,9 +462,18 @@ const CalendarPage = () => {
               </Card>
             </div>
           </div>
-        </div>
-    </MainLayout>
-  );
-};
 
-export default CalendarPage;
+          {/* Event Creation Modal */}
+          <CalendarEventModal
+            open={showEventModal}
+            onOpenChange={setShowEventModal}
+            selectedDate={selectedDate}
+            userRole={userRole}
+            onEventCreated={fetchEvents}
+          />
+        </div>
+      </MainLayout>
+    );
+  };
+
+  export default CalendarPage;
