@@ -118,12 +118,7 @@ const AnnotationPage = () => {
     loadAnnotation();
   }, [id, user, navigate]);
 
-  // Sync content to editor when editor becomes available
-  useEffect(() => {
-    if (editorRef.current && content && !isLoadingAnnotation) {
-      editorRef.current.innerHTML = content;
-    }
-  }, [content, isLoadingAnnotation]);
+  // Removed: useEffect that caused race condition by syncing content → innerHTML
 
   useEffect(() => {
     if (location.state?.prePopulatedContent) {
@@ -132,12 +127,7 @@ const AnnotationPage = () => {
     }
   }, [location.state]);
 
-  // Set initial content once on mount
-  useEffect(() => {
-    if (editorRef.current && content && !editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = content;
-    }
-  }, []);
+  // Removed: Redundant initialization useEffect (already handled in data loading useEffect)
 
   // Initialize history with first content
   useEffect(() => {
@@ -196,9 +186,27 @@ const AnnotationPage = () => {
       setIsUndoRedoAction(true);
       const previousContent = history[historyIndex - 1];
       setContent(previousContent);
+      
       if (editorRef.current) {
+        // Save scroll position
+        const scrollTop = editorRef.current.scrollTop;
+        
         editorRef.current.innerHTML = previousContent;
+        
+        // Restore scroll
+        editorRef.current.scrollTop = scrollTop;
+        
+        // Move cursor to end
+        const range = document.createRange();
+        const selection = window.getSelection();
+        if (editorRef.current.lastChild) {
+          range.selectNodeContents(editorRef.current);
+          range.collapse(false);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
       }
+      
       setHistoryIndex(historyIndex - 1);
       toast.info('Desfeito');
       setTimeout(() => setIsUndoRedoAction(false), 100);
@@ -210,9 +218,27 @@ const AnnotationPage = () => {
       setIsUndoRedoAction(true);
       const nextContent = history[historyIndex + 1];
       setContent(nextContent);
+      
       if (editorRef.current) {
+        // Save scroll position
+        const scrollTop = editorRef.current.scrollTop;
+        
         editorRef.current.innerHTML = nextContent;
+        
+        // Restore scroll
+        editorRef.current.scrollTop = scrollTop;
+        
+        // Move cursor to end
+        const range = document.createRange();
+        const selection = window.getSelection();
+        if (editorRef.current.lastChild) {
+          range.selectNodeContents(editorRef.current);
+          range.collapse(false);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
       }
+      
       setHistoryIndex(historyIndex + 1);
       toast.info('Refeito');
       setTimeout(() => setIsUndoRedoAction(false), 100);
