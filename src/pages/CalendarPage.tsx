@@ -375,7 +375,8 @@ const CalendarPage = () => {
                           </div>
 
                       {viewMode === 'month' ? (
-                        <div className="grid grid-cols-7 gap-2">
+                        <>
+                          <div className="grid grid-cols-7 gap-2">
                         {/* Days of week header */}
                         {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
                           <div key={day} className="p-2 text-center text-sm font-medium text-foreground-muted">
@@ -448,20 +449,20 @@ const CalendarPage = () => {
                             </button>
                           );
                         })}
-                      </div>
+                        </div>
 
-                      {/* Legend */}
-                      <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-blue-500" />
-                          <span className="text-sm text-foreground-muted">Aulas Online</span>
+                        {/* Legend */}
+                        <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-blue-500" />
+                            <span className="text-sm text-foreground-muted">Aulas Online</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-green-500" />
+                            <span className="text-sm text-foreground-muted">Aulas Presenciais</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-green-500" />
-                          <span className="text-sm text-foreground-muted">Aulas Presenciais</span>
-                        </div>
-                      </div>
-                      </div>
+                      </>
                       ) : (
                         <WeekCalendarView
                           events={events}
@@ -469,12 +470,11 @@ const CalendarPage = () => {
                           onEventUpdate={handleEventUpdate}
                         />
                       )}
-                        </CardContent>
-                      </Card>
-                    </>
-                    </>
-                  )}
-            </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+          </div>
 
             {/* Agenda Sidebar - Above calendar on mobile */}
             <div className="lg:col-span-1 order-1 lg:order-2">
