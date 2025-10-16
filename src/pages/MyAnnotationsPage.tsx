@@ -94,21 +94,18 @@ const MyAnnotationsPage = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
-        {/* Page Header - ALINHADO */}
-        <div className="mb-8 max-w-xl">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Minhas Anotações
-          </h1>
-          <p className="text-muted-foreground">
-            Todas as suas anotações em um só lugar. Organize e acesse facilmente seu material de estudo.
-          </p>
-        </div>
-
-        {/* Main Content Area */}
         <div className="max-w-7xl mx-auto">
-          {/* Search Bar - MESMO ALINHAMENTO */}
-          <div className="mb-8">
-            <div className="relative max-w-xl">
+          {/* Page Header e Search Bar - ALINHADOS */}
+          <div className="mb-8 max-w-xl">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Minhas Anotações
+            </h1>
+            <p className="text-muted-foreground mb-6">
+              Todas as suas anotações em um só lugar. Organize e acesse facilmente seu material de estudo.
+            </p>
+            
+            {/* Search Bar - MESMO NÍVEL */}
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
               <Input
                 placeholder="Pesquisar anotações..."
@@ -214,13 +211,17 @@ const MyAnnotationsPage = () => {
           </div>
         </div>
 
-        {/* Floating Action Button - Nova Anotação */}
+        {/* Floating Action Button - RETANGULAR ARREDONDADO */}
         <Button
           onClick={() => navigate('/annotation/new')}
-          className="fixed bottom-8 right-8 rounded-full w-16 h-16 shadow-2xl bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 z-50"
-          size="icon"
+          className="fixed bottom-8 right-8 px-6 py-6 rounded-2xl shadow-2xl bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 z-50 flex items-center gap-3"
         >
-          <Plus className="h-8 w-8 text-white" />
+          <div className="bg-white/20 rounded-full p-2">
+            <Plus className="h-6 w-6 text-white" />
+          </div>
+          <span className="text-white font-semibold text-base">
+            Criar Nova Anotação
+          </span>
         </Button>
       </div>
     </MainLayout>

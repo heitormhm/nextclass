@@ -6,6 +6,15 @@
 All colors MUST be HSL. Design tokens for consistent theming.
 */
 
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 @layer base {
   :root {
     /* Core brand colors */

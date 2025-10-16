@@ -36,6 +36,9 @@ verify_jwt = true
 [functions.generate-annotation-tags]
 verify_jwt = true
 
+[functions.ai-text-formatting]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321
