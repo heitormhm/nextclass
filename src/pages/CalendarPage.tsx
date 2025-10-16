@@ -247,6 +247,19 @@ const CalendarPage = () => {
     return type === 'online' ? 'bg-blue-500' : 'bg-green-500';
   };
 
+  const getEventDotColor = (color: string = 'azul') => {
+    const colorMap: Record<string, string> = {
+      'azul': 'bg-blue-500',
+      'vermelho': 'bg-red-500',
+      'verde': 'bg-green-500',
+      'amarelo': 'bg-yellow-500',
+      'roxo': 'bg-purple-500',
+      'rosa': 'bg-pink-500',
+      'laranja': 'bg-orange-500',
+    };
+    return colorMap[color] || 'bg-blue-500';
+  };
+
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => 
       direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1)
@@ -264,6 +277,13 @@ const CalendarPage = () => {
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
+    
+    // Se o dia clicado for hoje E tiver eventos, mudar automaticamente para modo semana
+    const hasEventsOnThisDate = getEventsForDate(date).length > 0;
+    if (isToday(date) && hasEventsOnThisDate) {
+      setViewMode('week');
+      setCurrentDate(date);
+    }
   };
 
   const handleEventDelete = async (eventId: string) => {
@@ -462,76 +482,60 @@ const CalendarPage = () => {
                           const hasEvents = hasEventsOnDate(date);
                           const dayEvents = getEventsForDate(date);
                           
-                          return (
+                          const DayButton = (
                             <button
                               key={index}
                               onClick={() => handleDateClick(date)}
                               className={cn(
-                                "relative p-2 h-14 text-sm rounded-xl transition-all duration-200",
-                                "hover:bg-gradient-to-br hover:from-pink-50 hover:to-purple-50",
+                                "relative p-2 h-14 text-sm rounded-xl transition-all duration-200 w-full",
+                                !isSelected && "hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-500 hover:text-white hover:font-bold hover:scale-[1.02]",
                                 !isCurrentMonth && "text-gray-400 opacity-50",
-                                isSelected && "bg-gradient-to-br from-pink-500 to-purple-500 text-white shadow-lg scale-105",
+                                isSelected && "bg-white font-extrabold text-gray-900 scale-105 shadow-2xl",
                                 isTodayDate && !isSelected && "bg-pink-50 font-bold text-pink-600 ring-2 ring-pink-200",
                                 hasEvents && "font-semibold"
                               )}
                             >
-                              <span>{format(date, 'd')}</span>
+                              <span className="relative z-10">{format(date, 'd')}</span>
                               
-                              {/* Event indicators - New Design */}
+                              {/* Event indicators - Color-based dots */}
                               {hasEvents && (
-                                <div className="absolute top-2 right-2">
-                                  {dayEvents.length === 1 ? (
-                                    // 1 evento: bolinha simples
+                                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1 items-center justify-center z-10">
+                                  {dayEvents.slice(0, 3).map((event, idx) => (
                                     <div
+                                      key={idx}
                                       className={cn(
-                                        "w-2 h-2 rounded-full shadow-md",
-                                        getEventTypeColor(dayEvents[0].type)
+                                        "w-1.5 h-1.5 rounded-full shadow-sm transition-all",
+                                        getEventDotColor(event.color),
+                                        isSelected && "ring-1 ring-white scale-110"
                                       )}
                                     />
-                                  ) : dayEvents.length === 2 ? (
-                                    // 2 eventos: duas bolinhas empilhadas verticalmente
-                                    <div className="flex flex-col gap-0.5">
-                                      {dayEvents.slice(0, 2).map((event, idx) => (
-                                        <div
-                                          key={idx}
-                                          className={cn(
-                                            "w-1.5 h-1.5 rounded-full shadow-sm",
-                                            getEventTypeColor(event.type)
-                                          )}
-                                        />
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    // 3+ eventos: mostrar badge com número
-                                    <div
-                                      className={cn(
-                                        "px-1.5 py-0.5 text-[9px] font-bold rounded-full shadow-sm",
-                                        isSelected 
-                                          ? "bg-white text-pink-600" 
-                                          : "bg-gradient-to-r from-pink-500 to-purple-500 text-white"
-                                      )}
-                                    >
-                                      {dayEvents.length}
-                                    </div>
+                                  ))}
+                                  {dayEvents.length > 3 && (
+                                    <span className={cn(
+                                      "text-[8px] font-bold ml-0.5",
+                                      isSelected ? "text-gray-700" : "text-pink-600"
+                                    )}>
+                                      +{dayEvents.length - 3}
+                                    </span>
                                   )}
                                 </div>
                               )}
                             </button>
                           );
+                          
+                          // Wrapper com borda gradiente apenas para dia selecionado
+                          if (isSelected) {
+                            return (
+                              <div key={index} className="relative p-[2px] rounded-xl bg-gradient-to-br from-pink-500 via-purple-500 to-pink-500 shadow-lg">
+                                {DayButton}
+                              </div>
+                            );
+                          }
+                          
+                          return DayButton;
                         })}
                         </div>
 
-                        {/* Legend */}
-                        <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-blue-500" />
-                            <span className="text-sm text-foreground-muted">Aulas Online</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-green-500" />
-                            <span className="text-sm text-foreground-muted">Aulas Presenciais</span>
-                          </div>
-                        </div>
                       </>
                       ) : (
                   <WeekCalendarView
