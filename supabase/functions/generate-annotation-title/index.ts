@@ -31,11 +31,11 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'Você é um assistente que gera títulos concisos (máximo 60 caracteres) para anotações acadêmicas de engenharia. Responda apenas com o título, sem aspas ou formatação extra.'
+            content: 'Você é um assistente especializado em criar títulos acadêmicos concisos e descritivos para anotações de engenharia. Gere um título em PORTUGUÊS BRASILEIRO (máximo 60 caracteres) que capture a essência técnica do conteúdo. Seja específico sobre o tema de engenharia. Responda apenas com o título, sem aspas, sem pontos finais, sem formatação extra.'
           },
           { 
             role: 'user', 
-            content: `Gere um título conciso e descritivo para esta anotação:\n\n${content.substring(0, 500)}`
+            content: `Analise este conteúdo de engenharia e gere um título técnico e descritivo:\n\n${content.substring(0, 500)}`
           }
         ],
       }),

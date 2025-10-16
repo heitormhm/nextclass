@@ -155,32 +155,6 @@ const AnnotationPage = () => {
     }
   }, [historyIndex, history]);
 
-  const generateTitleWithAI = async () => {
-    if (!content.trim()) {
-      toast.error('Escreva algum conteúdo primeiro');
-      return;
-    }
-
-    setIsGeneratingTitle(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-annotation-title', {
-        body: { content }
-      });
-      
-      if (error) throw error;
-      
-      if (data?.title) {
-        setTitle(data.title);
-        toast.success('Título gerado por IA!');
-      }
-    } catch (error) {
-      console.error('Error generating title:', error);
-      toast.error('Erro ao gerar título');
-    } finally {
-      setIsGeneratingTitle(false);
-    }
-  };
-
   const handleSave = async () => {
     if (!user) {
       toast.error('Você precisa estar logado');
@@ -365,6 +339,39 @@ const AnnotationPage = () => {
       console.error('❌ Error processing with AI:', error);
       toast.error('Erro ao processar com IA');
       setIsProcessingAI(false);
+    }
+  };
+
+  const generateTitleWithAI = async () => {
+    if (!content.trim()) {
+      toast.error('Escreva conteúdo antes de gerar o título');
+      return;
+    }
+
+    setIsGeneratingTitle(true);
+    
+    try {
+      console.log('🪄 Gerando título com IA...');
+      
+      const { data, error } = await supabase.functions.invoke('generate-annotation-title', {
+        body: { content }
+      });
+
+      if (error) {
+        console.error('❌ Erro ao gerar título:', error);
+        throw error;
+      }
+      
+      if (data?.title) {
+        setTitle(data.title);
+        toast.success('Título gerado com sucesso!');
+      }
+      
+    } catch (error) {
+      console.error('Error generating title:', error);
+      toast.error('Erro ao gerar título');
+    } finally {
+      setIsGeneratingTitle(false);
     }
   };
 
@@ -557,14 +564,28 @@ const AnnotationPage = () => {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="flex-1">
-                <input
+              <div className="flex-1 flex items-center gap-3">
+                <Input
                   type="text"
+                  placeholder="Título da Anotação"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="text-2xl font-bold bg-transparent border-none focus:outline-none w-full text-center"
-                  placeholder="Título da Anotação"
+                  className="text-2xl font-bold text-center border-none focus-visible:ring-0 bg-transparent"
                 />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={generateTitleWithAI}
+                  disabled={isGeneratingTitle || !content.trim()}
+                  title="Gerar título automático com IA"
+                  className="shrink-0 hover:bg-purple-100 hover:text-purple-600"
+                >
+                  {isGeneratingTitle ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                  ) : (
+                    <Sparkles className="h-5 w-5 text-purple-600" />
+                  )}
+                </Button>
               </div>
               <div className="flex gap-2">
                 <Button

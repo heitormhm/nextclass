@@ -38,28 +38,84 @@ serve(async (req) => {
     
     switch (action) {
       case 'fix_grammar':
-        systemPrompt = 'Você é um revisor de textos especializado em engenharia. Corrija APENAS erros gramaticais, ortográficos e de pontuação. Mantenha o tom e estilo original. Retorne SOMENTE o HTML corrigido, sem markdown, sem JSON, sem explicações.';
+        systemPrompt = 'Você é um revisor de textos especializado em engenharia. Corrija APENAS erros gramaticais, ortográficos e de pontuação. Mantenha o tom e estilo original. **IMPORTANTE: TODO o conteúdo DEVE estar em PORTUGUÊS BRASILEIRO.** Retorne SOMENTE o HTML corrigido, sem markdown, sem JSON, sem explicações.';
         break;
       case 'tone_formal':
-        systemPrompt = 'Reescreva o texto em um tom FORMAL e acadêmico. Use vocabulário preciso e técnico, terminologia científica apropriada, estruturas gramaticais complexas e elaboradas. Evite contrações, gírias e expressões coloquiais. Mantenha todas as informações técnicas. Retorne SOMENTE o HTML formatado, sem markdown, sem JSON.';
+        systemPrompt = 'Reescreva o texto em um tom FORMAL e acadêmico. Use vocabulário preciso e técnico, terminologia científica apropriada, estruturas gramaticais complexas e elaboradas. Evite contrações, gírias e expressões coloquiais. **IMPORTANTE: TODO o conteúdo, incluindo termos técnicos, DEVE estar em PORTUGUÊS BRASILEIRO.** Retorne SOMENTE o HTML formatado, sem markdown, sem JSON.';
         break;
       case 'tone_informal':
-        systemPrompt = 'Reescreva o texto em um tom INFORMAL e descontraído. Use linguagem do dia a dia, expressões coloquiais, analogias simples e exemplos práticos. Pode usar contrações (ex: "tá", "pra") e linguagem mais acessível. Mantenha todas as informações técnicas mas explique de forma simples. Retorne SOMENTE o HTML formatado, sem markdown, sem JSON.';
+        systemPrompt = 'Reescreva o texto em um tom INFORMAL e descontraído. Use linguagem do dia a dia, expressões coloquiais brasileiras, analogias simples e exemplos práticos. Pode usar contrações típicas do português brasileiro (ex: "tá", "pra", "né"). **IMPORTANTE: TODO o conteúdo DEVE estar em PORTUGUÊS BRASILEIRO.** Retorne SOMENTE o HTML formatado, sem markdown, sem JSON.';
         break;
       case 'tone_professional':
-        systemPrompt = 'Reescreva o texto em um tom PROFISSIONAL e técnico. Use jargão especializado de engenharia, terminologia técnica precisa, siglas e abreviações da área (ex: "NBR", "ABNT", "ISO"). Estruture como um relatório técnico profissional. Mantenha todas as informações. Retorne SOMENTE o HTML formatado, sem markdown, sem JSON.';
+        systemPrompt = 'Reescreva o texto em um tom PROFISSIONAL e técnico. Use jargão especializado de engenharia em português brasileiro, terminologia técnica precisa, siglas e abreviações da área brasileira (ex: "NBR", "ABNT", "ISO"). Estruture como um relatório técnico profissional. **IMPORTANTE: TODO o conteúdo, incluindo jargões técnicos, DEVE estar em PORTUGUÊS BRASILEIRO.** Retorne SOMENTE o HTML formatado, sem markdown, sem JSON.';
         break;
       case 'extend_text':
-        systemPrompt = 'Expanda o texto adicionando mais detalhes técnicos, exemplos práticos de engenharia e explicações aprofundadas, mantendo o mesmo tom. Retorne SOMENTE o HTML formatado, sem markdown, sem JSON.';
+        systemPrompt = 'Expanda o texto adicionando mais detalhes técnicos, exemplos práticos de engenharia brasileira e explicações aprofundadas, mantendo o mesmo tom. **IMPORTANTE: TODO o conteúdo DEVE estar em PORTUGUÊS BRASILEIRO.** Retorne SOMENTE o HTML formatado, sem markdown, sem JSON.';
         break;
       case 'shorten_text':
-        systemPrompt = 'Resuma o texto de forma concisa, mantendo apenas as informações essenciais e os conceitos técnicos principais. Retorne SOMENTE o HTML formatado, sem markdown, sem JSON.';
+        systemPrompt = 'Resuma o texto de forma concisa, mantendo apenas as informações essenciais e os conceitos técnicos principais. **IMPORTANTE: TODO o conteúdo DEVE estar em PORTUGUÊS BRASILEIRO.** Retorne SOMENTE o HTML formatado, sem markdown, sem JSON.';
         break;
       case 'improve_didactic':
-        systemPrompt = 'Reescreva o texto tornando-o EXTREMAMENTE didático para estudantes de engenharia. OBRIGATÓRIO incluir: 1) Tabelas HTML (<table>) para comparações e dados; 2) Listas com bullet points (<ul><li>); 3) Diagramas em ASCII art ou descrições de fluxogramas; 4) Seções com títulos (<h3>); 5) Boxes de destaque para conceitos-chave (<div class="highlight" style="background:#fef3c7;padding:1rem;border-left:4px solid #f59e0b;margin:1rem 0">); 6) Exemplos práticos numerados; 7) Analogias do cotidiano. Retorne em formato JSON: { "formattedContent": "<html rico>", "suggestions": "lista de melhorias sugeridas" }';
+        systemPrompt = `Reescreva o texto tornando-o EXTREMAMENTE didático para estudantes de engenharia brasileiros. 
+
+**REGRA ABSOLUTA: TODO O CONTEÚDO DEVE ESTAR EM PORTUGUÊS BRASILEIRO - incluindo títulos de tabelas, labels de diagramas, legendas, exemplos e qualquer texto técnico. NUNCA use inglês.**
+
+OBRIGATÓRIO incluir:
+
+1) **Tabelas HTML** com cabeçalhos e conteúdo EM PORTUGUÊS:
+   <table style="border-collapse:collapse;width:100%;margin:1rem 0">
+     <thead><tr style="background:#8b5cf6;color:white"><th style="padding:0.5rem;border:1px solid #ccc">Parâmetro</th><th style="padding:0.5rem;border:1px solid #ccc">Valor</th></tr></thead>
+     <tbody><tr><td style="padding:0.5rem;border:1px solid #ccc">Exemplo</td><td style="padding:0.5rem;border:1px solid #ccc">Dados</td></tr></tbody>
+   </table>
+
+2) **Listas organizadas** com bullet points:
+   <ul><li>Ponto importante 1</li><li>Ponto importante 2</li></ul>
+
+3) **Diagramas visuais ricos** usando caracteres Unicode BOX DRAWING (┌─┐│└┘├┤┬┴┼) e emojis técnicos:
+   <pre style="background:#f3f4f6;padding:1rem;border-radius:8px;font-family:monospace;line-height:1.8">
+   
+   ⚙️ SISTEMA HIDRÁULICO
+   
+   ┌─────────────────┐
+   │  🔧 ENTRADA     │ ──→ Força Pequena (F₁)
+   │  Área: A₁       │
+   └────────┬────────┘
+            │
+       💧 Fluido
+            │
+   ┌────────┴────────┐
+   │  🔧 SAÍDA       │ ──→ Força Grande (F₂)
+   │  Área: A₂       │
+   └─────────────────┘
+   
+   📊 F₂ = F₁ × (A₂/A₁)
+   </pre>
+
+4) **Seções com títulos descritivos EM PORTUGUÊS:**
+   <h3 style="color:#8b5cf6;margin-top:1.5rem">📚 Conceito Fundamental</h3>
+
+5) **Boxes de destaque** para conceitos-chave:
+   <div style="background:#fef3c7;padding:1rem;border-left:4px solid #f59e0b;margin:1rem 0;border-radius:4px">
+   <strong>⚡ Conceito-Chave:</strong> Explicação importante aqui
+   </div>
+
+6) **Exemplos práticos numerados** com contexto brasileiro:
+   <div style="background:#dbeafe;padding:1rem;margin:1rem 0;border-radius:4px">
+   <strong>🔍 Exemplo Prático 1:</strong> [Cenário real brasileiro]
+   </div>
+
+7) **Analogias do cotidiano brasileiro** para facilitar compreensão
+
+**LEMBRE-SE: Absolutamente TODO texto gerado (tabelas, diagramas, labels, legendas, exemplos) DEVE estar em PORTUGUÊS BRASILEIRO. Não misture com inglês.**
+
+Retorne em formato JSON: 
+{ 
+  "formattedContent": "<html rico e visual em português>", 
+  "suggestions": "lista de melhorias sugeridas em português" 
+}`;
         break;
       case 'fact_check':
-        systemPrompt = 'Analise o texto de engenharia e identifique possíveis erros factuais, conceitos incorretos, fórmulas erradas ou informações duvidosas. Retorne em JSON: { "formattedContent": "<html com correções>", "suggestions": "lista detalhada de erros encontrados e correções" }';
+        systemPrompt = 'Analise o texto tecnicamente e verifique a precisão das informações de engenharia. Destaque possíveis erros, imprecisões ou conceitos que precisam de verificação. **IMPORTANTE: TODO o conteúdo DEVE estar em PORTUGUÊS BRASILEIRO.** Retorne JSON: { "formattedContent": "<html com anotações>", "suggestions": "lista de pontos a verificar" }';
         break;
       default:
         throw new Error('Ação inválida');
