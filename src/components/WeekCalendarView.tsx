@@ -16,12 +16,13 @@ interface CalendarEvent {
   status?: 'pending' | 'completed' | 'cancelled';
   location?: string;
   description?: string;
+  color?: string;
 }
 
 interface WeekCalendarViewProps {
   events: CalendarEvent[];
   selectedDate: Date;
-  onEventUpdate: (eventId: string, action: 'delete' | 'complete' | 'cancel') => void;
+  onEventUpdate: (eventId: string, action: 'complete' | 'cancel') => void;
   onEventClick?: (event: CalendarEvent) => void;
 }
 
@@ -32,6 +33,19 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   onEventClick
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const getEventColorClasses = (color: string = 'azul') => {
+    const colorMap: Record<string, { bg: string; text: string; badge: string; border: string }> = {
+      'azul': { bg: 'from-blue-500 to-blue-600', text: 'text-blue-700', badge: 'bg-blue-50', border: 'border-blue-200' },
+      'vermelho': { bg: 'from-red-500 to-red-600', text: 'text-red-700', badge: 'bg-red-50', border: 'border-red-200' },
+      'verde': { bg: 'from-green-500 to-green-600', text: 'text-green-700', badge: 'bg-green-50', border: 'border-green-200' },
+      'amarelo': { bg: 'from-yellow-500 to-yellow-600', text: 'text-yellow-700', badge: 'bg-yellow-50', border: 'border-yellow-200' },
+      'roxo': { bg: 'from-purple-500 to-purple-600', text: 'text-purple-700', badge: 'bg-purple-50', border: 'border-purple-200' },
+      'rosa': { bg: 'from-pink-500 to-pink-600', text: 'text-pink-700', badge: 'bg-pink-50', border: 'border-pink-200' },
+      'laranja': { bg: 'from-orange-500 to-orange-600', text: 'text-orange-700', badge: 'bg-orange-50', border: 'border-orange-200' },
+    };
+    return colorMap[color] || colorMap['azul'];
+  };
 
   // Generate week days starting from Sunday
   const weekStart = startOfWeek(selectedDate, { locale: ptBR });
@@ -165,16 +179,17 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                     const { top, height } = getEventPosition(event.startTime, event.endTime);
                     const isCompleted = event.status === 'completed';
                     const isCancelled = event.status === 'cancelled';
+                    const colorClasses = getEventColorClasses(event.color);
                     
                     return (
                       <div
                         key={event.id}
                         className={cn(
-                          "absolute left-1 right-1 rounded-lg p-2 cursor-pointer transition-all duration-200",
-                          "hover:scale-[1.02] hover:shadow-lg group",
+                          "absolute left-1 right-1 rounded-lg p-2 cursor-pointer transition-all duration-300",
+                          "hover:scale-[1.03] hover:shadow-xl group",
                           isCompleted && "opacity-60",
-                          isCancelled && "opacity-50 bg-gray-400",
-                          !isCancelled && "bg-gradient-to-br from-pink-500 to-purple-500 text-white shadow-md"
+                          isCancelled && "opacity-50 grayscale",
+                          !isCancelled && `bg-gradient-to-br ${colorClasses.bg} text-white shadow-md`
                         )}
                         style={{ top: `${top}px`, height: `${height}px`, minHeight: '30px' }}
                         onClick={() => onEventClick?.(event)}
@@ -199,14 +214,14 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 
                           {/* Action buttons - show on hover */}
                           <div className={cn(
-                            "flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity",
+                            "flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-200",
                             height < 60 && "absolute -right-1 -top-1 bg-white rounded-lg shadow-lg p-1"
                           )}>
                             {!isCompleted && (
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-6 w-6 bg-white/90 hover:bg-green-100 text-green-600"
+                                className="h-6 w-6 bg-white/90 hover:bg-green-100 hover:scale-110 text-green-600 transition-all"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onEventUpdate(event.id, 'complete');
@@ -219,7 +234,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-6 w-6 bg-white/90 hover:bg-orange-100 text-orange-600"
+                                className="h-6 w-6 bg-white/90 hover:bg-orange-100 hover:scale-110 text-orange-600 transition-all"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onEventUpdate(event.id, 'cancel');
@@ -228,17 +243,6 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                                 <X className="h-3 w-3" />
                               </Button>
                             )}
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6 bg-white/90 hover:bg-red-100 text-red-600"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEventUpdate(event.id, 'delete');
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
                           </div>
                         </div>
 
@@ -247,10 +251,8 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                           <Badge
                             variant="outline"
                             className={cn(
-                              "absolute bottom-2 left-2 h-5 text-[10px] border-white/30",
-                              event.type === 'online'
-                                ? 'bg-blue-500/20 text-white'
-                                : 'bg-green-500/20 text-white'
+                              "absolute bottom-2 left-2 h-5 text-[10px]",
+                              `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
                             )}
                           >
                             {event.type === 'online' ? (

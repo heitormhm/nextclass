@@ -24,6 +24,7 @@ interface CalendarEvent {
   location?: string;
   description?: string;
   isPersonalEvent?: boolean;
+  color?: string;
 }
 
 const CalendarPage = () => {
@@ -100,6 +101,7 @@ const CalendarPage = () => {
           status: (event.status || 'pending') as 'pending' | 'completed' | 'cancelled',
           description: event.notes || event.description,
           isPersonalEvent: true,
+          color: event.color || 'azul',
         })),
         ...(classEvents || []).map(event => ({
           id: event.id,
@@ -112,6 +114,7 @@ const CalendarPage = () => {
           location: event.location,
           description: event.description || event.notes,
           isPersonalEvent: false,
+          color: event.color || 'azul',
         }))
       ];
 
@@ -203,6 +206,19 @@ const CalendarPage = () => {
     return getEventsForDate(date).length > 0;
   };
 
+  const getEventColorClasses = (color: string = 'azul') => {
+    const colorMap: Record<string, { bg: string; text: string; badge: string; border: string }> = {
+      'azul': { bg: 'from-blue-500 to-blue-600', text: 'text-blue-700', badge: 'bg-blue-50', border: 'border-blue-200' },
+      'vermelho': { bg: 'from-red-500 to-red-600', text: 'text-red-700', badge: 'bg-red-50', border: 'border-red-200' },
+      'verde': { bg: 'from-green-500 to-green-600', text: 'text-green-700', badge: 'bg-green-50', border: 'border-green-200' },
+      'amarelo': { bg: 'from-yellow-500 to-yellow-600', text: 'text-yellow-700', badge: 'bg-yellow-50', border: 'border-yellow-200' },
+      'roxo': { bg: 'from-purple-500 to-purple-600', text: 'text-purple-700', badge: 'bg-purple-50', border: 'border-purple-200' },
+      'rosa': { bg: 'from-pink-500 to-pink-600', text: 'text-pink-700', badge: 'bg-pink-50', border: 'border-pink-200' },
+      'laranja': { bg: 'from-orange-500 to-orange-600', text: 'text-orange-700', badge: 'bg-orange-50', border: 'border-orange-200' },
+    };
+    return colorMap[color] || colorMap['azul'];
+  };
+
   const getEventTypeColor = (type: 'online' | 'presencial') => {
     return type === 'online' ? 'bg-blue-500' : 'bg-green-500';
   };
@@ -226,33 +242,26 @@ const CalendarPage = () => {
     setSelectedDate(date);
   };
 
-  const handleEventUpdate = async (eventId: string, action: 'delete' | 'complete' | 'cancel') => {
+  const handleEventUpdate = async (eventId: string, action: 'complete' | 'cancel') => {
     try {
       const event = events.find(e => e.id === eventId);
       if (!event) return;
 
       const table = event.isPersonalEvent ? 'personal_events' : 'class_events';
+      const newStatus = action === 'complete' ? 'completed' : 'cancelled';
+      
+      const { error } = await supabase
+        .from(table)
+        .update({ status: newStatus })
+        .eq('id', eventId);
 
-      if (action === 'delete') {
-        const { error } = await supabase
-          .from(table)
-          .delete()
-          .eq('id', eventId);
+      if (error) throw error;
+      
+      toast.success(
+        action === 'complete' ? '✓ Evento concluído' : '✗ Evento cancelado',
+        { duration: 2000 }
+      );
 
-        if (error) throw error;
-        toast.success('Evento deletado com sucesso');
-      } else {
-        const newStatus = action === 'complete' ? 'completed' : 'cancelled';
-        const { error } = await supabase
-          .from(table)
-          .update({ status: newStatus })
-          .eq('id', eventId);
-
-        if (error) throw error;
-        toast.success(`Evento marcado como ${newStatus === 'completed' ? 'concluído' : 'cancelado'}`);
-      }
-
-      // Refresh events
       await fetchEvents();
     } catch (error) {
       console.error('Error updating event:', error);
@@ -306,62 +315,67 @@ const CalendarPage = () => {
                     </Card>
                   ) : (
                     <>
-                      {/* View Mode Toggle */}
-                      <div className="flex justify-end gap-2 mb-4">
-                        <Button
-                          variant={viewMode === 'month' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setViewMode('month')}
-                          className={cn(
-                            viewMode === 'month' && "bg-gradient-to-r from-pink-500 to-purple-500"
-                          )}
-                        >
-                          <CalendarIcon className="h-4 w-4 mr-2" />
-                          Mês
-                        </Button>
-                        <Button
-                          variant={viewMode === 'week' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setViewMode('week')}
-                          className={cn(
-                            viewMode === 'week' && "bg-gradient-to-r from-pink-500 to-purple-500"
-                          )}
-                        >
-                          <List className="h-4 w-4 mr-2" />
-                          Semana
-                        </Button>
-                      </div>
+                      <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl min-h-[600px]">
+                        <CardContent className="p-6">
+                          {/* Unified Navigation Bar */}
+                          <div className="flex items-center justify-between mb-6">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => viewMode === 'month' ? navigateMonth('prev') : navigateWeek('prev')}
+                              className="hover:bg-pink-100 transition-colors"
+                            >
+                              <ChevronLeft className="h-4 w-4 mr-1" />
+                              {viewMode === 'month' ? 'Mês anterior' : 'Semana anterior'}
+                            </Button>
+
+                            <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent capitalize">
+                              {viewMode === 'month' 
+                                ? format(currentDate, 'MMMM yyyy', { locale: ptBR })
+                                : format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                              }
+                            </h2>
+
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => viewMode === 'month' ? navigateMonth('next') : navigateWeek('next')}
+                                className="hover:bg-pink-100 transition-colors"
+                              >
+                                {viewMode === 'month' ? 'Próximo mês' : 'Próxima semana'}
+                                <ChevronRight className="h-4 w-4 ml-1" />
+                              </Button>
+
+                              <div className="h-6 w-px bg-gray-300 mx-2" />
+
+                              <Button
+                                variant={viewMode === 'month' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setViewMode('month')}
+                                className={cn(
+                                  viewMode === 'month' && "bg-gradient-to-r from-pink-500 to-purple-500"
+                                )}
+                              >
+                                <CalendarIcon className="h-4 w-4 mr-1" />
+                                Mês
+                              </Button>
+                              <Button
+                                variant={viewMode === 'week' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setViewMode('week')}
+                                className={cn(
+                                  viewMode === 'week' && "bg-gradient-to-r from-pink-500 to-purple-500"
+                                )}
+                              >
+                                <List className="h-4 w-4 mr-1" />
+                                Semana
+                              </Button>
+                            </div>
+                          </div>
 
                       {viewMode === 'month' ? (
-                        <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl min-h-[600px]">
-                          <CardContent className="p-6">
-                            {/* Calendar Header */}
-                      <div className="flex items-center justify-between mb-6 px-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigateMonth('prev')}
-                          className="hover:bg-pink-100 transition-colors"
-                        >
-                          <ChevronLeft className="h-5 w-5 text-pink-600" />
-                        </Button>
-                        
-                        <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent capitalize">
-                          {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
-                        </h2>
-                        
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigateMonth('next')}
-                          className="hover:bg-pink-100 transition-colors"
-                        >
-                          <ChevronRight className="h-5 w-5 text-pink-600" />
-                        </Button>
-                      </div>
-
-                      {/* Calendar Grid */}
-                      <div className="grid grid-cols-7 gap-2">
+                        <div className="grid grid-cols-7 gap-2">
                         {/* Days of week header */}
                         {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
                           <div key={day} className="p-2 text-center text-sm font-medium text-foreground-muted">
@@ -447,50 +461,24 @@ const CalendarPage = () => {
                           <span className="text-sm text-foreground-muted">Aulas Presenciais</span>
                         </div>
                       </div>
-                          </CardContent>
-                        </Card>
+                      </div>
                       ) : (
-                        <div className="space-y-4">
-                          {/* Week Navigation */}
-                          <div className="flex items-center justify-between">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigateWeek('prev')}
-                              className="hover:bg-pink-100"
-                            >
-                              <ChevronLeft className="h-4 w-4 mr-1" />
-                              Semana Anterior
-                            </Button>
-                            <h2 className="text-xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                              {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                            </h2>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigateWeek('next')}
-                              className="hover:bg-pink-100"
-                            >
-                              Próxima Semana
-                              <ChevronRight className="h-4 w-4 ml-1" />
-                            </Button>
-                          </div>
-
-                          {/* Week Calendar View */}
-                          <WeekCalendarView
-                            events={events}
-                            selectedDate={selectedDate}
-                            onEventUpdate={handleEventUpdate}
-                          />
-                        </div>
+                        <WeekCalendarView
+                          events={events}
+                          selectedDate={selectedDate}
+                          onEventUpdate={handleEventUpdate}
+                        />
                       )}
+                        </CardContent>
+                      </Card>
+                    </>
                     </>
                   )}
             </div>
 
             {/* Agenda Sidebar - Above calendar on mobile */}
             <div className="lg:col-span-1 order-1 lg:order-2">
-              <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl lg:sticky lg:top-24 min-h-[600px]">
+              <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl lg:sticky lg:top-24 flex flex-col max-h-[600px]">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center shrink-0">
@@ -506,7 +494,7 @@ const CalendarPage = () => {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 overflow-y-auto flex-1">
                   {selectedDateEvents.length === 0 ? (
                     <div className="text-center py-8">
                       <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-background-secondary flex items-center justify-center">
@@ -521,10 +509,12 @@ const CalendarPage = () => {
                       {selectedDateEvents.map((event) => {
                         const isCompleted = event.status === 'completed';
                         const isCancelled = event.status === 'cancelled';
+                        const colorClasses = getEventColorClasses(event.color);
                         
                         return (
                           <Card key={event.id} className={cn(
-                            "p-4 bg-white/60 backdrop-blur-xl border-pink-100 hover:shadow-lg hover:scale-102 transition-all duration-200",
+                            "p-4 bg-white/60 backdrop-blur-xl border-2 hover:shadow-xl hover:scale-[1.02] transition-all duration-300",
+                            colorClasses.border,
                             isCompleted && "opacity-60",
                             isCancelled && "opacity-50 bg-gray-100"
                           )}>
@@ -540,9 +530,7 @@ const CalendarPage = () => {
                                   variant="outline"
                                   className={cn(
                                     "shrink-0 font-medium",
-                                    event.type === 'online' 
-                                      ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                                      : 'bg-green-50 text-green-700 border-green-200'
+                                    `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border}`
                                   )}
                                 >
                                   {event.type === 'online' ? (
@@ -590,7 +578,7 @@ const CalendarPage = () => {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="flex-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200"
+                                    className="flex-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-all"
                                     onClick={() => handleEventUpdate(event.id, 'complete')}
                                   >
                                     <Check className="h-4 w-4 mr-1" />
@@ -601,21 +589,13 @@ const CalendarPage = () => {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="flex-1 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200"
+                                    className="flex-1 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 transition-all"
                                     onClick={() => handleEventUpdate(event.id, 'cancel')}
                                   >
                                     <X className="h-4 w-4 mr-1" />
                                     Cancelar
                                   </Button>
                                 )}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="hover:bg-red-50 hover:text-red-700 hover:border-red-200"
-                                  onClick={() => handleEventUpdate(event.id, 'delete')}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
                               </div>
                             </div>
                           </Card>
