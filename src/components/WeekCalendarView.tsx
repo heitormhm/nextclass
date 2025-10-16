@@ -122,26 +122,26 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
         {weekDays.map((day, idx) => {
           const isCurrentDay = isToday(day);
           return (
-            <div
-              key={idx}
-              className={cn(
-                "p-4 text-center border-r border-border last:border-r-0",
-                isCurrentDay && "bg-gradient-to-b from-pink-50 to-purple-50"
-              )}
-            >
-              <div className={cn(
-                "text-sm font-medium",
-                isCurrentDay ? "text-pink-600" : "text-foreground-muted"
-              )}>
-                {format(day, 'EEE', { locale: ptBR })}
+              <div
+                key={idx}
+                className={cn(
+                  "p-4 text-center border-r border-border last:border-r-0 flex flex-col items-center justify-center",
+                  isCurrentDay && "bg-gradient-to-b from-pink-50 to-purple-50"
+                )}
+              >
+                <div className={cn(
+                  "text-sm font-medium",
+                  isCurrentDay ? "text-pink-600" : "text-foreground-muted"
+                )}>
+                  {format(day, 'EEE', { locale: ptBR })}
+                </div>
+                <div className={cn(
+                  "text-2xl font-bold mt-1",
+                  isCurrentDay && "text-pink-600"
+                )}>
+                  {format(day, 'd')}
+                </div>
               </div>
-              <div className={cn(
-                "text-2xl font-bold mt-1",
-                isCurrentDay && "text-pink-600"
-              )}>
-                {format(day, 'd')}
-              </div>
-            </div>
           );
         })}
       </div>
@@ -160,7 +160,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
               className="absolute left-0 right-0 border-t border-border"
               style={{ top: `${hour * 60}px` }}
             >
-              <div className="absolute -top-2 left-2 text-xs text-foreground-muted bg-white px-1">
+              <div className="absolute top-0 left-2 -translate-y-1/2 text-xs text-foreground-muted bg-white px-1.5 py-0.5">
                 {format(new Date(2024, 0, 1, hour), 'HH:mm')}
               </div>
             </div>
@@ -214,7 +214,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                         onClick={() => onEventClick?.(event)}
                       >
                         <div className={cn(
-                          "flex flex-col h-full justify-between",
+                          "flex flex-col h-full justify-between relative z-20",
                           height > 60 && event.category && "pb-6"
                         )}>
                           <div>
@@ -236,13 +236,14 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
 
                           {/* Action buttons - show on hover */}
                           <div className={cn(
-                            "flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-200",
+                            "flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 relative",
                             height < 60 && "absolute -right-1 -top-1 bg-white rounded-lg shadow-lg p-1"
                           )}>
                             {!isCompleted && (
                               <Button
                                 size="icon"
                                 variant="ghost"
+                                title="Concluir evento"
                                 className="h-6 w-6 bg-white/90 hover:bg-green-100 hover:scale-110 text-green-600 transition-all"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -256,6 +257,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                               <Button
                                 size="icon"
                                 variant="ghost"
+                                title="Cancelar evento"
                                 className="h-6 w-6 bg-white/90 hover:bg-orange-100 hover:scale-110 text-orange-600 transition-all"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -269,17 +271,17 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                         </div>
 
                         {/* Category badge */}
-                        {height > 60 && event.category && (
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "absolute bottom-1 left-1 h-5 text-[9px] px-1.5",
-                              `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
-                            )}
-                          >
-                            {getCategoryLabel(event.category)}
-                          </Badge>
-                        )}
+            {height > 60 && event.category && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "absolute bottom-1 left-1 h-5 text-[9px] px-1.5 z-10",
+                  `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
+                )}
+              >
+                {getCategoryLabel(event.category)}
+              </Badge>
+            )}
                       </div>
                     );
                   })}

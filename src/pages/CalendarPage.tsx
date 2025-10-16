@@ -595,10 +595,11 @@ const CalendarPage = () => {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="flex-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-all"
+                                    title="Concluir evento"
+                                    className="flex-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-all h-7 px-2.5 text-xs whitespace-nowrap"
                                     onClick={() => handleEventUpdate(event.id, 'complete')}
                                   >
-                                    <Check className="h-4 w-4 mr-1" />
+                                    <Check className="h-3.5 w-3.5 mr-0.5" />
                                     Concluir
                                   </Button>
                                 )}
@@ -606,10 +607,11 @@ const CalendarPage = () => {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="flex-1 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 transition-all"
+                                    title="Cancelar evento"
+                                    className="flex-1 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 transition-all h-7 px-2.5 text-xs whitespace-nowrap"
                                     onClick={() => handleEventUpdate(event.id, 'cancel')}
                                   >
-                                    <X className="h-4 w-4 mr-1" />
+                                    <X className="h-3.5 w-3.5 mr-0.5" />
                                     Cancelar
                                   </Button>
                                 )}
