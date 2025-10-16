@@ -114,6 +114,13 @@ const AnnotationPage = () => {
     loadAnnotation();
   }, [id, user, navigate]);
 
+  // Sync content to editor when editor becomes available
+  useEffect(() => {
+    if (editorRef.current && content && !isLoadingAnnotation) {
+      editorRef.current.innerHTML = content;
+    }
+  }, [content, isLoadingAnnotation]);
+
   useEffect(() => {
     if (location.state?.prePopulatedContent) {
       setContent(location.state.prePopulatedContent);
@@ -630,7 +637,10 @@ const AnnotationPage = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate(-1)}
+                onClick={() => {
+                  console.log('🔙 Navegando de volta...');
+                  navigate('/annotations');
+                }}
                 className="mr-4"
               >
                 <ArrowLeft className="h-5 w-5" />

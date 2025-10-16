@@ -243,27 +243,30 @@ const MyAnnotationsPage = () => {
               {filteredAnnotations.map((annotation) => (
                 <Card 
                   key={annotation.id} 
-                  className="group p-4 hover:shadow-lg hover:border-primary/30 transition-all duration-200 cursor-pointer relative"
+                  className="group p-3 hover:shadow-lg hover:border-primary/30 transition-all duration-200 cursor-pointer relative overflow-hidden"
                   onClick={() => navigate(`/annotation/${annotation.id}`)}
                 >
+                  {/* Linha decorativa rosa/roxa */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500" />
+                  
                   {/* Relative Date Badge */}
-                  <div className="absolute top-3 right-3 text-xs text-muted-foreground">
+                  <div className="absolute top-4 right-3 text-xs text-muted-foreground">
                     {formatRelativeDate(annotation.updated_at)}
                   </div>
                   
                   {/* Title */}
-                  <h3 className="text-base font-semibold text-foreground mb-2 pr-16 line-clamp-2">
+                  <h3 className="text-base font-semibold text-foreground mb-2 pr-16 pt-2 line-clamp-2">
                     {annotation.title}
                   </h3>
                   
                   {/* Preview */}
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-4">
+                  <p className="text-sm text-muted-foreground mb-2 line-clamp-5 leading-snug">
                     {annotation.content.replace(/<[^>]*>/g, '').substring(0, 200)}...
                   </p>
                   
                   {/* Tags */}
                   {annotation.tags && annotation.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3">
+                    <div className="flex flex-wrap gap-1 mb-2">
                       {annotation.tags.slice(0, 3).map(tag => (
                         <Badge key={tag} variant="secondary" className="text-xs">
                           {tag}
