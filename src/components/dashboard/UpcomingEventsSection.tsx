@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, Clock, MapPin } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfDay, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Event {
@@ -29,16 +29,16 @@ export const UpcomingEventsSection = () => {
 
     const fetchEvents = async () => {
       try {
-        const sevenDaysFromNow = new Date();
-        sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+        const today = startOfDay(new Date());
+        const sevenDaysFromNow = addDays(today, 7);
 
         // Fetch personal events
         const { data: personalEvents } = await supabase
           .from('personal_events')
           .select('*')
           .eq('user_id', user.id)
-          .gte('event_date', new Date().toISOString())
-          .lte('event_date', sevenDaysFromNow.toISOString())
+          .gte('event_date', format(today, 'yyyy-MM-dd'))
+          .lte('event_date', format(sevenDaysFromNow, 'yyyy-MM-dd'))
           .order('event_date', { ascending: true });
 
         // Fetch class events (if enrolled in any class)
@@ -59,8 +59,8 @@ export const UpcomingEventsSection = () => {
               .from('class_events')
               .select('*')
               .in('class_id', classesData.map(c => c.id))
-              .gte('event_date', new Date().toISOString())
-              .lte('event_date', sevenDaysFromNow.toISOString())
+              .gte('event_date', format(today, 'yyyy-MM-dd'))
+              .lte('event_date', format(sevenDaysFromNow, 'yyyy-MM-dd'))
               .order('event_date', { ascending: true });
 
             classEvents = events || [];
@@ -95,8 +95,8 @@ export const UpcomingEventsSection = () => {
           table: 'personal_events',
           filter: `user_id=eq.${user.id}`
         },
-        () => {
-          console.log('New event detected, refetching...');
+        (payload) => {
+          console.log('🔔 Novo evento detectado:', payload);
           fetchEvents();
         }
       )

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, addMonths, subMonths, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth } from 'date-fns';
+import { format, addMonths, subMonths, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, Video, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -89,7 +89,7 @@ const CalendarPage = () => {
         ...(personalEvents || []).map(event => ({
           id: event.id,
           title: event.title,
-          date: new Date(event.event_date.split('T')[0] + 'T12:00:00'),
+          date: parseISO(event.event_date.split('T')[0]),
           startTime: event.start_time,
           endTime: event.end_time,
           type: (event.event_type || 'event') as 'online' | 'presencial',
@@ -98,7 +98,7 @@ const CalendarPage = () => {
         ...(classEvents || []).map(event => ({
           id: event.id,
           title: event.title,
-          date: new Date(event.event_date.split('T')[0] + 'T12:00:00'),
+          date: parseISO(event.event_date.split('T')[0]),
           startTime: event.start_time,
           endTime: event.end_time,
           type: event.event_type as 'online' | 'presencial',

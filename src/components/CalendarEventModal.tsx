@@ -107,7 +107,7 @@ export const CalendarEventModal = ({
 
       const eventData = {
         title: title.trim(),
-        event_date: format(date, 'yyyy-MM-dd') + 'T00:00:00',
+        event_date: format(date, 'yyyy-MM-dd') + 'T00:00:00.000Z',
         start_time: startTime,
         end_time: endTime,
         category: finalCategory,
