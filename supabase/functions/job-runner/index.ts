@@ -1209,6 +1209,254 @@ async function handleLogInsight(job: any, supabaseAdmin: any) {
   console.log(`✅ [${job.id}] Insight logged`);
 }
 
+async function handleGenerateRecommendation(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  console.log(`🎯 [${job.id}] Generating personalized recommendation`);
+  
+  const { userId } = job.input_payload;
+  
+  try {
+    // 1. Buscar dados do estudante (últimos 30 dias)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    // Query quiz attempts
+    const { data: quizData } = await supabaseAdmin
+      .from('quiz_attempts')
+      .select('topic, percentage, created_at')
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    // Query flashcard reviews
+    const { data: flashcardData } = await supabaseAdmin
+      .from('flashcard_reviews')
+      .select('topic, percentage, correct_count, total_count, created_at')
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    // Query student insights (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const { data: insightsData } = await supabaseAdmin
+      .from('student_insights')
+      .select('action_type, topic, context, created_at')
+      .eq('user_id', userId)
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(20);
+    
+    // 2. Sintetizar perfil do estudante
+    const avgQuizScore = quizData && quizData.length > 0
+      ? quizData.reduce((sum: number, q: any) => sum + (q.percentage || 0), 0) / quizData.length
+      : null;
+    
+    const avgFlashcardScore = flashcardData && flashcardData.length > 0
+      ? flashcardData.reduce((sum: number, f: any) => sum + (f.percentage || 0), 0) / flashcardData.length
+      : null;
+    
+    // Identificar tópicos com dificuldade (< 70%)
+    const weakTopics = [...(quizData || []), ...(flashcardData || [])]
+      .filter(item => (item.percentage || 0) < 70)
+      .map(item => item.topic)
+      .filter((topic, index, self) => self.indexOf(topic) === index)
+      .slice(0, 3);
+    
+    // Identificar tópicos dominados (> 85%)
+    const strongTopics = [...(quizData || []), ...(flashcardData || [])]
+      .filter(item => (item.percentage || 0) > 85)
+      .map(item => item.topic)
+      .filter((topic, index, self) => self.indexOf(topic) === index)
+      .slice(0, 3);
+    
+    // Última atividade
+    const lastActivity = insightsData && insightsData.length > 0
+      ? insightsData[0].created_at
+      : 'sem atividade recente';
+    
+    const profileSummary = `
+Dados do Estudante (últimos 30 dias):
+
+DESEMPENHO:
+- Média em quizzes: ${avgQuizScore ? avgQuizScore.toFixed(1) + '%' : 'sem dados'}
+- Média em flashcards: ${avgFlashcardScore ? avgFlashcardScore.toFixed(1) + '%' : 'sem dados'}
+- Total de quizzes: ${quizData?.length || 0}
+- Total de revisões: ${flashcardData?.length || 0}
+
+TÓPICOS COM DIFICULDADE (< 70%):
+${weakTopics.length > 0 ? weakTopics.join(', ') : 'nenhum identificado'}
+
+TÓPICOS DOMINADOS (> 85%):
+${strongTopics.length > 0 ? strongTopics.join(', ') : 'nenhum identificado'}
+
+ATIVIDADE RECENTE:
+${insightsData?.slice(0, 5).map((i: any) => `- ${i.action_type}: ${i.topic}`).join('\n') || 'sem atividades recentes'}
+
+Última atividade: ${lastActivity}
+`;
+
+    // 3. Chamar Lovable AI para gerar recomendação
+    const systemPrompt = `Você é um assistente educacional especializado em engenharia.
+Analise o perfil do estudante e gere UMA ÚNICA recomendação personalizada e acionável em PT-BR.
+
+REGRAS:
+- Priorize áreas com baixo desempenho (< 70%) como "high priority"
+- Se não houver dados suficientes, incentive o uso da plataforma
+- Se desempenho geral > 80%, sugira tópicos avançados
+- Se flashcard review rate < 80%, priorize revisão
+- A recomendação deve ser motivadora e específica
+- Inclua um action_route válido: /review, /quiz/new, /courses, /aichat, /grades
+
+FORMATO JSON OBRIGATÓRIO:
+{
+  "title": "Título curto e claro (max 60 chars)",
+  "description": "Descrição acionável em 1-2 frases (max 120 chars)",
+  "action_route": "/rota/válida",
+  "priority": "high|medium|low"
+}
+
+EXEMPLOS:
+- Se média quiz < 70%: "Reforce seus conhecimentos em [tópico]" → /quiz/new?topic=[tópico]
+- Se sem atividade recente: "Continue aprendendo! Explore novos tópicos" → /courses
+- Se alta performance: "Parabéns! Explore tópicos avançados" → /aichat
+`;
+
+    const userPrompt = `${profileSummary}
+
+Gere UMA recomendação personalizada para este estudante.`;
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 200,
+      }),
+    });
+    
+    if (!response.ok) {
+      console.error(`AI error: ${response.status}`);
+      
+      // Fallback baseado em dados reais
+      const fallbackRecommendation = {
+        title: weakTopics.length > 0 
+          ? `Reforce ${weakTopics[0]}` 
+          : "Continue sua jornada de aprendizado!",
+        description: weakTopics.length > 0
+          ? `Seu desempenho em ${weakTopics[0]} está abaixo de 70%. Vamos praticar?`
+          : "Explore novos tópicos e desafie seus conhecimentos.",
+        action_route: weakTopics.length > 0 
+          ? `/quiz/new?topic=${encodeURIComponent(weakTopics[0])}`
+          : "/courses",
+        priority: weakTopics.length > 0 ? "high" : "medium"
+      };
+      
+      // Salvar fallback na tabela
+      await supabaseAdmin
+        .from('recommendations')
+        .insert({
+          user_id: userId,
+          title: fallbackRecommendation.title,
+          description: fallbackRecommendation.description,
+          action_route: fallbackRecommendation.action_route,
+          priority: fallbackRecommendation.priority,
+          is_active: true
+        });
+      
+      await supabaseAdmin
+        .from('jobs')
+        .update({
+          status: 'COMPLETED',
+          result: JSON.stringify(fallbackRecommendation)
+        })
+        .eq('id', job.id);
+      
+      console.log(`✅ [${job.id}] Fallback recommendation saved`);
+      return;
+    }
+    
+    const data = await response.json();
+    const recommendationText = data.choices[0].message.content;
+    const jsonMatch = recommendationText.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error('No JSON found in AI response');
+    }
+    
+    const recommendation = JSON.parse(jsonMatch[0]);
+    
+    // Validar estrutura
+    if (!recommendation.title || !recommendation.action_route || !recommendation.priority) {
+      throw new Error('Invalid recommendation format');
+    }
+    
+    // 4. Salvar na tabela recommendations
+    await supabaseAdmin
+      .from('recommendations')
+      .insert({
+        user_id: userId,
+        title: recommendation.title,
+        description: recommendation.description || '',
+        action_route: recommendation.action_route,
+        priority: recommendation.priority,
+        is_active: true
+      });
+    
+    // 5. Marcar job como COMPLETED
+    await supabaseAdmin
+      .from('jobs')
+      .update({
+        status: 'COMPLETED',
+        result: JSON.stringify(recommendation)
+      })
+      .eq('id', job.id);
+    
+    console.log(`✅ [${job.id}] Recommendation generated and saved`);
+    
+  } catch (error) {
+    console.error(`Error generating recommendation:`, error);
+    
+    // Fallback genérico
+    const fallbackRecommendation = {
+      title: "Continue aprendendo!",
+      description: "Explore novos tópicos e pratique seus conhecimentos.",
+      action_route: "/courses",
+      priority: "medium"
+    };
+    
+    await supabaseAdmin
+      .from('recommendations')
+      .insert({
+        user_id: userId,
+        title: fallbackRecommendation.title,
+        description: fallbackRecommendation.description,
+        action_route: fallbackRecommendation.action_route,
+        priority: fallbackRecommendation.priority,
+        is_active: true
+      });
+    
+    await supabaseAdmin
+      .from('jobs')
+      .update({
+        status: 'COMPLETED',
+        result: JSON.stringify(fallbackRecommendation)
+      })
+      .eq('id', job.id);
+    
+    console.log(`✅ [${job.id}] Generic fallback recommendation saved`);
+  }
+}
+
 // =========================
 // MAIN JOB RUNNER
 // =========================
@@ -1274,6 +1522,8 @@ async function runJob(jobId: string) {
       await handleGenerateFlashcards(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'LOG_ACADEMIC_INSIGHT') {
       await handleLogInsight(job, supabaseAdmin);
+    } else if (job.job_type === 'GENERATE_RECOMMENDATION') {
+      await handleGenerateRecommendation(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'DEEP_SEARCH') {
       switch (job.status) {
         case 'PENDING':

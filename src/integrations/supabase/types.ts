@@ -554,6 +554,42 @@ export type Database = {
           },
         ]
       }
+      recommendations: {
+        Row: {
+          action_route: string
+          created_at: string
+          description: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          priority: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_route: string
+          created_at?: string
+          description: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          priority?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_route?: string
+          created_at?: string
+          description?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          priority?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       student_insights: {
         Row: {
           action_type: string

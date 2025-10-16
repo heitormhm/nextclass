@@ -20,21 +20,45 @@ const ProactiveRecommendationWidget = () => {
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchRecommendation = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('get-student-dashboard-data');
+        const { data: { user } } = await supabase.auth.getUser();
         
+        if (!user) {
+          console.error('User not authenticated');
+          setHasError(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // Query da tabela recommendations
+        const { data: recommendations, error } = await supabase
+          .from('recommendations')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .order('priority', { ascending: false })  // high → medium → low
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         if (error) {
           console.error('Error fetching recommendation:', error);
           setHasError(true);
           return;
         }
-        
-        if (data?.recommendation) {
-          setRecommendation(data.recommendation);
+
+        if (recommendations) {
+          setRecommendation({
+            text: `${recommendations.title} - ${recommendations.description}`,
+            link: recommendations.action_route,
+            priority: recommendations.priority as 'high' | 'medium' | 'low'
+          });
           setHasError(false);
         } else {
-          setHasError(true);
+          // Sem recomendação ativa
+          setRecommendation(null);
+          setHasError(false);
         }
       } catch (error) {
         console.error('Error fetching recommendation:', error);
@@ -44,7 +68,7 @@ const ProactiveRecommendationWidget = () => {
       }
     };
 
-    fetchDashboardData();
+    fetchRecommendation();
   }, []);
 
   const handleNavigate = () => {
@@ -98,8 +122,8 @@ const ProactiveRecommendationWidget = () => {
     );
   }
 
-  // If error or no recommendation, show error state
-  if (hasError || !recommendation) {
+  // If error, show error state
+  if (hasError) {
     return (
       <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in font-['Manrope']">
         <CardHeader className="pb-4">
@@ -115,6 +139,30 @@ const ProactiveRecommendationWidget = () => {
             <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0" />
             <p className="text-sm text-muted-foreground">
               Não foi possível carregar sua recomendação no momento.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // If no recommendation, show empty state
+  if (!recommendation) {
+    return (
+      <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in font-['Manrope']">
+        <CardHeader className="pb-4">
+          <div>
+            <CardTitle className="text-xl font-semibold">Recomendação Inteligente</CardTitle>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Baseado no seu desempenho recente
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-2">
+          <div className="text-center p-6 bg-muted/50 rounded-lg">
+            <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Continue interagindo com a plataforma e em breve teremos recomendações personalizadas para você!
             </p>
           </div>
         </CardContent>

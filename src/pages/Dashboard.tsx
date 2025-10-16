@@ -11,6 +11,7 @@ import SmartReviewWidget from '@/components/dashboard/SmartReviewWidget';
 import GamifiedProgressTracking from '@/components/dashboard/GamifiedProgressTracking';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LearningPathItem {
   id: string;
@@ -24,6 +25,73 @@ interface LearningPathItem {
 const Dashboard = () => {
   const { firstName, loading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Create recommendation job on mount if needed
+  React.useEffect(() => {
+    const ensureRecommendation = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) return;
+        
+        // Verificar se já existe recomendação ativa
+        const { data: existingRec } = await supabase
+          .from('recommendations')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (existingRec) {
+          console.log('✅ Active recommendation already exists');
+          return;
+        }
+        
+        // Verificar se já existe job PENDING
+        const { data: existingJob } = await supabase
+          .from('jobs')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('job_type', 'GENERATE_RECOMMENDATION')
+          .eq('status', 'PENDING')
+          .maybeSingle();
+        
+        if (existingJob) {
+          console.log('⏳ Recommendation job already pending');
+          return;
+        }
+        
+        // Criar novo job
+        const { error: jobError } = await supabase
+          .from('jobs')
+          .insert({
+            user_id: user.id,
+            job_type: 'GENERATE_RECOMMENDATION',
+            status: 'PENDING',
+            input_payload: {
+              userId: user.id
+            }
+          });
+        
+        if (jobError) {
+          console.error('Error creating recommendation job:', jobError);
+          return;
+        }
+        
+        // Invocar job-runner
+        await supabase.functions.invoke('job-runner', {
+          body: { trigger: 'manual' }
+        });
+        
+        console.log('✅ Recommendation job created and triggered');
+        
+      } catch (error) {
+        console.error('Error ensuring recommendation:', error);
+      }
+    };
+    
+    ensureRecommendation();
+  }, []);
 
   const todaySchedule: LearningPathItem[] = [
     {
