@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { format, addMonths, subMonths, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { format, addMonths, subMonths, addWeeks, subWeeks, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, Video, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, Check, X, Trash2, Video, Users, Calendar as CalendarIcon, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { CalendarEventModal } from '@/components/CalendarEventModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { WeekCalendarView } from '@/components/WeekCalendarView';
 
 interface CalendarEvent {
   id: string;
@@ -19,8 +20,10 @@ interface CalendarEvent {
   startTime: string;
   endTime: string;
   type: 'online' | 'presencial';
+  status?: 'pending' | 'completed' | 'cancelled';
   location?: string;
   description?: string;
+  isPersonalEvent?: boolean;
 }
 
 const CalendarPage = () => {
@@ -30,6 +33,7 @@ const CalendarPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showEventModal, setShowEventModal] = useState(false);
   const [userRole, setUserRole] = useState<'student' | 'teacher'>('student');
+  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
   // Fetch events from database
   useEffect(() => {
@@ -93,7 +97,9 @@ const CalendarPage = () => {
           startTime: event.start_time,
           endTime: event.end_time,
           type: (event.event_type || 'event') as 'online' | 'presencial',
+          status: (event.status || 'pending') as 'pending' | 'completed' | 'cancelled',
           description: event.notes || event.description,
+          isPersonalEvent: true,
         })),
         ...(classEvents || []).map(event => ({
           id: event.id,
@@ -102,8 +108,10 @@ const CalendarPage = () => {
           startTime: event.start_time,
           endTime: event.end_time,
           type: event.event_type as 'online' | 'presencial',
+          status: (event.status || 'pending') as 'pending' | 'completed' | 'cancelled',
           location: event.location,
           description: event.description || event.notes,
+          isPersonalEvent: false,
         }))
       ];
 
@@ -205,8 +213,51 @@ const CalendarPage = () => {
     );
   };
 
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    setCurrentDate(prev => 
+      direction === 'prev' ? subWeeks(prev, 1) : addWeeks(prev, 1)
+    );
+    setSelectedDate(prev => 
+      direction === 'prev' ? subWeeks(prev, 1) : addWeeks(prev, 1)
+    );
+  };
+
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
+  };
+
+  const handleEventUpdate = async (eventId: string, action: 'delete' | 'complete' | 'cancel') => {
+    try {
+      const event = events.find(e => e.id === eventId);
+      if (!event) return;
+
+      const table = event.isPersonalEvent ? 'personal_events' : 'class_events';
+
+      if (action === 'delete') {
+        const { error } = await supabase
+          .from(table)
+          .delete()
+          .eq('id', eventId);
+
+        if (error) throw error;
+        toast.success('Evento deletado com sucesso');
+      } else {
+        const newStatus = action === 'complete' ? 'completed' : 'cancelled';
+        const { error } = await supabase
+          .from(table)
+          .update({ status: newStatus })
+          .eq('id', eventId);
+
+        if (error) throw error;
+        toast.success(`Evento marcado como ${newStatus === 'completed' ? 'concluído' : 'cancelado'}`);
+      }
+
+      // Refresh events
+      await fetchEvents();
+    } catch (error) {
+      console.error('Error updating event:', error);
+      toast.error('Erro ao atualizar evento');
+    }
   };
 
   const generateCalendarDays = () => {
@@ -242,7 +293,7 @@ const CalendarPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8 lg:items-start">
           {/* Main Calendar View */}
           <div className="lg:col-span-3 space-y-6 order-2 lg:order-1">
-                  {isLoading ? (
+                   {isLoading ? (
                     <Card className="border-0 shadow-sm">
                       <CardContent className="p-6 space-y-4">
                         <Skeleton className="h-10 w-full" />
@@ -254,9 +305,37 @@ const CalendarPage = () => {
                       </CardContent>
                     </Card>
                   ) : (
-                    <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl min-h-[600px]">
-                      <CardContent className="p-6">
-                      {/* Calendar Header */}
+                    <>
+                      {/* View Mode Toggle */}
+                      <div className="flex justify-end gap-2 mb-4">
+                        <Button
+                          variant={viewMode === 'month' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setViewMode('month')}
+                          className={cn(
+                            viewMode === 'month' && "bg-gradient-to-r from-pink-500 to-purple-500"
+                          )}
+                        >
+                          <CalendarIcon className="h-4 w-4 mr-2" />
+                          Mês
+                        </Button>
+                        <Button
+                          variant={viewMode === 'week' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setViewMode('week')}
+                          className={cn(
+                            viewMode === 'week' && "bg-gradient-to-r from-pink-500 to-purple-500"
+                          )}
+                        >
+                          <List className="h-4 w-4 mr-2" />
+                          Semana
+                        </Button>
+                      </div>
+
+                      {viewMode === 'month' ? (
+                        <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl min-h-[600px]">
+                          <CardContent className="p-6">
+                            {/* Calendar Header */}
                       <div className="flex items-center justify-between mb-6 px-2">
                         <Button
                           variant="ghost"
@@ -368,8 +447,44 @@ const CalendarPage = () => {
                           <span className="text-sm text-foreground-muted">Aulas Presenciais</span>
                         </div>
                       </div>
-                      </CardContent>
-                    </Card>
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Week Navigation */}
+                          <div className="flex items-center justify-between">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigateWeek('prev')}
+                              className="hover:bg-pink-100"
+                            >
+                              <ChevronLeft className="h-4 w-4 mr-1" />
+                              Semana Anterior
+                            </Button>
+                            <h2 className="text-xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                              {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                            </h2>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigateWeek('next')}
+                              className="hover:bg-pink-100"
+                            >
+                              Próxima Semana
+                              <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                          </div>
+
+                          {/* Week Calendar View */}
+                          <WeekCalendarView
+                            events={events}
+                            selectedDate={selectedDate}
+                            onEventUpdate={handleEventUpdate}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
             </div>
 
@@ -403,52 +518,109 @@ const CalendarPage = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {selectedDateEvents.map((event) => (
-                        <Card key={event.id} className="p-4 bg-white/60 backdrop-blur-xl border-pink-100 hover:shadow-lg hover:scale-102 transition-all duration-200">
-                          <div className="space-y-3">
-                            <div className="flex items-start justify-between gap-3">
-                              <h3 className="font-semibold text-gray-800 line-clamp-2 flex-1">
-                                {event.title}
-                              </h3>
-                              <Badge 
-                                variant="outline"
-                                className={cn(
-                                  "shrink-0 font-medium",
-                                  event.type === 'online' 
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                                    : 'bg-green-50 text-green-700 border-green-200'
-                                )}
-                              >
-                                {event.type === 'online' ? (
-                                  <><Video className="h-3 w-3 mr-1" /> Online</>
-                                ) : (
-                                  <><Users className="h-3 w-3 mr-1" /> Presencial</>
-                                )}
-                              </Badge>
-                            </div>
-                            
-                            <div className="space-y-2 text-sm text-gray-600">
-                              <div className="flex items-center gap-2 font-medium">
-                                <Clock className="h-4 w-4 text-pink-500" />
-                                <span>{event.startTime} - {event.endTime}</span>
+                      {selectedDateEvents.map((event) => {
+                        const isCompleted = event.status === 'completed';
+                        const isCancelled = event.status === 'cancelled';
+                        
+                        return (
+                          <Card key={event.id} className={cn(
+                            "p-4 bg-white/60 backdrop-blur-xl border-pink-100 hover:shadow-lg hover:scale-102 transition-all duration-200",
+                            isCompleted && "opacity-60",
+                            isCancelled && "opacity-50 bg-gray-100"
+                          )}>
+                            <div className="space-y-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <h3 className={cn(
+                                  "font-semibold text-gray-800 line-clamp-2 flex-1",
+                                  isCompleted && "line-through"
+                                )}>
+                                  {event.title}
+                                </h3>
+                                <Badge 
+                                  variant="outline"
+                                  className={cn(
+                                    "shrink-0 font-medium",
+                                    event.type === 'online' 
+                                      ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                      : 'bg-green-50 text-green-700 border-green-200'
+                                  )}
+                                >
+                                  {event.type === 'online' ? (
+                                    <><Video className="h-3 w-3 mr-1" /> Online</>
+                                  ) : (
+                                    <><Users className="h-3 w-3 mr-1" /> Presencial</>
+                                  )}
+                                </Badge>
                               </div>
                               
-                              {event.location && (
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4 text-pink-500" />
-                                  <span>{event.location}</span>
-                                </div>
+                              {/* Status Badge */}
+                              {(isCompleted || isCancelled) && (
+                                <Badge variant="outline" className={cn(
+                                  "text-xs",
+                                  isCompleted && "bg-green-50 text-green-700 border-green-200",
+                                  isCancelled && "bg-gray-100 text-gray-600 border-gray-300"
+                                )}>
+                                  {isCompleted ? '✓ Concluído' : '✗ Cancelado'}
+                                </Badge>
                               )}
                               
-                              {event.description && (
-                                <p className="text-xs text-gray-500 mt-2 line-clamp-2">
-                                  {event.description}
-                                </p>
-                              )}
+                              <div className="space-y-2 text-sm text-gray-600">
+                                <div className="flex items-center gap-2 font-medium">
+                                  <Clock className="h-4 w-4 text-pink-500" />
+                                  <span>{event.startTime} - {event.endTime}</span>
+                                </div>
+                                
+                                {event.location && (
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 text-pink-500" />
+                                    <span>{event.location}</span>
+                                  </div>
+                                )}
+                                
+                                {event.description && (
+                                  <p className="text-xs text-gray-500 mt-2 line-clamp-2">
+                                    {event.description}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex gap-2 pt-2 border-t border-gray-100">
+                                {!isCompleted && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200"
+                                    onClick={() => handleEventUpdate(event.id, 'complete')}
+                                  >
+                                    <Check className="h-4 w-4 mr-1" />
+                                    Concluir
+                                  </Button>
+                                )}
+                                {!isCancelled && !isCompleted && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200"
+                                    onClick={() => handleEventUpdate(event.id, 'cancel')}
+                                  >
+                                    <X className="h-4 w-4 mr-1" />
+                                    Cancelar
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="hover:bg-red-50 hover:text-red-700 hover:border-red-200"
+                                  onClick={() => handleEventUpdate(event.id, 'delete')}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        </Card>
-                      ))}
+                          </Card>
+                        );
+                      })}
                     </div>
                   )}
                   

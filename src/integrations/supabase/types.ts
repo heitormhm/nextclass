@@ -64,6 +64,7 @@ export type Database = {
           location: string | null
           notes: string | null
           start_time: string
+          status: string | null
           title: string
         }
         Insert: {
@@ -79,6 +80,7 @@ export type Database = {
           location?: string | null
           notes?: string | null
           start_time: string
+          status?: string | null
           title: string
         }
         Update: {
@@ -94,6 +96,7 @@ export type Database = {
           location?: string | null
           notes?: string | null
           start_time?: string
+          status?: string | null
           title?: string
         }
         Relationships: [
@@ -622,6 +625,7 @@ export type Database = {
           notification_email: boolean | null
           notification_platform: boolean | null
           start_time: string
+          status: string | null
           title: string
           user_id: string
         }
@@ -638,6 +642,7 @@ export type Database = {
           notification_email?: boolean | null
           notification_platform?: boolean | null
           start_time: string
+          status?: string | null
           title: string
           user_id: string
         }
@@ -654,6 +659,7 @@ export type Database = {
           notification_email?: boolean | null
           notification_platform?: boolean | null
           start_time?: string
+          status?: string | null
           title?: string
           user_id?: string
         }

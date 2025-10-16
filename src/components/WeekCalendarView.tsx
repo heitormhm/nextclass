@@ -1,0 +1,274 @@
+import React, { useEffect, useRef } from 'react';
+import { format, addDays, startOfWeek, isSameDay, isToday, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Check, X, Trash2, Video, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+interface CalendarEvent {
+  id: string;
+  title: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  type: 'online' | 'presencial';
+  status?: 'pending' | 'completed' | 'cancelled';
+  location?: string;
+  description?: string;
+}
+
+interface WeekCalendarViewProps {
+  events: CalendarEvent[];
+  selectedDate: Date;
+  onEventUpdate: (eventId: string, action: 'delete' | 'complete' | 'cancel') => void;
+  onEventClick?: (event: CalendarEvent) => void;
+}
+
+export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
+  events,
+  selectedDate,
+  onEventUpdate,
+  onEventClick
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Generate week days starting from Sunday
+  const weekStart = startOfWeek(selectedDate, { locale: ptBR });
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  // Time slots (24 hours, each hour = 2 slots of 30min)
+  const timeSlots = Array.from({ length: 24 }, (_, i) => i);
+
+  // Calculate position and height for events
+  const getEventPosition = (startTime: string, endTime: string) => {
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    const duration = endMinutes - startMinutes;
+    
+    // Each hour = 60px, so 1 minute = 1px
+    const top = startMinutes;
+    const height = Math.max(duration, 30); // Minimum 30px height
+    
+    return { top, height };
+  };
+
+  // Get events for a specific day
+  const getEventsForDay = (day: Date) => {
+    return events.filter(event => isSameDay(event.date, day));
+  };
+
+  // Auto-scroll to current time on mount
+  useEffect(() => {
+    if (containerRef.current) {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const scrollPosition = currentMinutes - 120; // Center current time in view
+      
+      containerRef.current.scrollTo({ top: Math.max(0, scrollPosition), behavior: 'smooth' });
+    }
+  }, []);
+
+  // Get current time position for "now" indicator
+  const getCurrentTimePosition = () => {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  };
+
+  const nowPosition = getCurrentTimePosition();
+  const showNowIndicator = weekDays.some(day => isToday(day));
+
+  return (
+    <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-pink-100 overflow-hidden">
+      {/* Week header */}
+      <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-border sticky top-0 bg-white/90 backdrop-blur-xl z-20">
+        <div className="p-4 border-r border-border"></div>
+        {weekDays.map((day, idx) => {
+          const isCurrentDay = isToday(day);
+          return (
+            <div
+              key={idx}
+              className={cn(
+                "p-4 text-center border-r border-border last:border-r-0",
+                isCurrentDay && "bg-gradient-to-b from-pink-50 to-purple-50"
+              )}
+            >
+              <div className={cn(
+                "text-sm font-medium",
+                isCurrentDay ? "text-pink-600" : "text-foreground-muted"
+              )}>
+                {format(day, 'EEE', { locale: ptBR })}
+              </div>
+              <div className={cn(
+                "text-2xl font-bold mt-1",
+                isCurrentDay && "text-pink-600"
+              )}>
+                {format(day, 'd')}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Time grid */}
+      <div
+        ref={containerRef}
+        className="relative overflow-y-auto custom-scrollbar"
+        style={{ height: '600px' }}
+      >
+        <div className="relative" style={{ height: `${24 * 60}px` }}>
+          {/* Time labels and grid lines */}
+          {timeSlots.map((hour) => (
+            <div
+              key={hour}
+              className="absolute left-0 right-0 border-t border-border"
+              style={{ top: `${hour * 60}px` }}
+            >
+              <div className="absolute -top-2 left-2 text-xs text-foreground-muted bg-white px-1">
+                {format(new Date(2024, 0, 1, hour), 'HH:mm')}
+              </div>
+            </div>
+          ))}
+
+          {/* Now indicator */}
+          {showNowIndicator && (
+            <div
+              className="absolute left-0 right-0 border-t-2 border-pink-500 z-10"
+              style={{ top: `${nowPosition}px` }}
+            >
+              <div className="absolute -top-1.5 -left-1.5 w-3 h-3 rounded-full bg-pink-500" />
+              <div className="absolute -top-2.5 left-2 text-xs font-medium text-pink-600 bg-pink-50 px-2 py-0.5 rounded">
+                Agora
+              </div>
+            </div>
+          )}
+
+          {/* Day columns with events */}
+          <div className="absolute inset-0 grid grid-cols-[80px_repeat(7,1fr)]">
+            <div className="border-r border-border"></div>
+            {weekDays.map((day, dayIdx) => {
+              const dayEvents = getEventsForDay(day);
+              const isCurrentDay = isToday(day);
+              
+              return (
+                <div
+                  key={dayIdx}
+                  className={cn(
+                    "relative border-r border-border last:border-r-0",
+                    isCurrentDay && "bg-pink-50/30"
+                  )}
+                >
+                  {dayEvents.map((event) => {
+                    const { top, height } = getEventPosition(event.startTime, event.endTime);
+                    const isCompleted = event.status === 'completed';
+                    const isCancelled = event.status === 'cancelled';
+                    
+                    return (
+                      <div
+                        key={event.id}
+                        className={cn(
+                          "absolute left-1 right-1 rounded-lg p-2 cursor-pointer transition-all duration-200",
+                          "hover:scale-[1.02] hover:shadow-lg group",
+                          isCompleted && "opacity-60",
+                          isCancelled && "opacity-50 bg-gray-400",
+                          !isCancelled && "bg-gradient-to-br from-pink-500 to-purple-500 text-white shadow-md"
+                        )}
+                        style={{ top: `${top}px`, height: `${height}px`, minHeight: '30px' }}
+                        onClick={() => onEventClick?.(event)}
+                      >
+                        <div className="flex flex-col h-full justify-between">
+                          <div>
+                            <div className={cn(
+                              "text-xs font-semibold truncate",
+                              isCompleted && "line-through"
+                            )}>
+                              {event.title}
+                            </div>
+                            <div className="text-[10px] opacity-90 mt-0.5">
+                              {event.startTime} - {event.endTime}
+                            </div>
+                            {event.location && height > 50 && (
+                              <div className="text-[10px] opacity-80 truncate mt-1">
+                                {event.location}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action buttons - show on hover */}
+                          <div className={cn(
+                            "flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity",
+                            height < 60 && "absolute -right-1 -top-1 bg-white rounded-lg shadow-lg p-1"
+                          )}>
+                            {!isCompleted && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 bg-white/90 hover:bg-green-100 text-green-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEventUpdate(event.id, 'complete');
+                                }}
+                              >
+                                <Check className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {!isCancelled && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 bg-white/90 hover:bg-orange-100 text-orange-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEventUpdate(event.id, 'cancel');
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 bg-white/90 hover:bg-red-100 text-red-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEventUpdate(event.id, 'delete');
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Event type badge */}
+                        {height > 40 && (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "absolute bottom-2 left-2 h-5 text-[10px] border-white/30",
+                              event.type === 'online'
+                                ? 'bg-blue-500/20 text-white'
+                                : 'bg-green-500/20 text-white'
+                            )}
+                          >
+                            {event.type === 'online' ? (
+                              <><Video className="h-2 w-2 mr-1" /> Online</>
+                            ) : (
+                              <><Users className="h-2 w-2 mr-1" /> Presencial</>
+                            )}
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
