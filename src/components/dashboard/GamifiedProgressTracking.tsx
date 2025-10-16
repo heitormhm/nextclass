@@ -129,16 +129,16 @@ const GamifiedProgressTracking = () => {
 
   return (
     <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-            <Trophy className="h-5 w-5 text-primary" />
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Trophy className="h-6 w-6 text-pink-600" />
           </div>
-          <div className="flex-1">
-            <CardTitle className="text-lg">Progresso Gamificado</CardTitle>
-            <CardDescription>
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-xl font-semibold">Progresso Gamificado</CardTitle>
+            <p className="text-sm text-gray-400 mt-0.5">
               Acompanhe suas conquistas e evolução
-            </CardDescription>
+            </p>
           </div>
         </div>
       </CardHeader>

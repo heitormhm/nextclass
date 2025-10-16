@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Video, Briefcase, FileText, Library, Calendar, Sparkles } from 'lucide-react';
+import { Video, Briefcase, FileText, Library, Calendar, Sparkles, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import MainLayout from '@/components/MainLayout';
@@ -133,11 +133,18 @@ const Dashboard = () => {
         {/* LAYER 4: Utility Modules - Quick Access Menu */}
         <div className="grid grid-cols-1 gap-6 lg:gap-8">
           <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-xl">Acesso Rápido</CardTitle>
-              <CardDescription>
-                Navegue rapidamente para as principais seções
-              </CardDescription>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Zap className="h-6 w-6 text-pink-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-xl font-semibold">Acesso Rápido</CardTitle>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    Navegue rapidamente para as principais seções
+                  </p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
                 {/* Mobile: Single column list */}
@@ -146,8 +153,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
-                            <Video className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors shrink-0">
+                            <Video className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -166,8 +173,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
-                             <Briefcase className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors shrink-0">
+                             <Briefcase className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -186,8 +193,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
-                            <Sparkles className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors shrink-0">
+                            <Sparkles className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -206,8 +213,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
-                            <Calendar className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors shrink-0">
+                            <Calendar className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -226,8 +233,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
-                            <FileText className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors shrink-0">
+                            <FileText className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -246,8 +253,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors shrink-0">
-                            <Library className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors shrink-0">
+                            <Library className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -269,8 +276,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
                       <CardContent className="p-6 h-full">
                         <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
-                            <Video className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors">
+                            <Video className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="space-y-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -289,8 +296,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
                       <CardContent className="p-6 h-full">
                         <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
-                            <Briefcase className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors">
+                            <Briefcase className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="space-y-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -309,8 +316,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
                       <CardContent className="p-6 h-full">
                         <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
-                            <Sparkles className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors">
+                            <Sparkles className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="space-y-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -329,8 +336,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
                       <CardContent className="p-6 h-full">
                         <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
-                            <Calendar className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors">
+                            <Calendar className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="space-y-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -349,8 +356,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
                       <CardContent className="p-6 h-full">
                         <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
-                            <FileText className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors">
+                            <FileText className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="space-y-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -369,8 +376,8 @@ const Dashboard = () => {
                     <Card className="border border-border hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
                       <CardContent className="p-6 h-full">
                         <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
-                          <div className="w-12 h-12 bg-primary/10 group-hover:bg-primary/20 rounded-lg flex items-center justify-center transition-colors">
-                            <Library className="h-6 w-6 text-primary" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 rounded-xl flex items-center justify-center transition-colors">
+                            <Library className="h-6 w-6 text-pink-600" />
                           </div>
                           <div className="space-y-1">
                             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
