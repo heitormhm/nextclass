@@ -25,6 +25,7 @@ interface CalendarEvent {
   description?: string;
   isPersonalEvent?: boolean;
   color?: string;
+  category?: string;
 }
 
 const CalendarPage = () => {
@@ -102,6 +103,7 @@ const CalendarPage = () => {
           description: event.notes || event.description,
           isPersonalEvent: true,
           color: event.color || 'azul',
+          category: event.category,
         })),
         ...(classEvents || []).map(event => ({
           id: event.id,
@@ -115,6 +117,7 @@ const CalendarPage = () => {
           description: event.description || event.notes,
           isPersonalEvent: false,
           color: event.color || 'azul',
+          category: event.category,
         }))
       ];
 
@@ -204,6 +207,24 @@ const CalendarPage = () => {
 
   const hasEventsOnDate = (date: Date) => {
     return getEventsForDate(date).length > 0;
+  };
+
+  const getCategoryLabel = (category?: string) => {
+    const categoryLabels: Record<string, string> = {
+      'aula_presencial': 'Aula Presencial',
+      'aula_online': 'Aula Online',
+      'atividade_avaliativa': 'Avaliação',
+      'trabalho': 'Trabalho',
+      'prova': 'Prova',
+      'seminario': 'Seminário',
+      'outro': 'Outro'
+    };
+    
+    if (!category) return 'Evento';
+    return categoryLabels[category] || category
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   const getEventColorClasses = (color: string = 'azul') => {
@@ -529,15 +550,11 @@ const CalendarPage = () => {
                                 <Badge 
                                   variant="outline"
                                   className={cn(
-                                    "shrink-0 font-medium",
-                                    `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border}`
+                                    "shrink-0 font-medium h-6 text-xs px-2",
+                                    `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
                                   )}
                                 >
-                                  {event.type === 'online' ? (
-                                    <><Video className="h-3 w-3 mr-1" /> Online</>
-                                  ) : (
-                                    <><Users className="h-3 w-3 mr-1" /> Presencial</>
-                                  )}
+                                  {getCategoryLabel(event.category)}
                                 </Badge>
                               </div>
                               
@@ -612,7 +629,7 @@ const CalendarPage = () => {
                       size="sm"
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Adicionar ao meu calendário
+                      Criar novo evento
                     </Button>
                   </div>
                 </CardContent>

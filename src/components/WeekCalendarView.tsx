@@ -17,6 +17,7 @@ interface CalendarEvent {
   location?: string;
   description?: string;
   color?: string;
+  category?: string;
 }
 
 interface WeekCalendarViewProps {
@@ -33,6 +34,24 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   onEventClick
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const getCategoryLabel = (category?: string) => {
+    const categoryLabels: Record<string, string> = {
+      'aula_presencial': 'Aula Presencial',
+      'aula_online': 'Aula Online',
+      'atividade_avaliativa': 'Avaliação',
+      'trabalho': 'Trabalho',
+      'prova': 'Prova',
+      'seminario': 'Seminário',
+      'outro': 'Outro'
+    };
+    
+    if (!category) return 'Evento';
+    return categoryLabels[category] || category
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   const getEventColorClasses = (color: string = 'azul') => {
     const colorMap: Record<string, { bg: string; text: string; badge: string; border: string }> = {
@@ -65,7 +84,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
     
     // Each hour = 60px, so 1 minute = 1px
     const top = startMinutes;
-    const height = Math.max(duration, 30); // Minimum 30px height
+    const height = Math.max(duration, 40); // Minimum 40px height
     
     return { top, height };
   };
@@ -191,10 +210,13 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                           isCancelled && "opacity-50 grayscale",
                           !isCancelled && `bg-gradient-to-br ${colorClasses.bg} text-white shadow-md`
                         )}
-                        style={{ top: `${top}px`, height: `${height}px`, minHeight: '30px' }}
+                        style={{ top: `${top}px`, height: `${height}px`, minHeight: '40px' }}
                         onClick={() => onEventClick?.(event)}
                       >
-                        <div className="flex flex-col h-full justify-between">
+                        <div className={cn(
+                          "flex flex-col h-full justify-between",
+                          height > 60 && event.category && "pb-6"
+                        )}>
                           <div>
                             <div className={cn(
                               "text-xs font-semibold truncate",
@@ -246,20 +268,16 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                           </div>
                         </div>
 
-                        {/* Event type badge */}
-                        {height > 40 && (
+                        {/* Category badge */}
+                        {height > 60 && event.category && (
                           <Badge
                             variant="outline"
                             className={cn(
-                              "absolute bottom-2 left-2 h-5 text-[10px]",
+                              "absolute bottom-1 left-1 h-5 text-[9px] px-1.5",
                               `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border`
                             )}
                           >
-                            {event.type === 'online' ? (
-                              <><Video className="h-2 w-2 mr-1" /> Online</>
-                            ) : (
-                              <><Users className="h-2 w-2 mr-1" /> Presencial</>
-                            )}
+                            {getCategoryLabel(event.category)}
                           </Badge>
                         )}
                       </div>
