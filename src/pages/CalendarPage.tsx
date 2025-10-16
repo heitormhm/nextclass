@@ -499,7 +499,7 @@ const CalendarPage = () => {
                               
                               {/* Event indicators - Vertical stacked dots */}
                               {hasEvents && (
-                                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex flex-col gap-0.5 items-center justify-center z-10">
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 items-center justify-center z-10">
                                   {dayEvents.slice(0, 3).map((event, idx) => (
                                     <div
                                       key={idx}
