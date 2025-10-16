@@ -70,16 +70,16 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
-  // Time slots (24 hours, each hour = 2 slots of 30min)
-  const timeSlots = Array.from({ length: 24 }, (_, i) => i);
+  // Time slots (6h to 23h = 18 hours)
+  const timeSlots = Array.from({ length: 18 }, (_, i) => i + 6);
 
-  // Calculate position and height for events
+  // Calculate position and height for events (adjusted for 6am start)
   const getEventPosition = (startTime: string, endTime: string) => {
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
     
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
+    const startMinutes = (startHour - 6) * 60 + startMin; // Subtract 6 hours offset
+    const endMinutes = (endHour - 6) * 60 + endMin;
     const duration = endMinutes - startMinutes;
     
     // Each hour = 60px, so 1 minute = 1px
@@ -94,25 +94,27 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
     return events.filter(event => isSameDay(event.date, day));
   };
 
-  // Auto-scroll to current time on mount
+  // Auto-scroll to current time on mount (adjusted for 6am start)
   useEffect(() => {
     if (containerRef.current) {
       const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const currentMinutes = (now.getHours() - 6) * 60 + now.getMinutes(); // Adjust for 6am start
       const scrollPosition = currentMinutes - 120; // Center current time in view
       
       containerRef.current.scrollTo({ top: Math.max(0, scrollPosition), behavior: 'smooth' });
     }
   }, []);
 
-  // Get current time position for "now" indicator
+  // Get current time position for "now" indicator (adjusted for 6am start)
   const getCurrentTimePosition = () => {
     const now = new Date();
-    return now.getHours() * 60 + now.getMinutes();
+    const hour = now.getHours();
+    if (hour < 6 || hour >= 23) return -1; // Outside visible range
+    return (hour - 6) * 60 + now.getMinutes();
   };
 
   const nowPosition = getCurrentTimePosition();
-  const showNowIndicator = weekDays.some(day => isToday(day));
+  const showNowIndicator = nowPosition >= 0 && weekDays.some(day => isToday(day));
 
   return (
     <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-pink-100 overflow-hidden">
@@ -152,7 +154,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
         className="relative overflow-y-auto custom-scrollbar"
         style={{ height: '600px' }}
       >
-        <div className="relative" style={{ height: `${24 * 60}px` }}>
+        <div className="relative" style={{ height: `${18 * 60}px` }}>
           {/* Time labels and grid lines */}
         {timeSlots.map((hour) => (
           <div

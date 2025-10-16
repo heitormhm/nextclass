@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, addMonths, subMonths, addWeeks, subWeeks, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, Check, X, Trash2, Video, Users, Calendar as CalendarIcon, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -252,10 +252,10 @@ const CalendarPage = () => {
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => 
-      direction === 'prev' ? subWeeks(prev, 1) : addWeeks(prev, 1)
+      direction === 'prev' ? addDays(prev, -5) : addDays(prev, 5)
     );
     setSelectedDate(prev => 
-      direction === 'prev' ? subWeeks(prev, 1) : addWeeks(prev, 1)
+      direction === 'prev' ? addDays(prev, -5) : addDays(prev, 5)
     );
   };
 
@@ -501,15 +501,15 @@ const CalendarPage = () => {
             <div className="lg:col-span-1 order-1 lg:order-2">
               <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl lg:sticky lg:top-24 flex flex-col max-h-[600px]">
                 <CardHeader className="pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center shrink-0">
-                      <Clock className="h-6 w-6 text-pink-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                      <Clock className="h-7 w-7 text-pink-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-xl font-semibold">
+                      <CardTitle className="text-lg font-semibold leading-tight">
                         Agenda para {format(selectedDate, 'd')} de {format(selectedDate, 'MMMM', { locale: ptBR })}
                       </CardTitle>
-                      <p className="text-sm text-gray-400 mt-0.5">
+                      <p className="text-sm text-gray-500 mt-1">
                         Seus compromissos do dia
                       </p>
                     </div>
