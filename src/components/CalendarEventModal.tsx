@@ -35,7 +35,22 @@ const CATEGORIES = [
   { value: 'reuniao', label: 'Reunião', icon: '👥' },
   { value: 'prazo', label: 'Prazo', icon: '⏰' },
   { value: 'outro', label: 'Outro', icon: '📌' },
+  { value: 'custom', label: '+ Adicionar nova categoria...', icon: '✨' },
 ];
+
+// Time slots for better UX
+const generateTimeSlots = () => {
+  const slots = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      slots.push(time);
+    }
+  }
+  return slots;
+};
+
+const TIME_SLOTS = generateTimeSlots();
 
 const COLORS = [
   { value: 'rosa', label: 'Rosa', color: 'bg-pink-500' },
@@ -66,6 +81,8 @@ export const CalendarEventModal = ({
   const [notificationEmail, setNotificationEmail] = useState(false);
   const [notificationPlatform, setNotificationPlatform] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -83,12 +100,17 @@ export const CalendarEventModal = ({
         return;
       }
 
+      // Handle custom category
+      const finalCategory = category === 'custom' && customCategory.trim() 
+        ? `custom_${customCategory.trim().toLowerCase().replace(/\s+/g, '_')}`
+        : category;
+
       const eventData = {
         title: title.trim(),
         event_date: format(date, 'yyyy-MM-dd'),
         start_time: startTime,
         end_time: endTime,
-        category,
+        category: finalCategory,
         color,
         notes: notes.trim() || null,
       };
@@ -131,6 +153,8 @@ export const CalendarEventModal = ({
       setNotes('');
       setNotificationEmail(false);
       setNotificationPlatform(true);
+      setCustomCategory('');
+      setShowCustomCategory(false);
       
       onEventCreated?.();
       onOpenChange(false);
@@ -144,7 +168,13 @@ export const CalendarEventModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white/60 backdrop-blur-xl border-pink-100">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white border-pink-100 shadow-2xl
+        [&::-webkit-scrollbar]:w-2
+        [&::-webkit-scrollbar-track]:bg-gray-100
+        [&::-webkit-scrollbar-track]:rounded-full
+        [&::-webkit-scrollbar-thumb]:bg-pink-300
+        [&::-webkit-scrollbar-thumb]:rounded-full
+        [&::-webkit-scrollbar-thumb:hover]:bg-pink-400">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center">
@@ -170,7 +200,7 @@ export const CalendarEventModal = ({
               placeholder="Ex: Prova de Termodinâmica"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-white/50"
+              className="bg-white/20 backdrop-blur-xl border-pink-200 focus:border-pink-400"
             />
           </div>
 
@@ -183,7 +213,7 @@ export const CalendarEventModal = ({
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal bg-white/50",
+                      "w-full justify-start text-left font-normal bg-white/20 backdrop-blur-xl border-pink-200",
                       !date && "text-muted-foreground"
                     )}
                   >
@@ -207,34 +237,53 @@ export const CalendarEventModal = ({
               <Label htmlFor="startTime" className="text-sm font-medium">
                 ⏰ Início *
               </Label>
-              <Input
-                id="startTime"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="bg-white/50"
-              />
+              <Select value={startTime} onValueChange={setStartTime}>
+                <SelectTrigger className="bg-white/20 backdrop-blur-xl border-pink-200">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {TIME_SLOTS.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="endTime" className="text-sm font-medium">
                 ⏰ Fim *
               </Label>
-              <Input
-                id="endTime"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="bg-white/50"
-              />
+              <Select value={endTime} onValueChange={setEndTime}>
+                <SelectTrigger className="bg-white/20 backdrop-blur-xl border-pink-200">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {TIME_SLOTS.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Categoria */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">🏷️ Categoria *</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="bg-white/50">
+            <Select 
+              value={category} 
+              onValueChange={(value) => {
+                setCategory(value);
+                setShowCustomCategory(value === 'custom');
+                if (value !== 'custom') {
+                  setCustomCategory('');
+                }
+              }}
+            >
+              <SelectTrigger className="bg-white/20 backdrop-blur-xl border-pink-200">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -248,6 +297,22 @@ export const CalendarEventModal = ({
                 ))}
               </SelectContent>
             </Select>
+            
+            {/* Custom Category Input */}
+            {showCustomCategory && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <Label htmlFor="customCategory" className="text-sm font-medium text-pink-600">
+                  ✨ Nome da Categoria Personalizada *
+                </Label>
+                <Input
+                  id="customCategory"
+                  placeholder="Ex: Projeto de Pesquisa"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  className="bg-white/20 backdrop-blur-xl border-pink-200 focus:border-pink-400"
+                />
+              </div>
+            )}
           </div>
 
           {/* Cor do Evento */}
@@ -282,7 +347,7 @@ export const CalendarEventModal = ({
               placeholder="Revisar capítulos 3, 4 e 5. Trazer formulário."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="bg-white/50 min-h-[80px] resize-none"
+              className="bg-white/20 backdrop-blur-xl border-pink-200 focus:border-pink-400 min-h-[80px] resize-none"
             />
           </div>
 
@@ -338,7 +403,7 @@ export const CalendarEventModal = ({
           <Button
             onClick={handleSubmit}
             className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
-            disabled={isSubmitting || !title.trim()}
+            disabled={isSubmitting || !title.trim() || (showCustomCategory && !customCategory.trim())}
           >
             {isSubmitting ? 'Criando...' : 'Criar Evento'}
           </Button>

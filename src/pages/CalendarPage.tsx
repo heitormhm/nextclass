@@ -277,28 +277,30 @@ const CalendarPage = () => {
                       </CardContent>
                     </Card>
                   ) : (
-                    <Card className="border-0 shadow-sm">
+                    <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl min-h-[600px]">
                       <CardContent className="p-6">
                       {/* Calendar Header */}
-                      <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center justify-between mb-6 px-2">
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
                           onClick={() => navigateMonth('prev')}
+                          className="hover:bg-pink-100 transition-colors"
                         >
-                          <ChevronLeft className="h-4 w-4" />
+                          <ChevronLeft className="h-5 w-5 text-pink-600" />
                         </Button>
                         
-                        <h2 className="text-2xl font-semibold">
+                        <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent capitalize">
                           {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
                         </h2>
                         
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
                           onClick={() => navigateMonth('next')}
+                          className="hover:bg-pink-100 transition-colors"
                         >
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight className="h-5 w-5 text-pink-600" />
                         </Button>
                       </div>
 
@@ -324,34 +326,35 @@ const CalendarPage = () => {
                               key={index}
                               onClick={() => handleDateClick(date)}
                               className={cn(
-                                "relative p-2 h-12 text-sm rounded-lg transition-all duration-200 hover:bg-accent",
-                                !isCurrentMonth && "text-foreground-muted opacity-50",
-                                isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
-                                isTodayDate && !isSelected && "bg-primary/10 font-semibold text-primary",
-                                hasEvents && "font-medium"
+                                "relative p-2 h-14 text-sm rounded-xl transition-all duration-200",
+                                "hover:bg-gradient-to-br hover:from-pink-50 hover:to-purple-50",
+                                !isCurrentMonth && "text-gray-400 opacity-50",
+                                isSelected && "bg-gradient-to-br from-pink-500 to-purple-500 text-white shadow-lg scale-105",
+                                isTodayDate && !isSelected && "bg-pink-50 font-bold text-pink-600 ring-2 ring-pink-200",
+                                hasEvents && "font-semibold"
                               )}
                             >
                               <span>{format(date, 'd')}</span>
                               
                               {/* Event indicators */}
                               {hasEvents && (
-                                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">
-                                  {dayEvents.slice(0, 3).map((event, eventIndex) => (
+                                <div className="absolute bottom-1.5 left-1/2 transform -translate-x-1/2 flex gap-1">
+                                  {dayEvents.slice(0, 2).map((event, eventIndex) => (
                                     <div
                                       key={eventIndex}
                                       className={cn(
-                                        "w-1.5 h-1.5 rounded-full",
+                                        "w-1.5 h-1.5 rounded-full shadow-sm",
                                         getEventTypeColor(event.type),
-                                        isSelected && "bg-primary-foreground"
+                                        isSelected && "bg-white ring-1 ring-white/50"
                                       )}
                                     />
                                   ))}
-                                  {dayEvents.length > 3 && (
+                                  {dayEvents.length > 2 && (
                                     <div className={cn(
-                                      "text-xs font-bold",
-                                      isSelected ? "text-primary-foreground" : "text-foreground-muted"
+                                      "text-[10px] font-bold ml-0.5",
+                                      isSelected ? "text-white" : "text-gray-500"
                                     )}>
-                                      +{dayEvents.length - 3}
+                                      +{dayEvents.length - 2}
                                     </div>
                                   )}
                                 </div>
@@ -381,11 +384,21 @@ const CalendarPage = () => {
 
             {/* Agenda Sidebar - Above calendar on mobile */}
             <div className="lg:col-span-1 order-1 lg:order-2">
-              <Card className="border-0 shadow-sm lg:sticky lg:top-20">
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    Agenda para {format(selectedDate, 'd')} de {format(selectedDate, 'MMMM', { locale: ptBR })}
-                  </CardTitle>
+              <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl lg:sticky lg:top-24 min-h-[600px]">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl flex items-center justify-center shrink-0">
+                      <Clock className="h-6 w-6 text-pink-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-xl font-semibold">
+                        Agenda para {format(selectedDate, 'd')} de {format(selectedDate, 'MMMM', { locale: ptBR })}
+                      </CardTitle>
+                      <p className="text-sm text-gray-400 mt-0.5">
+                        Seus compromissos do dia
+                      </p>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {selectedDateEvents.length === 0 ? (
@@ -398,49 +411,50 @@ const CalendarPage = () => {
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {selectedDateEvents.map((event) => (
-                        <Card key={event.id} className="p-4 hover:shadow-md transition-shadow">
+                        <Card key={event.id} className="p-4 bg-white/60 backdrop-blur-xl border-pink-100 hover:shadow-lg hover:scale-102 transition-all duration-200">
                           <div className="space-y-3">
-                            <div className="flex items-start justify-between">
-                              <h3 className="font-semibold text-foreground line-clamp-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <h3 className="font-semibold text-gray-800 line-clamp-2 flex-1">
                                 {event.title}
                               </h3>
                               <Badge 
-                                variant={event.type === 'online' ? 'default' : 'secondary'}
+                                variant="outline"
                                 className={cn(
-                                  "ml-2 shrink-0",
-                                  event.type === 'online' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                  "shrink-0 font-medium",
+                                  event.type === 'online' 
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                    : 'bg-green-50 text-green-700 border-green-200'
                                 )}
                               >
                                 {event.type === 'online' ? (
-                                  <Video className="h-3 w-3 mr-1" />
+                                  <><Video className="h-3 w-3 mr-1" /> Online</>
                                 ) : (
-                                  <Users className="h-3 w-3 mr-1" />
+                                  <><Users className="h-3 w-3 mr-1" /> Presencial</>
                                 )}
-                                {event.type === 'online' ? 'Online' : 'Presencial'}
                               </Badge>
                             </div>
                             
-                            <div className="space-y-2 text-sm text-foreground-muted">
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
+                            <div className="space-y-2 text-sm text-gray-600">
+                              <div className="flex items-center gap-2 font-medium">
+                                <Clock className="h-4 w-4 text-pink-500" />
                                 <span>{event.startTime} - {event.endTime}</span>
                               </div>
                               
                               {event.location && (
                                 <div className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4" />
+                                  <MapPin className="h-4 w-4 text-pink-500" />
                                   <span>{event.location}</span>
                                 </div>
                               )}
+                              
+                              {event.description && (
+                                <p className="text-xs text-gray-500 mt-2 line-clamp-2">
+                                  {event.description}
+                                </p>
+                              )}
                             </div>
-                            
-                            {event.description && (
-                              <p className="text-sm text-foreground-muted">
-                                {event.description}
-                              </p>
-                            )}
                           </div>
                         </Card>
                       ))}
