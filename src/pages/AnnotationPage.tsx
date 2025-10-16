@@ -162,21 +162,17 @@ const AnnotationPage = () => {
         
         const range = selection.getRangeAt(0);
         
-        // Salvar posição de scroll atual
-        const currentScrollTop = editor.scrollTop;
-        
-        // Criar quebra de linha simples (um único br)
+        // Inserir quebra de linha
         const br = document.createElement('br');
-        
         range.deleteContents();
         range.insertNode(br);
         
-        // Criar um texto invisível após o br para manter o cursor visível
-        const textNode = document.createTextNode('\u200B'); // Zero-width space
+        // Criar espaço após o br
+        const textNode = document.createTextNode('\u200B');
         range.setStartAfter(br);
         range.insertNode(textNode);
         
-        // Posicionar cursor após o texto invisível
+        // Posicionar cursor
         range.setStartAfter(textNode);
         range.setEndAfter(textNode);
         range.collapse(true);
@@ -184,21 +180,41 @@ const AnnotationPage = () => {
         selection.removeAllRanges();
         selection.addRange(range);
         
-        // Calcular nova posição de scroll baseada na posição do cursor
-        const rangeRect = range.getBoundingClientRect();
-        const editorRect = editor.getBoundingClientRect();
-        
-        // Se o cursor está abaixo da área visível, scroll para baixo
-        if (rangeRect.bottom > editorRect.bottom - 50) {
-          const scrollDelta = rangeRect.bottom - editorRect.bottom + 100;
-          editor.scrollTop = currentScrollTop + scrollDelta;
-        }
-        // Se o cursor está acima da área visível, scroll para cima
-        else if (rangeRect.top < editorRect.top + 50) {
-          const scrollDelta = editorRect.top - rangeRect.top + 100;
-          editor.scrollTop = currentScrollTop - scrollDelta;
-        }
-        // Caso contrário, manter scroll atual (não fazer nada)
+        // Scroll automático nativo do contentEditable
+        requestAnimationFrame(() => {
+          // Criar elemento temporário na posição do cursor
+          const marker = document.createElement('span');
+          marker.innerHTML = '&nbsp;';
+          marker.style.display = 'inline';
+          
+          const currentRange = window.getSelection()?.getRangeAt(0);
+          if (currentRange) {
+            currentRange.insertNode(marker);
+            
+            // Scroll suave para o marcador DENTRO do editor
+            marker.scrollIntoView({
+              behavior: 'smooth',
+              block: 'nearest',
+              inline: 'nearest'
+            });
+            
+            // Remover marcador e restaurar cursor
+            const parent = marker.parentNode;
+            if (parent) {
+              parent.removeChild(marker);
+              
+              // Restaurar seleção
+              const newRange = document.createRange();
+              newRange.setStartAfter(textNode);
+              newRange.setEndAfter(textNode);
+              newRange.collapse(true);
+              
+              const sel = window.getSelection();
+              sel?.removeAllRanges();
+              sel?.addRange(newRange);
+            }
+          }
+        });
         
         // Salvar alterações
         handleInput();
@@ -804,7 +820,7 @@ const AnnotationPage = () => {
                   suppressContentEditableWarning={true}
                   onInput={handleInput}
                   className={cn(
-                    'min-h-[700px] p-8 rounded-lg',
+                    'min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg',
                     'focus:outline-none focus:ring-2 focus:ring-primary/20',
                     'prose prose-lg max-w-none',
                     '[&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-800 [&_h2]:mb-4',
