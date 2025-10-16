@@ -162,17 +162,17 @@ const AnnotationPage = () => {
         
         const range = selection.getRangeAt(0);
         
-        // Inserir quebra de linha
+        // 1. Inserir quebra de linha
         const br = document.createElement('br');
         range.deleteContents();
         range.insertNode(br);
         
-        // Criar espaço após o br
+        // 2. Criar espaço após o br para manter linha visível
         const textNode = document.createTextNode('\u200B');
         range.setStartAfter(br);
         range.insertNode(textNode);
         
-        // Posicionar cursor
+        // 3. Posicionar cursor IMEDIATAMENTE (antes de qualquer scroll)
         range.setStartAfter(textNode);
         range.setEndAfter(textNode);
         range.collapse(true);
@@ -180,43 +180,48 @@ const AnnotationPage = () => {
         selection.removeAllRanges();
         selection.addRange(range);
         
-        // Scroll automático nativo do contentEditable
-        requestAnimationFrame(() => {
-          // Criar elemento temporário na posição do cursor
-          const marker = document.createElement('span');
-          marker.innerHTML = '&nbsp;';
-          marker.style.display = 'inline';
-          
-          const currentRange = window.getSelection()?.getRangeAt(0);
-          if (currentRange) {
-            currentRange.insertNode(marker);
+        // 4. Forçar o cursor a permanecer visível com scroll DIRETO
+        setTimeout(() => {
+          try {
+            // Obter posição do cursor
+            const cursorRange = window.getSelection()?.getRangeAt(0);
+            if (!cursorRange) return;
             
-            // Scroll suave para o marcador DENTRO do editor
-            marker.scrollIntoView({
-              behavior: 'smooth',
-              block: 'nearest',
-              inline: 'nearest'
-            });
+            const cursorRect = cursorRange.getBoundingClientRect();
+            const editorRect = editor.getBoundingClientRect();
             
-            // Remover marcador e restaurar cursor
-            const parent = marker.parentNode;
-            if (parent) {
-              parent.removeChild(marker);
-              
-              // Restaurar seleção
-              const newRange = document.createRange();
-              newRange.setStartAfter(textNode);
-              newRange.setEndAfter(textNode);
-              newRange.collapse(true);
-              
-              const sel = window.getSelection();
-              sel?.removeAllRanges();
-              sel?.addRange(newRange);
+            // Calcular se precisamos fazer scroll
+            const cursorRelativeTop = cursorRect.top - editorRect.top;
+            const cursorRelativeBottom = cursorRect.bottom - editorRect.top;
+            
+            // Se cursor está fora da área visível do editor
+            if (cursorRelativeBottom > editor.clientHeight - 50) {
+              // Scroll para baixo (cursor está abaixo da área visível)
+              const scrollAmount = cursorRelativeBottom - editor.clientHeight + 100;
+              editor.scrollTop += scrollAmount;
+            } else if (cursorRelativeTop < 50) {
+              // Scroll para cima (cursor está acima da área visível)
+              const scrollAmount = 50 - cursorRelativeTop;
+              editor.scrollTop -= scrollAmount;
             }
+            
+            // Garantir que o cursor ainda está posicionado corretamente
+            const finalRange = document.createRange();
+            finalRange.setStartAfter(textNode);
+            finalRange.setEndAfter(textNode);
+            finalRange.collapse(true);
+            
+            const finalSelection = window.getSelection();
+            if (finalSelection) {
+              finalSelection.removeAllRanges();
+              finalSelection.addRange(finalRange);
+            }
+          } catch (error) {
+            console.error('Error handling cursor position:', error);
           }
-        });
+        }, 0);
         
-        // Salvar alterações
+        // 5. Salvar alterações
         handleInput();
       }
     };
