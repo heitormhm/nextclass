@@ -3,7 +3,7 @@ import {
   Bold, Italic, Underline, Highlighter, List, ListOrdered, 
   ImagePlus, Type, Save, ArrowLeft, BookOpen, Tag, 
   Sparkles, X, Loader2, Download, CheckCircle2, FileText,
-  Maximize2, Minimize2, BookCheck, AlertTriangle, Mic
+  Maximize2, Minimize2, BookCheck, AlertTriangle, Mic, Undo, Redo, AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +58,12 @@ const AnnotationPage = () => {
   const [dialogTagInput, setDialogTagInput] = useState('');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  
+  // History state for undo/redo
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isUndoRedoAction, setIsUndoRedoAction] = useState(false);
+  const historyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (location.state?.prePopulatedContent) {
@@ -73,12 +79,81 @@ const AnnotationPage = () => {
     }
   }, []);
 
+  // Initialize history with first content
+  useEffect(() => {
+    if (content && history.length === 0) {
+      setHistory([content]);
+      setHistoryIndex(0);
+    }
+  }, []);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [historyIndex, history]);
+
+  const saveToHistory = (newContent: string) => {
+    if (isUndoRedoAction) return; // Don't save during undo/redo
+    
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newContent);
+    
+    // Keep only last 50 states
+    if (newHistory.length > 50) {
+      newHistory.shift();
+    }
+    
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      setIsUndoRedoAction(true);
+      const previousContent = history[historyIndex - 1];
+      setContent(previousContent);
+      if (editorRef.current) {
+        editorRef.current.innerHTML = previousContent;
+      }
+      setHistoryIndex(historyIndex - 1);
+      toast.info('Desfeito');
+      setTimeout(() => setIsUndoRedoAction(false), 100);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      setIsUndoRedoAction(true);
+      const nextContent = history[historyIndex + 1];
+      setContent(nextContent);
+      if (editorRef.current) {
+        editorRef.current.innerHTML = nextContent;
+      }
+      setHistoryIndex(historyIndex + 1);
+      toast.info('Refeito');
+      setTimeout(() => setIsUndoRedoAction(false), 100);
+    }
+  };
+
   const executeCommand = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
     if (editorRef.current) {
-      setContent(editorRef.current.innerHTML);
+      const newContent = editorRef.current.innerHTML;
+      setContent(newContent);
+      saveToHistory(newContent);
     }
-  }, []);
+  }, [historyIndex, history]);
 
   const generateTitleWithAI = async () => {
     if (!content.trim()) {
@@ -274,6 +349,7 @@ const AnnotationPage = () => {
         if (editorRef.current) {
           editorRef.current.innerHTML = data.formattedContent;
         }
+        saveToHistory(data.formattedContent);
         toast.success('Texto formatado com sucesso!');
       }
       
@@ -363,8 +439,17 @@ const AnnotationPage = () => {
   };
 
   const handleInput = () => {
-    if (editorRef.current) {
-      setContent(editorRef.current.innerHTML);
+    if (editorRef.current && !isUndoRedoAction) {
+      const newContent = editorRef.current.innerHTML;
+      setContent(newContent);
+      
+      // Debounce history save
+      if (historyTimeoutRef.current) {
+        clearTimeout(historyTimeoutRef.current);
+      }
+      historyTimeoutRef.current = setTimeout(() => {
+        saveToHistory(newContent);
+      }, 500);
     }
   };
 
@@ -543,6 +628,27 @@ const AnnotationPage = () => {
                 </Button>
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
+
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleUndo}
+                  disabled={historyIndex <= 0}
+                  title="Desfazer (Ctrl+Z)"
+                >
+                  <Undo className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleRedo}
+                  disabled={historyIndex >= history.length - 1}
+                  title="Refazer (Ctrl+Shift+Z)"
+                >
+                  <Redo className="h-4 w-4" />
+                </Button>
+                
+                <div className="w-px h-6 bg-gray-300 mx-1" />
                 
                 <Button variant="ghost" size="sm" onClick={handleHighlight} title="Destacar">
                   <Highlighter className="h-4 w-4" />
@@ -612,56 +718,78 @@ const AnnotationPage = () => {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="left" align="end" className="w-72 p-2">
-            <DropdownMenuLabel className="text-purple-600 font-semibold flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
+          <DropdownMenuContent side="left" align="end" className="w-80 p-2 max-h-[80vh] overflow-y-auto">
+            <DropdownMenuLabel className="text-purple-600 font-semibold flex items-center gap-2 text-base">
+              <Sparkles className="h-5 w-5" />
               Assistente IA Mia
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             
-            <DropdownMenuItem onClick={() => handleAIAction('fix_grammar')} className="cursor-pointer">
+            {/* Grammar Check */}
+            <DropdownMenuItem onClick={() => handleAIAction('fix_grammar')} className="cursor-pointer py-3">
               <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
-              Corrigir erros gramaticais
+              <span className="font-medium">Corrigir erros gramaticais</span>
             </DropdownMenuItem>
             
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="my-2" />
             
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Ajustar Tom
+            {/* Tone Adjustment Section */}
+            <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
+              📝 Ajustar Tom
             </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleAIAction('tone_formal')} className="cursor-pointer pl-6">
+            <DropdownMenuItem onClick={() => handleAIAction('tone_formal')} className="cursor-pointer pl-6 py-2">
               <FileText className="h-4 w-4 mr-2 text-blue-600" />
-              Tom Formal
+              <div className="flex flex-col">
+                <span className="font-medium">Tom Formal</span>
+                <span className="text-xs text-muted-foreground">Vocabulário técnico e preciso</span>
+              </div>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAIAction('tone_informal')} className="cursor-pointer pl-6">
+            <DropdownMenuItem onClick={() => handleAIAction('tone_informal')} className="cursor-pointer pl-6 py-2">
               <FileText className="h-4 w-4 mr-2 text-orange-600" />
-              Tom Informal
+              <div className="flex flex-col">
+                <span className="font-medium">Tom Informal</span>
+                <span className="text-xs text-muted-foreground">Linguagem do dia a dia</span>
+              </div>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAIAction('tone_professional')} className="cursor-pointer pl-6">
+            <DropdownMenuItem onClick={() => handleAIAction('tone_professional')} className="cursor-pointer pl-6 py-2">
               <FileText className="h-4 w-4 mr-2 text-purple-600" />
-              Tom Profissional
+              <div className="flex flex-col">
+                <span className="font-medium">Tom Profissional</span>
+                <span className="text-xs text-muted-foreground">Jargão técnico especializado</span>
+              </div>
             </DropdownMenuItem>
             
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="my-2" />
             
-            <DropdownMenuItem onClick={() => handleAIAction('extend_text')} className="cursor-pointer">
+            {/* Text Size Section */}
+            <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
+              📏 Modificar Tamanho do Texto
+            </DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => handleAIAction('extend_text')} className="cursor-pointer pl-6 py-2">
               <Maximize2 className="h-4 w-4 mr-2 text-indigo-600" />
-              Estender texto
+              <span className="font-medium">Estender texto</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAIAction('shorten_text')} className="cursor-pointer">
-              <Minimize2 className="h-4 w-4 mr-2 text-pink-600" />
-              Encurtar texto
+            <DropdownMenuItem onClick={() => handleAIAction('shorten_text')} className="cursor-pointer pl-6 py-2">
+              <Minimize2 className="h-4 w-4 mr-2 text-teal-600" />
+              <span className="font-medium">Encurtar texto</span>
             </DropdownMenuItem>
             
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="my-2" />
             
-            <DropdownMenuItem onClick={() => handleAIAction('improve_didactic')} className="cursor-pointer">
-              <BookCheck className="h-4 w-4 mr-2 text-teal-600" />
-              Tornar mais didático
+            {/* Structure & Language Section */}
+            <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
+              🎯 Modificar Estrutura e Linguagem
+            </DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => handleAIAction('improve_didactic')} className="cursor-pointer pl-6 py-2">
+              <BookOpen className="h-4 w-4 mr-2 text-pink-600" />
+              <div className="flex flex-col">
+                <span className="font-medium">Tornar mais didático</span>
+                <span className="text-xs text-muted-foreground">Tabelas, diagramas e exemplos</span>
+              </div>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAIAction('fact_check')} className="cursor-pointer">
-              <AlertTriangle className="h-4 w-4 mr-2 text-red-600" />
-              Verificar informações
+            <DropdownMenuItem onClick={() => handleAIAction('fact_check')} className="cursor-pointer pl-6 py-2">
+              <AlertCircle className="h-4 w-4 mr-2 text-red-600" />
+              <span className="font-medium">Verificar informações</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
