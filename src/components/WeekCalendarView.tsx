@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { format, addDays, startOfWeek, isSameDay, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Check, X, Trash2, Video, Users } from 'lucide-react';
+import { Check, X, Video, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -164,10 +164,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
             className="absolute left-0 right-0 border-t border-border"
             style={{ top: `${(hour - 6) * 60}px` }}
           >
-            <div className={cn(
-              "absolute -top-3 left-2 text-xs bg-white px-2 py-1 rounded-sm z-0 shadow-sm",
-              hour === 6 ? "font-bold text-gray-800" : "text-foreground-muted"
-            )}>
+            <div className="absolute -top-3 left-2 text-xs bg-white px-2 py-1 rounded-sm z-0 shadow-sm font-bold text-gray-800">
               {format(new Date(2024, 0, 1, hour), 'HH:mm')}
             </div>
           </div>
@@ -203,8 +200,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                 >
                   {dayEvents.map((event) => {
                     const { top, height } = getEventPosition(event.startTime, event.endTime);
-                    const isCompleted = event.status === 'completed';
-                    const isCancelled = event.status === 'cancelled';
+            const isCompleted = event.status === 'completed';
                     const colorClasses = getEventColorClasses(event.color);
                     
                     return (
@@ -214,8 +210,7 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
           "absolute left-1 right-1 rounded-lg p-2 cursor-pointer transition-all duration-300 isolate",
           "hover:scale-[1.03] hover:shadow-xl hover:z-50 group",
           isCompleted && "opacity-60",
-          isCancelled && "opacity-50 grayscale",
-          !isCancelled && `bg-gradient-to-br ${colorClasses.bg} text-white shadow-md`
+          `bg-gradient-to-br ${colorClasses.bg} text-white shadow-md`
         )}
         style={{ top: `${top}px`, height: `${height}px`, minHeight: '40px' }}
         onClick={() => onEventClick?.(event)}
@@ -225,12 +220,9 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                   event.category && "pb-6"
                 )}>
                           <div>
-                            <div className={cn(
-                              "text-xs font-semibold truncate",
-                              isCompleted && "line-through"
-                            )}>
-                              {event.title}
-                            </div>
+              <div className="text-xs font-semibold truncate">
+                {event.title}
+              </div>
                             <div className="text-[10px] opacity-90 mt-0.5">
                               {event.startTime} - {event.endTime}
                             </div>
@@ -260,41 +252,24 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                                 <Check className="h-3 w-3" />
                               </Button>
                             )}
-                            {!isCancelled && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                title="Cancelar evento"
-                                className="h-6 w-6 bg-white/90 hover:bg-orange-100 hover:scale-110 text-orange-600 transition-all"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEventUpdate(event.id, 'cancel');
-                                }}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            )}
-                            
-                            {/* Botão Deletar - apenas para eventos pessoais */}
-                            {event.isPersonalEvent && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                title="Deletar evento"
-                                className="h-6 w-6 bg-white/90 hover:bg-red-100 hover:scale-110 text-red-600 transition-all"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEventDelete?.(event.id);
-                                }}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
+
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Cancelar/Deletar evento"
+                              className="h-6 w-6 bg-white/90 hover:bg-red-100 hover:scale-110 text-red-600 transition-all"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEventUpdate(event.id, 'cancel');
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
                           </div>
                         </div>
 
                         {/* Category badge - oculta se cancelado */}
-            {event.category && !isCancelled && (
+            {event.category && !isCompleted && (
               <Badge
                 variant="outline"
                 className={cn(

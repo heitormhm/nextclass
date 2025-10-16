@@ -302,24 +302,36 @@ const CalendarPage = () => {
 
   const handleEventUpdate = async (eventId: string, action: 'complete' | 'cancel') => {
     try {
+      // Se for cancelar, deleta ao invés de atualizar status
+      if (action === 'cancel') {
+        await handleEventDelete(eventId);
+        return;
+      }
+
+      // Apenas 'complete' atualiza status
       const event = events.find(e => e.id === eventId);
       if (!event) return;
 
-      const table = event.isPersonalEvent ? 'personal_events' : 'class_events';
-      const newStatus = action === 'complete' ? 'completed' : 'cancelled';
+      // Apenas eventos pessoais podem ser marcados como completos
+      if (!event.isPersonalEvent) {
+        toast.error('Você não pode alterar eventos da turma');
+        return;
+      }
+
+      const newStatus = 'completed';
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { error } = await supabase
-        .from(table)
+        .from('personal_events')
         .update({ status: newStatus })
-        .eq('id', eventId);
+        .eq('id', eventId)
+        .eq('user_id', user.id);
 
       if (error) throw error;
-      
-      toast.success(
-        action === 'complete' ? '✓ Evento concluído' : '✗ Evento cancelado',
-        { duration: 2000 }
-      );
 
+      toast.success('✓ Evento concluído', { duration: 2000 });
       await fetchEvents();
     } catch (error) {
       console.error('Error updating event:', error);
@@ -572,8 +584,7 @@ const CalendarPage = () => {
                   ) : (
                     <div className="space-y-3">
                       {selectedDateEvents.map((event) => {
-                        const isCompleted = event.status === 'completed';
-                        const isCancelled = event.status === 'cancelled';
+              const isCompleted = event.status === 'completed';
                         const colorClasses = getEventColorClasses(event.color);
                         
                         return (
@@ -581,8 +592,7 @@ const CalendarPage = () => {
                             "group relative p-4 bg-white/80 backdrop-blur-xl border-2 transition-all duration-300",
                             "hover:shadow-xl hover:scale-[1.02] hover:border-pink-300",
                             colorClasses.border,
-                            isCompleted && "opacity-60",
-                            isCancelled && "opacity-40 bg-gray-50"
+                            isCompleted && "opacity-60"
                           )}>
                             <div className="space-y-3">
                               {/* Indicador de cor lateral */}
@@ -592,13 +602,10 @@ const CalendarPage = () => {
                               )} />
                               
                               <div className="flex items-start justify-between gap-3">
-                                <h3 className={cn(
-                                  "font-bold text-gray-900 line-clamp-2 flex-1 pl-1",
-                                  isCompleted && "line-through text-gray-500"
-                                )}>
+                                <h3 className="font-bold text-gray-900 line-clamp-2 flex-1 pl-1">
                                   {event.title}
                                 </h3>
-                                {!isCancelled && (
+                                {!isCompleted && (
                                   <Badge 
                                     variant="outline"
                                     className={cn(
@@ -612,13 +619,9 @@ const CalendarPage = () => {
                               </div>
                               
                               {/* Status Badge */}
-                              {(isCompleted || isCancelled) && (
-                                <Badge variant="outline" className={cn(
-                                  "text-xs",
-                                  isCompleted && "bg-green-50 text-green-700 border-green-200",
-                                  isCancelled && "bg-gray-100 text-gray-600 border-gray-300"
-                                )}>
-                                  {isCompleted ? '✓ Concluído' : '✗ Cancelado'}
+                              {isCompleted && (
+                                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                  ✓ Concluído
                                 </Badge>
                               )}
                               
@@ -646,39 +649,25 @@ const CalendarPage = () => {
                               <div className="flex gap-2 pt-2 border-t border-gray-100">
                                 {!isCompleted && (
                                   <Button
-                                    size="sm"
+                                    size="icon"
                                     variant="outline"
                                     title="Concluir evento"
-                                    className="flex-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-all h-8 px-2.5 text-xs"
+                                    className="w-9 h-9 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-all"
                                     onClick={() => handleEventUpdate(event.id, 'complete')}
                                   >
-                                    <Check className="h-3.5 w-3.5 mr-1" />
-                                    Concluir
+                                    <Check className="h-4 w-4" />
                                   </Button>
                                 )}
-                                {!isCancelled && !isCompleted && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    title="Cancelar evento"
-                                    className="flex-1 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 transition-all h-8 px-2.5 text-xs"
-                                    onClick={() => handleEventUpdate(event.id, 'cancel')}
-                                  >
-                                    <X className="h-3.5 w-3.5 mr-1" />
-                                    Cancelar
-                                  </Button>
-                                )}
-                                {event.isPersonalEvent && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    title="Deletar evento"
-                                    className="hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all h-8 w-8 p-0"
-                                    onClick={() => handleEventDelete(event.id)}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
+                                
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  title="Cancelar/Deletar evento"
+                                  className="w-9 h-9 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all"
+                                  onClick={() => handleEventUpdate(event.id, 'cancel')}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
                               </div>
                             </div>
                           </Card>
