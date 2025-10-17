@@ -157,7 +157,7 @@ const TeacherCalendar = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Calendar */}
             <div className="lg:col-span-2">
-              <Card className="frost-white-teacher">
+              <Card className="frost-white-teacher relative z-20">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-2xl text-gray-800">
@@ -252,7 +252,7 @@ const TeacherCalendar = () => {
             {/* Events Sidebar */}
             <div className="space-y-6">
               {/* Today's Events or Selected Date Events */}
-              <Card className="frost-white-teacher">
+              <Card className="frost-white-teacher relative z-20">
                 <CardHeader>
                   <CardTitle className="text-lg text-gray-800">
                     {selectedDate ? 'Eventos do Dia Selecionado' : 'Próximos Eventos'}
@@ -300,7 +300,7 @@ const TeacherCalendar = () => {
               </Card>
 
               {/* Calendar Legend */}
-              <Card className="frost-white-teacher">
+              <Card className="frost-white-teacher relative z-20">
                 <CardHeader>
                   <CardTitle className="text-lg text-gray-800">Legenda</CardTitle>
                 </CardHeader>
@@ -321,7 +321,7 @@ const TeacherCalendar = () => {
               </Card>
 
               {/* Quick Actions - Unified Button */}
-              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl relative z-20">
                 <CardHeader>
                   <CardTitle className="text-lg text-slate-100">Ações Rápidas</CardTitle>
                 </CardHeader>

@@ -119,12 +119,12 @@ const TeacherLessonPlans = () => {
 
           {/* Content */}
           {isLoading ? (
-            <Card className="frost-white-teacher p-12 text-center">
+            <Card className="frost-white-teacher p-12 text-center relative z-20">
               <Loader2 className="h-12 w-12 text-purple-500 animate-spin mx-auto mb-4" />
               <p className="text-gray-600">Carregando planos de aula...</p>
             </Card>
           ) : lessonPlans.length === 0 ? (
-            <Card className="frost-white-teacher p-12 text-center">
+            <Card className="frost-white-teacher p-12 text-center relative z-20">
               <div className="max-w-md mx-auto space-y-4">
                 <div className="p-4 rounded-full bg-purple-500/20 w-20 h-20 flex items-center justify-center mx-auto">
                   <FileText className="h-10 w-10 text-purple-600" />
@@ -145,7 +145,7 @@ const TeacherLessonPlans = () => {
                 {lessonPlans.map((plan) => (
                   <Card
                     key={plan.id}
-                    className="frost-white-teacher-card p-6 hover:shadow-lg transition-all cursor-pointer group"
+                    className="frost-white-teacher-card p-6 hover:shadow-lg transition-all cursor-pointer group transform hover:scale-[1.02] relative z-20"
                     onClick={() => handleViewPlan(plan.id)}
                   >
                     <div className="space-y-4">

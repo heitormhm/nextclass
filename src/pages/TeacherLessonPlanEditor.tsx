@@ -552,7 +552,7 @@ const TeacherLessonPlanEditor = () => {
 
         <div className="h-screen flex flex-col">
           {/* Header */}
-          <div className="border-b border-purple-300 bg-white/90 backdrop-blur-xl">
+          <div className="border-b border-purple-300 bg-white/90 backdrop-blur-xl relative z-20">
             <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button

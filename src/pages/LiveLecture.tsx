@@ -286,7 +286,7 @@ const LiveLecture = () => {
           </div>
 
           {/* Main Control Panel - Optimized height */}
-          <div className="bg-white/90 backdrop-blur-xl rounded-lg border border-purple-200 shadow-2xl p-6 md:p-8 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
+          <div className="bg-white/90 backdrop-blur-xl rounded-lg border border-purple-200 shadow-2xl p-6 md:p-8 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto relative z-20">
             
             {/* Central Microphone Orb - Reduced size */}
             <div className="flex flex-col items-center space-y-4">
@@ -358,7 +358,7 @@ const LiveLecture = () => {
 
             {/* Transcription Area */}
             {isRecording && (
-              <div className="bg-white/70 backdrop-blur-sm rounded-lg border border-purple-200 p-4">
+              <div className="bg-white/70 backdrop-blur-sm rounded-lg border border-purple-200 p-4 relative z-20">
                 <h3 className="text-sm font-semibold text-purple-600 mb-3 flex items-center gap-2">
                   <Radio className="h-4 w-4 animate-pulse" />
                   Transcrição ao Vivo

@@ -365,11 +365,11 @@ const TeacherAIChatPage = () => {
         <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)]">
           {/* Sidebar - Conversation History */}
           <div className={cn(
-            "lg:w-80 bg-white/90 backdrop-blur-xl border-r border-purple-300 flex flex-col",
+            "lg:w-64 bg-white/70 backdrop-blur-xl border-r border-purple-200/60 flex flex-col transition-all duration-300 ease-in-out",
             "fixed lg:relative inset-0 z-50 lg:z-0",
             showMobileHistory ? "block" : "hidden lg:block"
           )}>
-          <div className="p-4 border-b border-purple-200 flex justify-between items-center">
+          <div className="p-3 border-b border-purple-200/50 bg-white/50 flex justify-between items-center">
             <h2 className="font-semibold text-lg text-purple-900">Conversas com Mia</h2>
             <Button
               onClick={() => {
@@ -402,10 +402,10 @@ const TeacherAIChatPage = () => {
                       setShowMobileHistory(false);
                     }}
                     className={cn(
-                      "p-3 rounded-lg cursor-pointer transition-all duration-200 group relative",
+                      "p-3 rounded-lg cursor-pointer transition-all duration-200 group relative border transform hover:scale-[1.02]",
                       activeConversationId === conv.id
-                        ? "bg-purple-600 text-white border-2 border-purple-600"
-                        : "bg-purple-50 hover:bg-purple-100 border-2 border-transparent text-purple-900"
+                        ? "bg-purple-500/90 text-white border-purple-400 shadow-lg shadow-purple-500/30"
+                        : "bg-white/80 hover:bg-white border-purple-200 text-purple-900 hover:shadow-md"
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -445,8 +445,8 @@ const TeacherAIChatPage = () => {
         </div>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col bg-white/70 backdrop-blur-xl">
-          <div className="p-4 border-b border-purple-300 flex justify-between items-center bg-white/90 backdrop-blur-xl">
+        <div className="flex-1 flex flex-col bg-transparent relative z-20">
+          <div className="p-4 border-b border-purple-200/40 flex justify-between items-center bg-white/60 backdrop-blur-md">
             <Button
               variant="ghost"
               size="icon"
@@ -480,7 +480,7 @@ const TeacherAIChatPage = () => {
                         <button
                           key={index}
                           onClick={() => setInputMessage(suggestion)}
-                          className="p-4 rounded-xl bg-white border-2 border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 text-left group"
+                          className="p-4 rounded-xl bg-white/90 border border-purple-200/60 hover:border-purple-300 hover:bg-white hover:shadow-md transition-all duration-200 text-left group"
                         >
                           <p className="text-sm text-purple-700 group-hover:text-purple-900">{suggestion}</p>
                         </button>
@@ -498,10 +498,10 @@ const TeacherAIChatPage = () => {
                         )}
                       >
                         <div className={cn(
-                          "max-w-[85%] rounded-2xl p-4 shadow-sm",
+                          "max-w-[85%] rounded-2xl p-4",
                           message.isUser
-                            ? "bg-gradient-to-br from-purple-600 to-pink-600 text-white"
-                            : "bg-white border border-purple-200 text-purple-900"
+                            ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md"
+                            : "bg-white/95 border border-purple-200/60 text-gray-800 shadow-sm"
                         )}>
                           <div className={cn(
                             "prose prose-sm max-w-none",
@@ -544,9 +544,9 @@ const TeacherAIChatPage = () => {
             </ScrollArea>
 
             {/* Input Panel */}
-            <div className="p-4">
+            <div className="p-4 bg-white/70 backdrop-blur-xl border-t border-purple-200">
               <div className="max-w-4xl mx-auto">
-                <div className="bg-white rounded-2xl p-4 shadow-lg border-2 border-purple-200">
+                <div className="bg-white/95 rounded-2xl p-3 shadow-md border border-purple-200/60 backdrop-blur-md focus-within:ring-2 focus-within:ring-purple-300 transition-all">
                   {attachedFile && (
                     <div className="mb-3 p-2 bg-purple-50 rounded-lg">
                       <div className="flex items-center gap-2">
@@ -619,10 +619,10 @@ const TeacherAIChatPage = () => {
                       <button
                         onClick={() => setIsDeepSearch(!isDeepSearch)}
                         className={cn(
-                          "relative inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300",
+                          "relative inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300 active:scale-95",
                           isDeepSearch 
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
-                            : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+                            ? 'bg-purple-500 text-white shadow-md hover:bg-purple-600' 
+                            : 'bg-white border border-purple-300 text-purple-700 hover:bg-purple-50'
                         )}
                       >
                         <Sparkles className="w-4 h-4" />
@@ -634,7 +634,7 @@ const TeacherAIChatPage = () => {
                       onClick={handleSendMessage}
                       disabled={!inputMessage.trim() || isLoading}
                       size="icon"
-                      className="shrink-0 h-10 w-10 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      className="shrink-0 h-10 w-10 bg-purple-600 hover:bg-purple-700 shadow-md hover:shadow-lg transition-all active:scale-95"
                     >
                       <Send className="w-4 h-4" />
                     </Button>
