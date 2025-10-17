@@ -15,11 +15,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
-interface Class {
+interface Turma {
   id: string;
-  name: string;
-  course: string;
-  period: string;
+  nome_turma: string;
+  curso: string;
+  periodo: string;
+  faculdade: string;
+  cidade: string;
 }
 
 interface Insight {
@@ -33,25 +35,37 @@ interface Insight {
 
 const TeacherDashboard = () => {
   const [selectedClass, setSelectedClass] = useState<string>('');
-  const [classes, setClasses] = useState<Class[]>([]);
+  const [classes, setClasses] = useState<Turma[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const [stats, setStats] = useState({
+    publishedLectures: 0,
+    activeStudents: 0,
+    classAverage: 0,
+  });
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSchedulingModalOpen, setIsSchedulingModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Fetch classes
+  // Fetch turmas (classes grouped by period)
   useEffect(() => {
-    const fetchClasses = async () => {
+    const fetchTurmas = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
       const { data, error } = await supabase
-        .from('classes')
+        .from('turmas')
         .select('*')
-        .order('name');
+        .eq('faculdade', 'Centro Universitario Afya Montes Claros')
+        .eq('curso', 'Engenharia')
+        .order('periodo');
 
       if (error) {
-        console.error('Error fetching classes:', error);
+        console.error('Error fetching turmas:', error);
         return;
       }
 
@@ -61,7 +75,7 @@ const TeacherDashboard = () => {
       }
     };
 
-    fetchClasses();
+    fetchTurmas();
   }, []);
 
   // Fetch insights when class changes
@@ -92,10 +106,46 @@ const TeacherDashboard = () => {
     fetchInsights();
   }, [selectedClass, toast]);
 
+  // Fetch real stats and events when class changes
+  useEffect(() => {
+    if (!selectedClass) return;
+
+    const fetchStats = async () => {
+      try {
+        // Buscar alunos matriculados na turma
+        const { count: studentsCount } = await supabase
+          .from('turma_enrollments')
+          .select('*', { count: 'exact', head: true })
+          .eq('turma_id', selectedClass);
+
+        // Buscar eventos futuros da turma
+        const { data: eventsData } = await supabase
+          .from('class_events')
+          .select('*')
+          .eq('class_id', selectedClass)
+          .gte('event_date', new Date().toISOString())
+          .order('event_date', { ascending: true })
+          .limit(5);
+
+        setStats({
+          publishedLectures: 0, // Por enquanto zero até haver integração com lectures
+          activeStudents: studentsCount || 0,
+          classAverage: 0, // Por enquanto zero até haver integração com grades
+        });
+
+        setUpcomingEvents(eventsData || []);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, [selectedClass]);
+
   return (
     <MainLayout>
       <TeacherLayoutWrapper>
-        <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+        <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto overflow-y-auto">
           {/* Page Header */}
           <div className="mb-8 animate-fade-in-up">
             <h1 className="text-4xl font-bold text-gray-800 mb-2">
@@ -188,8 +238,8 @@ const TeacherDashboard = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-gray-800">24</p>
-                    <p className="text-xs text-gray-500 mt-1">+3 este mês</p>
+                    <p className="text-3xl font-bold text-gray-800">{stats.publishedLectures}</p>
+                    <p className="text-xs text-gray-500 mt-1">Aulas gravadas</p>
                   </CardContent>
                 </Card>
 
@@ -200,8 +250,8 @@ const TeacherDashboard = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-gray-800">152</p>
-                    <p className="text-xs text-gray-500 mt-1">Em 3 turmas</p>
+                    <p className="text-3xl font-bold text-gray-800">{stats.activeStudents}</p>
+                    <p className="text-xs text-gray-500 mt-1">Alunos matriculados</p>
                   </CardContent>
                 </Card>
 
@@ -212,8 +262,8 @@ const TeacherDashboard = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-gray-800">8.5</p>
-                    <p className="text-xs text-gray-500 mt-1">+0.3 vs mês anterior</p>
+                    <p className="text-3xl font-bold text-gray-800">{stats.classAverage || '--'}</p>
+                    <p className="text-xs text-gray-500 mt-1">Sem dados de notas</p>
                   </CardContent>
                 </Card>
               </div>
@@ -316,12 +366,12 @@ const TeacherDashboard = () => {
                       <SelectValue placeholder="Selecione uma turma" />
                     </SelectTrigger>
                     <SelectContent>
-                      {classes.map((classItem) => (
-                        <SelectItem key={classItem.id} value={classItem.id}>
+                      {classes.map((turma) => (
+                        <SelectItem key={turma.id} value={turma.id}>
                           <div className="flex flex-col">
-                            <span className="font-medium">{classItem.name}</span>
+                            <span className="font-medium">{turma.nome_turma}</span>
                             <span className="text-xs text-gray-500">
-                              {classItem.course} - {classItem.period}
+                              {turma.periodo} - {turma.curso}
                             </span>
                           </div>
                         </SelectItem>
@@ -377,33 +427,28 @@ const TeacherDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-50/50 hover:bg-purple-100 transition-all duration-200 hover:scale-[1.02] cursor-pointer">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Calendar className="h-5 w-5 text-purple-600" />
+                    {upcomingEvents.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">
+                        <Calendar className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">Nenhum evento agendado</p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">
-                          Aula de Circuitos Elétricos
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Hoje, 14:00 - Sala 301
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-purple-50 transition-all duration-200 hover:scale-[1.02] cursor-pointer">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">
-                          Reunião de Coordenação
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Amanhã, 10:00 - Online
-                        </p>
-                      </div>
-                    </div>
+                    ) : (
+                      upcomingEvents.map((event) => (
+                        <div key={event.id} className="flex items-start gap-3 p-3 rounded-lg bg-purple-50/50 hover:bg-purple-100 transition-all duration-200 hover:scale-[1.02] cursor-pointer">
+                          <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <Calendar className="h-5 w-5 text-purple-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {event.title}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(event.event_date).toLocaleDateString('pt-BR')} às {event.start_time}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -415,7 +460,7 @@ const TeacherDashboard = () => {
         <UploadMaterialModal
           isOpen={isUploadModalOpen}
           onClose={() => setIsUploadModalOpen(false)}
-          classes={classes}
+          classes={classes.map(t => ({ id: t.id, name: t.nome_turma }))}
         />
         
         <LessonPlanFloatingIndicator />
@@ -428,7 +473,12 @@ const TeacherDashboard = () => {
         <AnnouncementModal
           open={isAnnouncementModalOpen}
           onOpenChange={setIsAnnouncementModalOpen}
-          classes={classes}
+          classes={classes.map(t => ({ 
+            id: t.id, 
+            name: t.nome_turma, 
+            course: t.curso, 
+            period: t.periodo 
+          }))}
         />
       </TeacherLayoutWrapper>
     </MainLayout>
