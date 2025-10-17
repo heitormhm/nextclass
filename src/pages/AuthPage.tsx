@@ -20,6 +20,7 @@ interface LoginFormData {
 interface SignupFormData {
   fullName: string;
   email: string;
+  cpf: string;
   password: string;
   confirmPassword: string;
   phone: string;
@@ -40,7 +41,7 @@ const AuthPage = () => {
   const signupForm = useForm<SignupFormData>({
     defaultValues: {
       course: 'Engenharia',
-      university: 'Unifip-Moc',
+      university: 'Centro Universitario Afya Montes Claros',
       city: 'Montes Claros - MG'
     }
   });
@@ -130,6 +131,7 @@ const AuthPage = () => {
           emailRedirectTo: redirectUrl,
           data: {
             full_name: data.fullName,
+            cpf: data.cpf,
             phone: data.phone,
             university: data.university,
             city: data.city,
@@ -358,6 +360,38 @@ const AuthPage = () => {
                     </div>
 
                     <div className="space-y-2">
+                      <Label htmlFor="signup-cpf">CPF</Label>
+                      <Input
+                        id="signup-cpf"
+                        type="text"
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                        {...signupForm.register('cpf', {
+                          required: 'CPF é obrigatório',
+                          pattern: {
+                            value: /^\d{3}\.\d{3}\.\d{3}-\d{2}$/,
+                            message: 'CPF inválido. Use o formato: 000.000.000-00'
+                          },
+                          onChange: (e) => {
+                            let value = e.target.value.replace(/\D/g, '');
+                            if (value.length <= 11) {
+                              value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                              value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                              value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                              e.target.value = value;
+                            }
+                          }
+                        })}
+                        className="transition-all duration-200 focus:ring-primary focus:border-primary"
+                      />
+                      {signupForm.formState.errors.cpf && (
+                        <p className="text-sm text-destructive">
+                          {signupForm.formState.errors.cpf.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="signup-phone">Telefone</Label>
                       <Input
                         id="signup-phone"
@@ -384,7 +418,7 @@ const AuthPage = () => {
                       <Input
                         id="signup-university"
                         type="text"
-                        value="Unifip-Moc"
+                        value="Centro Universitario Afya Montes Claros"
                         disabled
                         {...signupForm.register('university')}
                         className="transition-all duration-200 bg-muted"
