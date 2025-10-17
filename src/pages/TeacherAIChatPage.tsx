@@ -94,6 +94,279 @@ const TeacherAIChatPage = () => {
     { text: "Concluído" },
   ];
 
+  const hasExistingJob = (jobType: string, context: string): boolean => {
+    for (const [jobId, job] of activeJobs.entries()) {
+      if (job.type === jobType && 
+          job.payload?.context === context &&
+          (job.status === 'PENDING' || job.status === 'SYNTHESIZING')) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const handleAction = async (jobType: string, payload: any) => {
+    const contextKey = payload.context || payload.topic;
+    
+    if (hasExistingJob(jobType, contextKey)) {
+      toast({
+        title: "Job em andamento",
+        description: "Este conteúdo já está sendo processado. Aguarde a conclusão.",
+        variant: "default"
+      });
+      return;
+    }
+    
+    const tempId = `temp-${jobType}-${Date.now()}`;
+    
+    setActiveJobs(prev => {
+      const newJobs = new Map(prev);
+      newJobs.set(tempId, { 
+        status: 'PENDING', 
+        type: jobType,
+        payload: payload
+      });
+      return newJobs;
+    });
+    
+    setMessages(prev => {
+      const updated = [...prev];
+      for (let i = updated.length - 1; i >= 0; i--) {
+        if (!updated[i].isUser) {
+          updated[i] = {
+            ...updated[i],
+            jobIds: [...(updated[i].jobIds || []), tempId],
+            jobMetadata: new Map(updated[i].jobMetadata || []).set(tempId, {
+              type: jobType,
+              context: contextKey
+            })
+          };
+          break;
+        }
+      }
+      return updated;
+    });
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+      
+      const { data, error } = await supabase.functions.invoke('mia-teacher-chat', {
+        body: { 
+          action: jobType, 
+          context: payload,
+          conversationId: activeConversationId 
+        },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      
+      if (error) throw error;
+      
+      const realJobId = data.jobId;
+      
+      setActiveJobs(prev => {
+        const newJobs = new Map(prev);
+        newJobs.delete(tempId);
+        
+        if (realJobId && !newJobs.has(realJobId)) {
+          newJobs.set(realJobId, { 
+            status: 'PENDING', 
+            type: jobType,
+            payload: payload
+          });
+        }
+        return newJobs;
+      });
+      
+      setMessages(prev => {
+        const updated = [...prev];
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (!updated[i].isUser && updated[i].jobIds?.includes(tempId)) {
+            const newJobIds = updated[i].jobIds!.map(id => id === tempId ? realJobId : id);
+            const newMetadata = new Map(updated[i].jobMetadata || []);
+            
+            const metadata = newMetadata.get(tempId);
+            if (metadata) {
+              newMetadata.delete(tempId);
+              newMetadata.set(realJobId, metadata);
+            }
+            
+            updated[i] = {
+              ...updated[i],
+              jobIds: newJobIds,
+              jobMetadata: newMetadata
+            };
+            break;
+          }
+        }
+        return updated;
+      });
+      
+      processedJobsRef.current.add(realJobId);
+      
+      toast({
+        title: "Processando",
+        description: "Sua solicitação foi iniciada!"
+      });
+    } catch (error) {
+      console.error(`Erro ao iniciar ${jobType}:`, error);
+      
+      setActiveJobs(prev => {
+        const newJobs = new Map(prev);
+        newJobs.delete(tempId);
+        return newJobs;
+      });
+      
+      toast({
+        title: "Erro",
+        description: "Não foi possível processar sua solicitação.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleOpenQuiz = (quizId: string) => {
+    const jobEntry = Array.from(activeJobs.entries()).find(
+      ([_, job]) => job.type === 'GENERATE_QUIZ' && job.result?.includes(quizId)
+    );
+    
+    if (jobEntry) {
+      const [jobId] = jobEntry;
+      
+      setActiveJobs(prev => {
+        const newJobs = new Map(prev);
+        newJobs.delete(jobId);
+        return newJobs;
+      });
+      
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        jobIds: msg.jobIds?.filter(id => id !== jobId),
+        jobMetadata: (() => {
+          const newMetadata = new Map(msg.jobMetadata || []);
+          newMetadata.delete(jobId);
+          return newMetadata;
+        })()
+      })));
+    }
+    
+    navigate(`/quiz/${quizId}`, {
+      state: {
+        fromChat: true,
+        conversationId: activeConversationId
+      }
+    });
+  };
+
+  const handleOpenFlashcards = (setId: string) => {
+    const jobEntry = Array.from(activeJobs.entries()).find(
+      ([_, job]) => job.type === 'GENERATE_FLASHCARDS' && job.result?.includes(setId)
+    );
+    
+    if (jobEntry) {
+      const [jobId] = jobEntry;
+      
+      setActiveJobs(prev => {
+        const newJobs = new Map(prev);
+        newJobs.delete(jobId);
+        return newJobs;
+      });
+      
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        jobIds: msg.jobIds?.filter(id => id !== jobId),
+        jobMetadata: (() => {
+          const newMetadata = new Map(msg.jobMetadata || []);
+          newMetadata.delete(jobId);
+          return newMetadata;
+        })()
+      })));
+    }
+    
+    setSelectedFlashcardSetId(setId);
+    setIsFlashcardModalOpen(true);
+  };
+
+  const handleDeleteQuiz = async (quizId: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('quizzes')
+        .delete()
+        .eq('id', quizId);
+      
+      if (error) throw error;
+      
+      setConversationContent(prev => ({
+        ...prev,
+        quizzes: prev.quizzes.filter(q => q.id !== quizId)
+      }));
+      
+      toast({
+        title: "Sucesso",
+        description: "Quiz excluído com sucesso."
+      });
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o quiz.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteFlashcards = async (setId: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('flashcard_sets')
+        .delete()
+        .eq('id', setId);
+      
+      if (error) throw error;
+      
+      setConversationContent(prev => ({
+        ...prev,
+        flashcards: prev.flashcards.filter(f => f.id !== setId)
+      }));
+      
+      toast({
+        title: "Sucesso",
+        description: "Flashcards excluídos com sucesso."
+      });
+    } catch (error) {
+      console.error('Error deleting flashcards:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir os flashcards.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const loadConversationContent = async (conversationId: string) => {
+    try {
+      const [quizzesResult, flashcardsResult] = await Promise.all([
+        (supabase as any)
+          .from('quizzes')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: false }),
+        (supabase as any)
+          .from('flashcard_sets')
+          .select('*, cards:flashcards(count)')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: false })
+      ]);
+      
+      setConversationContent({
+        quizzes: quizzesResult.data || [],
+        flashcards: flashcardsResult.data || []
+      });
+    } catch (error) {
+      console.error('Error loading conversation content:', error);
+    }
+  };
+
   const handleSendMessage = async () => {
     if ((!inputMessage.trim() && !attachedFile) || isLoading) return;
 
@@ -345,8 +618,51 @@ const TeacherAIChatPage = () => {
   useEffect(() => {
     if (activeConversationId) {
       loadConversationMessages(activeConversationId);
+      loadConversationContent(activeConversationId);
     }
   }, [activeConversationId]);
+
+  useEffect(() => {
+    const channel = (supabase as any)
+      .channel('teacher_jobs_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'jobs'
+        },
+        (payload: any) => {
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const job = payload.new;
+            
+            if (activeJobs.has(job.id)) {
+              setActiveJobs(prev => {
+                const newJobs = new Map(prev);
+                newJobs.set(job.id, job);
+                return newJobs;
+              });
+              
+              if (job.status === 'COMPLETED' && job.result && activeConversationId) {
+                if (job.type === 'GENERATE_QUIZ' || job.type === 'GENERATE_FLASHCARDS') {
+                  loadConversationContent(activeConversationId);
+                  
+                  toast({
+                    title: job.type === 'GENERATE_QUIZ' ? "Quiz Gerado!" : "Flashcards Gerados!",
+                    description: "Seu conteúdo está pronto na barra lateral.",
+                  });
+                }
+              }
+            }
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      (supabase as any).removeChannel(channel);
+    };
+  }, [activeJobs, activeConversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -362,87 +678,187 @@ const TeacherAIChatPage = () => {
   return (
     <MainLayout>
       <TeacherLayoutWrapper>
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)]">
-          {/* Sidebar - Conversation History */}
-          <div className={cn(
-            "lg:w-64 bg-white/90 backdrop-blur-xl border-r border-purple-300/70 flex flex-col transition-all duration-300 ease-in-out shadow-lg",
-            "fixed lg:relative inset-0 z-50 lg:z-10",
-            showMobileHistory ? "block" : "hidden lg:block"
-          )}>
-          <div className="p-3 border-b border-purple-200/50 bg-white/50 flex justify-between items-center">
-            <h2 className="font-semibold text-lg text-purple-900">Conversas com Mia</h2>
-            <Button
-              onClick={() => {
-                setMessages([]);
-                setActiveConversationId(null);
-                setShowMobileHistory(false);
-              }}
-              size="icon"
-              variant="ghost"
-              className="text-purple-600 hover:text-purple-700 hover:bg-purple-100"
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
+        <div className="h-screen flex flex-col">
+          {/* Header - Mobile optimized */}
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-purple-300/40">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="p-2 sm:p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 shrink-0">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-900 truncate">
+                  Chat com Mia - Professor
+                </h1>
+                <p className="text-xs sm:text-sm text-purple-600 hidden sm:block">
+                  Sua assistente pedagógica especializada
+                </p>
+              </div>
+            </div>
+            
+            {!showMobileHistory && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="md:hidden shrink-0 ml-2 border-purple-300 text-purple-700 hover:bg-purple-50"
+                onClick={() => setShowMobileHistory(true)}
+              >
+                <MessageCircle className="w-4 h-4" />
+              </Button>
+            )}
           </div>
 
-          <ScrollArea className="flex-1 p-3">
-            <div className="space-y-2">
-              {conversations.length === 0 ? (
-                <div className="text-center py-8 px-4">
-                  <MessageCircle className="w-12 h-12 mx-auto mb-3 text-purple-400" />
-                  <p className="text-sm text-purple-600 mb-2">Nenhuma conversa ainda</p>
-                  <p className="text-xs text-purple-500">Comece uma nova conversa com Mia!</p>
-                </div>
-              ) : (
-                conversations.map((conv) => (
-                  <div
-                    key={conv.id}
-                    onClick={() => {
-                      setActiveConversationId(conv.id);
-                      setShowMobileHistory(false);
-                    }}
-                    className={cn(
-                      "p-3 rounded-lg cursor-pointer transition-all duration-200 group relative border transform hover:scale-[1.02]",
-                      activeConversationId === conv.id
-                        ? "bg-purple-600 text-white border-purple-500 shadow-lg"
-                        : "bg-white border-purple-300 text-purple-900 hover:bg-purple-50 hover:border-purple-400 hover:shadow-md"
-                    )}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Chat History Panel - Mobile overlay */}
+            <div className={cn(
+              "border-r border-purple-200/40 bg-white/80 backdrop-blur-md transition-transform duration-300 ease-in-out",
+              showMobileHistory 
+                ? "fixed inset-y-0 left-0 z-50 w-full bg-white transform translate-x-0 md:relative md:w-80 lg:w-96" 
+                : "hidden md:block md:w-80 lg:w-96"
+            )}>
+              <div className="p-4 space-y-4 h-full flex flex-col">
+                {showMobileHistory && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="md:hidden self-end text-purple-700 hover:bg-purple-50"
+                    onClick={() => setShowMobileHistory(false)}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {conv.is_pinned && (
-                            <Pin className="w-3 h-3 shrink-0" />
-                          )}
-                          <h3 className="text-sm font-medium truncate">
-                            {conv.title}
-                          </h3>
-                        </div>
-                        <p className={cn(
-                          "text-xs mt-1",
-                          activeConversationId === conv.id ? "text-purple-200" : "text-purple-500"
-                        )}>
-                          {new Date(conv.created_at).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteConversation(conv.id);
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                    ✕
+                  </Button>
+                )}
+                
+                <Button 
+                  onClick={() => {
+                    setMessages([]);
+                    setActiveConversationId(null);
+                    setShowMobileHistory(false);
+                  }}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-md"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Conversa
+                </Button>
+
+                {(conversationContent.quizzes.length > 0 || conversationContent.flashcards.length > 0) && (
+                  <div className="pb-4 border-b border-purple-200">
+                    <h3 className="text-sm font-semibold text-purple-700 px-2 mb-3">
+                      📚 Conteúdo Gerado
+                    </h3>
+                    <div className="space-y-2">
+                      {conversationContent.quizzes
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                        .map((quiz) => {
+                          const topicMatch = quiz.title.match(/sobre (.+)/i) || quiz.title.match(/Quiz:?\s*(.+)/i);
+                          const displayTitle = topicMatch ? topicMatch[1] : quiz.title;
+                          
+                          return (
+                            <GeneratedContentCard
+                              key={quiz.id}
+                              type="quiz"
+                              title={displayTitle}
+                              itemCount={quiz.questions?.length || 0}
+                              createdAt={quiz.created_at}
+                              onOpen={() => handleOpenQuiz(quiz.id)}
+                              onDelete={() => handleDeleteQuiz(quiz.id)}
+                            />
+                          );
+                        })}
+                      {conversationContent.flashcards
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                        .map((set) => {
+                          const topicMatch = set.title.match(/sobre (.+)/i) || set.title.match(/Flashcards:?\s*(.+)/i);
+                          const displayTitle = topicMatch ? topicMatch[1] : set.title;
+                          
+                          return (
+                            <GeneratedContentCard
+                              key={set.id}
+                              type="flashcard"
+                              title={displayTitle}
+                              itemCount={set.cards?.length || 0}
+                              createdAt={set.created_at}
+                              onOpen={() => handleOpenFlashcards(set.id)}
+                              onDelete={() => handleDeleteFlashcards(set.id)}
+                            />
+                          );
+                        })}
                     </div>
                   </div>
-                ))
-              )}
+                )}
+
+                <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
+                  <h3 className="text-sm font-medium text-purple-700 px-2">Conversas Recentes</h3>
+                  
+                  {conversations.length === 0 ? (
+                    <div className="text-center py-8 text-purple-600">
+                      <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Suas conversas com a Mia aparecerão aqui.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {conversations.map((conversation) => (
+                        <div
+                          key={conversation.id}
+                          className={cn(
+                            "group relative w-full text-left p-3 rounded-lg transition-all duration-200 hover:bg-purple-50/50 cursor-pointer border",
+                            activeConversationId === conversation.id
+                              ? 'bg-purple-500/10 border-purple-500/20 text-purple-700'
+                              : 'border-transparent text-purple-900 hover:border-purple-200'
+                          )}
+                          onClick={() => {
+                            setActiveConversationId(conversation.id);
+                            setShowMobileHistory(false);
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate flex items-center gap-1">
+                                {conversation.is_pinned && (
+                                  <Pin className="w-3 h-3 shrink-0 text-purple-600 fill-purple-600" />
+                                )}
+                                {conversation.title}
+                              </div>
+                              <div className="text-xs text-purple-500 mt-1">
+                                {new Date(conversation.created_at).toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </div>
+                            </div>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  togglePinConversation(conversation.id, conversation.is_pinned);
+                                }}
+                                className="p-1 hover:bg-purple-100 rounded transition-colors"
+                                title={conversation.is_pinned ? "Desafixar" : "Fixar"}
+                              >
+                                <Pin className={cn(
+                                  "w-3.5 h-3.5",
+                                  conversation.is_pinned ? "text-purple-600 fill-purple-600" : "text-purple-500"
+                                )} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteConversation(conversation.id);
+                                }}
+                                className="p-1 hover:bg-red-100 rounded transition-colors"
+                                title="Apagar"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </ScrollArea>
-        </div>
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col bg-transparent relative pointer-events-none">
@@ -654,6 +1070,24 @@ const TeacherAIChatPage = () => {
           currentState={deepSearchProgress}
         />
       )}
+
+      <QuizModal
+        isOpen={isQuizModalOpen}
+        onClose={() => {
+          setIsQuizModalOpen(false);
+          setSelectedQuizId(null);
+        }}
+        quizId={selectedQuizId}
+      />
+
+      <FlashcardModal
+        isOpen={isFlashcardModalOpen}
+        onClose={() => {
+          setIsFlashcardModalOpen(false);
+          setSelectedFlashcardSetId(null);
+        }}
+        flashcardSetId={selectedFlashcardSetId}
+      />
     </MainLayout>
   );
 };
