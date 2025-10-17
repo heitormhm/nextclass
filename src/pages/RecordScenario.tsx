@@ -19,12 +19,6 @@ interface TranscriptEntry {
   isEditing?: boolean;
 }
 
-interface ConsultationSummary {
-  chiefComplaint: string[];
-  historyOfPresentIllness: string[];
-  physicalExamination: string[];
-  assessmentAndPlan: string[];
-}
 
 const RecordScenario = () => {
   const navigate = useNavigate();
@@ -45,7 +39,6 @@ const RecordScenario = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [showSummary, setShowSummary] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
@@ -94,7 +87,6 @@ const RecordScenario = () => {
     setIsPaused(false);
     setElapsedTime(0);
     setTranscript([]);
-    setShowSummary(false);
   };
 
   const handlePauseResume = () => {
@@ -377,96 +369,6 @@ const RecordScenario = () => {
               </Card>
             )}
 
-            {/* AI Summary */}
-            {showSummary && (
-              <Card className="border-0 shadow-lg animate-fade-in">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-primary">
-                    <AlertCircle className="h-6 w-6" />
-                    Resumo com IA
-                  </CardTitle>
-                  <p className="text-foreground-muted">
-                    Resumo estruturado gerado automaticamente pela inteligência artificial
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <p className="text-sm text-muted-foreground">
-                    O resumo será gerado automaticamente quando você encerrar a sessão.
-                  </p>
-                        <li key={index} className="flex items-start gap-2">
-                          <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                          <span className="text-foreground-muted">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <Separator />
-
-                  {/* Project Context */}
-                  <div>
-                    <h3 className="text-lg font-bold mb-3 text-foreground">
-                      Contexto do Projeto
-                    </h3>
-                    <ul className="space-y-2">
-                      {aiSummary.historyOfPresentIllness.map((item, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                          <span className="text-foreground-muted">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <Separator />
-
-                  {/* Technical Analysis */}
-                  <div>
-                    <h3 className="text-lg font-bold mb-3 text-foreground">
-                      Análise Técnica
-                    </h3>
-                    <ul className="space-y-2">
-                      {aiSummary.physicalExamination.map((item, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                          <span className="text-foreground-muted">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <Separator />
-
-                  {/* Recommendations and Plan */}
-                  <div>
-                    <h3 className="text-lg font-bold mb-3 text-foreground">
-                      Recomendações e Plano
-                    </h3>
-                    <ul className="space-y-2">
-                      {aiSummary.assessmentAndPlan.map((item, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                          <span className="text-foreground-muted">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-4 pt-4 border-t">
-                    <Button className="bg-primary hover:bg-primary-light">
-                      Salvar Resumo
-                    </Button>
-                    <Button variant="outline">
-                      Exportar PDF
-                    </Button>
-                    <Button variant="outline">
-                      Compartilhar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
     </MainLayout>
