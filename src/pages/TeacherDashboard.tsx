@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Mic, BarChart3, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Sparkles } from 'lucide-react';
+import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import MainLayout from '@/components/MainLayout';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { InsightCard } from '@/components/InsightCard';
+import { ActionCard } from '@/components/dashboard/ActionCard';
+import { StatCard } from '@/components/dashboard/StatCard';
+import { EventCard } from '@/components/dashboard/EventCard';
+import { MiniStatCard } from '@/components/dashboard/MiniStatCard';
 import { UploadMaterialModal } from '@/components/UploadMaterialModal';
 import { LessonPlanFloatingIndicator } from '@/components/LessonPlanFloatingIndicator';
 import UniversalSchedulingModal from '@/components/UniversalSchedulingModal';
@@ -92,35 +97,86 @@ const TeacherDashboard = () => {
     fetchInsights();
   }, [selectedClass, toast]);
 
+  const actionCards = [
+    {
+      icon: Mic,
+      title: 'Gravar Nova Aula',
+      description: 'Capture sua aula com transcrição automática',
+      gradientFrom: 'from-purple-500',
+      gradientTo: 'to-purple-600',
+      onClick: () => navigate('/livelecture'),
+      badge: 'IA',
+    },
+    {
+      icon: Brain,
+      title: 'Plano de Aula',
+      description: 'Crie com auxílio da Mia',
+      gradientFrom: 'from-blue-500',
+      gradientTo: 'to-blue-600',
+      onClick: () => navigate('/teacher/lesson-plans'),
+      badge: 'IA',
+    },
+    {
+      icon: Upload,
+      title: 'Biblioteca',
+      description: 'Adicione materiais à biblioteca',
+      gradientFrom: 'from-green-500',
+      gradientTo: 'to-green-600',
+      onClick: () => setIsUploadModalOpen(true),
+    },
+    {
+      icon: Calendar,
+      title: 'Agendar Evento',
+      description: 'Crie eventos no calendário',
+      gradientFrom: 'from-orange-500',
+      gradientTo: 'to-orange-600',
+      onClick: () => setIsSchedulingModalOpen(true),
+    },
+    {
+      icon: Megaphone,
+      title: 'Enviar Anúncio',
+      description: 'Comunique-se com a turma',
+      gradientFrom: 'from-pink-500',
+      gradientTo: 'to-pink-600',
+      onClick: () => setIsAnnouncementModalOpen(true),
+    },
+  ];
+
   const statCards = [
     {
       title: 'Aulas Publicadas',
-      value: '28',
-      subtitle: 'sem alteração',
+      value: 28,
       icon: BookOpen,
-      color: 'text-blue-400',
+      trend: { value: 0, direction: 'neutral' as const },
+      gradientFrom: 'from-blue-500',
+      gradientTo: 'to-blue-600',
+      iconColor: 'text-blue-500',
     },
     {
       title: 'Alunos Ativos',
-      value: '152',
-      subtitle: '▲ 3%',
+      value: 152,
       icon: Users,
-      color: 'text-green-400',
+      trend: { value: 3, direction: 'up' as const },
+      gradientFrom: 'from-green-500',
+      gradientTo: 'to-green-600',
+      iconColor: 'text-green-500',
     },
     {
       title: 'Média da Turma',
       value: '8.3',
-      subtitle: '▲ 0.2',
       icon: GraduationCap,
-      color: 'text-purple-400',
+      trend: { value: 2, direction: 'up' as const },
+      gradientFrom: 'from-purple-500',
+      gradientTo: 'to-purple-600',
+      iconColor: 'text-purple-500',
     },
   ];
 
   const upcomingEvents = [
-    { date: '10 Jan', title: 'Aula: Termodinâmica Aplicada', time: '14:00' },
-    { date: '12 Jan', title: 'Entrega de Projeto de Estruturas', time: '23:59' },
-    { date: '15 Jan', title: 'Laboratório de Circuitos Elétricos', time: '10:00' },
-    { date: '18 Jan', title: 'Reunião de Alinhamento de Projeto', time: '16:00' },
+    { date: '10 Jan', title: 'Aula: Termodinâmica Aplicada', time: '14:00', type: 'lecture' as const, priority: 'normal' as const },
+    { date: '12 Jan', title: 'Entrega de Projeto de Estruturas', time: '23:59', type: 'deadline' as const, priority: 'urgent' as const },
+    { date: '15 Jan', title: 'Laboratório de Circuitos Elétricos', time: '10:00', type: 'lab' as const, priority: 'normal' as const },
+    { date: '18 Jan', title: 'Reunião de Alinhamento de Projeto', time: '16:00', type: 'meeting' as const, priority: 'normal' as const },
   ];
 
   return (
@@ -148,70 +204,28 @@ const TeacherDashboard = () => {
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-6">
             {/* Left Column - Main Content */}
             <div className="space-y-6">
-              {/* Quick Actions Bar with AI Co-pilot */}
+              {/* Quick Actions - Novo Design com Cards Vibrantes */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-gray-800 flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-purple-400" />
-                    IA Co-piloto
+                    <Zap className="h-5 w-5 text-purple-500" />
+                    Ações Rápidas
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-wrap gap-3">
-                  <Button
-                    onClick={() => navigate('/livelecture')}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    <Mic className="h-4 w-4 mr-2" />
-                    Gravar Nova Aula
-                  </Button>
-                  <Button
-                    onClick={() => navigate('/teacher/lesson-plans')}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Brain className="h-4 w-4 mr-2" />
-                    Criar Plano de Aula com Mia
-                  </Button>
-                  <Button
-                    onClick={() => setIsUploadModalOpen(true)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Adicionar Material à Biblioteca
-                  </Button>
-                  <Button
-                    onClick={() => setIsSchedulingModalOpen(true)}
-                    className="bg-orange-600 hover:bg-orange-700"
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Agendar Evento
-                  </Button>
-                  <Button
-                    onClick={() => setIsAnnouncementModalOpen(true)}
-                    className="bg-pink-600 hover:bg-pink-700"
-                  >
-                    <Megaphone className="h-4 w-4 mr-2" />
-                    Enviar Anúncio à Turma
-                  </Button>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {actionCards.map((action, index) => (
+                      <ActionCard key={index} {...action} index={index} />
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Stats Cards */}
+              {/* Stats Cards - Novo Design com Gradientes e Badges */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {statCards.map((stat, index) => {
-                  const Icon = stat.icon;
-                  return (
-                    <Card key={index} className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <Icon className={`h-6 w-6 ${stat.color}`} />
-                        </div>
-                        <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
-                        <p className="text-sm text-gray-600">{stat.title}</p>
-                        <p className="text-xs text-gray-500 mt-1">{stat.subtitle}</p>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                {statCards.map((stat, index) => (
+                  <StatCard key={index} {...stat} index={index} />
+                ))}
               </div>
 
               {/* Insights Panel with Tabs */}
@@ -229,9 +243,13 @@ const TeacherDashboard = () => {
                         Desempenho
                       </TabsTrigger>
                     </TabsList>
-                    <TabsContent value="insights" className="space-y-3 mt-4">
+                     <TabsContent value="insights" className="space-y-4 mt-4">
                       {isLoadingInsights ? (
-                        <p className="text-gray-600 text-center py-8">Carregando insights...</p>
+                        <div className="space-y-3">
+                          <Skeleton className="h-32 w-full rounded-xl" />
+                          <Skeleton className="h-32 w-full rounded-xl" />
+                          <Skeleton className="h-32 w-full rounded-xl" />
+                        </div>
                       ) : insights.length > 0 ? (
                         insights.map((insight) => (
                           <InsightCard
@@ -244,11 +262,13 @@ const TeacherDashboard = () => {
                           />
                         ))
                       ) : (
-                        <Card className="bg-white/50 bg-blue-50/15 bg-blend-overlay backdrop-blur-md border-blue-100/30 shadow-sm p-8">
+                        <Card className="bg-gradient-to-br from-purple-50/90 to-blue-50/90 backdrop-blur-xl border-purple-200/50 shadow-lg p-8">
                           <div className="text-center">
-                            <Sparkles className="h-12 w-12 text-purple-400 mx-auto mb-3" />
-                            <p className="text-gray-600 mb-2">Nenhum insight disponível</p>
-                            <p className="text-sm text-gray-500">
+                            <div className="bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl p-4 w-fit mx-auto mb-4 shadow-lg">
+                              <Brain className="h-12 w-12 text-white" strokeWidth={2} />
+                            </div>
+                            <p className="text-gray-900 font-semibold text-lg mb-2">Nenhum insight disponível</p>
+                            <p className="text-sm text-gray-600">
                               A IA ainda está analisando os dados da turma
                             </p>
                           </div>
@@ -290,7 +310,7 @@ const TeacherDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Upcoming Events */}
+              {/* Upcoming Events - Novo Design com EventCard */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-gray-800 text-lg flex items-center justify-between">
@@ -299,7 +319,7 @@ const TeacherDashboard = () => {
                       size="sm"
                       variant="ghost"
                       onClick={() => setIsSchedulingModalOpen(true)}
-                      className="text-purple-400 hover:text-purple-300"
+                      className="text-purple-500 hover:text-purple-600 hover:bg-purple-50"
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -308,48 +328,36 @@ const TeacherDashboard = () => {
                 <CardContent>
                   <div className="space-y-3">
                     {upcomingEvents.map((event, index) => (
-                      <div
-                        key={index}
-                        className="p-3 rounded-lg bg-white/60 bg-blue-50/20 bg-blend-overlay backdrop-blur-md border border-blue-100/40 shadow-sm"
-                      >
-                        <div className="flex gap-3">
-                          <div className="flex flex-col items-center justify-center bg-purple-100/80 rounded-lg p-2 min-w-[50px]">
-                            <span className="text-xs text-purple-700 font-semibold">
-                              {event.date.split(' ')[0]}
-                            </span>
-                            <span className="text-lg font-bold text-gray-900">
-                              {event.date.split(' ')[1]}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-800">{event.title}</p>
-                            <p className="text-xs text-gray-600 mt-1">{event.time}</p>
-                          </div>
-                        </div>
-                      </div>
+                      <EventCard key={index} {...event} index={index} />
                     ))}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Quick Stats */}
+              {/* Quick Stats - Novo Design com MiniStatCard */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-gray-800 text-lg">Estatísticas Rápidas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Taxa de Presença</span>
-                    <span className="text-lg font-bold text-green-400">94%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Materiais Enviados</span>
-                    <span className="text-lg font-bold text-blue-400">127</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Revisões Pendentes</span>
-                    <span className="text-lg font-bold text-orange-400">8</span>
-                  </div>
+                  <MiniStatCard
+                    label="Taxa de Presença"
+                    value="94%"
+                    trend="up"
+                    color="green"
+                  />
+                  <MiniStatCard
+                    label="Materiais Enviados"
+                    value="127"
+                    trend="neutral"
+                    color="blue"
+                  />
+                  <MiniStatCard
+                    label="Revisões Pendentes"
+                    value="8"
+                    trend="down"
+                    color="orange"
+                  />
                 </CardContent>
               </Card>
             </div>
