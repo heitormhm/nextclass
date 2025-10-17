@@ -1,8 +1,8 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 export const BackgroundRippleEffect = ({
-  rows = 8,
+  rows,
   cols = 27,
   cellSize = 56,
   className,
@@ -17,7 +17,25 @@ export const BackgroundRippleEffect = ({
     col: number;
   } | null>(null);
   const [rippleKey, setRippleKey] = useState(0);
+  const [dynamicRows, setDynamicRows] = useState(rows || Math.ceil(window.innerHeight / cellSize) + 3);
   const ref = useRef<any>(null);
+
+  useEffect(() => {
+    if (rows) {
+      setDynamicRows(rows);
+      return;
+    }
+
+    const calculateRows = () => {
+      const viewportHeight = window.innerHeight;
+      const calculatedRows = Math.ceil(viewportHeight / cellSize) + 3;
+      setDynamicRows(calculatedRows);
+    };
+
+    calculateRows();
+    window.addEventListener('resize', calculateRows);
+    return () => window.removeEventListener('resize', calculateRows);
+  }, [cellSize, rows]);
 
   return (
     <div
@@ -33,7 +51,7 @@ export const BackgroundRippleEffect = ({
         <DivGrid
           key={`base-${rippleKey}`}
           className="opacity-600"
-          rows={rows}
+          rows={dynamicRows}
           cols={cols}
           cellSize={cellSize}
           borderColor="var(--cell-border-color)"
@@ -114,7 +132,7 @@ const DivGrid = ({
           <div
             key={idx}
             className={cn(
-              "cell relative border-[1.5px] opacity-30 transition-opacity duration-150 will-change-transform hover:opacity-90 shadow-[0px_0px_40px_1px_var(--cell-shadow-color)_inset]",
+              "cell relative border-[0.5px] opacity-25 transition-opacity duration-150 will-change-transform hover:opacity-80 shadow-[0px_0px_40px_1px_var(--cell-shadow-color)_inset]",
               clickedCell && "animate-cell-ripple [animation-fill-mode:none]",
               !interactive && "pointer-events-none",
             )}
