@@ -525,7 +525,7 @@ const TeacherAIChatPage = () => {
           
           <div className="p-6 pb-4">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-xl shadow-purple-500/30">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center shadow-xl shadow-purple-500/30">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -715,7 +715,7 @@ const TeacherAIChatPage = () => {
               </div>
             </ScrollArea>
 
-        <div className="p-3 sm:p-4 lg:p-6 pt-0">
+        <div className="p-4 sm:p-6">
           <div className="max-w-4xl mx-auto">
             <div className="frost-white rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xl border border-white/30">
                   
@@ -763,7 +763,7 @@ const TeacherAIChatPage = () => {
                         className={cn(
                           "relative inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300 transform hover:scale-105",
                           isDeepSearch 
-                            ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25" 
+                            ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-purple-500/25" 
                             : "bg-background-secondary/50 text-foreground-muted hover:bg-background-secondary/70 border border-border"
                         )}
                       >
@@ -795,7 +795,7 @@ const TeacherAIChatPage = () => {
                       onClick={handleSendMessage}
                       disabled={!inputMessage.trim() || isLoading}
                       size="icon"
-                      className="shrink-0 h-10 w-10"
+                      className="shrink-0 h-10 w-10 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg"
                     >
                       <Send className="w-4 h-4" />
                     </Button>
