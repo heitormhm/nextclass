@@ -69,8 +69,10 @@ const App = () => (
           <Route path="/grades" element={<ProtectedRoute role="student"><GradesPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute role="student"><ProfilePage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute role="student"><SettingsPage /></ProtectedRoute>} />
-          <Route path="/aichat" element={<ProtectedRoute role="student"><AIChatPage /></ProtectedRoute>} />
           <Route path="/review" element={<ProtectedRoute role="student"><ReviewPage /></ProtectedRoute>} />
+          
+          {/* Shared routes - accessible by both students and teachers */}
+          <Route path="/aichat" element={<ProtectedRoute><AIChatPage /></ProtectedRoute>} />
           
           {/* Teacher-only routes */}
           <Route path="/teacherdashboard" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Mic, BarChart3, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Sparkles } from 'lucide-react';
+import { Calendar, Mic, BarChart3, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Sparkles, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -170,6 +170,13 @@ const TeacherDashboard = () => {
                   >
                     <Brain className="h-4 w-4 mr-2" />
                     Criar Plano de Aula com Mia
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/aichat')}
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Chat com Mia
                   </Button>
                   <Button
                     onClick={() => setIsUploadModalOpen(true)}
