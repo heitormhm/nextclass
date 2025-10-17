@@ -143,11 +143,6 @@ const ReviewPage = () => {
         setIsFlipped(false);
       } else {
         setIsCompleted(true);
-        
-        // 🆕 Chamar função para gerar recomendações ao finalizar revisão
-        supabase.functions.invoke('generate-recommendations').catch(err => 
-          console.error('Erro ao gerar recomendações:', err)
-        );
       }
     } catch (error) {
       console.error('Error submitting feedback:', error);

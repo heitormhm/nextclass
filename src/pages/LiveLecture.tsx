@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import MainLayout from '@/components/MainLayout';
-import { TeacherLayoutWrapper } from '@/components/TeacherLayoutWrapper';
+import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -263,17 +263,21 @@ const LiveLecture = () => {
 
   return (
     <MainLayout>
-      <TeacherLayoutWrapper>
-        <div className="flex items-center justify-center p-4 min-h-[calc(100vh-4rem)]">
-          <div className="w-full max-w-5xl">
-            {/* Header with status indicator */}
-            <div className="text-center mb-4 space-y-2">
-              <div className="flex items-center justify-center gap-3">
-                <Radio className="h-6 w-6 text-purple-600" />
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-                  Gravação de Aula ao Vivo
-                </h1>
-              </div>
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
+        {/* Background effect with absolute positioning */}
+        <div className="absolute inset-0 z-0">
+          <BackgroundRippleEffect className="opacity-30" />
+        </div>
+        
+        <div className="relative z-10 w-full max-w-5xl">
+          {/* Header with status indicator */}
+          <div className="text-center mb-4 space-y-2">
+            <div className="flex items-center justify-center gap-3">
+              <Radio className="h-6 w-6 text-purple-400" />
+              <h1 className="text-2xl md:text-3xl font-bold text-white">
+                Gravação de Aula ao Vivo
+              </h1>
+            </div>
             
             {isRecording && (
               <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-500/30 rounded-full px-4 py-1 backdrop-blur-sm">
@@ -286,7 +290,7 @@ const LiveLecture = () => {
           </div>
 
           {/* Main Control Panel - Optimized height */}
-          <div className="bg-white/90 backdrop-blur-xl rounded-lg border border-purple-200 shadow-2xl p-6 md:p-8 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto relative z-20 pointer-events-auto">
+          <div className="bg-slate-800/50 backdrop-blur-xl rounded-lg border border-slate-700 shadow-2xl p-6 md:p-8 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
             
             {/* Central Microphone Orb - Reduced size */}
             <div className="flex flex-col items-center space-y-4">
@@ -328,13 +332,13 @@ const LiveLecture = () => {
               
               {/* Status text */}
               <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-800 mb-1">
+                <h2 className="text-xl font-bold text-white mb-1">
                   {isRecording 
                     ? (isPaused ? 'Gravação Pausada' : 'Gravando Agora')
                     : 'Pronto para Gravar'
                   }
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-slate-400">
                   {isRecording && !isPaused 
                     ? 'Sistema capturando áudio em tempo real' 
                     : isPaused 
@@ -346,11 +350,11 @@ const LiveLecture = () => {
             </div>
 
             {/* Audio Waveform Visualization */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-purple-200">
+            <div className="bg-slate-900/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700">
               <AudioWaveform />
               <div className="flex items-center justify-center gap-2 mt-3">
-                <div className={`w-2 h-2 rounded-full ${isRecording && !isPaused ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                <p className="text-xs text-gray-600">
+                <div className={`w-2 h-2 rounded-full ${isRecording && !isPaused ? 'bg-green-500 animate-pulse' : 'bg-slate-600'}`}></div>
+                <p className="text-xs text-slate-400">
                   {isRecording && !isPaused ? 'Monitorando entrada de áudio' : 'Aguardando entrada de áudio'}
                 </p>
               </div>
@@ -358,14 +362,14 @@ const LiveLecture = () => {
 
             {/* Transcription Area */}
             {isRecording && (
-              <div className="bg-white/70 backdrop-blur-sm rounded-lg border border-purple-200 p-4 relative z-20">
-                <h3 className="text-sm font-semibold text-purple-600 mb-3 flex items-center gap-2">
+              <div className="bg-slate-900/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
+                <h3 className="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2">
                   <Radio className="h-4 w-4 animate-pulse" />
                   Transcrição ao Vivo
-                  {isProcessing && <span className="text-xs text-gray-500">(processando...)</span>}
+                  {isProcessing && <span className="text-xs text-slate-500">(processando...)</span>}
                 </h3>
                 <ScrollArea className="h-32 w-full">
-                  <div className="text-sm text-gray-700 whitespace-pre-wrap pr-4">
+                  <div className="text-sm text-slate-300 whitespace-pre-wrap pr-4">
                     {transcript || 'Aguardando fala...'}
                     <div ref={transcriptEndRef} />
                   </div>
@@ -389,7 +393,7 @@ const LiveLecture = () => {
                   <Button
                     onClick={handlePauseRecording}
                     variant="outline"
-                    className="px-6 py-4 text-base bg-white/70 border-purple-300 text-gray-800 hover:bg-white hover:border-purple-400 shadow-lg transition-all duration-300 hover:scale-105"
+                    className="px-6 py-4 text-base bg-slate-700/50 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500 shadow-lg transition-all duration-300 hover:scale-105"
                   >
                     {isPaused ? (
                       <>
@@ -421,23 +425,23 @@ const LiveLecture = () => {
                   <Button 
                     variant="outline" 
                     size="icon"
-                    className="bg-white/70 border-purple-300 text-gray-800 hover:bg-white hover:border-purple-400 shadow-lg h-10 w-10 transition-all duration-300 hover:scale-105"
+                    className="bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500 shadow-lg h-10 w-10 transition-all duration-300 hover:scale-105"
                   >
                     <Settings className="h-5 w-5" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-white border-purple-300">
+                <DialogContent className="bg-slate-800 border-slate-700 text-white">
                   <DialogHeader>
-                    <DialogTitle className="text-gray-800">Configurações de Áudio</DialogTitle>
-                    <DialogDescription className="text-gray-600">
+                    <DialogTitle className="text-white">Configurações de Áudio</DialogTitle>
+                    <DialogDescription className="text-slate-400">
                       Selecione o dispositivo de entrada de áudio
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="microphone" className="text-gray-800">Microfone</Label>
+                      <Label htmlFor="microphone" className="text-white">Microfone</Label>
                       <Select value={selectedMicrophone} onValueChange={setSelectedMicrophone}>
-                        <SelectTrigger className="bg-white border-purple-300 text-gray-800">
+                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                           <SelectValue placeholder="Selecione o microfone" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-700">
@@ -460,8 +464,7 @@ const LiveLecture = () => {
             </div>
           </div>
         </div>
-        </div>
-      </TeacherLayoutWrapper>
+      </div>
     </MainLayout>
   );
 };

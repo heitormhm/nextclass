@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
-import { TeacherLayoutWrapper } from "@/components/TeacherLayoutWrapper";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 import { Sparkles, Send, Loader2, Copy, Download, ArrowLeft, Mic, MicOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -535,44 +535,54 @@ const TeacherLessonPlanEditor = () => {
 
   return (
     <MainLayout>
-      <TeacherLayoutWrapper>
-        <MultiStepLoader
-          loadingStates={loadingStates}
-          loading={isGenerating}
-          currentState={currentLoadingStep}
-          onClose={() => {
-            setIsGenerating(false);
-            setCurrentLoadingStep(0);
-            toast({
-              title: "Cancelado",
-              description: "Geração cancelada. Pode tentar novamente.",
-            });
-          }}
-        />
+      <MultiStepLoader
+        loadingStates={loadingStates}
+        loading={isGenerating}
+        currentState={currentLoadingStep}
+        onClose={() => {
+          setIsGenerating(false);
+          setCurrentLoadingStep(0);
+          toast({
+            title: "Cancelado",
+            description: "Geração cancelada. Pode tentar novamente.",
+          });
+        }}
+      />
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
+        {/* Animated Background */}
+        <BackgroundRippleEffect className="opacity-30" />
+        
+        {/* Gradient Blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl" />
+        </div>
 
-        <div className="h-screen flex flex-col">
+        {/* Content */}
+        <div className="relative z-10 h-screen flex flex-col">
           {/* Header */}
-          <div className="border-b border-purple-300 bg-white/90 backdrop-blur-xl relative z-20 pointer-events-auto">
+          <div className="border-b border-gray-700/50 bg-gray-900/40 backdrop-blur-lg">
             <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/teacher/lesson-plans')}
-                  className="text-gray-600 hover:text-gray-800 hover:bg-purple-100"
+                  className="text-gray-400 hover:text-white hover:bg-white/10"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Voltar
                 </Button>
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-100 border border-purple-300">
-                    <Sparkles className="h-5 w-5 text-purple-600" />
+                  <div className="p-2 rounded-lg bg-purple-600/20 border border-purple-500/30">
+                    <Sparkles className="h-5 w-5 text-purple-400" />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold text-gray-800">
+                    <h1 className="text-xl font-bold text-white">
                       {topic || 'Novo Plano de Aula'}
                     </h1>
-                    <p className="text-sm text-gray-600">Criando com Mia</p>
+                    <p className="text-sm text-gray-400">Criando com Mia</p>
                   </div>
                 </div>
               </div>
@@ -583,7 +593,7 @@ const TeacherLessonPlanEditor = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleCopy}
-                    className="border-purple-300 text-gray-800 hover:bg-purple-50 bg-white/90 backdrop-blur-sm"
+                    className="border-gray-700 text-white hover:bg-white/10 bg-gray-900/40 backdrop-blur-sm"
                   >
                     <Copy className="h-4 w-4 mr-2" />
                     Copiar
@@ -592,7 +602,7 @@ const TeacherLessonPlanEditor = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleDownloadPDF}
-                    className="border-purple-300 text-gray-800 hover:bg-purple-50 bg-white/90 backdrop-blur-sm"
+                    className="border-gray-700 text-white hover:bg-white/10 bg-gray-900/40 backdrop-blur-sm"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     PDF
@@ -603,7 +613,7 @@ const TeacherLessonPlanEditor = () => {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col overflow-hidden pointer-events-auto">
+          <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto p-6" ref={scrollRef}>
               <div className="space-y-4 max-w-4xl mx-auto">
                 {messages.map((message, index) => (
@@ -614,13 +624,13 @@ const TeacherLessonPlanEditor = () => {
                     <div
                       className={`max-w-[80%] rounded-2xl p-4 ${
                         message.role === 'user'
-                          ? 'bg-purple-100 backdrop-blur-lg text-gray-800 border border-purple-300'
-                          : 'bg-white/90 backdrop-blur-lg text-gray-800 border border-purple-200'
+                          ? 'bg-purple-600/80 backdrop-blur-lg text-white border border-purple-500/30'
+                          : 'bg-gray-900/40 backdrop-blur-lg text-white border border-gray-700/50'
                       }`}
                     >
                       {message.role === 'assistant' ? (
                         <div
-                          className="prose prose-gray prose-sm max-w-none"
+                          className="prose prose-invert prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: message.content }}
                         />
                       ) : (
@@ -631,8 +641,8 @@ const TeacherLessonPlanEditor = () => {
                 ))}
                 {isGenerating && (
                   <div className="flex justify-start">
-                    <div className="bg-white/90 backdrop-blur-lg text-gray-800 border border-purple-200 rounded-2xl p-4">
-                      <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                    <div className="bg-gray-900/40 backdrop-blur-lg text-white border border-gray-700/50 rounded-2xl p-4">
+                      <Loader2 className="h-5 w-5 animate-spin" />
                     </div>
                   </div>
                 )}
@@ -640,9 +650,9 @@ const TeacherLessonPlanEditor = () => {
             </div>
 
             {/* Input Area */}
-            <div className="border-t border-purple-300 bg-white/90 backdrop-blur-xl p-6 pointer-events-auto">
+            <div className="border-t border-gray-700/50 bg-gray-900/40 backdrop-blur-lg p-6">
               <div className="w-full">
-                <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-4 border border-purple-200 shadow-xl">
+                <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-4 border border-gray-700/50 shadow-xl">
                   <div className="flex gap-3 items-end">
                     <Button
                       variant="ghost"
@@ -651,8 +661,8 @@ const TeacherLessonPlanEditor = () => {
                       disabled={isGenerating}
                       className={`shrink-0 rounded-full ${
                         isListening 
-                          ? 'bg-red-100 text-red-500 hover:bg-red-200 animate-pulse border-2 border-red-300' 
-                          : 'text-gray-600 hover:text-purple-600 hover:bg-purple-100 border-2 border-purple-200'
+                          ? 'bg-red-500/30 text-red-400 hover:bg-red-500/40 animate-pulse border-2 border-red-400/50' 
+                          : 'text-gray-400 hover:text-purple-400 hover:bg-purple-500/20 border-2 border-gray-600/30'
                       }`}
                     >
                       {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -672,7 +682,7 @@ const TeacherLessonPlanEditor = () => {
                           ? "Digite o tópico da aula ou use o microfone..."
                           : "Digite sua mensagem ou use o microfone..."
                       }
-                      className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-800 placeholder:text-gray-500 min-h-[60px] resize-none"
+                      className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-white placeholder:text-gray-500 min-h-[60px] resize-none"
                       disabled={isGenerating || isListening}
                     />
                     
@@ -689,7 +699,7 @@ const TeacherLessonPlanEditor = () => {
             </div>
           </div>
         </div>
-      </TeacherLayoutWrapper>
+      </div>
     </MainLayout>
   );
 };

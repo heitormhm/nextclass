@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
 import UniversalSchedulingModal from '@/components/UniversalSchedulingModal';
-import { TeacherLayoutWrapper } from '@/components/TeacherLayoutWrapper';
+import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 
 interface CalendarEvent {
   id: string;
@@ -142,14 +142,24 @@ const TeacherCalendar = () => {
 
   return (
     <MainLayout>
-      <TeacherLayoutWrapper>
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
+        {/* Animated Background with Ripple Effect */}
+        <BackgroundRippleEffect className="opacity-30" />
+        
+        {/* Gradient Blobs for Depth */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 py-8 animate-in fade-in-0 duration-500">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            <h1 className="text-4xl font-bold text-white mb-2">
               Calendário Acadêmico
             </h1>
-            <p className="text-gray-600 text-lg">
+            <p className="text-slate-400 text-lg">
               Gerencie suas aulas, prazos e compromissos acadêmicos
             </p>
           </div>
@@ -157,10 +167,10 @@ const TeacherCalendar = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Calendar */}
             <div className="lg:col-span-2">
-              <Card className="frost-white-teacher relative z-20 pointer-events-auto">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-2xl text-gray-800">
+                    <CardTitle className="text-2xl text-slate-100">
                       {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                     </CardTitle>
                     <div className="flex gap-2">
@@ -168,7 +178,7 @@ const TeacherCalendar = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => navigateMonth('prev')}
-                        className="bg-white border-purple-300 text-gray-700 hover:bg-purple-50"
+                        className="bg-slate-900 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-100"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
@@ -176,7 +186,7 @@ const TeacherCalendar = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => navigateMonth('next')}
-                        className="bg-white border-purple-300 text-gray-700 hover:bg-purple-50"
+                        className="bg-slate-900 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-slate-100"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>
@@ -252,12 +262,12 @@ const TeacherCalendar = () => {
             {/* Events Sidebar */}
             <div className="space-y-6">
               {/* Today's Events or Selected Date Events */}
-              <Card className="frost-white-teacher relative z-20 pointer-events-auto">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="text-lg text-gray-800">
+                  <CardTitle className="text-lg text-slate-100">
                     {selectedDate ? 'Eventos do Dia Selecionado' : 'Próximos Eventos'}
                   </CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardDescription className="text-slate-400">
                     {selectedDate 
                       ? `Eventos para ${new Date(selectedDate).toLocaleDateString('pt-BR')}`
                       : 'Seus compromissos mais próximos'
@@ -272,26 +282,26 @@ const TeacherCalendar = () => {
                     
                     if (displayEvents.length === 0) {
                       return (
-                        <p className="text-sm text-gray-500 text-center py-4">
+                        <p className="text-sm text-slate-500 text-center py-4">
                           {selectedDate ? 'Nenhum evento neste dia' : 'Nenhum evento próximo'}
                         </p>
                       );
                     }
                     
                     return displayEvents.map((event) => (
-                      <div key={event.id} className="border-l-4 border-purple-500 pl-4 pb-4 frost-white-teacher-card p-3 rounded-r-lg">
+                      <div key={event.id} className="border-l-4 border-purple-500 pl-4 pb-4 bg-slate-900/30 p-3 rounded-r-lg">
                         <div className="flex items-start gap-2 mb-2">
                           <Badge className={`${getEventTypeColor(event.type)} border`}>
                             {getEventTypeIcon(event.type)}
                             <span className="ml-1">{getEventTypeName(event.type)}</span>
                           </Badge>
                         </div>
-                        <h4 className="font-semibold text-sm mb-1 text-gray-800">{event.title}</h4>
-                        <p className="text-xs text-gray-600 mb-2">
+                        <h4 className="font-semibold text-sm mb-1 text-slate-200">{event.title}</h4>
+                        <p className="text-xs text-slate-400 mb-2">
                           {new Date(event.date).toLocaleDateString('pt-BR')} às {event.time}
                         </p>
                         {event.description && (
-                          <p className="text-xs text-gray-500">{event.description}</p>
+                          <p className="text-xs text-slate-500">{event.description}</p>
                         )}
                       </div>
                     ));
@@ -300,9 +310,9 @@ const TeacherCalendar = () => {
               </Card>
 
               {/* Calendar Legend */}
-              <Card className="frost-white-teacher relative z-20 pointer-events-auto">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="text-lg text-gray-800">Legenda</CardTitle>
+                  <CardTitle className="text-lg text-slate-100">Legenda</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2">
@@ -321,7 +331,7 @@ const TeacherCalendar = () => {
               </Card>
 
               {/* Quick Actions - Unified Button */}
-              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl relative z-20 pointer-events-auto">
+              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
                 <CardHeader>
                   <CardTitle className="text-lg text-slate-100">Ações Rápidas</CardTitle>
                 </CardHeader>
@@ -344,7 +354,7 @@ const TeacherCalendar = () => {
             onOpenChange={setIsSchedulingModalOpen}
           />
         </div>
-      </TeacherLayoutWrapper>
+      </div>
     </MainLayout>
   );
 };

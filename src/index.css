@@ -200,65 +200,24 @@ All colors MUST be HSL. Design tokens for consistent theming.
     @apply bg-white/50 backdrop-blur-md border border-white/10;
   }
 
-.frost-white-strong {
-  @apply bg-white/80 backdrop-blur-xl border border-white/30;
-}
-
-/* Teacher Theme - Frosted Glass Variants */
-.frost-white-teacher {
-  @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-lg shadow-purple-200/20 transition-all duration-300;
-}
-
-.frost-white-teacher:hover {
-  @apply scale-[1.02] shadow-2xl shadow-purple-300/40;
-}
-
-.frost-white-teacher-card {
-  @apply bg-white/60 backdrop-blur-lg border border-purple-200/50 shadow-md shadow-purple-100/30;
-}
-
-.frost-white-teacher-strong {
-  @apply bg-white/85 backdrop-blur-2xl border border-white/50 shadow-xl shadow-purple-200/25;
-}
-
-.frost-white-teacher-primary {
-  @apply bg-white/75 backdrop-blur-2xl border-2 border-purple-300/60 shadow-2xl shadow-purple-300/30 transition-all duration-300;
-}
-
-.frost-white-teacher-primary:hover {
-  @apply scale-[1.01] shadow-2xl shadow-purple-400/40;
-}
+  .frost-white-strong {
+    @apply bg-white/80 backdrop-blur-xl border border-white/30;
+  }
 
   /* Background Ripple Effect Animation */
   @keyframes cell-ripple {
-    from {
-      opacity: 0.9;
+    0% {
       transform: scale(1);
-    }
-    to {
-      opacity: 0;
-      transform: scale(1.1);
-    }
-  }
-
-  @keyframes fade-in-up {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
       opacity: 1;
-      transform: translateY(0);
     }
-  }
-
-  .animate-fade-in-up {
-    animation: fade-in-up 0.6s ease-out;
-  }
-
-  .action-button:hover .icon {
-    transform: scale(1.15) rotate(5deg);
-    transition: transform 0.2s ease-out;
+    50% {
+      transform: scale(1.1);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   /* Custom Scrollbar - Elegant minimalist style */

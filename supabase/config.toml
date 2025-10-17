@@ -3,9 +3,6 @@ project_id = "kzupylvyamjaaobongvm"
 [functions.mia-student-chat]
 verify_jwt = true
 
-[functions.mia-teacher-chat]
-verify_jwt = true
-
 [functions.job-runner]
 verify_jwt = false
 
@@ -131,7 +128,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.save-internship-session]
-verify_jwt = true
-
-[functions.generate-recommendations]
 verify_jwt = true

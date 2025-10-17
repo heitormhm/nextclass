@@ -132,51 +132,13 @@ const QuizPage = () => {
     setShowFeedback(prev => ({ ...prev, [questionId]: true }));
   };
 
-  const nextQuestion = async () => {
+  const nextQuestion = () => {
     if (currentQuestion < totalQuestions) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       const correctAnswers = answers.filter(a => a.isCorrect).length;
-      const finalScore = (correctAnswers / totalQuestions) * 100;
-      setScore(finalScore);
+      setScore((correctAnswers / totalQuestions) * 100);
       setQuizCompleted(true);
-      
-      // 🆕 Salvar resultado em quiz_attempts
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: quizData } = await supabase
-          .from('generated_quizzes')
-          .select('topic')
-          .eq('id', lectureId)
-          .single();
-        
-        if (user && quizData) {
-          const { error: attemptError } = await supabase
-            .from('quiz_attempts')
-            .insert({
-              user_id: user.id,
-              topic: quizData.topic || 'Quiz Gerado no AI Chat',
-              quiz_source: 'student_generated',
-              lecture_id: null,
-              score: correctAnswers,
-              max_score: totalQuestions,
-              percentage: finalScore
-            });
-
-          if (attemptError) {
-            console.error('Erro ao salvar quiz attempt:', attemptError);
-          } else {
-            console.log('✅ Quiz attempt salvo com sucesso');
-            
-            // 🆕 Chamar função para gerar recomendações
-            supabase.functions.invoke('generate-recommendations').catch(err => 
-              console.error('Erro ao gerar recomendações:', err)
-            );
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao processar resultado do quiz:', error);
-      }
     }
   };
 
