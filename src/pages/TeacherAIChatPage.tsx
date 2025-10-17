@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2 } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip } from "lucide-react";
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ const TeacherAIChatPage = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [activeJobs, setActiveJobs] = useState<Map<string, any>>(new Map());
   const processedJobsRef = useRef<Set<string>>(new Set());
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
   const getInitialSuggestions = () => [
     "Crie um plano de aula sobre análise de circuitos elétricos",
@@ -715,12 +716,49 @@ const TeacherAIChatPage = () => {
               </div>
             </ScrollArea>
 
-        <div className="p-4 sm:p-6">
+        <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-6 pb-4 sm:pb-6">
           <div className="max-w-4xl mx-auto">
             <div className="frost-white rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xl border border-white/30">
                   
                   <div className="flex items-end gap-2 sm:gap-3">
                     
+                    {/* Botão de Anexo */}
+                    <div className="relative">
+                      <input
+                        type="file"
+                        id="teacher-file-upload"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 20 * 1024 * 1024) {
+                              toast({
+                                title: "Arquivo muito grande",
+                                description: "O arquivo deve ter no máximo 20MB",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            setAttachedFile(file);
+                            toast({
+                              title: "Arquivo anexado",
+                              description: file.name,
+                            });
+                          }
+                        }}
+                        accept="image/*,.pdf,.doc,.docx,.txt"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => document.getElementById('teacher-file-upload')?.click()}
+                        className="shrink-0 h-10 w-10 hover:bg-primary/10"
+                        title="Anexar arquivo"
+                      >
+                        <Paperclip className="w-5 h-5" />
+                      </Button>
+                    </div>
+
                     {/* Botão de Voz */}
                     <Button
                       variant="ghost"
@@ -745,7 +783,7 @@ const TeacherAIChatPage = () => {
                     </Button>
 
                     {/* Input de Texto */}
-                    <div className="flex-1">
+                    <div className="flex-1 space-y-2">
                       <Textarea
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
@@ -754,6 +792,22 @@ const TeacherAIChatPage = () => {
                         className="min-h-[40px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-2"
                         disabled={isLoading}
                       />
+                      
+                      {/* Preview do arquivo anexado */}
+                      {attachedFile && (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-lg text-sm">
+                          <Paperclip className="w-4 h-4 shrink-0" />
+                          <span className="flex-1 truncate">{attachedFile.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-destructive/10"
+                            onClick={() => setAttachedFile(null)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Toggle de Busca */}
