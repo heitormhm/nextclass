@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,75 +19,74 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MainLayout from "@/components/MainLayout";
-
-const mockGrades = [
-  {
-    id: "1",
-    subject: "Termodinâmica",
-    grade: "8.5",
-    maxGrade: "10.0",
-    teacher: "Prof. Emily Carter",
-    date: "2024-03-14",
-    type: "Prova"
-  },
-  {
-    id: "2",
-    subject: "Análise de Circuitos",
-    grade: "9.2",
-    maxGrade: "10.0",
-    teacher: "Prof. Sarah Chen",
-    date: "2024-03-09",
-    type: "Trabalho"
-  },
-  {
-    id: "3",
-    subject: "Mecânica Estrutural",
-    grade: "7.8",
-    maxGrade: "10.0",
-    teacher: "Prof. David Lee",
-    date: "2024-03-04",
-    type: "Prova Prática"
-  },
-  {
-    id: "4",
-    subject: "Ciência dos Materiais",
-    grade: "9.0",
-    maxGrade: "10.0",
-    teacher: "Prof. Michael Brown",
-    date: "2024-02-27",
-    type: "Seminário"
-  },
-  {
-    id: "5",
-    subject: "Algoritmos",
-    grade: "8.7",
-    maxGrade: "10.0",
-    teacher: "Prof. Lisa Wilson",
-    date: "2024-02-19",
-    type: "Prova"
-  }
-];
-
-const subjects = ["Todas as Disciplinas", "Termodinâmica", "Análise de Circuitos", "Mecânica Estrutural", "Ciência dos Materiais", "Algoritmos"];
-const teachers = ["Todos os Professores", "Prof. Emily Carter", "Prof. Sarah Chen", "Prof. David Lee", "Prof. Michael Brown", "Prof. Lisa Wilson"];
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const GradesPage = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("Todas as Disciplinas");
   const [selectedTeacher, setSelectedTeacher] = useState("Todos os Professores");
 
-  const filteredGrades = mockGrades.filter((grade) => {
-    const matchesSearch = grade.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         grade.teacher.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = selectedSubject === "Todas as Disciplinas" || grade.subject === selectedSubject;
-    const matchesTeacher = selectedTeacher === "Todos os Professores" || grade.teacher === selectedTeacher;
-    
-    return matchesSearch && matchesSubject && matchesTeacher;
+  // Fetch grades from database
+  const { data: grades, isLoading } = useQuery({
+    queryKey: ['student-grades', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('grades')
+        .select(`
+          *,
+          class:classes(id, name, course, period),
+          teacher:users!grades_teacher_id_fkey(id, full_name)
+        `)
+        .eq('student_id', user!.id)
+        .order('assessment_date', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user
   });
 
-  const averageGrade = filteredGrades.length > 0 
-    ? (filteredGrades.reduce((sum, grade) => sum + parseFloat(grade.grade), 0) / filteredGrades.length).toFixed(1)
-    : "0.0";
+  // Extract unique subjects and teachers
+  const subjects = useMemo(() => {
+    const unique = [...new Set(grades?.map(g => g.subject) || [])];
+    return ['Todas as Disciplinas', ...unique];
+  }, [grades]);
+
+  const teachers = useMemo(() => {
+    const unique = [...new Set(grades?.map(g => g.teacher?.full_name).filter(Boolean) || [])];
+    return ['Todos os Professores', ...unique];
+  }, [grades]);
+
+  // Filter grades
+  const filteredGrades = useMemo(() => {
+    if (!grades) return [];
+    
+    return grades.filter((grade) => {
+      const teacherName = grade.teacher?.full_name || '';
+      const matchesSearch = grade.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           teacherName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSubject = selectedSubject === "Todas as Disciplinas" || grade.subject === selectedSubject;
+      const matchesTeacher = selectedTeacher === "Todos os Professores" || teacherName === selectedTeacher;
+      
+      return matchesSearch && matchesSubject && matchesTeacher;
+    });
+  }, [grades, searchQuery, selectedSubject, selectedTeacher]);
+
+  // Calculate statistics
+  const averageGrade = useMemo(() => {
+    if (!filteredGrades?.length) return '0.0';
+    const sum = filteredGrades.reduce((acc, g) => acc + Number(g.grade), 0);
+    return (sum / filteredGrades.length).toFixed(1);
+  }, [filteredGrades]);
+
+  const bestGrade = useMemo(() => {
+    if (!filteredGrades?.length) return '0.0';
+    return Math.max(...filteredGrades.map(g => Number(g.grade))).toFixed(1);
+  }, [filteredGrades]);
 
   return (
     <MainLayout>
@@ -105,22 +104,31 @@ const GradesPage = () => {
               <CardTitle>Resumo de Performance</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{averageGrade}</div>
-                  <div className="text-sm text-foreground-muted">Média Geral</div>
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="text-center space-y-2">
+                      <Skeleton className="h-8 w-16 mx-auto" />
+                      <Skeleton className="h-4 w-24 mx-auto" />
+                    </div>
+                  ))}
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{filteredGrades.length}</div>
-                  <div className="text-sm text-foreground-muted">Avaliações</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">
-                    {Math.max(...filteredGrades.map(g => parseFloat(g.grade))).toFixed(1)}
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{averageGrade}</div>
+                    <div className="text-sm text-foreground-muted">Média Geral</div>
                   </div>
-                  <div className="text-sm text-foreground-muted">Melhor Nota</div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{filteredGrades.length}</div>
+                    <div className="text-sm text-foreground-muted">Avaliações</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{bestGrade}</div>
+                    <div className="text-sm text-foreground-muted">Melhor Nota</div>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -183,28 +191,40 @@ const GradesPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredGrades.length === 0 ? (
+                    {isLoading ? (
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        </TableRow>
+                      ))
+                    ) : filteredGrades.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-foreground-muted py-8">
-                          Nenhuma nota encontrada
+                          {grades?.length === 0 
+                            ? 'Nenhuma nota lançada ainda. As notas aparecerão aqui quando os professores lançarem.'
+                            : 'Nenhuma nota encontrada com os filtros aplicados.'}
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredGrades.map((grade) => (
                         <TableRow key={grade.id}>
                           <TableCell className="font-medium">{grade.subject}</TableCell>
-                          <TableCell>{grade.type}</TableCell>
+                          <TableCell>{grade.assessment_type}</TableCell>
                           <TableCell>
                             <span className={`font-semibold ${
-                              parseFloat(grade.grade) >= 8 ? 'text-green-600' : 
-                              parseFloat(grade.grade) >= 6 ? 'text-yellow-600' : 
+                              Number(grade.grade) >= 8 ? 'text-green-600' : 
+                              Number(grade.grade) >= 6 ? 'text-yellow-600' : 
                               'text-red-600'
                             }`}>
-                              {grade.grade}/{grade.maxGrade}
+                              {Number(grade.grade).toFixed(1)}/{Number(grade.max_grade).toFixed(1)}
                             </span>
                           </TableCell>
-                          <TableCell>{grade.teacher}</TableCell>
-                          <TableCell>{new Date(grade.date).toLocaleDateString('pt-BR')}</TableCell>
+                          <TableCell>{grade.teacher?.full_name || 'Professor não identificado'}</TableCell>
+                          <TableCell>{new Date(grade.assessment_date).toLocaleDateString('pt-BR')}</TableCell>
                         </TableRow>
                       ))
                     )}
