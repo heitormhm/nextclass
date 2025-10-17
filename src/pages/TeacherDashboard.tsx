@@ -172,7 +172,7 @@ const TeacherDashboard = () => {
                     Criar Plano de Aula com Mia
                   </Button>
                   <Button
-                    onClick={() => navigate('/aichat')}
+                    onClick={() => navigate('/teacher/aichat')}
                     className="bg-indigo-600 hover:bg-indigo-700"
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />

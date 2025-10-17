@@ -25,6 +25,7 @@ import GradesPage from "./pages/GradesPage";
 import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AIChatPage from "./pages/AIChatPage";
+import TeacherAIChatPage from "./pages/TeacherAIChatPage";
 import ReviewPage from "./pages/ReviewPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import LiveLecture from "./pages/LiveLecture";
@@ -71,11 +72,12 @@ const App = () => (
           <Route path="/settings" element={<ProtectedRoute role="student"><SettingsPage /></ProtectedRoute>} />
           <Route path="/review" element={<ProtectedRoute role="student"><ReviewPage /></ProtectedRoute>} />
           
-          {/* Shared routes - accessible by both students and teachers */}
-          <Route path="/aichat" element={<ProtectedRoute><AIChatPage /></ProtectedRoute>} />
+          {/* Student AI Chat */}
+          <Route path="/aichat" element={<ProtectedRoute role="student"><AIChatPage /></ProtectedRoute>} />
           
           {/* Teacher-only routes */}
           <Route path="/teacherdashboard" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />
+          <Route path="/teacher/aichat" element={<ProtectedRoute role="teacher"><TeacherAIChatPage /></ProtectedRoute>} />
           <Route path="/teacher/lesson-plans" element={<ProtectedRoute role="teacher"><TeacherLessonPlans /></ProtectedRoute>} />
           <Route path="/teacher/lesson-plans/:id" element={<ProtectedRoute role="teacher"><TeacherLessonPlanEditor /></ProtectedRoute>} />
           <Route path="/livelecture" element={<ProtectedRoute role="teacher"><LiveLecture /></ProtectedRoute>} />

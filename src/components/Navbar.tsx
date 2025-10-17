@@ -29,7 +29,7 @@ const studentNavigationItems = [
 const teacherNavigationItems = [
   { label: "Home", href: "/teacherdashboard", icon: Home },
   { label: "Gravar Aula", href: "/livelecture", icon: Mic },
-  { label: "Chat com Mia", href: "/aichat", icon: MessageCircle },
+  { label: "Chat com Mia", href: "/teacher/aichat", icon: MessageCircle },
   { label: "Calendário", href: "/teachercalendar", icon: Calendar },
   { label: "Planos de Aula", href: "/teacher/lesson-plans", icon: BookOpenCheck },
 ];
