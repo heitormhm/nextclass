@@ -547,6 +547,31 @@ const TeacherAIChatPage = () => {
       });
       return newJobs;
     });
+
+    // 🔥 DESLIGAR LOADER quando DEEP_SEARCH completa
+    if (job.job_type === 'DEEP_SEARCH' && (job.status === 'COMPLETED' || job.status === 'FAILED')) {
+      console.log(`🏁 Deep search ${job.status}, closing loader`);
+      setIsDeepSearchLoading(false);
+      setDeepSearchProgress(deepSearchSteps.length - 1);
+    }
+
+    // 📊 SINCRONIZAR PROGRESSO DO LOADER com STEPS reais do backend
+    if (job.job_type === 'DEEP_SEARCH' && job.status !== 'COMPLETED' && job.status !== 'FAILED') {
+      const currentStep = job.intermediate_data?.step;
+      
+      // Mapear steps do backend para índices do loader
+      const stepMap: Record<string, number> = {
+        '1': 1,  // Decomposing
+        '2': 3,  // Searching
+        '3': 4,  // Synthesizing
+        '4': 5   // Completing
+      };
+      
+      const loaderIndex = stepMap[currentStep] || 0;
+      
+      console.log(`📊 Deep search progress: step ${currentStep} → loader index ${loaderIndex}`);
+      setDeepSearchProgress(loaderIndex);
+    }
     
     if (job.status === 'COMPLETED' || job.status === 'FAILED') {
       if (!processedJobsRef.current.has(job.id)) {
@@ -578,18 +603,10 @@ const TeacherAIChatPage = () => {
       return;
     }
     
-    const interval = setInterval(() => {
-      setDeepSearchProgress(prev => {
-        if (prev >= deepSearchSteps.length - 1) {
-          clearInterval(interval);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 3000);
-    
-    return () => clearInterval(interval);
-  }, [isDeepSearchLoading, deepSearchSteps.length]);
+    // ✅ Progresso agora é controlado por processJobUpdate, não por timer
+    // Apenas garantir que resetamos quando loader inicia
+    setDeepSearchProgress(0);
+  }, [isDeepSearchLoading]);
 
   // Realtime subscription
   useEffect(() => {
@@ -676,12 +693,12 @@ const TeacherAIChatPage = () => {
                           {new Date(conv.created_at).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
-                      <button
-                        onClick={(e) => handleDeleteConversation(conv.id, e)}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-all"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      </button>
+                  <button
+                    onClick={(e) => handleDeleteConversation(conv.id, e)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-all flex items-center justify-center"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  </button>
                     </div>
                   ))}
                 </div>
