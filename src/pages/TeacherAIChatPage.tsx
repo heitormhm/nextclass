@@ -445,8 +445,8 @@ const TeacherAIChatPage = () => {
         </div>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col bg-transparent relative z-20">
-          <div className="p-4 border-b border-purple-200/40 flex justify-between items-center bg-white/60 backdrop-blur-md">
+        <div className="flex-1 flex flex-col bg-transparent relative z-20 pointer-events-none">
+          <div className="p-4 border-b border-purple-200/40 flex justify-between items-center bg-white/60 backdrop-blur-md pointer-events-auto">
             <Button
               variant="ghost"
               size="icon"
@@ -463,7 +463,7 @@ const TeacherAIChatPage = () => {
           </div>
 
           <div className="flex-1 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 p-4 pointer-events-auto">
               <div className="max-w-4xl mx-auto space-y-4">
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 px-4">
@@ -480,7 +480,7 @@ const TeacherAIChatPage = () => {
                         <button
                           key={index}
                           onClick={() => setInputMessage(suggestion)}
-                          className="p-4 rounded-xl bg-white/90 border border-purple-200/60 hover:border-purple-300 hover:bg-white hover:shadow-md transition-all duration-200 text-left group"
+                          className="p-4 rounded-xl bg-white/90 border border-purple-200/60 hover:border-purple-300 hover:bg-white hover:shadow-md transition-all duration-200 text-left group pointer-events-auto"
                         >
                           <p className="text-sm text-purple-700 group-hover:text-purple-900">{suggestion}</p>
                         </button>
@@ -498,7 +498,7 @@ const TeacherAIChatPage = () => {
                         )}
                       >
                         <div className={cn(
-                          "max-w-[85%] rounded-2xl p-4",
+                          "max-w-[85%] rounded-2xl p-4 pointer-events-auto",
                           message.isUser
                             ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md"
                             : "bg-white/95 border border-purple-200/60 text-gray-800 shadow-sm"

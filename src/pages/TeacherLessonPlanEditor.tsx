@@ -552,7 +552,7 @@ const TeacherLessonPlanEditor = () => {
 
         <div className="h-screen flex flex-col">
           {/* Header */}
-          <div className="border-b border-purple-300 bg-white/90 backdrop-blur-xl relative z-20">
+          <div className="border-b border-purple-300 bg-white/90 backdrop-blur-xl relative z-20 pointer-events-auto">
             <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
@@ -603,7 +603,7 @@ const TeacherLessonPlanEditor = () => {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden pointer-events-auto">
             <div className="flex-1 overflow-y-auto p-6" ref={scrollRef}>
               <div className="space-y-4 max-w-4xl mx-auto">
                 {messages.map((message, index) => (
@@ -640,7 +640,7 @@ const TeacherLessonPlanEditor = () => {
             </div>
 
             {/* Input Area */}
-            <div className="border-t border-purple-300 bg-white/90 backdrop-blur-xl p-6">
+            <div className="border-t border-purple-300 bg-white/90 backdrop-blur-xl p-6 pointer-events-auto">
               <div className="w-full">
                 <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-4 border border-purple-200 shadow-xl">
                   <div className="flex gap-3 items-end">

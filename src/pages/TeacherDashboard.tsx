@@ -111,7 +111,7 @@ const TeacherDashboard = () => {
             {/* Left Column - Main Actions & Stats */}
             <div className="lg:col-span-2 space-y-6">
               {/* IA Co-piloto Card */}
-              <Card className="frost-white-teacher-primary animate-fade-in-up relative z-20" style={{ animationDelay: '100ms' }}>
+              <Card className="frost-white-teacher-primary animate-fade-in-up relative z-20 pointer-events-auto" style={{ animationDelay: '100ms' }}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-gray-800">
                     <Sparkles className="h-6 w-6 text-purple-600" />
@@ -181,7 +181,7 @@ const TeacherDashboard = () => {
 
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="frost-white-teacher animate-fade-in-up relative z-20" style={{ animationDelay: '200ms' }}>
+                <Card className="frost-white-teacher animate-fade-in-up relative z-20 pointer-events-auto" style={{ animationDelay: '200ms' }}>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium text-gray-600">
                       Aulas Publicadas
@@ -193,7 +193,7 @@ const TeacherDashboard = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="frost-white-teacher animate-fade-in-up relative z-20" style={{ animationDelay: '300ms' }}>
+                <Card className="frost-white-teacher animate-fade-in-up relative z-20 pointer-events-auto" style={{ animationDelay: '300ms' }}>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium text-gray-600">
                       Alunos Ativos
@@ -205,7 +205,7 @@ const TeacherDashboard = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="frost-white-teacher animate-fade-in-up relative z-20" style={{ animationDelay: '400ms' }}>
+                <Card className="frost-white-teacher animate-fade-in-up relative z-20 pointer-events-auto" style={{ animationDelay: '400ms' }}>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium text-gray-600">
                       Média da Turma
@@ -222,7 +222,7 @@ const TeacherDashboard = () => {
               <div className="h-px w-full bg-gradient-to-r from-transparent via-purple-300/50 to-transparent" />
 
               {/* Insights Panel */}
-              <Card className="frost-white-teacher-card animate-fade-in-up relative z-20" style={{ animationDelay: '500ms' }}>
+              <Card className="frost-white-teacher-card animate-fade-in-up relative z-20 pointer-events-auto" style={{ animationDelay: '500ms' }}>
                 <CardHeader>
                   <CardTitle className="text-gray-800">Insights de IA</CardTitle>
                   <CardDescription className="text-gray-600">
@@ -306,7 +306,7 @@ const TeacherDashboard = () => {
             {/* Right Column - Class Selector & Events */}
             <div className="space-y-6">
               {/* Class Selector */}
-              <Card className="frost-white-teacher-card animate-fade-in-up relative z-20" style={{ animationDelay: '600ms' }}>
+              <Card className="frost-white-teacher-card animate-fade-in-up relative z-20 pointer-events-auto" style={{ animationDelay: '600ms' }}>
                 <CardHeader>
                   <CardTitle className="text-gray-800">Turma Selecionada</CardTitle>
                 </CardHeader>
@@ -332,7 +332,7 @@ const TeacherDashboard = () => {
               </Card>
 
               {/* Quick Stats */}
-              <Card className="frost-white-teacher-card animate-fade-in-up relative z-20" style={{ animationDelay: '700ms' }}>
+              <Card className="frost-white-teacher-card animate-fade-in-up relative z-20 pointer-events-auto" style={{ animationDelay: '700ms' }}>
                 <CardHeader>
                   <CardTitle className="text-gray-800">Estatísticas Rápidas</CardTitle>
                 </CardHeader>
@@ -370,7 +370,7 @@ const TeacherDashboard = () => {
               </Card>
 
               {/* Upcoming Events */}
-              <Card className="frost-white-teacher-card animate-fade-in-up relative z-20" style={{ animationDelay: '800ms' }}>
+              <Card className="frost-white-teacher-card animate-fade-in-up relative z-20 pointer-events-auto" style={{ animationDelay: '800ms' }}>
                 <CardHeader>
                   <CardTitle className="text-gray-800">Próximos Eventos</CardTitle>
                   <CardDescription className="text-gray-600">Aulas e compromissos agendados</CardDescription>

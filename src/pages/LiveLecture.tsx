@@ -286,7 +286,7 @@ const LiveLecture = () => {
           </div>
 
           {/* Main Control Panel - Optimized height */}
-          <div className="bg-white/90 backdrop-blur-xl rounded-lg border border-purple-200 shadow-2xl p-6 md:p-8 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto relative z-20">
+          <div className="bg-white/90 backdrop-blur-xl rounded-lg border border-purple-200 shadow-2xl p-6 md:p-8 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto relative z-20 pointer-events-auto">
             
             {/* Central Microphone Orb - Reduced size */}
             <div className="flex flex-col items-center space-y-4">
