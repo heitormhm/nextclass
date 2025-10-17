@@ -8,6 +8,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import MainLayout from '@/components/MainLayout';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface TranscriptEntry {
   id: string;
@@ -29,9 +31,16 @@ const RecordScenario = () => {
   const location = useLocation();
   
   // Get context data from the setup page
-  const contextData = location.state as { internshipType?: string; location?: string };
+  const contextData = location.state as { 
+    internshipType?: string; 
+    location?: string;
+    locationDetails?: string;
+    previewTags?: string[];
+  };
   const internshipType = contextData?.internshipType || 'Estágio';
   const internshipLocation = contextData?.location || 'Local não especificado';
+  const locationDetails = contextData?.locationDetails || '';
+  const previewTags = contextData?.previewTags || [];
   
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -175,12 +184,35 @@ const RecordScenario = () => {
     setIsPaused(!isPaused);
   };
 
-  const handleEndConsultation = () => {
+  const handleEndConsultation = async () => {
     setIsRecording(false);
     setIsPaused(false);
-    // Generate a unique consultation ID and navigate to review page
-    const consultationId = Date.now();
-    navigate(`/consultation-review/${consultationId}`);
+    
+    // Save session to database
+    try {
+      toast.loading('Processando e salvando sessão...');
+      
+      const { data, error } = await supabase.functions.invoke('save-internship-session', {
+        body: {
+          internshipType,
+          locationName: internshipLocation,
+          locationDetails,
+          tags: previewTags,
+          transcript: transcript,
+          aiSummary: aiSummary,
+          duration: elapsedTime
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.success('Sessão salva com sucesso!');
+      // Navigate to dashboard after successful save
+      navigate('/internship');
+    } catch (error) {
+      console.error('Error saving session:', error);
+      toast.error('Erro ao salvar sessão. Tente novamente.');
+    }
   };
 
   const startEditing = (entry: TranscriptEntry) => {

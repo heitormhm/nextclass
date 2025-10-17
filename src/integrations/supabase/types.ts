@@ -356,6 +356,105 @@ export type Database = {
           },
         ]
       }
+      internship_locations: {
+        Row: {
+          created_at: string | null
+          full_address: string | null
+          id: string
+          last_used_at: string | null
+          name: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          full_address?: string | null
+          id?: string
+          last_used_at?: string | null
+          name: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          full_address?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      internship_sessions: {
+        Row: {
+          ai_summary: Json | null
+          created_at: string | null
+          duration: number | null
+          id: string
+          internship_type: string
+          location_details: string | null
+          location_name: string
+          tags: string[] | null
+          transcript: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: Json | null
+          created_at?: string | null
+          duration?: number | null
+          id?: string
+          internship_type: string
+          location_details?: string | null
+          location_name: string
+          tags?: string[] | null
+          transcript?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_summary?: Json | null
+          created_at?: string | null
+          duration?: number | null
+          id?: string
+          internship_type?: string
+          location_details?: string | null
+          location_name?: string
+          tags?: string[] | null
+          transcript?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      internship_tags: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_used_at: string | null
+          tag: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          tag: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          tag?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           conversation_id: string | null

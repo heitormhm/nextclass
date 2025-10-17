@@ -1,32 +1,88 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Mic } from 'lucide-react';
+import { ArrowRight, Mic, Sparkles, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
 import { toast } from 'sonner';
+import { LocationAutocomplete } from '@/components/LocationAutocomplete';
+import { supabase } from '@/integrations/supabase/client';
 
 const InternshipSetup = () => {
   const navigate = useNavigate();
   const [internshipType, setInternshipType] = useState('');
   const [location, setLocation] = useState('');
+  const [locationDetails, setLocationDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewTags, setPreviewTags] = useState<string[]>([]);
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
+  const [errors, setErrors] = useState({ internshipType: '', location: '' });
 
-  const handleStartRecording = () => {
-    // Validate inputs
+  // Generate tags preview when internship type changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (internshipType.trim().length >= 3) {
+        generateTagsPreview();
+      } else {
+        setPreviewTags([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [internshipType, locationDetails]);
+
+  const generateTagsPreview = async () => {
+    setIsGeneratingTags(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-internship-tags', {
+        body: { 
+          internshipType,
+          locationDetails: locationDetails || location
+        }
+      });
+
+      if (error) throw error;
+      setPreviewTags(data.tags || []);
+    } catch (error) {
+      console.error('Error generating tags preview:', error);
+    } finally {
+      setIsGeneratingTags(false);
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = { internshipType: '', location: '' };
+    let isValid = true;
+
     if (!internshipType.trim()) {
-      toast.error('Por favor, informe em qual estágio você está');
-      return;
+      newErrors.internshipType = 'Tipo de estágio é obrigatório';
+      isValid = false;
+    } else if (internshipType.trim().length < 3) {
+      newErrors.internshipType = 'Digite pelo menos 3 caracteres';
+      isValid = false;
     }
 
     if (!location.trim()) {
-      toast.error('Por favor, informe onde você está indo');
-      return;
+      newErrors.location = 'Local do estágio é obrigatório';
+      isValid = false;
+    } else if (location.trim().length < 3) {
+      newErrors.location = 'Digite pelo menos 3 caracteres';
+      isValid = false;
     }
 
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleStartRecording = () => {
+    if (!validateForm()) {
+      toast.error('Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+    
     setIsSubmitting(true);
 
     // Navigate to recording page with context data
@@ -34,6 +90,8 @@ const InternshipSetup = () => {
       state: {
         internshipType: internshipType.trim(),
         location: location.trim(),
+        locationDetails,
+        previewTags
       }
     });
   };
@@ -65,43 +123,71 @@ const InternshipSetup = () => {
               {/* Internship Type Input */}
               <div className="space-y-2">
                 <Label htmlFor="internshipType" className="text-base font-medium">
-                  Em qual estágio você está?
+                  Em qual estágio você está? *
                 </Label>
                 <Input
                   id="internshipType"
                   placeholder="Ex: Estágio em Engenharia Civil, Engenharia Mecânica, Engenharia Elétrica, etc."
                   value={internshipType}
-                  onChange={(e) => setInternshipType(e.target.value)}
+                  onChange={(e) => {
+                    setInternshipType(e.target.value);
+                    setErrors({ ...errors, internshipType: '' });
+                  }}
                   className="text-base"
                   autoFocus
                 />
-                <p className="text-xs text-foreground-muted">
-                  Informe o tipo de estágio ou programa de engenharia que você está cursando
+                {errors.internshipType && (
+                  <p className="text-sm text-destructive">{errors.internshipType}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {internshipType.length}/100 caracteres
                 </p>
               </div>
 
-              {/* Location Textarea */}
+              {/* Location Autocomplete */}
               <div className="space-y-2">
                 <Label htmlFor="location" className="text-base font-medium">
-                  Onde você está indo?
+                  Onde você está indo? *
                 </Label>
-                <Textarea
-                  id="location"
-                  placeholder="Ex: Construtora XYZ - Setor de Estruturas, Indústria ABC - Departamento de Manutenção, Escritório de Projetos Elétricos, etc."
+                <LocationAutocomplete
                   value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="min-h-[100px] text-base resize-none"
+                  onChange={(name, details) => {
+                    setLocation(name);
+                    setLocationDetails(details || '');
+                    setErrors({ ...errors, location: '' });
+                  }}
+                  placeholder="Digite o nome do local..."
+                  error={errors.location}
                 />
-                <p className="text-xs text-foreground-muted">
-                  Descreva o local (empresa/escritório) e o contexto da sessão que você vai gravar
+                <p className="text-xs text-muted-foreground">
+                  Digite para ver sugestões de locais já utilizados
                 </p>
               </div>
+
+              {/* Tags Preview */}
+              {previewTags.length > 0 && (
+                <div className="p-4 bg-accent/50 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">
+                      {isGeneratingTags ? 'Gerando tags...' : 'Tags que serão geradas'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {previewTags.map((tag, index) => (
+                      <Badge key={index} variant="secondary">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Action Button */}
               <div className="pt-4">
                 <Button
                   onClick={handleStartRecording}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !internshipType.trim() || !location.trim()}
                   size="lg"
                   className="w-full text-base h-12 gap-2"
                 >
@@ -113,7 +199,7 @@ const InternshipSetup = () => {
 
               {/* Help Text */}
               <div className="pt-2 text-center">
-                <p className="text-xs text-foreground-muted">
+                <p className="text-xs text-muted-foreground">
                   Você será direcionado para a tela de gravação após preencher os campos
                 </p>
               </div>
@@ -125,13 +211,14 @@ const InternshipSetup = () => {
             <CardContent className="p-4">
               <div className="flex gap-3">
                 <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Mic className="h-4 w-4 text-primary" />
+                  <Info className="h-4 w-4 text-primary" />
                 </div>
                 <div className="space-y-1">
                   <h3 className="font-semibold text-sm">Por que essas informações?</h3>
-                  <p className="text-xs text-foreground-muted leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     O contexto que você fornecer será usado pela IA para analisar os "Tópicos-Chave Discutidos" 
                     e identificar "Aplicações Práticas" relevantes ao seu cenário específico de estágio.
+                    As tags são geradas automaticamente para facilitar buscas futuras.
                   </p>
                 </div>
               </div>

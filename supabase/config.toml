@@ -120,3 +120,12 @@ verify_jwt = true
 
 [functions.auto-enroll-student]
 verify_jwt = false
+
+[functions.generate-internship-tags]
+verify_jwt = true
+
+[functions.autocomplete-locations]
+verify_jwt = true
+
+[functions.save-internship-session]
+verify_jwt = true
