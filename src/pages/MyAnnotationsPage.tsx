@@ -283,22 +283,24 @@ const MyAnnotationsPage = () => {
                   {/* Linha decorativa rosa/roxa */}
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500" />
                   
-                  {/* Badge de tipo de anotação */}
-                  {annotation.source_type === 'internship_report' && (
-                    <Badge variant="outline" className="absolute top-4 left-3 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
-                      🎓 Estágio
-                    </Badge>
-                  )}
-                  
-                  {/* Relative Date Badge */}
-                  <div className="absolute top-4 right-3 text-xs text-muted-foreground">
-                    {formatRelativeDate(annotation.updated_at)}
-                  </div>
-                  
-                  {/* Title */}
-                  <h3 className="text-base font-semibold text-foreground mb-2 pr-16 pt-2 line-clamp-2">
-                    {annotation.title}
-                  </h3>
+              {/* Badge de tipo de anotação */}
+              {annotation.source_type === 'internship_report' && (
+                <Badge variant="outline" className="absolute top-3 left-3 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+                  🎓 Estágio
+                </Badge>
+              )}
+              
+              {/* Relative Date Badge */}
+              <div className="absolute top-4 right-3 text-xs text-muted-foreground">
+                {formatRelativeDate(annotation.updated_at)}
+              </div>
+              
+              {/* Title - adicionar mais padding-top quando há badge */}
+              <h3 className={`text-base font-semibold text-foreground mb-2 pr-16 line-clamp-2 ${
+                annotation.source_type === 'internship_report' ? 'pt-10' : 'pt-2'
+              }`}>
+                {annotation.title}
+              </h3>
                   
                   {/* Preview */}
                   <p className="text-sm text-muted-foreground mb-2 line-clamp-5 leading-snug">

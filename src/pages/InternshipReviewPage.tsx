@@ -200,6 +200,9 @@ const InternshipReviewPage = () => {
       
       const annotationTitle = `${scenarioData.internshipType} - ${scenarioData.location} (${formattedDate})`;
       const annotationContent = scenarioData.reportContent;
+      
+      // Buscar tags do cenário para incluir na anotação
+      const tagsToInclude = scenarioData.tags || [];
 
       // Create annotation directly in the database
       const { data, error } = await supabase
@@ -210,6 +213,7 @@ const InternshipReviewPage = () => {
           content: annotationContent,
           source_type: 'internship_report',
           source_id: id,
+          tags: tagsToInclude,
         }])
         .select()
         .single();
