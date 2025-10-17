@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation } from "lucide-react";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
@@ -553,6 +553,21 @@ const TeacherAIChatPage = () => {
       console.log(`🏁 Deep search ${job.status}, closing loader`);
       setIsDeepSearchLoading(false);
       setDeepSearchProgress(deepSearchSteps.length - 1);
+      
+      // 🎯 CRIAR NOVA MENSAGEM COM BOTÕES DE AÇÃO
+      if (job.status === 'COMPLETED') {
+        console.log('✅ Deep search completed, adding action buttons message');
+        
+        const actionButtonsMessage: Message = {
+          id: `action-buttons-${Date.now()}`,
+          content: 'DEEP_SEARCH_ACTION_BUTTONS',
+          isUser: false,
+          timestamp: new Date(),
+          isSystemMessage: false,
+        };
+        
+        setMessages(prev => [...prev, actionButtonsMessage]);
+      }
     }
 
     // 📊 SINCRONIZAR PROGRESSO DO LOADER com STEPS reais do backend
@@ -776,23 +791,107 @@ const TeacherAIChatPage = () => {
                           message.isUser ? "justify-end" : "justify-start"
                         )}
                       >
-                        <div
-                          className={cn(
-                            "max-w-[80%] rounded-2xl px-6 py-4 shadow-xl backdrop-blur-xl transition-all hover:shadow-2xl",
-                            message.isUser
-                              ? "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
-                              : "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
-                          )}
+                <div
+                  className={cn(
+                    "max-w-[80%] rounded-2xl px-6 py-4 shadow-xl backdrop-blur-xl transition-all hover:shadow-2xl break-words",
+                    message.isUser
+                      ? "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
+                      : "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
+                  )}
+                >
+                  <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkMath]}
+                      rehypePlugins={[rehypeKatex]}
+                      components={{
+                        a: ({node, ...props}) => (
+                          <a 
+                            {...props} 
+                            className="break-all text-blue-600 hover:text-blue-800 underline" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                          />
+                        ),
+                        code: ({node, inline, ...props}: any) => (
+                          inline 
+                            ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-sm break-all" />
+                            : <code {...props} className="block bg-gray-100 p-2 rounded my-2 overflow-x-auto text-sm" />
+                        )
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+
+                  {/* Caso especial: Renderizar botões de ação para Deep Search */}
+                  {!message.isUser && message.content === 'DEEP_SEARCH_ACTION_BUTTONS' && (
+                    <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-purple-50/80 to-pink-50/80 border-2 border-purple-200">
+                      <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        Continue explorando com Mia:
+                      </h3>
+                      
+                      {/* Grid 3x2 de botões */}
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* Linha 1 */}
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_QUIZ', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
                         >
-                          <div className="prose prose-sm max-w-none prose-gray">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm, remarkMath]}
-                              rehypePlugins={[rehypeKatex]}
-                            >
-                              {message.content}
-                            </ReactMarkdown>
-                          </div>
-                          
+                          <FileQuestion className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Criar Quiz</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_FLASHCARDS', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <Layers className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Criar Flashcards</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_LESSON_PLAN', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <BookOpen className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Plano de Aula</span>
+                        </Button>
+                        
+                        {/* Linha 2 */}
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_SLIDES', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <Presentation className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Criar Slides</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_MULTIPLE_CHOICE_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <CheckSquare className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Múltipla Escolha</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_OPEN_ENDED_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Atividade Avaliativa</span>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                           
                           {!message.isUser && message.jobIds?.map((jobId) => {
                             const job = activeJobs.get(jobId);
                             return job ? (

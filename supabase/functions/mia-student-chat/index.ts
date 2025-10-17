@@ -222,6 +222,11 @@ serve(async (req) => {
       performanceContext += '- Se perceber padrões de dificuldade, sugira revisão focada nesses tópicos.\n';
     }
 
+    performanceContext += '\n**PRIORIDADE DE FONTES (quando citar referências técnicas):**\n';
+    performanceContext += '- **Primárias:** Bases de dados de engenharia (Compendex, Scopus), manuais técnicos (Knovel), organizações de normas (ASTM, IEEE, ABNT)\n';
+    performanceContext += '- **Secundárias:** Bibliotecas específicas de disciplinas (ASCE, ASME), Google Scholar\n';
+    performanceContext += '- **Exclusão:** Evite citar blogs genéricos ou artigos de notícias não técnicas\n';
+
     // Build the content array for Gemini
     const contentParts: any[] = [
       {

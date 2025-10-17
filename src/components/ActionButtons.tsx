@@ -29,6 +29,24 @@ export const ActionButtons = ({ messageContent, topic, onAction, disabled, activ
     console.log('🚫 ActionButtons hidden: system message detected');
     return null;
   }
+
+  // 🔍 VERIFICAÇÃO 0.5: Detectar mensagens de Deep Search (relatórios completos)
+  const deepSearchIndicators = [
+    'MATERIAL 1: ESTUDO DE CASO',
+    'MATERIAL 2: NOTA TÉCNICA',
+    'MATERIAL 3: LISTA DE RECURSOS',
+    'Referências Bibliográficas',
+    'PROTOCOLO DE FACT-CHECKING'
+  ];
+
+  const isDeepSearchResult = deepSearchIndicators.some(indicator => 
+    messageContent.includes(indicator)
+  );
+
+  if (isDeepSearchResult) {
+    console.log('🚫 ActionButtons hidden: deep search result detected');
+    return null;
+  }
   
   // 🔍 VERIFICAÇÃO 1: Se esta mensagem JÁ tem jobs associados, não mostrar botões
   if (messageJobIds && messageJobIds.length > 0) {
