@@ -31,6 +31,7 @@ const teacherNavigationItems = [
   { label: "Gravar Aula", href: "/livelecture", icon: Mic },
   { label: "Calendário", href: "/teachercalendar", icon: Calendar },
   { label: "Planos de Aula", href: "/teacher/lesson-plans", icon: BookOpenCheck },
+  { label: "Mia IA", href: "/teacher-aichat", icon: Sparkles },
 ];
 
 const Navbar = () => {
