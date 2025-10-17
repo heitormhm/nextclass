@@ -196,8 +196,8 @@ const TeacherDashboard = () => {
         <div className="relative z-10 p-6 max-w-[1600px] mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Painel do Professor</h1>
-            <p className="text-gray-600">Gerencie suas aulas e acompanhe o desempenho da turma</p>
+            <h1 className="text-4xl font-bold text-white uppercase mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">Painel do Professor</h1>
+            <p className="text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">Gerencie suas aulas e acompanhe o desempenho da turma</p>
           </div>
 
           {/* Two Column Layout */}
@@ -235,11 +235,17 @@ const TeacherDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="insights" className="w-full">
-                    <TabsList className="bg-white/60 bg-blue-50/20 bg-blend-overlay backdrop-blur-md border-blue-100/40">
-                      <TabsTrigger value="insights" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white data-[state=inactive]:text-gray-700">
+                    <TabsList className="bg-white/90 backdrop-blur-md border border-purple-200/50 shadow-sm p-1 rounded-lg">
+                      <TabsTrigger 
+                        value="insights" 
+                        className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-gray-700 data-[state=inactive]:hover:bg-purple-50 transition-all duration-200 rounded-md"
+                      >
                         Alertas e Oportunidades
                       </TabsTrigger>
-                      <TabsTrigger value="performance" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white data-[state=inactive]:text-gray-700">
+                      <TabsTrigger 
+                        value="performance" 
+                        className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-gray-700 data-[state=inactive]:hover:bg-purple-50 transition-all duration-200 rounded-md"
+                      >
                         Desempenho
                       </TabsTrigger>
                     </TabsList>

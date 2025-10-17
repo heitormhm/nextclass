@@ -52,7 +52,7 @@ export const MiniStatCard = ({
       <span className="text-sm font-medium text-gray-700">{label}</span>
       <div className="flex items-center gap-2">
         {getTrendIcon()}
-        <span className={cn("text-lg font-bold px-2.5 py-1 rounded-md", getColorClasses())}>
+        <span className={cn("text-lg font-bold px-3 py-1.5 rounded-md min-w-[70px] text-center inline-block", getColorClasses())}>
           {value}
         </span>
       </div>
