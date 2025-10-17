@@ -395,7 +395,7 @@ const TeacherAIChatPage = () => {
           <div className="flex flex-1 overflow-hidden">
             {/* Sidebar - Conversation History */}
             <div className={cn(
-            "lg:w-64 bg-white/90 backdrop-blur-xl border-r border-purple-300/70 flex flex-col transition-all duration-300 ease-in-out shadow-lg",
+            "md:w-80 lg:w-96 bg-white/90 backdrop-blur-xl border-r border-purple-300/70 flex flex-col transition-all duration-300 ease-in-out shadow-lg",
             "fixed lg:relative inset-0 z-50 lg:z-10",
             showMobileHistory ? "block" : "hidden lg:block"
           )}>
@@ -414,6 +414,56 @@ const TeacherAIChatPage = () => {
               <Plus className="h-5 w-5" />
             </Button>
           </div>
+
+          {/* Conteúdo Gerado Section */}
+          {(conversationContent.quizzes.length > 0 || conversationContent.flashcards.length > 0) && (
+            <div className="p-3 border-b border-purple-200/50 bg-gradient-to-r from-purple-50/80 to-pink-50/80">
+              <h3 className="font-semibold text-sm text-purple-900 mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                Conteúdo Gerado
+              </h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {conversationContent.quizzes.map((quiz) => (
+                  <GeneratedContentCard
+                    key={quiz.id}
+                    type="quiz"
+                    title={quiz.title}
+                    itemCount={quiz.questions?.length || 0}
+                    createdAt={quiz.created_at}
+                    onOpen={() => {
+                      setSelectedQuizId(quiz.id);
+                      setIsQuizModalOpen(true);
+                    }}
+                    onDelete={async () => {
+                      toast({
+                        title: "Em desenvolvimento",
+                        description: "A funcionalidade de exclusão será implementada em breve.",
+                      });
+                    }}
+                  />
+                ))}
+                {conversationContent.flashcards.map((flashcardSet) => (
+                  <GeneratedContentCard
+                    key={flashcardSet.id}
+                    type="flashcard"
+                    title={flashcardSet.title}
+                    itemCount={flashcardSet.flashcards?.length || 0}
+                    createdAt={flashcardSet.created_at}
+                    onOpen={() => {
+                      setSelectedFlashcardSetId(flashcardSet.id);
+                      setIsFlashcardModalOpen(true);
+                    }}
+                    onDelete={async () => {
+                      toast({
+                        title: "Em desenvolvimento",
+                        description: "A funcionalidade de exclusão será implementada em breve.",
+                      });
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <ScrollArea className="flex-1 p-3">
             <div className="space-y-2">
