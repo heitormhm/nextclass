@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Pause, Square, Edit3, Mic, Clock, User, CheckCircle, AlertCircle } from 'lucide-react';
+import { Pause, Square, Edit3, Mic, Clock, User, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,8 @@ import { Separator } from '@/components/ui/separator';
 import MainLayout from '@/components/MainLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAudioRecorder } from '@/hooks/useAudioRecorder';
+import { useSpeakerDetection } from '@/hooks/useSpeakerDetection';
 
 interface TranscriptEntry {
   id: string;
@@ -42,9 +44,22 @@ const RecordScenario = () => {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [isTranscribing, setIsTranscribing] = useState(false);
   
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Audio recording and speaker detection hooks
+  const { 
+    startRecording: startAudioRecording, 
+    stopRecording: stopAudioRecording,
+    pauseRecording: pauseAudioRecording,
+    resumeRecording: resumeAudioRecording,
+    error: audioError,
+    onTranscriptionReceived 
+  } = useAudioRecorder();
+
+  const { currentSpeaker, setSpeaker } = useSpeakerDetection();
 
   // Session info for context
   const sessionTitle = `${internshipType} - ${internshipLocation}`;
@@ -76,29 +91,73 @@ const RecordScenario = () => {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcript]);
 
+  // Handle transcription callback
+  useEffect(() => {
+    onTranscriptionReceived((text) => {
+      if (text.trim()) {
+        const newEntry: TranscriptEntry = {
+          id: crypto.randomUUID(),
+          timestamp: formatTime(elapsedTime),
+          speaker: currentSpeaker,
+          text: text.trim()
+        };
+        
+        setTranscript(prev => [...prev, newEntry]);
+        setIsTranscribing(false);
+      }
+    });
+  }, [currentSpeaker, elapsedTime, onTranscriptionReceived]);
+
+  // Show audio error as toast
+  useEffect(() => {
+    if (audioError) {
+      if (audioError.includes('Permission denied') || audioError.includes('permission')) {
+        toast.error('Permissão do microfone negada. Verifique as configurações do navegador.');
+      } else {
+        toast.error(audioError);
+      }
+    }
+  }, [audioError]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    setIsPaused(false);
-    setElapsedTime(0);
-    setTranscript([]);
+  const handleStartRecording = async () => {
+    try {
+      await startAudioRecording();
+      setIsRecording(true);
+      setIsPaused(false);
+      setElapsedTime(0);
+      setTranscript([]);
+      toast.success('Gravação iniciada!');
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast.error('Erro ao acessar o microfone. Verifique as permissões.');
+    }
   };
 
   const handlePauseResume = () => {
+    if (isPaused) {
+      resumeAudioRecording();
+    } else {
+      pauseAudioRecording();
+    }
     setIsPaused(!isPaused);
   };
 
   const handleEndConsultation = async () => {
+    stopAudioRecording();
     setIsRecording(false);
     setIsPaused(false);
     
     try {
       toast.loading('Processando e salvando sessão...');
+      
+      // Aguardar 2s para processar últimas transcrições
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       const { data, error } = await supabase.functions.invoke('save-internship-session', {
         body: {
@@ -230,6 +289,33 @@ const RecordScenario = () => {
                       </div>
                     </div>
 
+                    {/* Speaker Selector */}
+                    {isRecording && (
+                      <div className="flex items-center justify-center gap-3 pt-2">
+                        <span className="text-sm text-muted-foreground">Falando:</span>
+                        <div className="flex gap-2">
+                          <Button
+                            variant={currentSpeaker === 'Estagiário' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSpeaker('Estagiário')}
+                            className="min-h-[36px]"
+                          >
+                            <User className="h-4 w-4 mr-2" />
+                            Estagiário
+                          </Button>
+                          <Button
+                            variant={currentSpeaker === 'Supervisor' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSpeaker('Supervisor')}
+                            className="min-h-[36px]"
+                          >
+                            <User className="h-4 w-4 mr-2" />
+                            Supervisor
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Waveform Animation */}
                     <div className="py-4">
                       <WaveformAnimation />
@@ -302,18 +388,26 @@ const RecordScenario = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {isTranscribing && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-l-4 border-blue-500 rounded mb-4">
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <span className="text-sm text-blue-900">Processando áudio...</span>
+                    </div>
+                  )}
+                  
                   {transcript.length === 0 && isRecording ? (
-                    <div className="p-6 text-center border-2 border-dashed border-yellow-400 bg-yellow-50 rounded-lg">
-                      <AlertCircle className="h-8 w-8 mx-auto text-yellow-600 mb-3" />
-                      <p className="text-sm font-medium text-yellow-900 mb-2">
-                        Transcrição automática não disponível
-                      </p>
-                      <p className="text-xs text-yellow-700">
-                        A transcrição em tempo real será implementada em breve. 
-                        Por enquanto, a sessão será salva com os dados básicos.
+                    <div className="p-6 text-center">
+                      <div className="flex items-center justify-center gap-3 mb-3">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <p className="text-sm font-medium text-foreground">
+                          Aguardando fala...
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Comece a falar e sua fala será transcrita automaticamente a cada 5 segundos
                       </p>
                     </div>
-                  ) : (
+                  ) : transcript.length > 0 ? (
                   <div className="max-h-80 sm:max-h-96 overflow-y-auto space-y-4 p-3 sm:p-4 bg-background-secondary rounded-lg">
                     {transcript.map((entry) => (
                       <div key={entry.id} className="group">
@@ -364,7 +458,7 @@ const RecordScenario = () => {
                     ))}
                     <div ref={transcriptEndRef} />
                   </div>
-                  )}
+                  ) : null}
                 </CardContent>
               </Card>
             )}
