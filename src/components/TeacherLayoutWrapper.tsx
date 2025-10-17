@@ -8,15 +8,15 @@ interface TeacherLayoutWrapperProps {
 
 export const TeacherLayoutWrapper = ({ children, className = '' }: TeacherLayoutWrapperProps) => {
   return (
-    <div className={`min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-100 via-purple-50 to-white ${className}`}>
+    <div className={`min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-300 via-purple-200 to-purple-50 ${className}`}>
       {/* Animated Background with Ripple Effect */}
-      <BackgroundRippleEffect className="opacity-20" />
+      <BackgroundRippleEffect className="opacity-40" />
       
       {/* Gradient Blobs for Depth - Roxo/Violeta Theme */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-purple-200/40 to-purple-300/30 rounded-full blur-3xl" />
-        <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-pink-200/30 to-purple-200/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-violet-200/35 to-purple-300/25 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-purple-300/60 to-purple-400/50 rounded-full blur-3xl" />
+        <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-pink-300/50 to-purple-300/50 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-violet-300/55 to-purple-400/45 rounded-full blur-3xl" />
       </div>
 
       {/* Content */}

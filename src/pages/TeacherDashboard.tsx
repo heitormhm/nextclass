@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Mic, BarChart3, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Sparkles, MessageCircle } from 'lucide-react';
+import { Calendar, Video, BookOpen, Users, Upload, Bell, MessageCircle, Sparkles, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MainLayout from '@/components/MainLayout';
@@ -92,144 +92,202 @@ const TeacherDashboard = () => {
     fetchInsights();
   }, [selectedClass, toast]);
 
-  const statCards = [
-    {
-      title: 'Aulas Publicadas',
-      value: '28',
-      subtitle: 'sem alteração',
-      icon: BookOpen,
-      color: 'text-blue-400',
-    },
-    {
-      title: 'Alunos Ativos',
-      value: '152',
-      subtitle: '▲ 3%',
-      icon: Users,
-      color: 'text-green-400',
-    },
-    {
-      title: 'Média da Turma',
-      value: '8.3',
-      subtitle: '▲ 0.2',
-      icon: GraduationCap,
-      color: 'text-purple-400',
-    },
-  ];
-
-  const upcomingEvents = [
-    { date: '10 Jan', title: 'Aula: Termodinâmica Aplicada', time: '14:00' },
-    { date: '12 Jan', title: 'Entrega de Projeto de Estruturas', time: '23:59' },
-    { date: '15 Jan', title: 'Laboratório de Circuitos Elétricos', time: '10:00' },
-    { date: '18 Jan', title: 'Reunião de Alinhamento de Projeto', time: '16:00' },
-  ];
-
   return (
     <MainLayout>
       <TeacherLayoutWrapper>
-        <div className="p-6 max-w-[1600px] mx-auto">
-          {/* Header */}
-          <div className="mb-8 text-center">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">Painel do Professor</h1>
-            <p className="text-gray-600">Gerencie suas aulas e acompanhe o desempenho da turma</p>
+        <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+          {/* Page Header */}
+          <div className="mb-8 animate-fade-in-up">
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+              Dashboard do Professor
+            </h1>
+            <p className="text-gray-600">
+              Gerencie suas turmas, monitore o progresso dos alunos e acesse insights de IA
+            </p>
           </div>
 
-          {/* Two Column Layout */}
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-6">
-            {/* Left Column - Main Content */}
-            <div className="space-y-6">
-              {/* Quick Actions Bar with AI Co-pilot */}
-              <Card className="frost-white-teacher">
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Main Actions & Stats */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* IA Co-piloto Card */}
+              <Card className="frost-white-teacher-primary animate-fade-in-up" style={{ animationDelay: '100ms' }}>
                 <CardHeader>
-                  <CardTitle className="text-gray-800 flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-purple-500" />
-                    IA Co-piloto
+                  <CardTitle className="flex items-center gap-2 text-gray-800">
+                    <Sparkles className="h-6 w-6 text-purple-600" />
+                    IA Co-piloto do Professor
                   </CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Otimize seu tempo com assistência inteligente
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-wrap gap-3">
-                  <Button
-                    onClick={() => navigate('/livelecture')}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    <Mic className="h-4 w-4 mr-2" />
-                    Gravar Nova Aula
-                  </Button>
-                  <Button
-                    onClick={() => navigate('/teacher/lesson-plans')}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Brain className="h-4 w-4 mr-2" />
-                    Criar Plano de Aula com Mia
-                  </Button>
-                  <Button
-                    onClick={() => navigate('/teacher/aichat')}
-                    className="bg-indigo-600 hover:bg-indigo-700"
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Chat com Mia
-                  </Button>
-                  <Button
-                    onClick={() => setIsUploadModalOpen(true)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Adicionar Material à Biblioteca
-                  </Button>
-                  <Button
-                    onClick={() => setIsSchedulingModalOpen(true)}
-                    className="bg-orange-600 hover:bg-orange-700"
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Agendar Evento
-                  </Button>
-                  <Button
-                    onClick={() => setIsAnnouncementModalOpen(true)}
-                    className="bg-pink-600 hover:bg-pink-700"
-                  >
-                    <Megaphone className="h-4 w-4 mr-2" />
-                    Enviar Anúncio à Turma
-                  </Button>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <Button
+                      className="action-button w-full bg-purple-600 hover:bg-purple-700 text-white relative"
+                      onClick={() => navigate('/livelecture')}
+                    >
+                      <Video className="icon h-4 w-4 mr-2" />
+                      Gravar Nova Aula
+                    </Button>
+                    <Button
+                      className="action-button w-full bg-purple-600 hover:bg-purple-700 text-white relative"
+                      onClick={() => navigate('/teacher/aichat')}
+                    >
+                      <MessageCircle className="icon h-4 w-4 mr-2" />
+                      Chat com Mia
+                      <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-pink-500"></span>
+                      </span>
+                    </Button>
+                    <Button
+                      className="action-button w-full bg-purple-600 hover:bg-purple-700 text-white"
+                      onClick={() => navigate('/teacher/lesson-plans')}
+                    >
+                      <BookOpen className="icon h-4 w-4 mr-2" />
+                      Criar Plano de Aula
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="action-button w-full bg-white border-purple-600 text-purple-600 hover:bg-purple-50"
+                      onClick={() => setIsUploadModalOpen(true)}
+                    >
+                      <Upload className="icon h-4 w-4 mr-2" />
+                      Adicionar Material
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="action-button w-full bg-white border-purple-600 text-purple-600 hover:bg-purple-50"
+                      onClick={() => setIsSchedulingModalOpen(true)}
+                    >
+                      <Calendar className="icon h-4 w-4 mr-2" />
+                      Agendar Evento
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="action-button w-full bg-white border-purple-600 text-purple-600 hover:bg-purple-50"
+                      onClick={() => setIsAnnouncementModalOpen(true)}
+                    >
+                      <Bell className="icon h-4 w-4 mr-2" />
+                      Enviar Anúncio
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
+              {/* Visual Separator */}
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-purple-300/50 to-transparent" />
+
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {statCards.map((stat, index) => {
-                  const Icon = stat.icon;
-                  return (
-                    <Card key={index} className="frost-white-teacher">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <Icon className={`h-6 w-6 ${stat.color.replace('400', '500')}`} />
-                        </div>
-                        <p className="text-3xl font-bold text-gray-800 mb-1">{stat.value}</p>
-                        <p className="text-sm text-gray-600">{stat.title}</p>
-                        <p className="text-xs text-gray-500 mt-1">{stat.subtitle}</p>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                <Card className="frost-white-teacher animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-gray-600">
+                      Aulas Publicadas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-gray-800">24</p>
+                    <p className="text-xs text-gray-500 mt-1">+3 este mês</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="frost-white-teacher animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-gray-600">
+                      Alunos Ativos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-gray-800">152</p>
+                    <p className="text-xs text-gray-500 mt-1">Em 3 turmas</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="frost-white-teacher animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-gray-600">
+                      Média da Turma
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-gray-800">8.5</p>
+                    <p className="text-xs text-gray-500 mt-1">+0.3 vs mês anterior</p>
+                  </CardContent>
+                </Card>
               </div>
 
-              {/* Insights Panel with Tabs */}
-              <Card className="frost-white-teacher">
+              {/* Visual Separator */}
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-purple-300/50 to-transparent" />
+
+              {/* Insights Panel */}
+              <Card className="frost-white-teacher-card animate-fade-in-up" style={{ animationDelay: '500ms' }}>
                 <CardHeader>
-                  <CardTitle className="text-gray-800">Insights da Turma</CardTitle>
+                  <CardTitle className="text-gray-800">Insights de IA</CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Recomendações personalizadas baseadas no desempenho da turma
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Tabs defaultValue="insights" className="w-full">
-                    <TabsList className="bg-gray-800 border-gray-700">
-                      <TabsTrigger value="insights" className="data-[state=active]:bg-purple-600">
-                        Alertas e Oportunidades
+                  <Tabs defaultValue="alerts" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-4 bg-purple-100/50">
+                      <TabsTrigger value="alerts" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+                        Alertas & Oportunidades
                       </TabsTrigger>
-                      <TabsTrigger value="performance" className="data-[state=active]:bg-purple-600">
+                      <TabsTrigger value="performance" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
                         Desempenho
                       </TabsTrigger>
                     </TabsList>
-                    <TabsContent value="insights" className="space-y-3 mt-4">
+                    
+                    <TabsContent value="alerts" className="space-y-3">
                       {isLoadingInsights ? (
-                        <p className="text-gray-600 text-center py-8">Carregando insights...</p>
-                      ) : insights.length > 0 ? (
-                        insights.map((insight) => (
+                        <div className="space-y-3">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="frost-white-teacher-card p-4 animate-pulse">
+                              <div className="h-4 bg-purple-200/50 rounded w-3/4 mb-2" />
+                              <div className="h-3 bg-purple-200/30 rounded w-full mb-1" />
+                              <div className="h-3 bg-purple-200/30 rounded w-2/3" />
+                            </div>
+                          ))}
+                          <div className="text-center py-4">
+                            <p className="text-sm text-gray-600">Analisando dados de 152 alunos...</p>
+                          </div>
+                        </div>
+                      ) : insights.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className="relative">
+                            <Sparkles className="h-16 w-16 text-purple-500 mx-auto mb-4 animate-pulse" />
+                            <div className="space-y-2 mt-4">
+                              <div className="h-3 w-3/4 bg-purple-200/50 rounded animate-pulse mx-auto" />
+                              <div className="h-3 w-1/2 bg-purple-200/50 rounded animate-pulse mx-auto" />
+                            </div>
+                          </div>
+                          <p className="text-gray-700 font-medium mt-6">Analisando dados da turma...</p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            A IA está processando o desempenho de 152 alunos
+                          </p>
+                        </div>
+                      ) : (
+                        insights
+                          .filter(i => i.insight_type === 'alert' || i.insight_type === 'opportunity')
+                          .map((insight) => (
+                            <InsightCard
+                              key={insight.id}
+                              type={insight.insight_type as 'alert' | 'opportunity'}
+                              title={insight.title}
+                              description={insight.description}
+                              actionLabel={insight.action_label}
+                              actionRoute={insight.action_route}
+                            />
+                          ))
+                      )}
+                    </TabsContent>
+                    
+                    <TabsContent value="performance" className="space-y-3">
+                      {insights
+                        .filter(i => i.insight_type === 'performance')
+                        .map((insight) => (
                           <InsightCard
                             key={insight.id}
                             type={insight.insight_type as 'alert' | 'opportunity'}
@@ -238,47 +296,34 @@ const TeacherDashboard = () => {
                             actionLabel={insight.action_label}
                             actionRoute={insight.action_route}
                           />
-                        ))
-                      ) : (
-                        <Card className="frost-white-teacher-card p-8">
-                          <div className="text-center">
-                            <Sparkles className="h-12 w-12 text-purple-500 mx-auto mb-3" />
-                            <p className="text-gray-700 mb-2">Nenhum insight disponível</p>
-                            <p className="text-sm text-gray-600">
-                              A IA ainda está analisando os dados da turma
-                            </p>
-                          </div>
-                        </Card>
-                      )}
-                    </TabsContent>
-                    <TabsContent value="performance" className="mt-4">
-                      <Card className="frost-white-teacher-card p-6">
-                        <p className="text-gray-600 text-center">
-                          Gráficos de desempenho em desenvolvimento
-                        </p>
-                      </Card>
+                        ))}
                     </TabsContent>
                   </Tabs>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Right Column - Sidebar */}
+            {/* Right Column - Class Selector & Events */}
             <div className="space-y-6">
               {/* Class Selector */}
-              <Card className="frost-white-teacher">
+              <Card className="frost-white-teacher-card animate-fade-in-up" style={{ animationDelay: '600ms' }}>
                 <CardHeader>
-                  <CardTitle className="text-gray-800 text-lg">Turma Selecionada</CardTitle>
+                  <CardTitle className="text-gray-800">Turma Selecionada</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Select value={selectedClass} onValueChange={setSelectedClass}>
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger className="bg-purple-50 border-purple-300 text-gray-800 hover:bg-purple-100 transition-colors">
                       <SelectValue placeholder="Selecione uma turma" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-gray-700">
-                      {classes.map((cls) => (
-                        <SelectItem key={cls.id} value={cls.id} className="text-white">
-                          {cls.name} - {cls.period}
+                    <SelectContent>
+                      {classes.map((classItem) => (
+                        <SelectItem key={classItem.id} value={classItem.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{classItem.name}</span>
+                            <span className="text-xs text-gray-500">
+                              {classItem.course} - {classItem.period}
+                            </span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -286,65 +331,79 @@ const TeacherDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Upcoming Events */}
-              <Card className="frost-white-teacher">
+              {/* Quick Stats */}
+              <Card className="frost-white-teacher-card animate-fade-in-up" style={{ animationDelay: '700ms' }}>
                 <CardHeader>
-                  <CardTitle className="text-gray-800 text-lg flex items-center justify-between">
-                    Próximos Eventos
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setIsSchedulingModalOpen(true)}
-                      className="text-purple-400 hover:text-purple-300"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </CardTitle>
+                  <CardTitle className="text-gray-800">Estatísticas Rápidas</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {upcomingEvents.map((event, index) => (
-                      <div
-                        key={index}
-                        className="p-3 rounded-lg frost-white-teacher-card hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex gap-3">
-                          <div className="flex flex-col items-center justify-center bg-purple-500/20 rounded-lg p-2 min-w-[50px]">
-                            <span className="text-xs text-purple-600 font-medium">
-                              {event.date.split(' ')[0]}
-                            </span>
-                            <span className="text-lg font-bold text-gray-800">
-                              {event.date.split(' ')[1]}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-800">{event.title}</p>
-                            <p className="text-xs text-gray-600 mt-1">{event.time}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-gray-600">Taxa de Presença</span>
+                      <span className="text-sm font-medium text-gray-800">94%</span>
+                    </div>
+                    <div className="w-full bg-purple-100 rounded-full h-2">
+                      <div className="bg-purple-600 h-2 rounded-full transition-all duration-1000 ease-out" style={{ width: '94%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-gray-600">Engajamento</span>
+                      <span className="text-sm font-medium text-gray-800">87%</span>
+                    </div>
+                    <div className="w-full bg-purple-100 rounded-full h-2">
+                      <div className="bg-purple-600 h-2 rounded-full transition-all duration-1000 ease-out" style={{ width: '87%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-gray-600">Material Entregue</span>
+                      <span className="text-sm font-medium text-gray-800">78%</span>
+                    </div>
+                    <div className="w-full bg-purple-100 rounded-full h-2">
+                      <div className="bg-purple-600 h-2 rounded-full transition-all duration-1000 ease-out" style={{ width: '78%' }}></div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Quick Stats */}
-              <Card className="frost-white-teacher">
+              {/* Upcoming Events */}
+              <Card className="frost-white-teacher-card animate-fade-in-up" style={{ animationDelay: '800ms' }}>
                 <CardHeader>
-                  <CardTitle className="text-gray-800 text-lg">Estatísticas Rápidas</CardTitle>
+                  <CardTitle className="text-gray-800">Próximos Eventos</CardTitle>
+                  <CardDescription className="text-gray-600">Aulas e compromissos agendados</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center p-3 rounded-lg bg-purple-50">
-                    <span className="text-sm text-gray-600">Taxa de Presença</span>
-                    <span className="text-lg font-bold text-green-600">94%</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 rounded-lg bg-purple-50">
-                    <span className="text-sm text-gray-600">Materiais Enviados</span>
-                    <span className="text-lg font-bold text-blue-600">127</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 rounded-lg bg-purple-50">
-                    <span className="text-sm text-gray-600">Revisões Pendentes</span>
-                    <span className="text-lg font-bold text-orange-600">8</span>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-50/50 hover:bg-purple-100 transition-all duration-200 hover:scale-[1.02] cursor-pointer">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <Calendar className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          Aula de Circuitos Elétricos
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Hoje, 14:00 - Sala 301
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-purple-50 transition-all duration-200 hover:scale-[1.02] cursor-pointer">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          Reunião de Coordenação
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Amanhã, 10:00 - Online
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

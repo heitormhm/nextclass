@@ -15,24 +15,24 @@ export const InsightCard = ({ type, title, description, actionLabel, actionRoute
   const navigate = useNavigate();
 
   return (
-    <Card className="p-4 bg-gray-900/70 backdrop-blur-lg border-gray-700">
+    <Card className="p-4 frost-white-teacher-card hover:shadow-lg transition-all duration-200">
       <div className="flex gap-3">
-        <div className={`p-2 rounded-lg h-fit ${type === 'alert' ? 'bg-red-500/10' : 'bg-green-500/10'}`}>
+        <div className={`p-2 rounded-lg h-fit ${type === 'alert' ? 'bg-red-100' : 'bg-green-100'}`}>
           {type === 'alert' ? (
-            <AlertCircle className="h-5 w-5 text-red-400" />
+            <AlertCircle className="h-5 w-5 text-red-600" />
           ) : (
-            <Sparkles className="h-5 w-5 text-green-400" />
+            <Sparkles className="h-5 w-5 text-green-600" />
           )}
         </div>
         <div className="flex-1">
-          <h4 className="font-semibold text-white mb-1">{title}</h4>
-          <p className="text-sm text-gray-400 mb-3">{description}</p>
+          <h4 className="font-semibold text-gray-800 mb-1">{title}</h4>
+          <p className="text-sm text-gray-600 mb-3">{description}</p>
           {actionLabel && actionRoute && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate(actionRoute)}
-              className="border-gray-700 hover:bg-gray-800"
+              className="border-purple-300 text-purple-600 hover:bg-purple-50"
             >
               {actionLabel}
             </Button>
