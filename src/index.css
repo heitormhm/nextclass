@@ -192,8 +192,18 @@ All colors MUST be HSL. Design tokens for consistent theming.
     z-index: 0;
   }
 
+  /* Frosted Glass Effect */
   .frost-white {
-    @apply bg-white/70 backdrop-blur-lg border border-white/20;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  @supports (backdrop-filter: blur(12px)) {
+    .frost-white {
+      background: rgba(255, 255, 255, 0.75);
+    }
   }
 
   .frost-white-subtle {

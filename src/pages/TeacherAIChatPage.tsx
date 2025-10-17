@@ -593,9 +593,9 @@ const TeacherAIChatPage = () => {
         {/* ========== ÁREA DE CHAT ========== */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
           
-          {/* Fundo roxo escuro com 75% opacity + frosted glass */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 opacity-75 dark:opacity-90" />
-          <div className="absolute inset-0 backdrop-blur-sm bg-white/5" />
+          {/* Fundo padrão do professor - gradiente contínuo */}
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500" />
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
           
           <div className="relative z-10 flex-1 flex flex-col">
             
@@ -603,14 +603,14 @@ const TeacherAIChatPage = () => {
               <div className="max-w-4xl mx-auto space-y-6">
                 
                 {messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-6 shadow-xl">
-                      <MessageCircle className="w-10 h-10 text-white" />
+                  <div className="flex flex-col items-center justify-center min-h-[60vh] text-center py-12 px-4">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-6 shadow-2xl">
+                      <MessageCircle className="w-12 h-12 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-3">
+                    <h3 className="text-3xl font-bold text-white mb-3">
                       Bem-vindo, Professor!
                     </h3>
-                    <p className="text-purple-200 text-lg mb-8 max-w-md">
+                    <p className="text-purple-100 text-lg mb-8 max-w-md">
                       Como posso ajudá-lo hoje?
                     </p>
                     
@@ -619,7 +619,7 @@ const TeacherAIChatPage = () => {
                         <button
                           key={idx}
                           onClick={() => handleSuggestionClick(suggestion)}
-                          className="p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl hover:bg-white/20 transition-all text-left text-white text-sm"
+                          className="p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl hover:bg-white/20 transition-all text-left text-white text-sm shadow-lg"
                         >
                           {suggestion}
                         </button>
@@ -638,10 +638,10 @@ const TeacherAIChatPage = () => {
                       >
                         <div
                           className={cn(
-                            "max-w-[80%] rounded-2xl px-6 py-4 shadow-lg",
+                            "max-w-[80%] rounded-2xl px-6 py-4 shadow-xl backdrop-blur-sm",
                             message.isUser
                               ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-                              : "bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                              : "bg-white/95 dark:bg-gray-800/95 text-gray-900 dark:text-white border border-white/50"
                           )}
                         >
                           <div className={cn(
@@ -709,52 +709,89 @@ const TeacherAIChatPage = () => {
               </div>
             </ScrollArea>
 
-            <div className="border-t border-white/10 bg-white/5 backdrop-blur-md p-4">
+            <div className="p-3 sm:p-4 lg:p-6 pt-0">
               <div className="max-w-4xl mx-auto">
-                <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl">
+                <div className="frost-white rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg">
                   
-                  <Textarea
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Digite sua mensagem para a Mia..."
-                    className="min-h-[60px] pr-40 border-0 focus-visible:ring-0 resize-none bg-transparent"
-                    disabled={isLoading}
-                  />
-
-                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                  <div className="flex items-end gap-2 sm:gap-3">
                     
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg mr-2">
-                      <Sparkles className="w-4 h-4 text-purple-600" />
-                      <span className="text-xs font-medium">
-                        {isDeepSearch ? "Profunda" : "Padrão"}
-                      </span>
-                      <Switch
-                        checked={isDeepSearch}
-                        onCheckedChange={setIsDeepSearch}
-                      />
-                    </div>
-
+                    {/* Botão de Voz */}
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={toggleVoiceInput}
                       className={cn(
-                        "rounded-full",
-                        isListening && "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                        "shrink-0 h-10 w-10 relative hover:bg-primary/10",
+                        isListening && "text-primary"
                       )}
                       disabled={isLoading}
                     >
-                      <Mic className="w-5 h-5" />
+                      <Mic className={cn(
+                        "w-5 h-5",
+                        isListening && "animate-pulse"
+                      )} />
+                      {isListening && (
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                        </span>
+                      )}
                     </Button>
 
+                    {/* Input de Texto */}
+                    <div className="flex-1">
+                      <Textarea
+                        value={inputMessage}
+                        onChange={(e) => setInputMessage(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        placeholder="Pergunte à Mia sobre pedagogia, conteúdos, estratégias..."
+                        className="min-h-[40px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-2"
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    {/* Toggle de Busca */}
+                    <div className="hidden sm:flex shrink-0">
+                      <button
+                        onClick={() => setIsDeepSearch(!isDeepSearch)}
+                        className={cn(
+                          "relative inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300 transform hover:scale-105",
+                          isDeepSearch 
+                            ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25" 
+                            : "bg-background-secondary/50 text-foreground-muted hover:bg-background-secondary/70 border border-border"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          {isDeepSearch ? (
+                            <>
+                              <div className="w-4 h-4 relative">
+                                <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" />
+                                <div className="absolute inset-1 bg-white rounded-full" />
+                              </div>
+                              <span>Busca Aprofundada</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4" />
+                              <span>Busca Padrão</span>
+                            </>
+                          )}
+                        </div>
+                        
+                        {isDeepSearch && (
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 blur-md -z-10" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Botão de Enviar */}
                     <Button
                       onClick={handleSendMessage}
                       disabled={!inputMessage.trim() || isLoading}
-                      className="rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg"
                       size="icon"
+                      className="shrink-0 h-10 w-10"
                     >
-                      <Send className="w-5 h-5" />
+                      <Send className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
