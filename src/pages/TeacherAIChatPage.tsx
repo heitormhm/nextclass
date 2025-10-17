@@ -1075,10 +1075,9 @@ const TeacherAIChatPage = () => {
 
   return (
     <MainLayout>
-      <TeacherLayoutWrapper className="flex flex-col min-h-[calc(100vh-4rem)]">
-        <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-purple-200/40 bg-white/90 backdrop-blur-xl">
+      <TeacherLayoutWrapper className="h-full flex flex-col">
+        {/* Header */}
+        <div className="flex-shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-purple-200/40 bg-white/90 backdrop-blur-xl">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shrink-0">
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -1103,9 +1102,10 @@ const TeacherAIChatPage = () => {
                 <MessageCircle className="w-4 h-4" />
               </Button>
             )}
-          </div>
+        </div>
 
-          <div className="flex flex-1 overflow-hidden relative">
+        {/* Container Principal com Sidebar + Chat */}
+        <div className="flex-1 flex overflow-hidden relative">
             {/* Sidebar */}
             <div className={cn(
               "border-r border-purple-200/40 bg-white/90 backdrop-blur-xl transition-transform duration-300 ease-in-out",
@@ -1479,7 +1479,6 @@ const TeacherAIChatPage = () => {
               </div>
             </div>
           </div>
-        </div>
 
         <MultiStepLoader
           loadingStates={deepSearchSteps}
