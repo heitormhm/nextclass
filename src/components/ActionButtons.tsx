@@ -12,6 +12,24 @@ interface ActionButtonsProps {
 }
 
 export const ActionButtons = ({ messageContent, topic, onAction, disabled, activeJobs, messageJobIds, isTeacher = false }: ActionButtonsProps) => {
+  // 🔍 VERIFICAÇÃO 0: Detectar mensagens de sistema (confirmações, etc)
+  const systemMessageKeywords = [
+    'foi iniciada',
+    'acompanhe o progresso',
+    'processando sua solicitação',
+    'aguarde',
+    'em andamento'
+  ];
+  
+  const isSystemMessage = systemMessageKeywords.some(keyword => 
+    messageContent.toLowerCase().includes(keyword.toLowerCase())
+  );
+  
+  if (isSystemMessage) {
+    console.log('🚫 ActionButtons hidden: system message detected');
+    return null;
+  }
+  
   // 🔍 VERIFICAÇÃO 1: Se esta mensagem JÁ tem jobs associados, não mostrar botões
   if (messageJobIds && messageJobIds.length > 0) {
     console.log('🚫 ActionButtons hidden: message already has jobs', {

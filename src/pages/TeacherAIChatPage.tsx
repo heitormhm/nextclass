@@ -25,6 +25,7 @@ interface Message {
   timestamp: Date;
   jobIds?: string[];
   jobMetadata?: Map<string, { type: string; context: string }>;
+  isSystemMessage?: boolean;
 }
 
 interface Conversation {
@@ -408,12 +409,15 @@ const TeacherAIChatPage = () => {
 
       if (functionError) throw functionError;
 
-      const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
-        content: functionData.response,
-        isUser: false,
-        timestamp: new Date(),
-      };
+        const assistantMessage: Message = {
+          id: `assistant-${Date.now()}`,
+          content: functionData.response,
+          isUser: false,
+          timestamp: new Date(),
+          isSystemMessage: functionData.response.includes('foi iniciada') || 
+                           functionData.response.includes('Processando sua solicitação') ||
+                           functionData.response.includes('acompanhe o progresso'),
+        };
       
       setMessages(prev => [...prev, assistantMessage]);
 
@@ -784,19 +788,19 @@ const TeacherAIChatPage = () => {
                             ) : null;
                           })}
                           
-                          {!message.isUser && (
-                            <div className="mt-4">
-                              <ActionButtons
-                                messageContent={message.content}
-                                topic="este tópico"
-                                onAction={handleAction}
-                                disabled={isLoading}
-                                activeJobs={activeJobs}
-                                messageJobIds={message.jobIds || []}
-                                isTeacher={true}
-                              />
-                            </div>
-                          )}
+                    {!message.isUser && !message.isSystemMessage && (
+                      <div className="mt-4">
+                        <ActionButtons
+                          messageContent={message.content}
+                          topic="este tópico"
+                          onAction={handleAction}
+                          disabled={isLoading}
+                          activeJobs={activeJobs}
+                          messageJobIds={message.jobIds || []}
+                          isTeacher={true}
+                        />
+                      </div>
+                    )}
                         </div>
                       </div>
                     ))}

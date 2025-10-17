@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle, XCircle, FileQuestion, Layers, BookOpen, CheckSquare, Edit } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, FileQuestion, Layers, BookOpen, CheckSquare, Edit, FileDown, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface JobStatusProps {
@@ -63,6 +63,40 @@ export const JobStatus = ({ job, conversationTitle, onOpenQuiz, onOpenFlashcards
       );
     
     case 'COMPLETED':
+      // Caso específico: DEEP_SEARCH COMPLETED
+      if (job.type === 'DEEP_SEARCH') {
+        return (
+          <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-green-800 text-sm">
+                    ✅ Pesquisa Profunda Concluída!
+                  </h4>
+                  <p className="text-green-600 text-xs">
+                    Relatório completo gerado com sucesso
+                  </p>
+                </div>
+              </div>
+              
+              <Button
+                onClick={() => {
+                  console.log('Exportar pesquisa profunda como PDF:', job.result);
+                  // TODO: Implementar exportação de PDF
+                }}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg"
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </Button>
+            </div>
+          </div>
+        );
+      }
+      
       if (job.type === 'GENERATE_QUIZ' && job.result) {
         try {
           const resultData = JSON.parse(job.result);
