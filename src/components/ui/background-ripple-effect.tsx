@@ -55,7 +55,7 @@ export const BackgroundRippleEffect = ({
     <div
       ref={ref}
       className={cn(
-        "absolute inset-0 h-full w-full z-[1]",
+        "absolute inset-0 h-full w-full z-[1] pointer-events-none",
         "[--cell-border-color:rgb(147,51,234)] [--cell-fill-color:rgba(168,85,247,0.15)] [--cell-shadow-color:rgba(147,51,234,0.3)]",
         className
       )}
@@ -125,7 +125,7 @@ const DivGrid = ({
   };
 
   return (
-    <div className={cn("relative z-[3] pointer-events-auto", className)} style={gridStyle}>
+    <div className={cn("relative z-[3] pointer-events-none", className)} style={gridStyle}>
       {cells.map((idx) => {
         const rowIdx = Math.floor(idx / cols);
         const colIdx = idx % cols;
@@ -146,18 +146,14 @@ const DivGrid = ({
           <div
             key={idx}
             className={cn(
-              "cell relative border-[0.5px] opacity-25 transition-opacity duration-150 will-change-transform hover:opacity-80 shadow-[0px_0px_40px_1px_var(--cell-shadow-color)_inset]",
+              "cell relative border-[0.5px] opacity-25 transition-opacity duration-150 will-change-transform shadow-[0px_0px_40px_1px_var(--cell-shadow-color)_inset] pointer-events-none",
               clickedCell && "animate-cell-ripple [animation-fill-mode:none]",
-              !interactive && "pointer-events-none",
             )}
             style={{
               backgroundColor: fillColor,
               borderColor: borderColor,
               ...style,
             }}
-            onClick={
-              interactive ? () => onCellClick?.(rowIdx, colIdx) : undefined
-            }
           />
         );
       })}

@@ -1075,7 +1075,7 @@ const TeacherAIChatPage = () => {
 
   return (
     <MainLayout>
-      <TeacherLayoutWrapper className="flex flex-col h-screen">
+      <TeacherLayoutWrapper className="flex flex-col min-h-[calc(100vh-4rem)]">
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-purple-200/40 bg-white/90 backdrop-blur-xl">

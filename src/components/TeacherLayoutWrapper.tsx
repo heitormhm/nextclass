@@ -10,7 +10,7 @@ export const TeacherLayoutWrapper = ({ children, className = '' }: TeacherLayout
   return (
     <div className={`relative overflow-hidden bg-gradient-to-br from-purple-300 via-purple-200 to-purple-50 ${className}`}>
       {/* Animated Background with Ripple Effect */}
-      <BackgroundRippleEffect className="opacity-40" />
+      <BackgroundRippleEffect className="opacity-40 z-[0]" />
       
       {/* Gradient Blobs for Depth - Roxo/Violeta Theme */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-[0]">
@@ -20,7 +20,7 @@ export const TeacherLayoutWrapper = ({ children, className = '' }: TeacherLayout
       </div>
 
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-20">
         {children}
       </div>
     </div>
