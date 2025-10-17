@@ -365,8 +365,8 @@ const TeacherAIChatPage = () => {
         <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)]">
           {/* Sidebar - Conversation History */}
           <div className={cn(
-            "lg:w-64 bg-white/70 backdrop-blur-xl border-r border-purple-200/60 flex flex-col transition-all duration-300 ease-in-out",
-            "fixed lg:relative inset-0 z-50 lg:z-0",
+            "lg:w-64 bg-white/90 backdrop-blur-xl border-r border-purple-300/70 flex flex-col transition-all duration-300 ease-in-out shadow-lg",
+            "fixed lg:relative inset-0 z-50 lg:z-10",
             showMobileHistory ? "block" : "hidden lg:block"
           )}>
           <div className="p-3 border-b border-purple-200/50 bg-white/50 flex justify-between items-center">
@@ -404,8 +404,8 @@ const TeacherAIChatPage = () => {
                     className={cn(
                       "p-3 rounded-lg cursor-pointer transition-all duration-200 group relative border transform hover:scale-[1.02]",
                       activeConversationId === conv.id
-                        ? "bg-purple-500/90 text-white border-purple-400 shadow-lg shadow-purple-500/30"
-                        : "bg-white/80 hover:bg-white border-purple-200 text-purple-900 hover:shadow-md"
+                        ? "bg-purple-600 text-white border-purple-500 shadow-lg"
+                        : "bg-white border-purple-300 text-purple-900 hover:bg-purple-50 hover:border-purple-400 hover:shadow-md"
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -445,8 +445,8 @@ const TeacherAIChatPage = () => {
         </div>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col bg-transparent relative z-20 pointer-events-none">
-          <div className="p-4 border-b border-purple-200/40 flex justify-between items-center bg-white/60 backdrop-blur-md pointer-events-auto">
+        <div className="flex-1 flex flex-col bg-transparent relative pointer-events-none">
+          <div className="p-4 border-b border-purple-300 flex justify-between items-center bg-white/95 backdrop-blur-md pointer-events-auto shadow-sm">
             <Button
               variant="ghost"
               size="icon"
@@ -500,8 +500,8 @@ const TeacherAIChatPage = () => {
                         <div className={cn(
                           "max-w-[85%] rounded-2xl p-4 pointer-events-auto",
                           message.isUser
-                            ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md"
-                            : "bg-white/95 border border-purple-200/60 text-gray-800 shadow-sm"
+                            ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg"
+                            : "bg-white border border-purple-300 text-gray-900 shadow-md"
                         )}>
                           <div className={cn(
                             "prose prose-sm max-w-none",
@@ -544,9 +544,9 @@ const TeacherAIChatPage = () => {
             </ScrollArea>
 
             {/* Input Panel */}
-            <div className="p-4 bg-white/70 backdrop-blur-xl border-t border-purple-200">
+            <div className="p-4 bg-white/70 backdrop-blur-xl border-t border-purple-200 pointer-events-auto">
               <div className="max-w-4xl mx-auto">
-                <div className="bg-white/95 rounded-2xl p-3 shadow-md border border-purple-200/60 backdrop-blur-md focus-within:ring-2 focus-within:ring-purple-300 transition-all">
+                <div className="bg-white rounded-2xl p-3 shadow-lg border-2 border-purple-300 backdrop-blur-md focus-within:ring-2 focus-within:ring-purple-500 transition-all">
                   {attachedFile && (
                     <div className="mb-3 p-2 bg-purple-50 rounded-lg">
                       <div className="flex items-center gap-2">
