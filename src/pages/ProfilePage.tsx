@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [cpf, setCpf] = useState('');
   const [university, setUniversity] = useState('');
   const [course, setCourse] = useState('');
   const [period, setPeriod] = useState('');
@@ -50,6 +51,7 @@ export default function ProfilePage() {
         setFullName(data.full_name || '');
         setEmail(data.email || '');
         setPhone(data.phone || '');
+        setCpf(data.cpf || '');
         setUniversity(data.university || '');
         setCourse(data.course || 'Engenharia');
         setPeriod(data.period || '');
@@ -142,14 +144,15 @@ export default function ProfilePage() {
     setSaving(true);
     
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          full_name: fullName,
-          email: email,
-          phone: phone,
-        })
-        .eq('id', user.id);
+    const { error } = await supabase
+      .from('users')
+      .update({
+        full_name: fullName,
+        email: email,
+        phone: phone,
+        cpf: cpf,
+      })
+      .eq('id', user.id);
       
       if (error) throw error;
       
@@ -169,39 +172,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSaveAcademicInfo = async () => {
-    if (!user) return;
-    
-    setSaving(true);
-    
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          university: university,
-          course: course,
-          period: period,
-          city: city,
-        })
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Sucesso",
-        description: "Informações acadêmicas atualizadas!",
-      });
-    } catch (error) {
-      console.error('Error saving academic info:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar as informações.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -320,6 +290,17 @@ export default function ProfilePage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="cpf">CPF</Label>
+              <Input
+                id="cpf"
+                value={cpf}
+                onChange={(e) => setCpf(e.target.value)}
+                placeholder="000.000.000-00"
+                maxLength={14}
+              />
+            </div>
+
             <div className="flex justify-end">
               <Button onClick={handleSavePersonalInfo} disabled={saving}>
                 {saving ? (
@@ -339,7 +320,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle>Informações Acadêmicas</CardTitle>
-            <CardDescription>Gerencie suas informações acadêmicas</CardDescription>
+            <CardDescription>Visualize suas informações acadêmicas</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -347,8 +328,8 @@ export default function ProfilePage() {
               <Input
                 id="university"
                 value={university}
-                onChange={(e) => setUniversity(e.target.value)}
-                placeholder="Ex: FipMoc"
+                disabled
+                className="bg-muted"
               />
             </div>
 
@@ -358,8 +339,8 @@ export default function ProfilePage() {
                 <Input
                   id="course"
                   value={course}
-                  onChange={(e) => setCourse(e.target.value)}
-                  placeholder="Ex: Engenharia"
+                  disabled
+                  className="bg-muted"
                 />
               </div>
               <div className="space-y-2">
@@ -367,8 +348,8 @@ export default function ProfilePage() {
                 <Input
                   id="period"
                   value={period}
-                  onChange={(e) => setPeriod(e.target.value)}
-                  placeholder="Ex: 6º Período"
+                  disabled
+                  className="bg-muted"
                 />
               </div>
             </div>
@@ -378,22 +359,9 @@ export default function ProfilePage() {
               <Input
                 id="city"
                 value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Ex: Montes Claros"
+                disabled
+                className="bg-muted"
               />
-            </div>
-
-            <div className="flex justify-end">
-              <Button onClick={handleSaveAcademicInfo} disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar Alterações'
-                )}
-              </Button>
             </div>
           </CardContent>
         </Card>

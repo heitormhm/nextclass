@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,15 +6,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import MainLayout from "@/components/MainLayout";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const SettingsPage = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
 
-  const handlePasswordReset = () => {
+  useEffect(() => {
+    loadPreferences();
+  }, []);
+
+  const loadPreferences = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('users')
+      .select('email_notifications')
+      .eq('id', user.id)
+      .single();
+    
+    if (data) {
+      setEmailNotifications(data.email_notifications ?? true);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!currentPassword) {
+      toast.error("Digite sua senha atual!");
+      return;
+    }
     if (newPassword !== confirmPassword) {
       toast.error("As senhas não coincidem!");
       return;
@@ -23,10 +46,22 @@ const SettingsPage = () => {
       toast.error("A nova senha deve ter pelo menos 6 caracteres!");
       return;
     }
-    toast.success("Senha alterada com sucesso!");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Senha alterada com sucesso!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      toast.error(error.message || "Erro ao alterar senha.");
+    }
   };
 
   return (
@@ -104,20 +139,23 @@ const SettingsPage = () => {
                 </div>
                 <Switch 
                   checked={emailNotifications}
-                  onCheckedChange={setEmailNotifications}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Modo Escuro</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Ajuste a aparência do aplicativo
-                  </p>
-                </div>
-                <Switch 
-                  checked={darkMode}
-                  onCheckedChange={setDarkMode}
+                  onCheckedChange={async (checked) => {
+                    setEmailNotifications(checked);
+                    
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
+                    
+                    const { error } = await supabase
+                      .from('users')
+                      .update({ email_notifications: checked })
+                      .eq('id', user.id);
+                    
+                    if (error) {
+                      toast.error("Erro ao salvar preferência.");
+                    } else {
+                      toast.success("Preferência atualizada!");
+                    }
+                  }}
                 />
               </div>
             </CardContent>

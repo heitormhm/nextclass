@@ -966,8 +966,10 @@ export type Database = {
           avatar_url: string | null
           city: string | null
           course: string | null
+          cpf: string | null
           created_at: string | null
           email: string
+          email_notifications: boolean | null
           full_name: string
           id: string
           period: string | null
@@ -979,8 +981,10 @@ export type Database = {
           avatar_url?: string | null
           city?: string | null
           course?: string | null
+          cpf?: string | null
           created_at?: string | null
           email: string
+          email_notifications?: boolean | null
           full_name: string
           id: string
           period?: string | null
@@ -992,8 +996,10 @@ export type Database = {
           avatar_url?: string | null
           city?: string | null
           course?: string | null
+          cpf?: string | null
           created_at?: string | null
           email?: string
+          email_notifications?: boolean | null
           full_name?: string
           id?: string
           period?: string | null
