@@ -143,16 +143,15 @@ Responda apenas com o JSON válido, sem markdown.`
 
     console.log('Saving internship session for user:', user.id);
 
-    // 1. Salvar ou atualizar location
+    // 1. Salvar ou atualizar location (compartilhado entre todos os usuários)
     const { data: existingLocation } = await supabase
       .from('internship_locations')
       .select('*')
-      .eq('user_id', user.id)
       .eq('name', locationName)
-      .single();
+      .maybeSingle();
 
     if (existingLocation) {
-      // Atualizar contador de uso
+      // Atualizar contador de uso (local já existe, criado por qualquer usuário)
       await supabase
         .from('internship_locations')
         .update({
@@ -162,7 +161,7 @@ Responda apenas com o JSON válido, sem markdown.`
         })
         .eq('id', existingLocation.id);
     } else {
-      // Criar novo location
+      // Criar novo location (será compartilhado com todos)
       await supabase
         .from('internship_locations')
         .insert({

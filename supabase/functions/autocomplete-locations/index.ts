@@ -36,13 +36,12 @@ serve(async (req) => {
     }
 
     const { query = '' } = await req.json();
-    console.log('Searching locations for user:', user.id, 'query:', query);
+    console.log('Searching locations for all users, query:', query);
 
-    // Buscar locais do usuário com filtro de texto
+    // Buscar todos os locais (compartilhados entre todos os alunos)
     let locationQuery = supabase
       .from('internship_locations')
       .select('*')
-      .eq('user_id', user.id)
       .order('usage_count', { ascending: false })
       .order('last_used_at', { ascending: false })
       .limit(10);
