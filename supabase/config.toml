@@ -129,3 +129,6 @@ verify_jwt = true
 
 [functions.save-internship-session]
 verify_jwt = true
+
+[functions.generate-recommendations]
+verify_jwt = true

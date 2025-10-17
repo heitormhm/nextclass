@@ -170,7 +170,7 @@ const Navbar = () => {
                 <Link to="/grades" className="w-full">Minhas Notas</Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Link to="/quiz-performance" className="w-full">Desempenho nos Quizzes</Link>
+                <Link to="/quiz-performance" className="w-full">Meu Desempenho</Link>
               </DropdownMenuItem>
             </>
           )}
@@ -263,7 +263,7 @@ const Navbar = () => {
                                 <Link to="/grades" className="w-full">Minhas Notas</Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem>
-                                <Link to="/quiz-performance" className="w-full">Desempenho nos Quizzes</Link>
+                                <Link to="/quiz-performance" className="w-full">Meu Desempenho</Link>
                               </DropdownMenuItem>
                             </>
                           )}
