@@ -8,7 +8,7 @@ interface TeacherLayoutWrapperProps {
 
 export const TeacherLayoutWrapper = ({ children, className = '' }: TeacherLayoutWrapperProps) => {
   return (
-    <div className={`min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-300 via-purple-200 to-purple-50 ${className}`}>
+    <div className={`relative overflow-hidden bg-gradient-to-br from-purple-300 via-purple-200 to-purple-50 ${className}`}>
       {/* Animated Background with Ripple Effect */}
       <BackgroundRippleEffect className="opacity-40" />
       

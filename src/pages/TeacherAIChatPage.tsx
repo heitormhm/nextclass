@@ -1075,8 +1075,8 @@ const TeacherAIChatPage = () => {
 
   return (
     <MainLayout>
-      <TeacherLayoutWrapper>
-        <div className="h-[calc(100vh-4rem)] flex flex-col">
+      <TeacherLayoutWrapper className="flex flex-col h-screen">
+        <div className="flex flex-1 flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-purple-200/40 bg-white/90 backdrop-blur-xl">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -1105,7 +1105,7 @@ const TeacherAIChatPage = () => {
             )}
           </div>
 
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden relative">
             {/* Sidebar */}
             <div className={cn(
               "border-r border-purple-200/40 bg-white/90 backdrop-blur-xl transition-transform duration-300 ease-in-out",
@@ -1246,8 +1246,9 @@ const TeacherAIChatPage = () => {
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 flex flex-col relative">
+            <div className="flex-1 flex flex-col overflow-hidden">
               <ScrollArea className="flex-1">
+                <div className="h-full overflow-y-auto">
                 <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
                   {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -1383,10 +1384,11 @@ const TeacherAIChatPage = () => {
                   )}
                   <div ref={messagesEndRef} />
                 </div>
+                </div>
               </ScrollArea>
 
               {/* Input Panel */}
-              <div className="sticky bottom-0 border-t border-purple-200/40 bg-white/95 backdrop-blur-xl shadow-lg">
+              <div className="flex-shrink-0 border-t border-purple-200/40 bg-white/95 backdrop-blur-xl shadow-lg">
                 <div className="max-w-4xl mx-auto px-4 py-3">
                   <div className="bg-white rounded-2xl p-3 shadow-lg border-2 border-purple-300">
                     {attachedFile && (
@@ -1487,13 +1489,13 @@ const TeacherAIChatPage = () => {
 
         <QuizModal
           open={isQuizModalOpen}
-          onClose={() => setIsQuizModalOpen(false)}
+          onOpenChange={(open) => setIsQuizModalOpen(open)}
           quizId={selectedQuizId}
         />
 
         <FlashcardModal
           open={isFlashcardModalOpen}
-          onClose={() => setIsFlashcardModalOpen(false)}
+          onOpenChange={(open) => setIsFlashcardModalOpen(open)}
           flashcardSetId={selectedFlashcardSetId}
         />
       </TeacherLayoutWrapper>
