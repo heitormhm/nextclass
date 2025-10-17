@@ -3,6 +3,7 @@ import { Send, Sparkles, Mic, Paperclip, Plus, MessageCircle, X, FileText, Music
 import 'katex/dist/katex.min.css';
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
+import { TeacherLayoutWrapper } from "@/components/TeacherLayoutWrapper";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -360,13 +361,14 @@ const TeacherAIChatPage = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] bg-gradient-to-br from-purple-50 via-white to-pink-50">
-        {/* Sidebar - Conversation History */}
-        <div className={cn(
-          "lg:w-80 bg-white/80 backdrop-blur-sm border-r border-purple-200 flex flex-col",
-          "fixed lg:relative inset-0 z-50 lg:z-0",
-          showMobileHistory ? "block" : "hidden lg:block"
-        )}>
+      <TeacherLayoutWrapper>
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)]">
+          {/* Sidebar - Conversation History */}
+          <div className={cn(
+            "lg:w-80 bg-white/90 backdrop-blur-xl border-r border-purple-300 flex flex-col",
+            "fixed lg:relative inset-0 z-50 lg:z-0",
+            showMobileHistory ? "block" : "hidden lg:block"
+          )}>
           <div className="p-4 border-b border-purple-200 flex justify-between items-center">
             <h2 className="font-semibold text-lg text-purple-900">Conversas com Mia</h2>
             <Button
@@ -443,8 +445,8 @@ const TeacherAIChatPage = () => {
         </div>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col bg-white/50 backdrop-blur-sm">
-          <div className="p-4 border-b border-purple-200 flex justify-between items-center bg-white/80 backdrop-blur-sm">
+        <div className="flex-1 flex flex-col bg-white/70 backdrop-blur-xl">
+          <div className="p-4 border-b border-purple-300 flex justify-between items-center bg-white/90 backdrop-blur-xl">
             <Button
               variant="ghost"
               size="icon"
@@ -642,7 +644,8 @@ const TeacherAIChatPage = () => {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </TeacherLayoutWrapper>
 
       {isDeepSearchLoading && (
         <MultiStepLoader
