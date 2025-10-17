@@ -684,10 +684,7 @@ const TeacherAIChatPage = () => {
         </div>
 
         {/* ========== ÁREA DE CHAT ========== */}
-        <div className="flex-1 flex flex-col relative overflow-hidden">
-          
-          {/* Background gradiente unificado (padrão professor) */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]" />
+        <div className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
           
           {/* Blobs animados para profundidade */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
@@ -696,7 +693,7 @@ const TeacherAIChatPage = () => {
             <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-400/30 to-pink-300/30 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
           </div>
           
-          <div className="relative z-10 flex-1 flex flex-col">
+          <div className="relative z-10 flex-1 flex flex-col min-h-full">
             
             <ScrollArea className="flex-1 px-4 py-6">
               <div className="max-w-4xl mx-auto space-y-6">
@@ -815,7 +812,7 @@ const TeacherAIChatPage = () => {
             </ScrollArea>
 
             {/* Input Area - Fixed at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 z-20 px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-4 sm:px-6 pb-4 sm:pb-6 bg-gradient-to-t from-purple-600/30 to-transparent">
               <div className="max-w-4xl mx-auto frost-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl border border-white/30">
                 <div className="flex items-end gap-2 sm:gap-3">
                   
