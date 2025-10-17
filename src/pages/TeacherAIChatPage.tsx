@@ -611,8 +611,11 @@ const TeacherAIChatPage = () => {
                 
                 {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center py-12 px-4">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-6 shadow-2xl">
-              <MessageCircle className="w-12 h-12 text-white" />
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full backdrop-blur-xl bg-white/10 border border-white/30 flex items-center justify-center shadow-2xl mb-6">
+              <MessageCircle className="w-10 h-10 sm:w-12 sm:h-12 text-white" strokeWidth={1.5} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-pink-500 fill-pink-500" />
+              </div>
             </div>
             <h3 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent mb-3 drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
               Bem-vindo, Professor!
@@ -716,9 +719,9 @@ const TeacherAIChatPage = () => {
               </div>
             </ScrollArea>
 
-        <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-6 pb-4 sm:pb-6">
+        <div className="absolute bottom-0 left-0 right-0">
           <div className="max-w-4xl mx-auto">
-            <div className="frost-white rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xl border border-white/30">
+            <div className="frost-white rounded-xl sm:rounded-2xl p-4 sm:p-6 mx-4 sm:mx-6 mb-4 sm:mb-6 shadow-2xl border border-white/30">
                   
                   <div className="flex items-end gap-2 sm:gap-3">
                     

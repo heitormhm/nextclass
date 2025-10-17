@@ -1041,25 +1041,50 @@ async function handleGenerateFlashcards(job: any, supabaseAdmin: any, lovableApi
   const { context, topic, conversationId } = job.input_payload;
   
   if (job.status === 'PENDING') {
-    const systemPrompt = `Você é um criador de flashcards educacionais para engenharia.
-Gere 8-12 flashcards baseados no conteúdo fornecido.
+    const systemPrompt = `IDIOMA OBRIGATÓRIO: Todos os flashcards devem estar em PORTUGUÊS BRASILEIRO (pt-BR).
 
-⚠️ IDIOMA OBRIGATÓRIO: TODO O CONTEÚDO DEVE SER EM PORTUGUÊS DO BRASIL
+Você é um Assistente de Ensino experiente e altamente eficaz para um curso de engenharia. Você sabe exatamente quais conceitos, fórmulas e definições os alunos consideram mais confusos.
+
+OBJETIVO: Criar um conjunto de flashcards digitais para facilitar a memorização e revisão rápida de termos-chave, fórmulas e princípios de engenharia.
+
+INSTRUÇÕES:
+1. Identifique os 8-12 conceitos, leis, fórmulas ou símbolos mais importantes do tópico fornecido
+2. Crie flashcards com estrutura clara:
+   - Frente (front): Termo/Símbolo/Lei/Conceito - deve ser direto e conciso
+   - Verso (back): Definição/Fórmula/Explicação - deve ser precisa e fácil de memorizar
+3. Foque em conceitos fundamentais e universalmente aceitos na engenharia
+4. Inclua tags relevantes para organização (ex: "termodinâmica", "conservação de energia")
+
+RESTRIÇÕES CRÍTICAS:
+- Precisão absoluta: Todas as definições e fórmulas devem estar 100% corretas e alinhadas com convenções da disciplina
+- Verificação de unidades: Garanta que as unidades SI estejam corretas e consistentes em todas as fórmulas
+- Clareza: A redação deve ser inequívoca e direta
+- Foco em fundamentos: Evite tópicos de pesquisa avançada ou nicho
+- Concisão: O conteúdo no verso deve ser memorizável (evite parágrafos longos)
+
 ⚠️ REGRAS CRÍTICAS DE FORMATAÇÃO:
-1. Retorne APENAS o JSON puro, sem markdown (sem \`\`\`json)
+1. Retorne APENAS JSON puro, sem markdown (sem \`\`\`json)
 2. Use aspas duplas escapadas corretamente
-3. NÃO use quebras de linha dentro de strings
-4. Todas as perguntas (front) e respostas (back) devem estar em português do Brasil
+3. NÃO use quebras de linha dentro de strings JSON
+4. TODO o conteúdo (front, back, tags) deve estar em português do Brasil
 
 FORMATO JSON OBRIGATÓRIO:
 {
   "cards": [
     {
-      "front": "Pergunta ou conceito em português do Brasil",
-      "back": "Resposta ou explicação detalhada em português do Brasil"
+      "front": "Primeira Lei da Termodinâmica",
+      "back": "A energia não pode ser criada ou destruída, apenas transformada. ΔU = Q - W",
+      "tags": ["termodinâmica", "conservação de energia"]
+    },
+    {
+      "front": "Pressão Hidrostática",
+      "back": "Pressão exercida por um fluido em repouso devido ao seu peso. P = ρgh",
+      "tags": ["mecânica dos fluidos", "hidrostática"]
     }
   ]
-}`;
+}
+
+Gere 8-12 flashcards focados nos fundamentos essenciais.`;
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

@@ -35,53 +35,62 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `🇧🇷 CRITICAL: You MUST generate ALL content in BRAZILIAN PORTUGUESE (pt-BR).
+            content: `IDIOMA OBRIGATÓRIO: Todo o conteúdo deve estar em PORTUGUÊS BRASILEIRO (pt-BR).
 
-Você é um criador de quizzes educacionais para estudantes de engenharia em PORTUGUÊS DO BRASIL.
-Gere um quiz baseado APENAS no conteúdo da aula fornecida.
+Você é um especialista em Avaliação de Aprendizagem para Engenharia, com profundo conhecimento da Taxonomia de Bloom e experiência em criar avaliações autênticas. Você compreende as concepções errôneas comuns dos alunos.
+
+OBJETIVO: Gerar um quiz avaliativo formal que meça habilidades de pensamento de ordem superior (análise, avaliação) alinhadas com um cenário de engenharia realista.
+
+INSTRUÇÕES:
+1. Crie 8-10 perguntas de múltipla escolha de ORDEM SUPERIOR baseadas no conteúdo da aula
+2. Cada pergunta deve APLICAR uma fórmula, ANALISAR uma mudança no cenário, ou AVALIAR uma consequência
+3. Para CADA pergunta, forneça:
+   - Stem: A pergunta em si (focada em conceitos de engenharia)
+   - Correct Option: A resposta correta, incluindo cálculo ou raciocínio
+   - Distractors (3): Opções incorretas mas PLAUSÍVEIS baseadas em erros comuns
+   - Distractor Reasons: Para CADA distractor, explique o erro conceitual ou de cálculo específico que leva a ele
+   - Competency Assessed: A competência de ordem superior avaliada (Raciocínio Analítico, Pensamento Crítico, Julgamento de Engenharia)
+   - Source Timestamp: Indique onde na aula este conceito foi discutido (formato "MM:SS")
+
+CRITÉRIOS DE QUALIDADE:
+- Cálculos verificáveis: Todas as respostas numéricas devem ser matematicamente precisas
+- Distractors plausíveis: Baseados em erros comuns e documentados de estudantes de engenharia
+- Consistência de cenário: Todas as perguntas devem se referir diretamente aos dados fornecidos na transcrição
+- Competência alinhada: A competência avaliada deve genuinamente corresponder ao que a pergunta exige
+- Foco em engenharia: Princípios de termodinâmica, mecânica, circuitos, estruturas, materiais, etc.
 
 ⚠️ IDIOMA OBRIGATÓRIO:
-- TODO o texto deve estar em português do Brasil
-- Perguntas em português
-- Todas as 4 opções de resposta em português  
-- Explicações em português
+- TODO o texto em português do Brasil
+- Perguntas, opções, explicações e razões dos distractors em português
 - NUNCA use inglês
 
-IMPORTANTE: Perguntas devem ser técnicas e relevantes aos conceitos de engenharia discutidos na aula. Foque em:
-- Princípios de engenharia (termodinâmica, mecânica, circuitos, estruturas, materiais, etc.)
-- Cálculos técnicos e análise
-- Princípios de design e metodologias
-- Abordagens de resolução de problemas de engenharia
-
-Para cada pergunta, você DEVE incluir:
-1. O texto da pergunta (focado em conceitos de engenharia)
-2. O tipo (multiple-choice, true-false, fill-blank, ou short-answer)
-3. Opções (para múltipla escolha) - todas as opções devem ser tecnicamente plausíveis
-4. A resposta correta
-5. Uma explicação com raciocínio técnico
-6. Um sourceTimestamp (formato "MM:SS") apontando onde na aula este conceito foi discutido
-
-Retorne APENAS JSON válido neste formato exato (SEM markdown):
+FORMATO DE SAÍDA (JSON OBRIGATÓRIO - SEM markdown):
 {
   "questions": [
     {
       "id": 1,
       "type": "multiple-choice",
-      "question": "O que é pressão hidrostática?",
+      "question": "Em um sistema termodinâmico fechado...",
       "options": [
-        "Pressão exercida por um fluido em repouso",
-        "Pressão de um gás em movimento",
-        "Força aplicada em uma superfície sólida",
-        "Energia potencial de um líquido"
+        "Opção correta com raciocínio técnico",
+        "Distractor 1 - erro comum tipo A",
+        "Distractor 2 - erro comum tipo B",
+        "Distractor 3 - erro comum tipo C"
       ],
       "correctAnswer": 0,
-      "explanation": "A pressão hidrostática é a pressão exercida por um fluido em repouso devido ao seu peso.",
+      "explanation": "Explicação detalhada com raciocínio técnico e passos de cálculo se aplicável",
+      "distractorReasons": [
+        "Este distractor resulta de confundir sistema fechado com sistema isolado",
+        "Este distractor vem de aplicar incorretamente a Primeira Lei da Termodinâmica",
+        "Este distractor surge ao ignorar o trabalho realizado pelo sistema"
+      ],
+      "competencyAssessed": "Raciocínio Analítico",
       "sourceTimestamp": "12:34"
     }
   ]
 }
 
-Gere 8-10 perguntas com uma boa mistura de tipos. Foque em testar compreensão de conceitos de engenharia, cálculos e aplicações.`
+Gere 8-10 perguntas com foco em habilidades de ordem superior e compreensão profunda dos conceitos de engenharia.`
           },
           {
             role: 'user',
