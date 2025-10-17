@@ -362,12 +362,13 @@ const TeacherAIChatPage = () => {
   return (
     <MainLayout>
       <TeacherLayoutWrapper>
-        {/* Sidebar - Mobile Overlay Only */}
-        <div className={cn(
-          "md:w-80 lg:w-96 bg-white/90 backdrop-blur-xl border-r border-purple-300/70 flex flex-col transition-all duration-300 ease-in-out shadow-lg",
-          "fixed inset-0 z-50",
-          showMobileHistory ? "block" : "hidden"
-        )}>
+        <div className="flex min-h-[calc(100vh-4rem)]">
+          {/* Sidebar - Visible on desktop, overlay on mobile */}
+          <div className={cn(
+            "md:w-80 lg:w-96 bg-white/90 backdrop-blur-xl border-r border-purple-300/70 flex flex-col transition-all duration-300 ease-in-out shadow-lg",
+            "fixed inset-0 z-50 lg:relative lg:z-10",
+            showMobileHistory ? "block" : "hidden lg:block"
+          )}>
           <div className="p-3 border-b border-purple-200/50 bg-white/50 flex justify-between items-center">
             <h2 className="font-semibold text-lg text-purple-900">Conversas com Mia</h2>
             <Button
@@ -493,8 +494,8 @@ const TeacherAIChatPage = () => {
           </ScrollArea>
         </div>
 
-        {/* Main Chat Area */}
-        <div className="flex flex-col min-h-[calc(100vh-4rem)] relative">
+          {/* Main Chat Area */}
+          <div className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] relative pt-6 lg:pt-0">
           {!showMobileHistory && (
             <Button 
               variant="outline" 
@@ -684,7 +685,8 @@ const TeacherAIChatPage = () => {
               </div>
             </div>
           </div>
-        </div>
+          </div> {/* Fecha main chat area */}
+        </div> {/* Fecha container flex principal */}
       </TeacherLayoutWrapper>
 
       {isDeepSearchLoading && (
