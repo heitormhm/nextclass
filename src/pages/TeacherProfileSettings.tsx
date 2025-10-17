@@ -53,7 +53,7 @@ const TeacherProfileSettings = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-white">
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           {/* Header */}
           <div className="mb-8">
@@ -67,7 +67,7 @@ const TeacherProfileSettings = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Profile Picture */}
-            <Card className="bg-white shadow-lg h-fit">
+            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] h-fit">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Camera className="h-5 w-5" />
@@ -104,7 +104,7 @@ const TeacherProfileSettings = () => {
             {/* Profile Information */}
             <div className="lg:col-span-2 space-y-6">
               {/* Personal Information */}
-              <Card className="bg-white shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="h-5 w-5" />
@@ -135,7 +135,7 @@ const TeacherProfileSettings = () => {
               </Card>
 
               {/* Password Change */}
-              <Card className="bg-white shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Lock className="h-5 w-5" />

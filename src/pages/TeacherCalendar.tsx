@@ -142,15 +142,15 @@ const TeacherCalendar = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 to-white">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background with Ripple Effect */}
         <BackgroundRippleEffect className="opacity-30" />
         
         {/* Gradient Blobs for Depth */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-200/40 to-purple-200/40 rounded-full blur-3xl" />
-          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-white/60 to-pink-100/50 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-100/50 to-white/60 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
         <div className="relative z-10 container mx-auto px-4 py-8 animate-in fade-in-0 duration-500">
@@ -167,7 +167,7 @@ const TeacherCalendar = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Calendar */}
             <div className="lg:col-span-2">
-              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-2xl text-gray-900">
@@ -262,7 +262,7 @@ const TeacherCalendar = () => {
             {/* Events Sidebar */}
             <div className="space-y-6">
               {/* Today's Events or Selected Date Events */}
-              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-lg text-gray-900">
                     {selectedDate ? 'Eventos do Dia Selecionado' : 'Próximos Eventos'}
@@ -310,7 +310,7 @@ const TeacherCalendar = () => {
               </Card>
 
               {/* Calendar Legend */}
-              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-lg text-gray-900">Legenda</CardTitle>
                 </CardHeader>
@@ -331,7 +331,7 @@ const TeacherCalendar = () => {
               </Card>
 
               {/* Quick Actions - Unified Button */}
-              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-lg text-gray-900">Ações Rápidas</CardTitle>
                 </CardHeader>

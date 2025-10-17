@@ -34,7 +34,7 @@ const TeacherConfigurations = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-white">
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           {/* Header */}
           <div className="mb-8">
@@ -48,7 +48,7 @@ const TeacherConfigurations = () => {
 
           <div className="space-y-6">
             {/* Notification Settings */}
-            <Card className="bg-white shadow-lg">
+            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bell className="h-5 w-5" />
@@ -89,7 +89,7 @@ const TeacherConfigurations = () => {
             </Card>
 
             {/* Recording Settings */}
-            <Card className="bg-white shadow-lg">
+            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Video className="h-5 w-5" />
@@ -120,7 +120,7 @@ const TeacherConfigurations = () => {
             </Card>
 
             {/* Language Settings */}
-            <Card className="bg-white shadow-lg">
+            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Globe className="h-5 w-5" />

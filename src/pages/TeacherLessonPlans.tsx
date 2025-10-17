@@ -95,15 +95,15 @@ const TeacherLessonPlans = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 to-white">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background */}
         <BackgroundRippleEffect className="opacity-30" />
         
         {/* Gradient Blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-200/40 to-purple-200/40 rounded-full blur-3xl" />
-          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-white/60 to-pink-100/50 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-100/50 to-white/60 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto p-6 space-y-6">
@@ -133,7 +133,7 @@ const TeacherLessonPlans = () => {
               <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
             </div>
           ) : lessonPlans.length === 0 ? (
-            <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg p-12">
+            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] p-12">
               <div className="text-center">
                 <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -157,7 +157,7 @@ const TeacherLessonPlans = () => {
                 {lessonPlans.map((plan) => (
                   <Card
                     key={plan.id}
-                    className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg p-6 hover:bg-white/90 transition-all cursor-pointer group"
+                    className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] p-6 hover:bg-white/90 transition-all cursor-pointer group"
                     onClick={() => handleViewPlan(plan.id)}
                   >
                     <div className="space-y-4">

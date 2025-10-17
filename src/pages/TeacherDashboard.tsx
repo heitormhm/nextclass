@@ -125,15 +125,15 @@ const TeacherDashboard = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 to-white">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background with Ripple Effect */}
         <BackgroundRippleEffect className="opacity-30" />
         
         {/* Gradient Blobs for Depth */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-200/40 to-purple-200/40 rounded-full blur-3xl" />
-          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-white/60 to-pink-100/50 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-100/50 to-white/60 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
         {/* Main Content */}
@@ -149,7 +149,7 @@ const TeacherDashboard = () => {
             {/* Left Column - Main Content */}
             <div className="space-y-6">
               {/* Quick Actions Bar with AI Co-pilot */}
-              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-gray-800 flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-purple-400" />
@@ -200,7 +200,7 @@ const TeacherDashboard = () => {
                 {statCards.map((stat, index) => {
                   const Icon = stat.icon;
                   return (
-                    <Card key={index} className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
+                    <Card key={index} className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-2">
                           <Icon className={`h-6 w-6 ${stat.color}`} />
@@ -215,13 +215,13 @@ const TeacherDashboard = () => {
               </div>
 
               {/* Insights Panel with Tabs */}
-              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-gray-800">Insights da Turma</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="insights" className="w-full">
-                    <TabsList className="bg-white/50 backdrop-blur-md border-white/30">
+                    <TabsList className="bg-white/60 bg-blue-50/20 bg-blend-overlay backdrop-blur-md border-blue-100/40">
                       <TabsTrigger value="insights" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white data-[state=inactive]:text-gray-700">
                         Alertas e Oportunidades
                       </TabsTrigger>
@@ -244,7 +244,7 @@ const TeacherDashboard = () => {
                           />
                         ))
                       ) : (
-                        <Card className="bg-white/40 backdrop-blur-md border-white/30 shadow-sm p-8">
+                        <Card className="bg-white/50 bg-blue-50/15 bg-blend-overlay backdrop-blur-md border-blue-100/30 shadow-sm p-8">
                           <div className="text-center">
                             <Sparkles className="h-12 w-12 text-purple-400 mx-auto mb-3" />
                             <p className="text-gray-600 mb-2">Nenhum insight disponível</p>
@@ -256,7 +256,7 @@ const TeacherDashboard = () => {
                       )}
                     </TabsContent>
                     <TabsContent value="performance" className="mt-4">
-                      <Card className="bg-white/40 backdrop-blur-md border-white/30 shadow-sm p-6">
+                      <Card className="bg-white/50 bg-blue-50/15 bg-blend-overlay backdrop-blur-md border-blue-100/30 shadow-sm p-6">
                         <p className="text-gray-600 text-center">
                           Gráficos de desempenho em desenvolvimento
                         </p>
@@ -270,16 +270,16 @@ const TeacherDashboard = () => {
             {/* Right Column - Sidebar */}
             <div className="space-y-6">
               {/* Class Selector */}
-              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-gray-800 text-lg">Turma Selecionada</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Select value={selectedClass} onValueChange={setSelectedClass}>
-                    <SelectTrigger className="bg-white/60 backdrop-blur-md border-white/40 text-gray-800">
+                    <SelectTrigger className="bg-white/70 bg-blue-50/15 bg-blend-overlay backdrop-blur-md border-blue-100/40 text-gray-900 shadow-sm">
                       <SelectValue placeholder="Selecione uma turma" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white/95 backdrop-blur-xl border-white/50 shadow-xl">
+                    <SelectContent className="bg-white/95 backdrop-blur-xl border-blue-100/50 shadow-2xl shadow-blue-500/10">
                       {classes.map((cls) => (
                         <SelectItem key={cls.id} value={cls.id} className="text-gray-800 hover:bg-purple-50">
                           {cls.name} - {cls.period}
@@ -291,7 +291,7 @@ const TeacherDashboard = () => {
               </Card>
 
               {/* Upcoming Events */}
-              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-gray-800 text-lg flex items-center justify-between">
                     Próximos Eventos
@@ -310,7 +310,7 @@ const TeacherDashboard = () => {
                     {upcomingEvents.map((event, index) => (
                       <div
                         key={index}
-                        className="p-3 rounded-lg bg-white/50 backdrop-blur-md border border-white/30 shadow-sm"
+                        className="p-3 rounded-lg bg-white/60 bg-blue-50/20 bg-blend-overlay backdrop-blur-md border border-blue-100/40 shadow-sm"
                       >
                         <div className="flex gap-3">
                           <div className="flex flex-col items-center justify-center bg-purple-100/80 rounded-lg p-2 min-w-[50px]">
@@ -333,7 +333,7 @@ const TeacherDashboard = () => {
               </Card>
 
               {/* Quick Stats */}
-              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <CardTitle className="text-gray-800 text-lg">Estatísticas Rápidas</CardTitle>
                 </CardHeader>
