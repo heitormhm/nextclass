@@ -407,19 +407,22 @@ const TeacherAIChatPage = () => {
         },
       });
 
-      if (functionError) throw functionError;
+        if (functionError) throw functionError;
 
-        const assistantMessage: Message = {
-          id: `assistant-${Date.now()}`,
-          content: functionData.response,
-          isUser: false,
-          timestamp: new Date(),
-          isSystemMessage: functionData.response.includes('foi iniciada') || 
-                           functionData.response.includes('Processando sua solicitação') ||
-                           functionData.response.includes('acompanhe o progresso'),
-        };
-      
-      setMessages(prev => [...prev, assistantMessage]);
+        // 🚫 NÃO adicionar mensagem de confirmação ao histórico em Deep Search
+        if (!isDeepSearch) {
+          const assistantMessage: Message = {
+            id: `assistant-${Date.now()}`,
+            content: functionData.response,
+            isUser: false,
+            timestamp: new Date(),
+            isSystemMessage: functionData.response.includes('foi iniciada') || 
+                             functionData.response.includes('Processando sua solicitação') ||
+                             functionData.response.includes('acompanhe o progresso'),
+          };
+          
+          setMessages(prev => [...prev, assistantMessage]);
+        }
 
       if (functionData.conversationId && !activeConversationId) {
         setActiveConversationId(functionData.conversationId);
