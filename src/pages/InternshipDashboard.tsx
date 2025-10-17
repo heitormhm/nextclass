@@ -1,7 +1,7 @@
 // Internship Dashboard - Fixed Link import issue
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Heart, ChevronDown, ChevronLeft, ChevronRight, Eye, MapPin, Calendar, Briefcase, Plus } from 'lucide-react';
+import { Search, Filter, Heart, ChevronDown, ChevronLeft, ChevronRight, Eye, MapPin, Calendar, Briefcase, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Annotation {
   id: string;
@@ -19,8 +21,7 @@ interface Annotation {
   location: string;
   specialty: string;
   isFavorite: boolean;
-  patientAge: number;
-  patientGender: 'M' | 'F';
+  tags?: string[];
 }
 
 const InternshipDashboard = () => {
@@ -33,109 +34,58 @@ const InternshipDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<keyof Annotation>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const itemsPerPage = 5;
 
-  // Static annotation data
-  const staticAnnotations: Annotation[] = [
-    {
-      id: '1',
-      date: '2024-03-15',
-      case: 'Análise de tensão em viga metálica',
-      annotation: 'Estrutura apresentou tensões críticas no ponto central (280 MPa). Verificação de deflexão L/350 atendida. Recomenda-se reforço nas soldas.',
-      location: 'Construtora Alfa - Setor de Estruturas',
-      specialty: 'Engenharia Civil',
-      isFavorite: true,
-      patientAge: 0,
-      patientGender: 'M'
-    },
-    {
-      id: '2',
-      date: '2024-03-12',
-      case: 'Sistema hidráulico sob pressão elevada',
-      annotation: 'Pressão de 18 bar detectada no sistema, acima do projeto (15 bar). Válvulas de alívio ajustadas. Sistema operacional.',
-      location: 'Indústria TechFlow',
-      specialty: 'Engenharia Mecânica',
+  // Fetch sessions from database
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        setIsLoading(true);
+        
+        const { data, error } = await supabase
+          .from('internship_sessions')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        setSessions(data || []);
+      } catch (error) {
+        console.error('Error fetching sessions:', error);
+        toast.error('Erro ao carregar sessões');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, []);
+
+  // Map database sessions to UI format
+  const mappedAnnotations = useMemo(() => {
+    return sessions.map(session => ({
+      id: session.id,
+      date: new Date(session.created_at).toISOString().split('T')[0],
+      case: session.ai_summary?.title || session.internship_type,
+      annotation: session.ai_summary?.description || 'Resumo em processamento...',
+      location: session.location_name,
+      specialty: session.internship_type,
       isFavorite: false,
-      patientAge: 0,
-      patientGender: 'F'
-    },
-    {
-      id: '3',
-      date: '2024-03-10',
-      case: 'Vibração em equipamento rotativo',
-      annotation: 'Oscilação de 8mm/s detectada em motor principal. Sistema em monitoramento contínuo. Avaliar necessidade de balanceamento.',
-      location: 'Usina Hidrelétrica Delta',
-      specialty: 'Engenharia Mecânica',
-      isFavorite: true,
-      patientAge: 0,
-      patientGender: 'M'
-    },
-    {
-      id: '4',
-      date: '2024-03-08',
-      case: 'Falha em circuito de controle',
-      annotation: 'Curto-circuito no sistema de controle principal. Manutenção de urgência realizada. Substituição de componente CD. Sistema restabelecido.',
-      location: 'Fábrica AutoParts',
-      specialty: 'Engenharia Elétrica',
-      isFavorite: true,
-      patientAge: 0,
-      patientGender: 'M'
-    },
-    {
-      id: '5',
-      date: '2024-03-05',
-      case: 'Análise de eficiência energética',
-      annotation: 'Consumo energético 25% acima do previsto. Identificado problema no isolamento térmico. Recomendada substituição de isolantes.',
-      location: 'Edifício Comercial Centro',
-      specialty: 'Engenharia Civil',
-      isFavorite: false,
-      patientAge: 0,
-      patientGender: 'F'
-    },
-    {
-      id: '6',
-      date: '2024-03-03',
-      case: 'Inspeção de fundações profundas',
-      annotation: 'Capacidade de carga verificada (800 kN). Recalques dentro do previsto (12mm). Necessário monitoramento contínuo.',
-      location: 'Construtora Mega Towers',
-      specialty: 'Engenharia Civil',
-      isFavorite: false,
-      patientAge: 0,
-      patientGender: 'F'
-    },
-    {
-      id: '7',
-      date: '2024-03-01',
-      case: 'Análise de processo químico',
-      annotation: 'Taxa de conversão 78%, abaixo da meta (85%). Temperatura de reator ajustada. Catalisador em substituição programada.',
-      location: 'Indústria Química Polimex',
-      specialty: 'Engenharia Química',
-      isFavorite: false,
-      patientAge: 0,
-      patientGender: 'M'
-    },
-    {
-      id: '8',
-      date: '2024-02-28',
-      case: 'Falha em transformador elétrico',
-      annotation: 'Sobreaquecimento detectado (95°C), limite 80°C. Carga redistribuída. Transformador em manutenção preventiva.',
-      location: 'Subestação Industrial Norte',
-      specialty: 'Engenharia Elétrica',
-      isFavorite: true,
-      patientAge: 0,
-      patientGender: 'F'
-    }
-  ];
+      tags: session.tags || []
+    }));
+  }, [sessions]);
 
   // Get unique values for filter options
-  const uniqueDates = [...new Set(staticAnnotations.map(a => a.date))].sort().reverse();
-  const uniqueLocations = [...new Set(staticAnnotations.map(a => a.location))].sort();
-  const uniqueSpecialties = [...new Set(staticAnnotations.map(a => a.specialty))].sort();
+  const uniqueDates = [...new Set(mappedAnnotations.map(a => a.date))].sort().reverse();
+  const uniqueLocations = [...new Set(mappedAnnotations.map(a => a.location))].sort();
+  const uniqueSpecialties = [...new Set(mappedAnnotations.map(a => a.specialty))].sort();
 
   // Filtered and sorted data
   const filteredAndSortedAnnotations = useMemo(() => {
-    let filtered = staticAnnotations.filter(annotation => {
+    let filtered = mappedAnnotations.filter(annotation => {
       const matchesSearch = 
         annotation.case.toLowerCase().includes(searchQuery.toLowerCase()) ||
         annotation.annotation.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -170,7 +120,7 @@ const InternshipDashboard = () => {
     });
 
     return filtered;
-  }, [staticAnnotations, searchQuery, dateFilter, locationFilter, specialtyFilter, showFavoritesOnly, sortColumn, sortDirection]);
+  }, [mappedAnnotations, searchQuery, dateFilter, locationFilter, specialtyFilter, showFavoritesOnly, sortColumn, sortDirection]);
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedAnnotations.length / itemsPerPage);
@@ -322,8 +272,30 @@ const InternshipDashboard = () => {
               </p>
             </div>
 
-            {/* Desktop Table */}
-            <Card className="border-0 shadow-sm hidden md:block">
+            {/* Loading State */}
+            {isLoading ? (
+              <div className="flex justify-center items-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-3 text-muted-foreground">Carregando sessões...</p>
+              </div>
+            ) : currentAnnotations.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="p-12 text-center">
+                  <Briefcase className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Nenhuma sessão registrada</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Comece gravando seu primeiro cenário de estágio
+                  </p>
+                  <Button onClick={() => navigate('/internship/setup')}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Gravar Novo Cenário
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Desktop Table */}
+                <Card className="border-0 shadow-sm hidden md:block">
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
@@ -518,24 +490,8 @@ const InternshipDashboard = () => {
                 </CardContent>
               </Card>
             )}
-
-            {/* Empty State */}
-            {filteredAndSortedAnnotations.length === 0 && (
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-12 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-background-secondary flex items-center justify-center">
-                    <Briefcase className="h-8 w-8 text-foreground-muted" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">Nenhuma anotação encontrada</h3>
-                  <p className="text-foreground-muted mb-4">
-                    Não há anotações que correspondam aos filtros aplicados.
-                  </p>
-                  <Button variant="outline" onClick={clearFilters}>
-                    Limpar filtros
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+          </>
+        )}
           </div>
         </div>
     </MainLayout>

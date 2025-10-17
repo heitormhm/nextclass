@@ -41,9 +41,105 @@ serve(async (req) => {
       locationDetails, 
       tags, 
       transcript, 
-      aiSummary, 
       duration 
     } = await req.json();
+
+    // Validate required fields
+    if (!internshipType || !locationName) {
+      return new Response(
+        JSON.stringify({ error: 'Campos obrigatórios: internshipType, locationName' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Generate AI summary if transcript exists
+    let aiSummary = null;
+
+    if (transcript && transcript.length > 0) {
+      try {
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        const transcriptText = transcript
+          .map((entry: any) => `${entry.speaker}: ${entry.text}`)
+          .join('\n');
+
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'system',
+                content: 'Você é um especialista em análise de estágios de engenharia. Gere resumos estruturados em português.'
+              },
+              {
+                role: 'user',
+                content: `Analise esta transcrição de estágio em ${internshipType} e gere um resumo estruturado:
+
+${transcriptText}
+
+Retorne em formato JSON com as seguintes seções (arrays de strings):
+- chiefComplaint: principais tópicos discutidos (3-5 itens)
+- historyOfPresentIllness: contexto e histórico (3-5 itens)
+- physicalExamination: observações técnicas (3-5 itens)
+- assessmentAndPlan: conclusões e recomendações (3-5 itens)
+- title: título resumido (uma linha)
+- description: descrição breve (uma frase)
+
+Responda apenas com o JSON válido, sem markdown.`
+              }
+            ],
+            tools: [{
+              type: "function",
+              function: {
+                name: "generate_summary",
+                description: "Generate structured internship summary",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    description: { type: "string" },
+                    chiefComplaint: { type: "array", items: { type: "string" } },
+                    historyOfPresentIllness: { type: "array", items: { type: "string" } },
+                    physicalExamination: { type: "array", items: { type: "string" } },
+                    assessmentAndPlan: { type: "array", items: { type: "string" } }
+                  },
+                  required: ["title", "description", "chiefComplaint", "historyOfPresentIllness", "physicalExamination", "assessmentAndPlan"]
+                }
+              }
+            }],
+            tool_choice: { type: "function", function: { name: "generate_summary" } }
+          }),
+        });
+
+        if (response.ok) {
+          const aiData = await response.json();
+          const toolCall = aiData.choices[0]?.message?.tool_calls?.[0];
+          if (toolCall?.function?.arguments) {
+            aiSummary = JSON.parse(toolCall.function.arguments);
+          }
+        } else {
+          console.error('AI API error:', await response.text());
+        }
+      } catch (error) {
+        console.error('Error generating AI summary:', error);
+      }
+    }
+
+    // Fallback summary if AI fails or no transcript
+    if (!aiSummary) {
+      aiSummary = {
+        title: `${internshipType} - ${locationName}`,
+        description: `Sessão de ${Math.floor(duration / 60)} minutos`,
+        chiefComplaint: ['Sessão registrada sem transcrição'],
+        historyOfPresentIllness: ['Dados básicos salvos'],
+        physicalExamination: ['Aguardando processamento detalhado'],
+        assessmentAndPlan: ['Resumo será gerado quando houver transcrição disponível']
+      };
+    }
 
     console.log('Saving internship session for user:', user.id);
 

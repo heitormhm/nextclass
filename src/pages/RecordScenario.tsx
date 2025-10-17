@@ -59,75 +59,6 @@ const RecordScenario = () => {
   // Generate session case description
   const sessionCase = `Sessão de ${internshipType} em ${internshipLocation}`;
 
-  // Static transcript data for demonstration
-  const staticTranscript: TranscriptEntry[] = [
-    {
-      id: '1',
-      timestamp: '00:32',
-      speaker: 'Supervisor',
-      text: 'Bom dia! Vamos analisar a estrutura deste projeto?'
-    },
-    {
-      id: '2', 
-      timestamp: '00:45',
-      speaker: 'Estagiário',
-      text: 'Bom dia, engenheiro. Identifiquei algumas tensões elevadas nas vigas principais, principalmente quando consideramos a carga móvel.'
-    },
-    {
-      id: '3',
-      timestamp: '01:15',
-      speaker: 'Supervisor',
-      text: 'Entendo. Quais são os valores das tensões? E a deflexão está dentro do limite?'
-    },
-    {
-      id: '4',
-      timestamp: '01:32',
-      speaker: 'Estagiário',
-      text: 'A tensão máxima está em 280 MPa, próximo ao limite de escoamento. A deflexão está em L/350, dentro do aceitável.'
-    },
-    {
-      id: '5',
-      timestamp: '02:10',
-      speaker: 'Supervisor',
-      text: 'Vou revisar os cálculos agora. Precisamos verificar também a fadiga para essa estrutura.'
-    },
-    {
-      id: '6',
-      timestamp: '03:45',
-      speaker: 'Supervisor',
-      text: 'Os valores estão próximos do limite. Vamos precisar considerar um reforço estrutural ou redimensionar as vigas.'
-    }
-  ];
-
-  // Static AI summary data
-  const aiSummary: ConsultationSummary = {
-    chiefComplaint: [
-      'Tensões elevadas nas vigas principais',
-      'Análise iniciada há 1 semana',
-      'Característica: tensão próxima ao limite de escoamento'
-    ],
-    historyOfPresentIllness: [
-      'Estrutura em análise há 1 semana',
-      'Tensões tipo tração/compressão nas vigas',
-      'Provocada por cargas móveis',
-      'Deflexão dentro dos limites (L/350)',
-      'Sem sinais de falha estrutural prévia'
-    ],
-    physicalExamination: [
-      'Tensão máxima: 280 MPa',
-      'Análise estrutural: momento fletor elevado no meio do vão',
-      'Verificação de soldas: integridade mantida',
-      'Estrutura estável, sem deformações visíveis'
-    ],
-    assessmentAndPlan: [
-      'Hipótese técnica: Necessidade de reforço estrutural',
-      'Análises adicionais: Estudo de fadiga, análise não-linear',
-      'Intervenção: Reforço com chapas de aço ou redimensionamento',
-      'Recomendações: Monitoramento contínuo, inspeção periódica',
-      'Revisão em 15 dias com resultados das análises'
-    ]
-  };
-
   // Timer effect
   useEffect(() => {
     if (isRecording && !isPaused) {
@@ -152,20 +83,6 @@ const RecordScenario = () => {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcript]);
 
-  // Simulate live transcription
-  useEffect(() => {
-    if (isRecording && !isPaused) {
-      const interval = setInterval(() => {
-        const currentIndex = transcript.length;
-        if (currentIndex < staticTranscript.length) {
-          setTranscript(prev => [...prev, staticTranscript[currentIndex]]);
-        }
-      }, 3000);
-
-      return () => clearInterval(interval);
-    }
-  }, [isRecording, isPaused, transcript.length]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -188,7 +105,6 @@ const RecordScenario = () => {
     setIsRecording(false);
     setIsPaused(false);
     
-    // Save session to database
     try {
       toast.loading('Processando e salvando sessão...');
       
@@ -199,18 +115,18 @@ const RecordScenario = () => {
           locationDetails,
           tags: previewTags,
           transcript: transcript,
-          aiSummary: aiSummary,
           duration: elapsedTime
         }
       });
 
       if (error) throw error;
       
+      toast.dismiss();
       toast.success('Sessão salva com sucesso!');
-      // Navigate to dashboard after successful save
       navigate('/internship');
     } catch (error) {
       console.error('Error saving session:', error);
+      toast.dismiss();
       toast.error('Erro ao salvar sessão. Tente novamente.');
     }
   };
@@ -385,7 +301,7 @@ const RecordScenario = () => {
             </Card>
 
             {/* Live Transcript */}
-            {transcript.length > 0 && (
+            {(isRecording || transcript.length > 0) && (
               <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -394,6 +310,18 @@ const RecordScenario = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {transcript.length === 0 && isRecording ? (
+                    <div className="p-6 text-center border-2 border-dashed border-yellow-400 bg-yellow-50 rounded-lg">
+                      <AlertCircle className="h-8 w-8 mx-auto text-yellow-600 mb-3" />
+                      <p className="text-sm font-medium text-yellow-900 mb-2">
+                        Transcrição automática não disponível
+                      </p>
+                      <p className="text-xs text-yellow-700">
+                        A transcrição em tempo real será implementada em breve. 
+                        Por enquanto, a sessão será salva com os dados básicos.
+                      </p>
+                    </div>
+                  ) : (
                   <div className="max-h-80 sm:max-h-96 overflow-y-auto space-y-4 p-3 sm:p-4 bg-background-secondary rounded-lg">
                     {transcript.map((entry) => (
                       <div key={entry.id} className="group">
@@ -444,6 +372,7 @@ const RecordScenario = () => {
                     ))}
                     <div ref={transcriptEndRef} />
                   </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -461,13 +390,9 @@ const RecordScenario = () => {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Problem Identification */}
-                  <div>
-                    <h3 className="text-lg font-bold mb-3 text-foreground">
-                      Problema Identificado
-                    </h3>
-                    <ul className="space-y-2">
-                      {aiSummary.chiefComplaint.map((item, index) => (
+                  <p className="text-sm text-muted-foreground">
+                    O resumo será gerado automaticamente quando você encerrar a sessão.
+                  </p>
                         <li key={index} className="flex items-start gap-2">
                           <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
                           <span className="text-foreground-muted">{item}</span>

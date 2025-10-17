@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, 
@@ -7,7 +7,8 @@ import {
   Calendar,
   MapPin,
   Briefcase,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,70 +23,126 @@ const InternshipReviewPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('report');
   const [isCreatingAnnotation, setIsCreatingAnnotation] = useState(false);
+  const [session, setSession] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data - in real app, fetch from database using the id
-  const scenarioData = {
-    id: id,
-    internshipType: 'Estágio em Engenharia Civil',
-    location: 'Construtora Alfa - Setor de Estruturas',
-    date: '15 de Março de 2024',
-    case: 'Análise de tensão em viga metálica',
-    reportContent: `
-<div class="space-y-6">
-  <div>
-    <h3 class="font-semibold text-gray-800 mb-2">IDENTIFICAÇÃO DO PROJETO</h3>
-    <p class="text-gray-700">Análise estrutural de viga metálica I-400, aplicada em ponte rodoviária, comprimento 12m, localizada em São Paulo/SP, projeto iniciado em março/2024.</p>
-  </div>
+  useEffect(() => {
+    const fetchSession = async () => {
+      if (!id) {
+        setError('ID da sessão não fornecido');
+        setIsLoading(false);
+        return;
+      }
 
-  <div>
-    <h3 class="font-semibold text-gray-800 mb-2">ESCOPO PRINCIPAL (EP)</h3>
-    <p class="text-gray-700">"Verificação de tensões máximas e deflexão em viga sob carregamento distribuído"</p>
-  </div>
+      try {
+        setIsLoading(true);
+        
+        const { data, error } = await supabase
+          .from('internship_sessions')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-  <div>
-    <h3 class="font-semibold text-gray-800 mb-2">DESCRIÇÃO TÉCNICA ATUAL (DTA)</h3>
-    <p class="text-gray-700">Estrutura apresentou tensões críticas no ponto central (280 MPa), próximo ao limite de escoamento do aço ASTM A572 (345 MPa). Verificação de deflexão L/350 atendida (34mm medido vs. 34.3mm limite). Solicitado estudo complementar de fadiga para ciclos de carga móvel. Cargas consideradas: peso próprio (8 kN/m), sobrecarga de tráfego (25 kN/m), fator de impacto 1.4.</p>
-  </div>
+        if (error) throw error;
 
-  <div>
-    <h3 class="font-semibold text-gray-800 mb-2">PARÂMETROS ANTERIORES</h3>
-    <p class="text-gray-700">Estrutura similar executada em 2022, vão de 10m, sem problemas estruturais. Material: aço ASTM A572 Gr50. Não houve falhas de fadiga em 2 anos de operação. Projeto executivo aprovado pelos órgãos competentes (CREA-SP).</p>
-  </div>
+        if (!data) {
+          setError('Sessão não encontrada');
+        } else {
+          setSession(data);
+        }
+      } catch (error) {
+        console.error('Error fetching session:', error);
+        setError('Erro ao carregar sessão');
+        toast.error('Erro ao carregar sessão');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  <div>
-    <h3 class="font-semibold text-gray-800 mb-2">REFERÊNCIAS TÉCNICAS</h3>
-    <p class="text-gray-700">NBR 8800 (estruturas de aço e mistas), NBR 7188 (cargas móveis em pontes), NBR 6118 (complementar para apoios em concreto). Consultoria estrutural especializada em pontes rodoviárias disponível.</p>
-  </div>
+    fetchSession();
+  }, [id]);
 
-  <div>
-    <h3 class="font-semibold text-gray-800 mb-2">ANÁLISE TÉCNICA INICIAL</h3>
-    <p class="text-gray-700">Estrutura apresenta-se adequada aos carregamentos previstos com margem de segurança de 23%. Tensões dentro dos limites admissíveis considerando coeficientes de segurança. Deflexão L/350 atendida com folga mínima. Recomenda-se análise dinâmica complementar para verificação de vibrações induzidas por tráfego e análise de fadiga para categoria de detalhe adequada às soldas.</p>
-  </div>
-</div>
-    `,
-    transcriptionContent: `
-<div class="space-y-4">
-  <div class="p-4 bg-gray-50 rounded-lg">
-    <p class="text-sm text-gray-600 mb-2"><strong>Engenheiro:</strong> Boa tarde. Vamos analisar os parâmetros estruturais desta viga?</p>
-  </div>
-  <div class="p-4 bg-blue-50 rounded-lg">
-    <p class="text-sm text-gray-600 mb-2"><strong>Estagiário:</strong> Sim, identifiquei tensões de 280 MPa no centro do vão. A deflexão está em 34mm, dentro do limite de L/350.</p>
-  </div>
-  <div class="p-4 bg-gray-50 rounded-lg">
-    <p class="text-sm text-gray-600 mb-2"><strong>Engenheiro:</strong> Entendo. E qual é o material especificado?</p>
-  </div>
-  <div class="p-4 bg-blue-50 rounded-lg">
-    <p class="text-sm text-gray-600 mb-2"><strong>Estagiário:</strong> Aço ASTM A572 Gr50, com tensão de escoamento de 345 MPa. Estamos com uma margem de segurança de 23%.</p>
-  </div>
-  <div class="p-4 bg-gray-50 rounded-lg">
-    <p class="text-sm text-gray-600 mb-2"><strong>Engenheiro:</strong> Ótimo trabalho. Precisamos fazer uma análise de fadiga complementar, considerando os ciclos de carga móvel. Você pode preparar isso?</p>
-  </div>
-  <div class="p-4 bg-blue-50 rounded-lg">
-    <p class="text-sm text-gray-600 mb-2"><strong>Estagiário:</strong> Sim, vou usar a NBR 8800 como referência e considerar a categoria de detalhe adequada para as soldas.</p>
-  </div>
-</div>
-    `
+  const formatReportContent = (aiSummary: any) => {
+    if (!aiSummary) {
+      return '<p class="text-gray-500 text-center py-8">Resumo em processamento...</p>';
+    }
+
+    return `
+      <div class="space-y-6">
+        ${aiSummary.chiefComplaint ? `
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">ESCOPO PRINCIPAL</h3>
+            <ul class="list-disc pl-5 space-y-1">
+              ${aiSummary.chiefComplaint.map((item: string) => `<li class="text-gray-700">${item}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+        
+        ${aiSummary.historyOfPresentIllness ? `
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">DESCRIÇÃO TÉCNICA</h3>
+            <ul class="list-disc pl-5 space-y-1">
+              ${aiSummary.historyOfPresentIllness.map((item: string) => `<li class="text-gray-700">${item}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+        
+        ${aiSummary.physicalExamination ? `
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">OBSERVAÇÕES TÉCNICAS</h3>
+            <ul class="list-disc pl-5 space-y-1">
+              ${aiSummary.physicalExamination.map((item: string) => `<li class="text-gray-700">${item}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+        
+        ${aiSummary.assessmentAndPlan ? `
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">ANÁLISE E RECOMENDAÇÕES</h3>
+            <ul class="list-disc pl-5 space-y-1">
+              ${aiSummary.assessmentAndPlan.map((item: string) => `<li class="text-gray-700">${item}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+      </div>
+    `;
   };
+
+  const formatTranscriptionContent = (transcript: any[]) => {
+    if (!transcript || transcript.length === 0) {
+      return '<p class="text-gray-500 text-center py-8">Transcrição não disponível</p>';
+    }
+
+    return `
+      <div class="space-y-4">
+        ${transcript.map((entry: any) => `
+          <div class="p-4 ${entry.speaker === 'Supervisor' ? 'bg-gray-50' : 'bg-blue-50'} rounded-lg">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs font-medium text-gray-600">${entry.speaker}</span>
+              <span class="text-xs text-gray-400">${entry.timestamp}</span>
+            </div>
+            <p class="text-sm text-gray-700">${entry.text}</p>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  };
+
+  const scenarioData = session ? {
+    id: session.id,
+    internshipType: session.internship_type,
+    location: session.location_name,
+    date: new Date(session.created_at).toLocaleDateString('pt-BR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }),
+    case: session.ai_summary?.title || session.internship_type,
+    tags: session.tags || [],
+    reportContent: formatReportContent(session.ai_summary),
+    transcriptionContent: formatTranscriptionContent(session.transcript)
+  } : null;
 
   const handleExport = () => {
     toast.success('Relatório exportado com sucesso!');
@@ -139,6 +196,37 @@ const InternshipReviewPage = () => {
       setIsCreatingAnnotation(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex justify-center items-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-3 text-muted-foreground">Carregando sessão...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error || !session || !scenarioData) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-12">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="p-8 text-center">
+              <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                {error || 'Sessão não encontrada'}
+              </h3>
+              <Button onClick={() => navigate('/internship')} className="mt-4">
+                Voltar para o Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
