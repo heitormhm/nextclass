@@ -362,7 +362,7 @@ const TeacherAIChatPage = () => {
   return (
     <MainLayout>
       <TeacherLayoutWrapper>
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)]">
+        <div className="h-screen flex flex-col">
           {/* Sidebar - Conversation History */}
           <div className={cn(
             "lg:w-64 bg-white/90 backdrop-blur-xl border-r border-purple-300/70 flex flex-col transition-all duration-300 ease-in-out shadow-lg",
