@@ -23,6 +23,7 @@ import ConsultationReviewPage from "./pages/ConsultationReviewPage";
 import LibraryPage from "./pages/LibraryPage";
 import GradesPage from "./pages/GradesPage";
 import SettingsPage from "./pages/SettingsPage";
+import ProfilePage from "./pages/ProfilePage";
 import AIChatPage from "./pages/AIChatPage";
 import ReviewPage from "./pages/ReviewPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
@@ -66,6 +67,7 @@ const App = () => (
           <Route path="/consultation-review/:id" element={<ProtectedRoute role="student"><ConsultationReviewPage /></ProtectedRoute>} />
           <Route path="/library" element={<ProtectedRoute role="student"><LibraryPage /></ProtectedRoute>} />
           <Route path="/grades" element={<ProtectedRoute role="student"><GradesPage /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute role="student"><ProfilePage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute role="student"><SettingsPage /></ProtectedRoute>} />
           <Route path="/aichat" element={<ProtectedRoute role="student"><AIChatPage /></ProtectedRoute>} />
           <Route path="/review" element={<ProtectedRoute role="student"><ReviewPage /></ProtectedRoute>} />

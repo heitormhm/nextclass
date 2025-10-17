@@ -162,7 +162,7 @@ const Navbar = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem>
-            <Link to={isTeacherMode ? "/teacherprofilesettings" : "/dashboard"} className="w-full">Meu Perfil</Link>
+            <Link to={isTeacherMode ? "/teacherprofilesettings" : "/profile"} className="w-full">Meu Perfil</Link>
           </DropdownMenuItem>
           {!isTeacherMode && (
             <>
@@ -255,7 +255,7 @@ const Navbar = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem>
-                            <Link to={isTeacherMode ? "/teacherprofilesettings" : "/dashboard"} className="w-full">Meu Perfil</Link>
+                            <Link to={isTeacherMode ? "/teacherprofilesettings" : "/profile"} className="w-full">Meu Perfil</Link>
                           </DropdownMenuItem>
                           {!isTeacherMode && (
                             <>
