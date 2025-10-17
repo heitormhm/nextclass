@@ -676,6 +676,8 @@ const TeacherAIChatPage = () => {
     setAttachedFile(null);
     setInputMessage("");
     setConversationContent({ quizzes: [], flashcards: [], lessonPlans: [] });
+    setActiveJobs(new Map());
+    processedJobsRef.current.clear();
   };
 
   const handleSelectChat = async (conversationId: string) => {
@@ -1105,7 +1107,7 @@ const TeacherAIChatPage = () => {
         </div>
 
         {/* Container Principal com Sidebar + Chat */}
-        <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex overflow-hidden relative min-h-0">
             {/* Sidebar */}
             <div className={cn(
               "border-r border-purple-200/40 bg-white/90 backdrop-blur-xl transition-transform duration-300 ease-in-out",
