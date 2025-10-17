@@ -92,20 +92,21 @@ const AnnotationPage = () => {
         }
         
         if (data) {
+          // First update state
           setTitle(data.title || '');
-          setContent(data.content || '');
           setTags(data.tags || []);
           
-          // Update editor content
-          if (editorRef.current) {
-            editorRef.current.innerHTML = data.content || '';
-          }
-          
-          // Initialize history
-          if (data.content) {
-            setHistory([data.content]);
-            setHistoryIndex(0);
-          }
+          // IMPORTANT: Use setTimeout to ensure DOM is ready
+          setTimeout(() => {
+            if (editorRef.current && data.content) {
+              editorRef.current.innerHTML = data.content;
+              setContent(data.content);
+              
+              // Initialize history
+              setHistory([data.content]);
+              setHistoryIndex(0);
+            }
+          }, 100);
         }
       } catch (error) {
         console.error('Unexpected error:', error);

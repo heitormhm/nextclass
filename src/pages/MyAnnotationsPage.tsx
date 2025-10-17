@@ -32,6 +32,7 @@ const MyAnnotationsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'title'>('recent');
   const [showFilters, setShowFilters] = useState(false);
+  const [filterBySource, setFilterBySource] = useState<'all' | 'internship' | 'personal'>('all');
 
   useEffect(() => {
     const fetchAnnotations = async () => {
@@ -70,7 +71,12 @@ const MyAnnotationsPage = () => {
       const matchesTags = selectedTags.length === 0 || 
                          (annotation.tags && selectedTags.some(tag => annotation.tags?.includes(tag)));
       
-      return matchesSearch && matchesTags;
+      // Filter by source type
+      const matchesSource = filterBySource === 'all' ? true :
+                           filterBySource === 'internship' ? annotation.source_type === 'internship_report' :
+                           filterBySource === 'personal' ? !annotation.source_type || annotation.source_type !== 'internship_report' : true;
+      
+      return matchesSearch && matchesTags && matchesSource;
     })
     .sort((a, b) => {
       if (sortBy === 'recent') {
@@ -144,8 +150,36 @@ const MyAnnotationsPage = () => {
                 </p>
               </div>
               
-              {/* Controls: Sort + Search */}
+              {/* Controls: Sort + Search + Type Filter */}
               <div className="flex items-center gap-3">
+                {/* Filtro por tipo de anotação */}
+                <div className="flex items-center gap-2 border rounded-lg p-1 bg-muted/50">
+                  <Button
+                    size="sm"
+                    variant={filterBySource === 'all' ? 'default' : 'ghost'}
+                    onClick={() => setFilterBySource('all')}
+                    className="h-8"
+                  >
+                    Todas
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={filterBySource === 'internship' ? 'default' : 'ghost'}
+                    onClick={() => setFilterBySource('internship')}
+                    className="h-8"
+                  >
+                    Estágios
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={filterBySource === 'personal' ? 'default' : 'ghost'}
+                    onClick={() => setFilterBySource('personal')}
+                    className="h-8"
+                  >
+                    Pessoais
+                  </Button>
+                </div>
+                
                 <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
                   <SelectTrigger className="w-40 h-9">
                     <SelectValue />
@@ -248,6 +282,13 @@ const MyAnnotationsPage = () => {
                 >
                   {/* Linha decorativa rosa/roxa */}
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500" />
+                  
+                  {/* Badge de tipo de anotação */}
+                  {annotation.source_type === 'internship_report' && (
+                    <Badge variant="outline" className="absolute top-4 left-3 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+                      🎓 Estágio
+                    </Badge>
+                  )}
                   
                   {/* Relative Date Badge */}
                   <div className="absolute top-4 right-3 text-xs text-muted-foreground">

@@ -177,29 +177,35 @@ const InternshipReviewPage = () => {
   };
 
   const handleEdit = async () => {
-    if (!scenarioData) return;
+    if (!scenarioData || !session) return;
     
     setIsCreatingAnnotation(true);
     
     try {
       // Get the current user session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { session: authSession }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError || !session) {
+      if (sessionError || !authSession) {
         toast.error('Você precisa estar autenticado para criar anotações');
         setIsCreatingAnnotation(false);
         return;
       }
 
-      // Prepare the title and content for the annotation
-      const annotationTitle = `Anotações sobre: ${scenarioData.case}`;
+      // Add date to annotation title
+      const formattedDate = new Date(session.created_at).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      
+      const annotationTitle = `${scenarioData.internshipType} - ${scenarioData.location} (${formattedDate})`;
       const annotationContent = scenarioData.reportContent;
 
       // Create annotation directly in the database
       const { data, error } = await supabase
         .from('annotations')
         .insert([{
-          user_id: session.user.id,
+          user_id: authSession.user.id,
           title: annotationTitle,
           content: annotationContent,
           source_type: 'internship_report',
@@ -217,7 +223,6 @@ const InternshipReviewPage = () => {
 
       if (data?.id) {
         toast.success('Anotação criada com sucesso!');
-        // Redirect to the annotation edit page
         navigate(`/annotation/${data.id}`);
       } else {
         toast.error('Erro ao criar anotação. Tente novamente.');
