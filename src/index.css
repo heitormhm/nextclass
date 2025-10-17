@@ -200,9 +200,22 @@ All colors MUST be HSL. Design tokens for consistent theming.
     @apply bg-white/50 backdrop-blur-md border border-white/10;
   }
 
-  .frost-white-strong {
-    @apply bg-white/80 backdrop-blur-xl border border-white/30;
-  }
+.frost-white-strong {
+  @apply bg-white/80 backdrop-blur-xl border border-white/30;
+}
+
+/* Teacher Theme - Frosted Glass Variants */
+.frost-white-teacher {
+  @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-lg shadow-purple-200/20;
+}
+
+.frost-white-teacher-card {
+  @apply bg-white/60 backdrop-blur-lg border border-purple-200/50 shadow-md shadow-purple-100/30;
+}
+
+.frost-white-teacher-strong {
+  @apply bg-white/85 backdrop-blur-2xl border border-white/50 shadow-xl shadow-purple-200/25;
+}
 
   /* Background Ripple Effect Animation */
   @keyframes cell-ripple {

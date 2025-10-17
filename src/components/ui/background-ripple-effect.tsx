@@ -40,7 +40,7 @@ const DivGrid: React.FC<DivGridProps> = ({ className, mouseX, mouseY }) => {
     const cols = Math.ceil(canvas.width / cellSize);
     const rows = Math.ceil(canvas.height / cellSize);
 
-    ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)';
+    ctx.strokeStyle = 'rgba(147, 51, 234, 0.12)';
     ctx.lineWidth = 1;
 
     for (let i = 0; i <= cols; i++) {
@@ -68,7 +68,7 @@ const DivGrid: React.FC<DivGridProps> = ({ className, mouseX, mouseY }) => {
 
           if (distance < maxDistance) {
             const opacity = 1 - distance / maxDistance;
-            ctx.fillStyle = `rgba(236, 72, 153, ${opacity * 0.15})`;
+            ctx.fillStyle = `rgba(147, 51, 234, ${opacity * 0.2})`;
             ctx.fillRect(x, y, cellSize, cellSize);
           }
         }
