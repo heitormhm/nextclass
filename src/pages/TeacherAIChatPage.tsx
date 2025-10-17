@@ -695,14 +695,14 @@ const TeacherAIChatPage = () => {
           
           <div className="relative z-10 flex-1 flex flex-col min-h-full">
             
-            <ScrollArea className="flex-1 px-4 py-6">
+            <ScrollArea className="flex-1 px-4 py-6 pb-36">
               <div className="max-w-4xl mx-auto space-y-6">
                  
                  {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center py-8 px-4">
+          <div className="flex flex-col items-center justify-center min-h-[45vh] text-center py-6 px-4">
             
             {/* Header com ícone inline */}
-            <div className="flex items-center justify-center gap-4 mb-4">
+            <div className="flex items-center justify-center gap-4 mb-3">
               {/* Ícone Sparkles com frosted glass */}
               <div className="relative w-16 h-16">
                 <div className="absolute inset-0 rounded-full backdrop-blur-xl bg-white/10 border-2 border-white/30 shadow-2xl" />
@@ -718,28 +718,29 @@ const TeacherAIChatPage = () => {
               </h3>
             </div>
             
-            {/* Subtítulo */}
-            <p className="text-white/90 text-lg mb-6 max-w-md font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+            {/* Subtítulo compacto */}
+            <p className="text-white/90 text-base mb-5 max-w-md font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
               Como posso ajudá-lo hoje?
             </p>
                     
-                    {/* Grid compacto 2 colunas */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-3xl">
-                      {getInitialActionButtons().map((btn, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleActionButtonClick(btn.action)}
-                          className="group p-3 backdrop-blur-lg bg-white/20 border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] hover:shadow-2xl transition-all text-left shadow-xl"
-                        >
-                          <div className="text-white text-sm font-semibold mb-1">
-                            {btn.label}
-                          </div>
-                          <div className="text-white/80 text-xs">
-                            {btn.description}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+            {/* Grid 3x2 otimizado */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-5xl">
+              {getInitialActionButtons().map((btn, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleActionButtonClick(btn.action)}
+                  aria-label={`${btn.label} - ${btn.description}`}
+                  className="group p-3 min-h-[90px] backdrop-blur-lg bg-white/20 border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 text-left shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-purple-600"
+                >
+                  <div className="text-white text-sm font-semibold mb-1.5 leading-tight">
+                    {btn.label}
+                  </div>
+                  <div className="text-white/75 text-xs leading-snug">
+                    {btn.description}
+                  </div>
+                </button>
+              ))}
+            </div>
                   </div>
                 ) : (
                   <>
