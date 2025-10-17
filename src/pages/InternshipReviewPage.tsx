@@ -17,12 +17,14 @@ import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { generateReportPDF } from '@/utils/pdfGenerator';
 
 const InternshipReviewPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('report');
   const [isCreatingAnnotation, setIsCreatingAnnotation] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -144,11 +146,39 @@ const InternshipReviewPage = () => {
     transcriptionContent: formatTranscriptionContent(session.transcript)
   } : null;
 
-  const handleExport = () => {
-    toast.success('Relatório exportado com sucesso!');
+  const handleExport = async () => {
+    if (!scenarioData) return;
+    
+    setIsExportingPDF(true);
+    
+    try {
+      // Convert HTML to clean text
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = scenarioData.reportContent;
+      const cleanContent = tempDiv.textContent || '';
+      
+      // Generate PDF
+      const result = await generateReportPDF({
+        content: cleanContent,
+        title: scenarioData.case
+      });
+      
+      if (result.success) {
+        toast.success('PDF exportado com sucesso!');
+      } else {
+        throw new Error(result.error || 'Erro ao gerar PDF');
+      }
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Erro ao exportar PDF. Tente novamente.');
+    } finally {
+      setIsExportingPDF(false);
+    }
   };
 
   const handleEdit = async () => {
+    if (!scenarioData) return;
+    
     setIsCreatingAnnotation(true);
     
     try {
@@ -165,15 +195,18 @@ const InternshipReviewPage = () => {
       const annotationTitle = `Anotações sobre: ${scenarioData.case}`;
       const annotationContent = scenarioData.reportContent;
 
-      // Call the edge function to create the annotation
-      const { data, error } = await supabase.functions.invoke('create-annotation-from-report', {
-        body: {
+      // Create annotation directly in the database
+      const { data, error } = await supabase
+        .from('annotations')
+        .insert([{
+          user_id: session.user.id,
           title: annotationTitle,
           content: annotationContent,
-          sourceType: 'internship_report',
-          sourceId: id,
-        },
-      });
+          source_type: 'internship_report',
+          source_id: id,
+        }])
+        .select()
+        .single();
 
       if (error) {
         console.error('Error creating annotation:', error);
@@ -361,10 +394,20 @@ const InternshipReviewPage = () => {
                   </Button>
                   <Button
                     onClick={handleExport}
+                    disabled={isExportingPDF}
                     className="gap-2 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
                   >
-                    <Download className="h-4 w-4" />
-                    Exportar como PDF
+                    {isExportingPDF ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Gerando PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Exportar como PDF
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
