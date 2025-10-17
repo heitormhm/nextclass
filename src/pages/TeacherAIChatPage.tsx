@@ -1129,14 +1129,14 @@ const TeacherAIChatPage = () => {
                 
                 <Button 
                   onClick={handleNewConversation}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Conversa
                 </Button>
 
                 {(conversationContent.quizzes.length > 0 || conversationContent.flashcards.length > 0 || conversationContent.lessonPlans.length > 0) && (
-                  <div className="pb-4 border-b border-purple-200/40">
+                  <div className="pb-4 mb-4 p-4 bg-white/95 rounded-xl border border-white/30 shadow-sm">
                     <h3 className="text-sm font-semibold text-gray-900 px-2 mb-3">
                       📚 Conteúdo Gerado
                     </h3>
@@ -1185,9 +1185,9 @@ const TeacherAIChatPage = () => {
                   <h3 className="text-sm font-medium text-gray-900 px-2">Conversas Recentes</h3>
                   
                   {conversations.length === 0 ? (
-                    <div className="text-center py-8 text-gray-700">
-                      <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Suas conversas com a Mia aparecerão aqui.</p>
+                    <div className="text-center py-8 mx-2 bg-white/95 rounded-xl p-6 border border-white/30">
+                      <MessageCircle className="w-8 h-8 mx-auto mb-2 text-purple-400" />
+                      <p className="text-sm text-gray-700 font-medium">Suas conversas com a Mia aparecerão aqui.</p>
                     </div>
                   ) : (
                     <div className="space-y-1">
@@ -1195,10 +1195,10 @@ const TeacherAIChatPage = () => {
                         <div
                           key={conversation.id}
                             className={cn(
-                              "group relative w-full text-left p-3 rounded-lg transition-all duration-200 hover:bg-white/40 cursor-pointer",
+                              "group relative w-full text-left p-3 rounded-lg transition-all duration-200 hover:bg-white hover:shadow-md cursor-pointer bg-white/95",
                               activeConversationId === conversation.id
-                                ? 'bg-white/60 border border-purple-300 text-gray-900'
-                                : 'text-gray-900 hover:text-gray-900'
+                                ? 'bg-white border-2 border-purple-500 shadow-lg text-gray-900'
+                                : 'text-gray-900 border border-white/30'
                             )}
                           onClick={() => handleSelectChat(conversation.id)}
                         >
@@ -1248,7 +1248,7 @@ const TeacherAIChatPage = () => {
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden m-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
               <ScrollArea className="flex-1">
                 <div className="h-full overflow-y-auto">
                 <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -1276,7 +1276,7 @@ const TeacherAIChatPage = () => {
                               "max-w-[85%] p-5 rounded-xl",
                               message.isUser
                                 ? "bg-purple-600 text-white"
-                                : "bg-white/90 text-gray-800 border border-purple-200"
+                                : "bg-white text-gray-800 border border-purple-200 shadow-md"
                             )}
                           >
                             {message.file && (
@@ -1449,7 +1449,7 @@ const TeacherAIChatPage = () => {
                           onChange={(e) => setInputMessage(e.target.value)}
                           onKeyDown={handleKeyPress}
                           placeholder="Pergunte à Mia sobre pedagogia, planejamento de aulas..."
-                          className="min-h-[40px] max-h-[120px] border-0 bg-transparent focus-visible:ring-0 resize-none"
+                          className="min-h-[40px] max-h-[120px] border-0 bg-transparent focus-visible:ring-0 resize-none placeholder:text-gray-600"
                           disabled={isLoading}
                         />
                       </div>
