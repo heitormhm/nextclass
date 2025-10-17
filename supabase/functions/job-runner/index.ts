@@ -1187,6 +1187,30 @@ FORMATO JSON OBRIGATÓRIO:
   }
 }
 
+async function handleGenerateLessonPlan(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  console.log(`📚 [${job.id}] PLACEHOLDER: Generating lesson plan`);
+  await supabaseAdmin.from('jobs').update({
+    status: 'COMPLETED',
+    result: JSON.stringify({ lessonPlanId: 'placeholder', title: 'Plano (Em Desenvolvimento)' })
+  }).eq('id', job.id);
+}
+
+async function handleGenerateMultipleChoiceActivity(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  console.log(`✅ [${job.id}] PLACEHOLDER: Generating activity`);
+  await supabaseAdmin.from('jobs').update({
+    status: 'COMPLETED',
+    result: JSON.stringify({ activityId: 'placeholder', title: 'Atividade (Em Desenvolvimento)', questionCount: 10 })
+  }).eq('id', job.id);
+}
+
+async function handleGenerateOpenEndedActivity(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  console.log(`📝 [${job.id}] PLACEHOLDER: Generating open-ended activity`);
+  await supabaseAdmin.from('jobs').update({
+    status: 'COMPLETED',
+    result: JSON.stringify({ activityId: 'placeholder', title: 'Atividade Dissertativa (Em Desenvolvimento)' })
+  }).eq('id', job.id);
+}
+
 async function handleLogInsight(job: any, supabaseAdmin: any) {
   console.log(`📊 [${job.id}] Logging academic insight`);
   
@@ -1520,6 +1544,12 @@ async function runJob(jobId: string) {
       await handleGenerateQuiz(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'GENERATE_FLASHCARDS') {
       await handleGenerateFlashcards(job, supabaseAdmin, LOVABLE_API_KEY);
+    } else if (job.job_type === 'GENERATE_LESSON_PLAN') {
+      await handleGenerateLessonPlan(job, supabaseAdmin, LOVABLE_API_KEY);
+    } else if (job.job_type === 'GENERATE_MULTIPLE_CHOICE_ACTIVITY') {
+      await handleGenerateMultipleChoiceActivity(job, supabaseAdmin, LOVABLE_API_KEY);
+    } else if (job.job_type === 'GENERATE_OPEN_ENDED_ACTIVITY') {
+      await handleGenerateOpenEndedActivity(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'LOG_ACADEMIC_INSIGHT') {
       await handleLogInsight(job, supabaseAdmin);
     } else if (job.job_type === 'GENERATE_RECOMMENDATION') {

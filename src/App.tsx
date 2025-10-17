@@ -27,6 +27,7 @@ import ProfilePage from "./pages/ProfilePage";
 import AIChatPage from "./pages/AIChatPage";
 import ReviewPage from "./pages/ReviewPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import TeacherAIChatPage from "./pages/TeacherAIChatPage";
 import LiveLecture from "./pages/LiveLecture";
 import LectureTranscription from "./pages/LectureTranscription";
 import TeacherCalendar from "./pages/TeacherCalendar";
@@ -74,6 +75,7 @@ const App = () => (
           
           {/* Teacher-only routes */}
           <Route path="/teacherdashboard" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />
+          <Route path="/teacher-aichat" element={<ProtectedRoute role="teacher"><TeacherAIChatPage /></ProtectedRoute>} />
           <Route path="/teacher/lesson-plans" element={<ProtectedRoute role="teacher"><TeacherLessonPlans /></ProtectedRoute>} />
           <Route path="/teacher/lesson-plans/:id" element={<ProtectedRoute role="teacher"><TeacherLessonPlanEditor /></ProtectedRoute>} />
           <Route path="/livelecture" element={<ProtectedRoute role="teacher"><LiveLecture /></ProtectedRoute>} />

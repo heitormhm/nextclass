@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap } from 'lucide-react';
+import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -108,12 +108,12 @@ const TeacherDashboard = () => {
       badge: 'IA',
     },
     {
-      icon: Brain,
-      title: 'Plano de Aula',
-      description: 'Crie com auxílio da Mia',
+      icon: MessageCircle,
+      title: 'Conversa com a Mia',
+      description: 'Assistente pedagógica com IA',
       gradientFrom: 'from-blue-500',
       gradientTo: 'to-blue-600',
-      onClick: () => navigate('/teacher/lesson-plans'),
+      onClick: () => navigate('/teacher-aichat'),
       badge: 'IA',
     },
     {
@@ -235,16 +235,16 @@ const TeacherDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="insights" className="w-full">
-                    <TabsList className="bg-white/90 backdrop-blur-md border border-purple-200/50 shadow-sm p-1 rounded-lg">
+                    <TabsList className="w-full bg-white/90 backdrop-blur-md border border-purple-200/50 shadow-sm p-1 rounded-lg">
                       <TabsTrigger 
                         value="insights" 
-                        className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-gray-700 data-[state=inactive]:hover:bg-purple-50 transition-all duration-200 rounded-md"
+                        className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-gray-700 data-[state=inactive]:hover:bg-purple-50 transition-all duration-200 rounded-md"
                       >
                         Alertas e Oportunidades
                       </TabsTrigger>
                       <TabsTrigger 
                         value="performance" 
-                        className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-gray-700 data-[state=inactive]:hover:bg-purple-50 transition-all duration-200 rounded-md"
+                        className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-gray-700 data-[state=inactive]:hover:bg-purple-50 transition-all duration-200 rounded-md"
                       >
                         Desempenho
                       </TabsTrigger>

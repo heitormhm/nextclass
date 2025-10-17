@@ -45,15 +45,15 @@ export const StatCard = ({
   };
 
   const getTrendColor = () => {
-    if (!trend) return 'bg-gray-100 text-gray-600';
+    if (!trend) return 'bg-gray-100/80 text-gray-600 border-gray-200 hover:bg-gray-100';
     
     switch (trend.direction) {
       case 'up':
-        return 'bg-green-100 text-green-700 border-green-200';
+        return 'bg-green-100/80 text-green-700 border-green-200 hover:bg-green-100';
       case 'down':
-        return 'bg-red-100 text-red-700 border-red-200';
+        return 'bg-red-100/80 text-red-700 border-red-200 hover:bg-red-100';
       default:
-        return 'bg-gray-100 text-gray-600 border-gray-200';
+        return 'bg-gray-100/80 text-gray-600 border-gray-200 hover:bg-gray-100';
     }
   };
 
@@ -74,9 +74,13 @@ export const StatCard = ({
           </div>
           
           {trend && (
-            <Badge className={cn("flex items-center gap-1 border shadow-sm", getTrendColor())}>
+            <Badge className={cn(
+              "flex items-center gap-1.5 border shadow-sm px-2.5 py-1 transition-all duration-200",
+              "hover:shadow-md hover:scale-105",
+              getTrendColor()
+            )}>
               {getTrendIcon()}
-              <span className="text-xs font-semibold">{trend.value > 0 ? '+' : ''}{trend.value}%</span>
+              <span className="text-sm font-bold">{trend.value > 0 ? '+' : ''}{trend.value}%</span>
             </Badge>
           )}
         </div>

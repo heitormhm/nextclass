@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle, XCircle, FileQuestion, Layers } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, FileQuestion, Layers, BookOpen, CheckSquare, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface JobStatusProps {
@@ -41,6 +41,15 @@ export const JobStatus = ({ job, conversationTitle, onOpenQuiz, onOpenFlashcards
           break;
         case 'GENERATE_SUGGESTIONS':
           processingMessage = `Gerando sugestões de aprofundamento...`;
+          break;
+        case 'GENERATE_LESSON_PLAN':
+          processingMessage = `Gerando plano de aula sobre "${displayTitle}"... Estruturando conteúdo pedagógico.`;
+          break;
+        case 'GENERATE_MULTIPLE_CHOICE_ACTIVITY':
+          processingMessage = `Criando atividade de múltipla escolha sobre "${displayTitle}"... Elaborando questões.`;
+          break;
+        case 'GENERATE_OPEN_ENDED_ACTIVITY':
+          processingMessage = `Elaborando atividade dissertativa sobre "${displayTitle}"... Preparando rubricas.`;
           break;
         default:
           processingMessage = `Processando...`;
@@ -126,14 +135,112 @@ export const JobStatus = ({ job, conversationTitle, onOpenQuiz, onOpenFlashcards
           </div>
         );
       }
+      
+      if (job.type === 'GENERATE_LESSON_PLAN' && job.result) {
+        try {
+          const resultData = JSON.parse(job.result);
+          const { lessonPlanId, title } = resultData;
+          
+          return (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg my-2">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <p className="text-green-800 font-medium text-sm">
+                  ✅ Plano de Aula criado com sucesso!
+                </p>
+              </div>
+              <p className="text-sm text-gray-700 mb-3">
+                <strong>{title}</strong> está pronto para uso.
+              </p>
+              <Button
+                onClick={() => window.open(`/teacher/lesson-plans/${lessonPlanId}`, '_blank')}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                size="sm"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Abrir Plano de Aula
+              </Button>
+            </div>
+          );
+        } catch (error) {
+          console.error('Error parsing lesson plan result:', error);
+        }
+      }
+      
+      if (job.type === 'GENERATE_MULTIPLE_CHOICE_ACTIVITY' && job.result) {
+        try {
+          const resultData = JSON.parse(job.result);
+          const { activityId, title, questionCount } = resultData;
+          
+          return (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg my-2">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <p className="text-green-800 font-medium text-sm">
+                  ✅ Atividade de Múltipla Escolha criada!
+                </p>
+              </div>
+              <p className="text-sm text-gray-700 mb-3">
+                <strong>{title}</strong> com {questionCount} questões está pronta.
+              </p>
+              <Button
+                onClick={() => window.open(`/teacher-activities/${activityId}`, '_blank')}
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                size="sm"
+              >
+                <CheckSquare className="w-4 h-4 mr-2" />
+                Ver Atividade
+              </Button>
+            </div>
+          );
+        } catch (error) {
+          console.error('Error parsing activity result:', error);
+        }
+      }
+      
+      if (job.type === 'GENERATE_OPEN_ENDED_ACTIVITY' && job.result) {
+        try {
+          const resultData = JSON.parse(job.result);
+          const { activityId, title } = resultData;
+          
+          return (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg my-2">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <p className="text-green-800 font-medium text-sm">
+                  ✅ Atividade Dissertativa criada!
+                </p>
+              </div>
+              <p className="text-sm text-gray-700 mb-3">
+                <strong>{title}</strong> com rubrica de avaliação está pronta.
+              </p>
+              <Button
+                onClick={() => window.open(`/teacher-activities/${activityId}`, '_blank')}
+                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
+                size="sm"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Ver Atividade
+              </Button>
+            </div>
+          );
+        } catch (error) {
+          console.error('Error parsing activity result:', error);
+        }
+      }
+      
       return null;
     
     case 'FAILED':
-      const failureMessage = job.type === 'GENERATE_QUIZ' 
-        ? 'Falha ao criar quiz. Tente novamente com um contexto diferente.'
-        : job.type === 'GENERATE_FLASHCARDS'
-        ? 'Falha ao criar flashcards. Tente novamente com um contexto diferente.'
-        : 'Falha ao processar. Tente novamente.';
+      const failureMessages: Record<string, string> = {
+        'GENERATE_QUIZ': 'Falha ao criar quiz. Tente novamente com um contexto diferente.',
+        'GENERATE_FLASHCARDS': 'Falha ao criar flashcards. Tente novamente com um contexto diferente.',
+        'GENERATE_LESSON_PLAN': 'Falha ao gerar plano de aula. Revise o contexto fornecido.',
+        'GENERATE_MULTIPLE_CHOICE_ACTIVITY': 'Falha ao criar atividade. Tente um tópico mais específico.',
+        'GENERATE_OPEN_ENDED_ACTIVITY': 'Falha ao elaborar atividade dissertativa. Reformule sua solicitação.',
+      };
+      
+      const failureMessage = failureMessages[job.type] || 'Falha ao processar. Tente novamente.';
       
       return (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg my-2">
