@@ -498,7 +498,7 @@ const TeacherAIChatPage = () => {
         )}
 
         {/* Main Chat Container */}
-        <div className="flex flex-col h-[calc(100vh-4rem)]">
+        <div className="relative flex flex-col h-[calc(100vh-4rem)]">
           {/* Mobile History Button */}
           <Button 
             onClick={() => setShowMobileHistory(true)}
@@ -509,10 +509,10 @@ const TeacherAIChatPage = () => {
           </Button>
 
           {/* Messages Area */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 overflow-y-auto">
             <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
                 {messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 px-4">
+                  <div className="flex flex-col items-center justify-center min-h-[60vh]">
                     <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
                       <Sparkles className="w-10 h-10 text-white" />
                     </div>
@@ -587,11 +587,11 @@ const TeacherAIChatPage = () => {
                 )}
               </div>
               <div ref={messagesEndRef} />
-            </ScrollArea>
+        </ScrollArea>
 
-          {/* Input Panel */}
-          <div className="border-t border-purple-200/40 bg-white/95 backdrop-blur-xl">
-            <div className="max-w-4xl mx-auto p-4 space-y-3">
+        {/* Input Panel */}
+        <div className="sticky bottom-0 left-0 right-0 border-t border-purple-200/40 bg-white/95 backdrop-blur-xl shadow-lg z-20">
+          <div className="max-w-4xl mx-auto px-4 py-3">
               <div className="bg-white rounded-2xl p-3 shadow-lg border-2 border-purple-300 backdrop-blur-md focus-within:ring-2 focus-within:ring-purple-500 transition-all">
                 {attachedFile && (
                   <div className="mb-3 p-2 bg-purple-50 rounded-lg">
