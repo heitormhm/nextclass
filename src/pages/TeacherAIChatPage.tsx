@@ -525,7 +525,7 @@ const TeacherAIChatPage = () => {
           
           <div className="p-6 pb-4">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-xl shadow-purple-500/30">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -538,7 +538,7 @@ const TeacherAIChatPage = () => {
           <div className="px-6 pb-4">
             <Button
               onClick={handleNewConversation}
-              className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md hover:shadow-lg transition-all"
+              className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
               size="lg"
             >
               <Plus className="w-5 h-5 mr-2" />
@@ -564,8 +564,8 @@ const TeacherAIChatPage = () => {
                       className={cn(
                         "flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all group",
                         activeConversationId === conv.id
-                          ? "bg-white dark:bg-gray-800 shadow-sm border border-purple-200 dark:border-purple-700"
-                          : "hover:bg-white/50 dark:hover:bg-gray-800/50"
+                          ? "bg-white dark:bg-gray-800 shadow-md border border-purple-200 dark:border-purple-700 scale-[1.02]"
+                          : "hover:bg-white/60 dark:hover:bg-gray-800/60 hover:shadow-sm hover:scale-[1.01]"
                       )}
                     >
                       <div className="flex-1 min-w-0">
@@ -593,9 +593,15 @@ const TeacherAIChatPage = () => {
         {/* ========== ÁREA DE CHAT ========== */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
           
-          {/* Fundo padrão do professor - gradiente contínuo */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500" />
-          <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
+          {/* Background gradiente unificado (padrão professor) */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]" />
+          
+          {/* Blobs animados para profundidade */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+            <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-400/40 to-purple-500/40 rounded-full blur-3xl animate-float" />
+            <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-300/35 to-purple-400/35 rounded-full blur-3xl" />
+            <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-400/30 to-pink-300/30 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+          </div>
           
           <div className="relative z-10 flex-1 flex flex-col">
             
@@ -603,23 +609,23 @@ const TeacherAIChatPage = () => {
               <div className="max-w-4xl mx-auto space-y-6">
                 
                 {messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center min-h-[60vh] text-center py-12 px-4">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-6 shadow-2xl">
-                      <MessageCircle className="w-12 h-12 text-white" />
-                    </div>
-                    <h3 className="text-3xl font-bold text-white mb-3">
-                      Bem-vindo, Professor!
-                    </h3>
-                    <p className="text-purple-100 text-lg mb-8 max-w-md">
-                      Como posso ajudá-lo hoje?
-                    </p>
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center py-12 px-4">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-6 shadow-2xl">
+              <MessageCircle className="w-12 h-12 text-white" />
+            </div>
+            <h3 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent mb-3 drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
+              Bem-vindo, Professor!
+            </h3>
+            <p className="text-white/90 text-lg mb-8 max-w-md font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+              Como posso ajudá-lo hoje?
+            </p>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
                       {getInitialSuggestions().slice(0, 4).map((suggestion, idx) => (
                         <button
                           key={idx}
                           onClick={() => handleSuggestionClick(suggestion)}
-                          className="p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl hover:bg-white/20 transition-all text-left text-white text-sm shadow-lg"
+                          className="p-4 bg-white/20 backdrop-blur-lg border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] transition-all text-left text-white text-sm shadow-xl hover:shadow-2xl"
                         >
                           {suggestion}
                         </button>
@@ -638,10 +644,10 @@ const TeacherAIChatPage = () => {
                       >
                         <div
                           className={cn(
-                            "max-w-[80%] rounded-2xl px-6 py-4 shadow-xl backdrop-blur-sm",
-                            message.isUser
-                              ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-                              : "bg-white/95 dark:bg-gray-800/95 text-gray-900 dark:text-white border border-white/50"
+                            "max-w-[80%] rounded-2xl px-6 py-4 shadow-xl backdrop-blur-sm transition-all hover:shadow-2xl",
+                  message.isUser
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-blue-500/30"
+                    : "bg-white/98 dark:bg-gray-800/95 text-gray-900 dark:text-white border border-white/60 shadow-purple-500/10"
                           )}
                         >
                           <div className={cn(
@@ -709,9 +715,9 @@ const TeacherAIChatPage = () => {
               </div>
             </ScrollArea>
 
-            <div className="p-3 sm:p-4 lg:p-6 pt-0">
-              <div className="max-w-4xl mx-auto">
-                <div className="frost-white rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg">
+        <div className="p-3 sm:p-4 lg:p-6 pt-0">
+          <div className="max-w-4xl mx-auto">
+            <div className="frost-white rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xl border border-white/30">
                   
                   <div className="flex items-end gap-2 sm:gap-3">
                     
