@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip } from "lucide-react";
+import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -48,13 +49,49 @@ const TeacherAIChatPage = () => {
   const [activeJobs, setActiveJobs] = useState<Map<string, any>>(new Map());
   const processedJobsRef = useRef<Set<string>>(new Set());
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
+  const [deepSearchProgress, setDeepSearchProgress] = useState(0);
 
-  const getInitialSuggestions = () => [
-    "Crie um plano de aula sobre análise de circuitos elétricos",
-    "Gere uma atividade de múltipla escolha sobre resistência dos materiais",
-    "Elabore uma atividade dissertativa sobre termodinâmica",
-    "Sugira estratégias para ensinar mecânica dos fluidos",
-    "Crie flashcards de revisão sobre estruturas metálicas"
+  const deepSearchSteps = [
+    { text: "🔍 Iniciando pesquisa profunda..." },
+    { text: "📚 Analisando bases de dados acadêmicas..." },
+    { text: "🧠 Processando conteúdo com IA avançada..." },
+    { text: "📊 Compilando informações relevantes..." },
+    { text: "✨ Gerando relatório personalizado..." },
+    { text: "✅ Finalizando análise..." }
+  ];
+
+  const getInitialActionButtons = () => [
+    {
+      label: "📚 Criar Material de Estudo",
+      action: "study-material",
+      description: "Gere materiais de apoio educacionais"
+    },
+    {
+      label: "📝 Criar Quiz",
+      action: "quiz",
+      description: "Crie questionários avaliativos"
+    },
+    {
+      label: "🎴 Criar Flashcard",
+      action: "flashcard",
+      description: "Desenvolva flashcards de revisão"
+    },
+    {
+      label: "📊 Criar Apresentação de Slides",
+      action: "slides",
+      description: "Monte apresentações visuais"
+    },
+    {
+      label: "📋 Criar Roteiro de Aula",
+      action: "lesson-plan",
+      description: "Planeje uma aula completa"
+    },
+    {
+      label: "✅ Criar Atividade Avaliativa",
+      action: "assessment",
+      description: "Gere atividades de múltipla escolha ou dissertativas"
+    }
   ];
 
   const hasExistingJob = (jobType: string, context: string): boolean => {
@@ -348,6 +385,11 @@ const TeacherAIChatPage = () => {
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
+    if (isDeepSearch) {
+      setIsDeepSearchLoading(true);
+      setDeepSearchProgress(0);
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
@@ -357,6 +399,7 @@ const TeacherAIChatPage = () => {
           message: currentMessage,
           isDeepSearch,
           conversationId,
+          autoDetectSearch: true,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -387,6 +430,8 @@ const TeacherAIChatPage = () => {
       });
     } finally {
       setIsLoading(false);
+      setIsDeepSearchLoading(false);
+      setDeepSearchProgress(0);
     }
   };
 
@@ -437,6 +482,34 @@ const TeacherAIChatPage = () => {
 
   const handleSuggestionClick = (suggestion: string) => {
     setInputMessage(suggestion);
+  };
+
+  const handleActionButtonClick = (action: string) => {
+    let prompt = "";
+    
+    switch(action) {
+      case "study-material":
+        prompt = "Criar material de estudo sobre ";
+        break;
+      case "quiz":
+        prompt = "Criar um quiz sobre ";
+        break;
+      case "flashcard":
+        prompt = "Criar flashcards de revisão sobre ";
+        break;
+      case "slides":
+        prompt = "Criar uma apresentação de slides sobre ";
+        break;
+      case "lesson-plan":
+        prompt = "Criar um roteiro de aula sobre ";
+        break;
+      case "assessment":
+        prompt = "Criar uma atividade avaliativa (múltipla escolha ou dissertativa) sobre ";
+        break;
+    }
+    
+    setInputMessage(prompt);
+    document.querySelector('textarea')?.focus();
   };
 
   // Process job updates from realtime
@@ -491,6 +564,25 @@ const TeacherAIChatPage = () => {
   useEffect(() => {
     localStorage.setItem('teacher-deep-search-mode', String(isDeepSearch));
   }, [isDeepSearch]);
+
+  useEffect(() => {
+    if (!isDeepSearchLoading) {
+      setDeepSearchProgress(0);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      setDeepSearchProgress(prev => {
+        if (prev >= deepSearchSteps.length - 1) {
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [isDeepSearchLoading, deepSearchSteps.length]);
 
   // Realtime subscription
   useEffect(() => {
@@ -609,12 +701,13 @@ const TeacherAIChatPage = () => {
             <ScrollArea className="flex-1 px-4 py-6">
               <div className="max-w-4xl mx-auto space-y-6">
                 
-                {messages.length === 0 ? (
+                 {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center py-12 px-4">
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full backdrop-blur-xl bg-white/10 border border-white/30 flex items-center justify-center shadow-2xl mb-6">
-              <MessageCircle className="w-10 h-10 sm:w-12 sm:h-12 text-white" strokeWidth={1.5} />
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 mb-6">
+              <div className="absolute inset-0 rounded-full backdrop-blur-xl bg-white/10 border-2 border-white/30 shadow-2xl" />
+              <div className="absolute inset-3 rounded-full bg-white shadow-xl" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-pink-500 fill-pink-500" />
+                <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-pink-500 fill-pink-500 drop-shadow-lg relative z-10" />
               </div>
             </div>
             <h3 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent mb-3 drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
@@ -624,14 +717,19 @@ const TeacherAIChatPage = () => {
               Como posso ajudá-lo hoje?
             </p>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
-                      {getInitialSuggestions().slice(0, 4).map((suggestion, idx) => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-4xl">
+                      {getInitialActionButtons().map((btn, idx) => (
                         <button
                           key={idx}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          className="p-4 bg-white/20 backdrop-blur-lg border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] transition-all text-left text-white text-sm shadow-xl hover:shadow-2xl"
+                          onClick={() => handleActionButtonClick(btn.action)}
+                          className="group p-4 backdrop-blur-lg bg-white/20 border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] hover:shadow-2xl transition-all text-left shadow-xl"
                         >
-                          {suggestion}
+                          <div className="text-white text-base font-semibold mb-1">
+                            {btn.label}
+                          </div>
+                          <div className="text-white/80 text-xs">
+                            {btn.description}
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -648,16 +746,13 @@ const TeacherAIChatPage = () => {
                       >
                         <div
                           className={cn(
-                            "max-w-[80%] rounded-2xl px-6 py-4 shadow-xl backdrop-blur-sm transition-all hover:shadow-2xl",
-                  message.isUser
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-blue-500/30"
-                    : "bg-white/98 dark:bg-gray-800/95 text-gray-900 dark:text-white border border-white/60 shadow-purple-500/10"
+                            "max-w-[80%] rounded-2xl px-6 py-4 shadow-xl backdrop-blur-xl transition-all hover:shadow-2xl",
+                            message.isUser
+                              ? "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
+                              : "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
                           )}
                         >
-                          <div className={cn(
-                            "prose prose-sm max-w-none",
-                            message.isUser ? "prose-invert" : ""
-                          )}>
+                          <div className="prose prose-sm max-w-none prose-gray">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm, remarkMath]}
                               rehypePlugins={[rehypeKatex]}
@@ -719,144 +814,142 @@ const TeacherAIChatPage = () => {
               </div>
             </ScrollArea>
 
-        <div className="absolute bottom-0 left-0 right-0">
-          <div className="max-w-4xl mx-auto">
-            <div className="frost-white rounded-xl sm:rounded-2xl p-4 sm:p-6 mx-4 sm:mx-6 mb-4 sm:mb-6 shadow-2xl border border-white/30">
+            {/* Input Area - Fixed at bottom */}
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-4 sm:px-6 pb-4 sm:pb-6">
+              <div className="max-w-4xl mx-auto frost-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl border border-white/30">
+                <div className="flex items-end gap-2 sm:gap-3">
                   
-                  <div className="flex items-end gap-2 sm:gap-3">
-                    
-                    {/* Botão de Anexo */}
-                    <div className="relative">
-                      <input
-                        type="file"
-                        id="teacher-file-upload"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            if (file.size > 20 * 1024 * 1024) {
-                              toast({
-                                title: "Arquivo muito grande",
-                                description: "O arquivo deve ter no máximo 20MB",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-                            setAttachedFile(file);
+                  {/* Botão de Anexo */}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="teacher-file-upload"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 20 * 1024 * 1024) {
                             toast({
-                              title: "Arquivo anexado",
-                              description: file.name,
+                              title: "Arquivo muito grande",
+                              description: "O arquivo deve ter no máximo 20MB",
+                              variant: "destructive",
                             });
+                            return;
                           }
-                        }}
-                        accept="image/*,.pdf,.doc,.docx,.txt"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => document.getElementById('teacher-file-upload')?.click()}
-                        className="shrink-0 h-10 w-10 hover:bg-primary/10"
-                        title="Anexar arquivo"
-                      >
-                        <Paperclip className="w-5 h-5" />
-                      </Button>
-                    </div>
-
-                    {/* Botão de Voz */}
+                          setAttachedFile(file);
+                          toast({
+                            title: "Arquivo anexado",
+                            description: file.name,
+                          });
+                        }
+                      }}
+                      accept="image/*,.pdf,.doc,.docx,.txt"
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={toggleVoiceInput}
-                      className={cn(
-                        "shrink-0 h-10 w-10 relative hover:bg-primary/10",
-                        isListening && "text-primary"
-                      )}
-                      disabled={isLoading}
+                      onClick={() => document.getElementById('teacher-file-upload')?.click()}
+                      className="shrink-0 h-10 w-10 hover:bg-primary/10"
+                      title="Anexar arquivo"
                     >
-                      <Mic className={cn(
-                        "w-5 h-5",
-                        isListening && "animate-pulse"
-                      )} />
-                      {isListening && (
-                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                        </span>
-                      )}
-                    </Button>
-
-                    {/* Input de Texto */}
-                    <div className="flex-1 space-y-2">
-                      <Textarea
-                        value={inputMessage}
-                        onChange={(e) => setInputMessage(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                        placeholder="Pergunte à Mia sobre pedagogia, conteúdos, estratégias..."
-                        className="min-h-[40px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-2"
-                        disabled={isLoading}
-                      />
-                      
-                      {/* Preview do arquivo anexado */}
-                      {attachedFile && (
-                        <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-lg text-sm">
-                          <Paperclip className="w-4 h-4 shrink-0" />
-                          <span className="flex-1 truncate">{attachedFile.name}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 hover:bg-destructive/10"
-                            onClick={() => setAttachedFile(null)}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Toggle de Busca */}
-                    <div className="hidden sm:flex shrink-0">
-                      <button
-                        onClick={() => setIsDeepSearch(!isDeepSearch)}
-                        className={cn(
-                          "relative inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300 transform hover:scale-105",
-                          isDeepSearch 
-                            ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-purple-500/25" 
-                            : "bg-background-secondary/50 text-foreground-muted hover:bg-background-secondary/70 border border-border"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          {isDeepSearch ? (
-                            <>
-                              <div className="w-4 h-4 relative">
-                                <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" />
-                                <div className="absolute inset-1 bg-white rounded-full" />
-                              </div>
-                              <span>Busca Aprofundada</span>
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="w-4 h-4" />
-                              <span>Busca Padrão</span>
-                            </>
-                          )}
-                        </div>
-                        
-                        {isDeepSearch && (
-                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 blur-md -z-10" />
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Botão de Enviar */}
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!inputMessage.trim() || isLoading}
-                      size="icon"
-                      className="shrink-0 h-10 w-10 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg"
-                    >
-                      <Send className="w-4 h-4" />
+                      <Paperclip className="w-5 h-5" />
                     </Button>
                   </div>
+
+                  {/* Botão de Voz */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleVoiceInput}
+                    className={cn(
+                      "shrink-0 h-10 w-10 relative hover:bg-primary/10",
+                      isListening && "text-primary"
+                    )}
+                    disabled={isLoading}
+                  >
+                    <Mic className={cn(
+                      "w-5 h-5",
+                      isListening && "animate-pulse"
+                    )} />
+                    {isListening && (
+                      <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                      </span>
+                    )}
+                  </Button>
+
+                  {/* Input de Texto */}
+                  <div className="flex-1 space-y-2">
+                    <Textarea
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      placeholder="Pergunte à Mia sobre pedagogia, conteúdos, estratégias..."
+                      className="min-h-[40px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-2"
+                      disabled={isLoading}
+                    />
+                    
+                    {/* Preview do arquivo anexado */}
+                    {attachedFile && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-lg text-sm">
+                        <Paperclip className="w-4 h-4 shrink-0" />
+                        <span className="flex-1 truncate">{attachedFile.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 hover:bg-destructive/10"
+                          onClick={() => setAttachedFile(null)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Toggle de Busca */}
+                  <div className="hidden sm:flex shrink-0">
+                    <button
+                      onClick={() => setIsDeepSearch(!isDeepSearch)}
+                      className={cn(
+                        "relative inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300 transform hover:scale-105",
+                        isDeepSearch 
+                          ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-purple-500/25" 
+                          : "bg-background-secondary/50 text-foreground-muted hover:bg-background-secondary/70 border border-border"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isDeepSearch ? (
+                          <>
+                            <div className="w-4 h-4 relative">
+                              <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" />
+                              <div className="absolute inset-1 bg-white rounded-full" />
+                            </div>
+                            <span>Busca Aprofundada</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            <span>Busca Padrão</span>
+                          </>
+                        )}
+                      </div>
+                      
+                      {isDeepSearch && (
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 blur-md -z-10" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Botão de Enviar */}
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim() || isLoading}
+                    size="icon"
+                    className="shrink-0 h-10 w-10 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             </div>
@@ -919,6 +1012,15 @@ const TeacherAIChatPage = () => {
             </div>
           </SheetContent>
         </Sheet>
+
+        {/* Multi-Step Loader para Busca Profunda */}
+        {isDeepSearchLoading && (
+          <MultiStepLoader
+            loadingStates={deepSearchSteps}
+            loading={isDeepSearchLoading}
+            currentState={deepSearchProgress}
+          />
+        )}
       </div>
     </MainLayout>
   );
