@@ -27,14 +27,28 @@ export const BackgroundRippleEffect = ({
     }
 
     const calculateRows = () => {
-      const viewportHeight = window.innerHeight;
-      const calculatedRows = Math.ceil(viewportHeight / cellSize) + 3;
+      const pageHeight = Math.max(
+        document.documentElement.scrollHeight,
+        document.documentElement.clientHeight,
+        window.innerHeight
+      );
+      const calculatedRows = Math.ceil(pageHeight / cellSize) + 5;
       setDynamicRows(calculatedRows);
     };
 
     calculateRows();
     window.addEventListener('resize', calculateRows);
-    return () => window.removeEventListener('resize', calculateRows);
+    
+    const observer = new MutationObserver(calculateRows);
+    observer.observe(document.body, { 
+      childList: true, 
+      subtree: true 
+    });
+    
+    return () => {
+      window.removeEventListener('resize', calculateRows);
+      observer.disconnect();
+    };
   }, [cellSize, rows]);
 
   return (
@@ -46,8 +60,8 @@ export const BackgroundRippleEffect = ({
         className
       )}
     >
-      <div className="relative h-auto w-auto overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 z-[2] h-full w-full overflow-hidden" />
+      <div className="relative h-full w-full">
+        <div className="absolute inset-0 z-[2] h-full w-full" />
         <DivGrid
           key={`base-${rippleKey}`}
           className="opacity-600"
@@ -106,12 +120,12 @@ const DivGrid = ({
     gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
     gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
     width: cols * cellSize,
-    height: rows * cellSize,
+    minHeight: '100%',
     marginInline: "auto",
   };
 
   return (
-    <div className={cn("relative z-[3]", className)} style={gridStyle}>
+    <div className={cn("relative z-[3] pointer-events-auto", className)} style={gridStyle}>
       {cells.map((idx) => {
         const rowIdx = Math.floor(idx / cols);
         const colIdx = idx % cols;
