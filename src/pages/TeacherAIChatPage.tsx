@@ -1079,16 +1079,16 @@ const TeacherAIChatPage = () => {
     <MainLayout>
       <TeacherLayoutWrapper className="h-full flex flex-col">
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-purple-200/40 bg-white/90 backdrop-blur-xl">
+        <div className="flex-shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-purple-200/40 bg-white/20 backdrop-blur-xl">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shrink-0">
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-800 truncate">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">
                   Chat com Mia - Assistente Pedagógica
                 </h1>
-                <p className="text-xs sm:text-sm text-purple-600 hidden sm:block">
+                <p className="text-xs sm:text-sm text-gray-700 hidden sm:block">
                   Geração de planos de aula, slides e atividades avaliativas
                 </p>
               </div>
@@ -1110,9 +1110,9 @@ const TeacherAIChatPage = () => {
         <div className="flex-1 flex overflow-hidden relative min-h-0">
             {/* Sidebar */}
             <div className={cn(
-              "border-r border-purple-200/40 bg-white/90 backdrop-blur-xl transition-transform duration-300 ease-in-out",
+              "border-r border-purple-200/40 bg-white/20 backdrop-blur-xl transition-transform duration-300 ease-in-out",
               showMobileHistory 
-                ? "fixed inset-y-0 left-0 z-50 w-full bg-white transform translate-x-0 md:relative md:w-80 lg:w-96" 
+                ? "fixed inset-y-0 left-0 z-50 w-full bg-white/20 backdrop-blur-xl transform translate-x-0 md:relative md:w-80 lg:w-96" 
                 : "hidden md:block md:w-80 lg:w-96"
             )}>
               <div className="p-4 space-y-4 h-full flex flex-col">
@@ -1137,7 +1137,7 @@ const TeacherAIChatPage = () => {
 
                 {(conversationContent.quizzes.length > 0 || conversationContent.flashcards.length > 0 || conversationContent.lessonPlans.length > 0) && (
                   <div className="pb-4 border-b border-purple-200/40">
-                    <h3 className="text-sm font-semibold text-purple-600 px-2 mb-3">
+                    <h3 className="text-sm font-semibold text-gray-900 px-2 mb-3">
                       📚 Conteúdo Gerado
                     </h3>
                     <div className="space-y-2">
@@ -1182,10 +1182,10 @@ const TeacherAIChatPage = () => {
                 )}
 
                 <div className="flex-1 space-y-2 overflow-y-auto">
-                  <h3 className="text-sm font-medium text-purple-600 px-2">Conversas Recentes</h3>
+                  <h3 className="text-sm font-medium text-gray-900 px-2">Conversas Recentes</h3>
                   
                   {conversations.length === 0 ? (
-                    <div className="text-center py-8 text-purple-600">
+                    <div className="text-center py-8 text-gray-700">
                       <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                       <p className="text-sm">Suas conversas com a Mia aparecerão aqui.</p>
                     </div>
@@ -1194,12 +1194,12 @@ const TeacherAIChatPage = () => {
                       {conversations.map((conversation) => (
                         <div
                           key={conversation.id}
-                          className={cn(
-                            "group relative w-full text-left p-3 rounded-lg transition-all duration-200 hover:bg-purple-50 cursor-pointer",
-                            activeConversationId === conversation.id
-                              ? 'bg-purple-100 border border-purple-300 text-purple-800'
-                              : 'text-gray-700 hover:text-purple-800'
-                          )}
+                            className={cn(
+                              "group relative w-full text-left p-3 rounded-lg transition-all duration-200 hover:bg-white/40 cursor-pointer",
+                              activeConversationId === conversation.id
+                                ? 'bg-white/60 border border-purple-300 text-gray-900'
+                                : 'text-gray-900 hover:text-gray-900'
+                            )}
                           onClick={() => handleSelectChat(conversation.id)}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -1210,7 +1210,7 @@ const TeacherAIChatPage = () => {
                                 )}
                                 {conversation.title}
                               </div>
-                              <div className="text-xs text-purple-500 mt-1">
+                              <div className="text-xs text-gray-600 mt-1">
                                 {new Date(conversation.created_at).toLocaleDateString("pt-BR", {
                                   day: "2-digit",
                                   month: "2-digit",
@@ -1390,9 +1390,9 @@ const TeacherAIChatPage = () => {
               </ScrollArea>
 
               {/* Input Panel */}
-              <div className="flex-shrink-0 border-t border-purple-200/40 bg-white/95 backdrop-blur-xl shadow-lg">
+              <div className="flex-shrink-0 border-t border-purple-200/40 bg-white/20 backdrop-blur-xl shadow-lg">
                 <div className="max-w-4xl mx-auto px-4 py-3">
-                  <div className="bg-white rounded-2xl p-3 shadow-lg border-2 border-purple-300">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 shadow-lg border-2 border-purple-300">
                     {attachedFile && (
                       <div className="mb-3 p-2 bg-purple-50 rounded-lg">
                         <div className="flex items-center gap-2">
