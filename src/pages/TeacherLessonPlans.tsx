@@ -95,15 +95,15 @@ const TeacherLessonPlans = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 to-white">
         {/* Animated Background */}
         <BackgroundRippleEffect className="opacity-30" />
         
         {/* Gradient Blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
-          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-200/40 to-purple-200/40 rounded-full blur-3xl" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-white/60 to-pink-100/50 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-100/50 to-white/60 rounded-full blur-3xl" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto p-6 space-y-6">
@@ -114,8 +114,8 @@ const TeacherLessonPlans = () => {
                 <Sparkles className="h-6 w-6 text-purple-400" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">Planos de Aula</h1>
-                <p className="text-gray-400">Criados com a assistência da Mia</p>
+                <h1 className="text-3xl font-bold text-gray-900">Planos de Aula</h1>
+                <p className="text-gray-600">Criados com a assistência da Mia</p>
               </div>
             </div>
             <Button
@@ -133,13 +133,13 @@ const TeacherLessonPlans = () => {
               <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
             </div>
           ) : lessonPlans.length === 0 ? (
-            <Card className="bg-gray-900/40 backdrop-blur-lg border-gray-700/50 p-12">
+            <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg p-12">
               <div className="text-center">
-                <FileText className="h-16 w-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   Nenhum plano de aula criado ainda
                 </h3>
-                <p className="text-gray-400 mb-6">
+                <p className="text-gray-600 mb-6">
                   Comece a criar planos de aula personalizados com a ajuda da Mia
                 </p>
                 <Button
@@ -157,17 +157,17 @@ const TeacherLessonPlans = () => {
                 {lessonPlans.map((plan) => (
                   <Card
                     key={plan.id}
-                    className="bg-gray-900/40 backdrop-blur-lg border-gray-700/50 p-6 hover:bg-gray-900/60 transition-all cursor-pointer group"
+                    className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg p-6 hover:bg-white/90 transition-all cursor-pointer group"
                     onClick={() => handleViewPlan(plan.id)}
                   >
                     <div className="space-y-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2 group-hover:text-purple-400 transition-colors">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors">
                             {plan.topic}
                           </h3>
                           {plan.duration && (
-                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
                               <Clock className="h-4 w-4" />
                               {plan.duration} minutos
                             </div>
@@ -176,9 +176,9 @@ const TeacherLessonPlans = () => {
                         {getStatusIcon(plan.status)}
                       </div>
 
-                      <div className="pt-4 border-t border-gray-700/50">
+                      <div className="pt-4 border-t border-white/30">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-400">
+                          <span className="text-gray-600">
                             {new Date(plan.created_at).toLocaleDateString('pt-BR')}
                           </span>
                           <span className={`font-medium ${

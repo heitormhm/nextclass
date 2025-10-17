@@ -34,7 +34,7 @@ const TeacherConfigurations = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-600">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-white">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           {/* Header */}
           <div className="mb-8">

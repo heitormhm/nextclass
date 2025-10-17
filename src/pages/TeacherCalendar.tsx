@@ -142,24 +142,24 @@ const TeacherCalendar = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 to-white">
         {/* Animated Background with Ripple Effect */}
         <BackgroundRippleEffect className="opacity-30" />
         
         {/* Gradient Blobs for Depth */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
-          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-200/40 to-purple-200/40 rounded-full blur-3xl" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-white/60 to-pink-100/50 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-100/50 to-white/60 rounded-full blur-3xl" />
         </div>
 
         <div className="relative z-10 container mx-auto px-4 py-8 animate-in fade-in-0 duration-500">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
               Calendário Acadêmico
             </h1>
-            <p className="text-slate-400 text-lg">
+            <p className="text-gray-600 text-lg">
               Gerencie suas aulas, prazos e compromissos acadêmicos
             </p>
           </div>
@@ -167,10 +167,10 @@ const TeacherCalendar = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Calendar */}
             <div className="lg:col-span-2">
-              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
+              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-2xl text-slate-100">
+                    <CardTitle className="text-2xl text-gray-900">
                       {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                     </CardTitle>
                     <div className="flex gap-2">
@@ -262,12 +262,12 @@ const TeacherCalendar = () => {
             {/* Events Sidebar */}
             <div className="space-y-6">
               {/* Today's Events or Selected Date Events */}
-              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
+              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-lg text-slate-100">
+                  <CardTitle className="text-lg text-gray-900">
                     {selectedDate ? 'Eventos do Dia Selecionado' : 'Próximos Eventos'}
                   </CardTitle>
-                  <CardDescription className="text-slate-400">
+                  <CardDescription className="text-gray-600">
                     {selectedDate 
                       ? `Eventos para ${new Date(selectedDate).toLocaleDateString('pt-BR')}`
                       : 'Seus compromissos mais próximos'
@@ -310,9 +310,9 @@ const TeacherCalendar = () => {
               </Card>
 
               {/* Calendar Legend */}
-              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
+              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-lg text-slate-100">Legenda</CardTitle>
+                  <CardTitle className="text-lg text-gray-900">Legenda</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2">
@@ -331,9 +331,9 @@ const TeacherCalendar = () => {
               </Card>
 
               {/* Quick Actions - Unified Button */}
-              <Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 shadow-2xl">
+              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-lg text-slate-100">Ações Rápidas</CardTitle>
+                  <CardTitle className="text-lg text-gray-900">Ações Rápidas</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Button 

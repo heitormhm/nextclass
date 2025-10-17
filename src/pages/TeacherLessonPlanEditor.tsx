@@ -548,28 +548,28 @@ const TeacherLessonPlanEditor = () => {
           });
         }}
       />
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 to-white">
         {/* Animated Background */}
         <BackgroundRippleEffect className="opacity-30" />
         
         {/* Gradient Blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
-          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-200/40 to-purple-200/40 rounded-full blur-3xl" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-white/60 to-pink-100/50 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-100/50 to-white/60 rounded-full blur-3xl" />
         </div>
 
         {/* Content */}
         <div className="relative z-10 h-screen flex flex-col">
           {/* Header */}
-          <div className="border-b border-gray-700/50 bg-gray-900/40 backdrop-blur-lg">
+          <div className="border-b border-white/30 bg-white/40 backdrop-blur-lg">
             <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/teacher/lesson-plans')}
-                  className="text-gray-400 hover:text-white hover:bg-white/10"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-white/20"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Voltar
@@ -579,10 +579,10 @@ const TeacherLessonPlanEditor = () => {
                     <Sparkles className="h-5 w-5 text-purple-400" />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold text-white">
+                    <h1 className="text-xl font-bold text-gray-900">
                       {topic || 'Novo Plano de Aula'}
                     </h1>
-                    <p className="text-sm text-gray-400">Criando com Mia</p>
+                    <p className="text-sm text-gray-600">Criando com Mia</p>
                   </div>
                 </div>
               </div>
@@ -593,7 +593,7 @@ const TeacherLessonPlanEditor = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleCopy}
-                    className="border-gray-700 text-white hover:bg-white/10 bg-gray-900/40 backdrop-blur-sm"
+                    className="border-white/40 text-gray-800 hover:bg-white/20 bg-white/60 backdrop-blur-sm"
                   >
                     <Copy className="h-4 w-4 mr-2" />
                     Copiar
@@ -602,7 +602,7 @@ const TeacherLessonPlanEditor = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleDownloadPDF}
-                    className="border-gray-700 text-white hover:bg-white/10 bg-gray-900/40 backdrop-blur-sm"
+                    className="border-white/40 text-gray-800 hover:bg-white/20 bg-white/60 backdrop-blur-sm"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     PDF
@@ -625,12 +625,12 @@ const TeacherLessonPlanEditor = () => {
                       className={`max-w-[80%] rounded-2xl p-4 ${
                         message.role === 'user'
                           ? 'bg-purple-600/80 backdrop-blur-lg text-white border border-purple-500/30'
-                          : 'bg-gray-900/40 backdrop-blur-lg text-white border border-gray-700/50'
+                          : 'bg-white/70 backdrop-blur-lg text-gray-900 border border-white/30 shadow-lg'
                       }`}
                     >
                       {message.role === 'assistant' ? (
                         <div
-                          className="prose prose-invert prose-sm max-w-none"
+                          className="prose prose-gray prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: message.content }}
                         />
                       ) : (
@@ -641,7 +641,7 @@ const TeacherLessonPlanEditor = () => {
                 ))}
                 {isGenerating && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-900/40 backdrop-blur-lg text-white border border-gray-700/50 rounded-2xl p-4">
+                    <div className="bg-white/70 backdrop-blur-lg text-gray-900 border border-white/30 shadow-lg rounded-2xl p-4">
                       <Loader2 className="h-5 w-5 animate-spin" />
                     </div>
                   </div>
@@ -650,9 +650,9 @@ const TeacherLessonPlanEditor = () => {
             </div>
 
             {/* Input Area */}
-            <div className="border-t border-gray-700/50 bg-gray-900/40 backdrop-blur-lg p-6">
+            <div className="border-t border-white/30 bg-white/40 backdrop-blur-lg p-6">
               <div className="w-full">
-                <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-4 border border-gray-700/50 shadow-xl">
+                <div className="bg-white/60 backdrop-blur-lg rounded-2xl p-4 border border-white/40 shadow-xl">
                   <div className="flex gap-3 items-end">
                     <Button
                       variant="ghost"

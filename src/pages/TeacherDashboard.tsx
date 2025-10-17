@@ -125,23 +125,23 @@ const TeacherDashboard = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 to-white">
         {/* Animated Background with Ripple Effect */}
         <BackgroundRippleEffect className="opacity-30" />
         
         {/* Gradient Blobs for Depth */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
-          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-200/40 to-purple-200/40 rounded-full blur-3xl" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-white/60 to-pink-100/50 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-100/50 to-white/60 rounded-full blur-3xl" />
         </div>
 
         {/* Main Content */}
         <div className="relative z-10 p-6 max-w-[1600px] mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">Painel do Professor</h1>
-            <p className="text-gray-400">Gerencie suas aulas e acompanhe o desempenho da turma</p>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Painel do Professor</h1>
+            <p className="text-gray-600">Gerencie suas aulas e acompanhe o desempenho da turma</p>
           </div>
 
           {/* Two Column Layout */}
@@ -149,9 +149,9 @@ const TeacherDashboard = () => {
             {/* Left Column - Main Content */}
             <div className="space-y-6">
               {/* Quick Actions Bar with AI Co-pilot */}
-              <Card className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
+              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-gray-800 flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-purple-400" />
                     IA Co-piloto
                   </CardTitle>
@@ -200,13 +200,13 @@ const TeacherDashboard = () => {
                 {statCards.map((stat, index) => {
                   const Icon = stat.icon;
                   return (
-                    <Card key={index} className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
+                    <Card key={index} className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-2">
                           <Icon className={`h-6 w-6 ${stat.color}`} />
                         </div>
-                        <p className="text-3xl font-bold text-white mb-1">{stat.value}</p>
-                        <p className="text-sm text-gray-400">{stat.title}</p>
+                        <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
+                        <p className="text-sm text-gray-600">{stat.title}</p>
                         <p className="text-xs text-gray-500 mt-1">{stat.subtitle}</p>
                       </CardContent>
                     </Card>
@@ -215,23 +215,23 @@ const TeacherDashboard = () => {
               </div>
 
               {/* Insights Panel with Tabs */}
-              <Card className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
+              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-white">Insights da Turma</CardTitle>
+                  <CardTitle className="text-gray-800">Insights da Turma</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="insights" className="w-full">
-                    <TabsList className="bg-gray-800 border-gray-700">
-                      <TabsTrigger value="insights" className="data-[state=active]:bg-purple-600">
+                    <TabsList className="bg-white/50 backdrop-blur-md border-white/30">
+                      <TabsTrigger value="insights" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white data-[state=inactive]:text-gray-700">
                         Alertas e Oportunidades
                       </TabsTrigger>
-                      <TabsTrigger value="performance" className="data-[state=active]:bg-purple-600">
+                      <TabsTrigger value="performance" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white data-[state=inactive]:text-gray-700">
                         Desempenho
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="insights" className="space-y-3 mt-4">
                       {isLoadingInsights ? (
-                        <p className="text-gray-400 text-center py-8">Carregando insights...</p>
+                        <p className="text-gray-600 text-center py-8">Carregando insights...</p>
                       ) : insights.length > 0 ? (
                         insights.map((insight) => (
                           <InsightCard
@@ -244,10 +244,10 @@ const TeacherDashboard = () => {
                           />
                         ))
                       ) : (
-                        <Card className="bg-gray-800/40 border-gray-700 p-8">
+                        <Card className="bg-white/40 backdrop-blur-md border-white/30 shadow-sm p-8">
                           <div className="text-center">
                             <Sparkles className="h-12 w-12 text-purple-400 mx-auto mb-3" />
-                            <p className="text-gray-400 mb-2">Nenhum insight disponível</p>
+                            <p className="text-gray-600 mb-2">Nenhum insight disponível</p>
                             <p className="text-sm text-gray-500">
                               A IA ainda está analisando os dados da turma
                             </p>
@@ -256,8 +256,8 @@ const TeacherDashboard = () => {
                       )}
                     </TabsContent>
                     <TabsContent value="performance" className="mt-4">
-                      <Card className="bg-gray-800/40 border-gray-700 p-6">
-                        <p className="text-gray-400 text-center">
+                      <Card className="bg-white/40 backdrop-blur-md border-white/30 shadow-sm p-6">
+                        <p className="text-gray-600 text-center">
                           Gráficos de desempenho em desenvolvimento
                         </p>
                       </Card>
@@ -270,18 +270,18 @@ const TeacherDashboard = () => {
             {/* Right Column - Sidebar */}
             <div className="space-y-6">
               {/* Class Selector */}
-              <Card className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
+              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg">Turma Selecionada</CardTitle>
+                  <CardTitle className="text-gray-800 text-lg">Turma Selecionada</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Select value={selectedClass} onValueChange={setSelectedClass}>
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger className="bg-white/60 backdrop-blur-md border-white/40 text-gray-800">
                       <SelectValue placeholder="Selecione uma turma" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-gray-700">
+                    <SelectContent className="bg-white/95 backdrop-blur-xl border-white/50 shadow-xl">
                       {classes.map((cls) => (
-                        <SelectItem key={cls.id} value={cls.id} className="text-white">
+                        <SelectItem key={cls.id} value={cls.id} className="text-gray-800 hover:bg-purple-50">
                           {cls.name} - {cls.period}
                         </SelectItem>
                       ))}
@@ -291,9 +291,9 @@ const TeacherDashboard = () => {
               </Card>
 
               {/* Upcoming Events */}
-              <Card className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
+              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg flex items-center justify-between">
+                  <CardTitle className="text-gray-800 text-lg flex items-center justify-between">
                     Próximos Eventos
                     <Button
                       size="sm"
@@ -310,20 +310,20 @@ const TeacherDashboard = () => {
                     {upcomingEvents.map((event, index) => (
                       <div
                         key={index}
-                        className="p-3 rounded-lg bg-gray-800/40 border border-gray-700"
+                        className="p-3 rounded-lg bg-white/50 backdrop-blur-md border border-white/30 shadow-sm"
                       >
                         <div className="flex gap-3">
-                          <div className="flex flex-col items-center justify-center bg-purple-600/20 rounded-lg p-2 min-w-[50px]">
-                            <span className="text-xs text-purple-400 font-medium">
+                          <div className="flex flex-col items-center justify-center bg-purple-100/80 rounded-lg p-2 min-w-[50px]">
+                            <span className="text-xs text-purple-700 font-semibold">
                               {event.date.split(' ')[0]}
                             </span>
-                            <span className="text-lg font-bold text-white">
+                            <span className="text-lg font-bold text-gray-900">
                               {event.date.split(' ')[1]}
                             </span>
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-white">{event.title}</p>
-                            <p className="text-xs text-gray-400 mt-1">{event.time}</p>
+                            <p className="text-sm font-medium text-gray-800">{event.title}</p>
+                            <p className="text-xs text-gray-600 mt-1">{event.time}</p>
                           </div>
                         </div>
                       </div>
@@ -333,21 +333,21 @@ const TeacherDashboard = () => {
               </Card>
 
               {/* Quick Stats */}
-              <Card className="bg-gray-900/70 backdrop-blur-lg border-gray-700">
+              <Card className="bg-white/70 backdrop-blur-lg border-white/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg">Estatísticas Rápidas</CardTitle>
+                  <CardTitle className="text-gray-800 text-lg">Estatísticas Rápidas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Taxa de Presença</span>
+                    <span className="text-sm text-gray-600">Taxa de Presença</span>
                     <span className="text-lg font-bold text-green-400">94%</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Materiais Enviados</span>
+                    <span className="text-sm text-gray-600">Materiais Enviados</span>
                     <span className="text-lg font-bold text-blue-400">127</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Revisões Pendentes</span>
+                    <span className="text-sm text-gray-600">Revisões Pendentes</span>
                     <span className="text-lg font-bold text-orange-400">8</span>
                   </div>
                 </CardContent>
