@@ -32,7 +32,7 @@ export const BackgroundRippleEffect = ({
         <div className="pointer-events-none absolute inset-0 z-[2] h-full w-full overflow-hidden" />
         <DivGrid
           key={`base-${rippleKey}`}
-          className="mask-radial-from-20% mask-radial-at-top opacity-600"
+          className="opacity-600"
           rows={rows}
           cols={cols}
           cellSize={cellSize}
@@ -114,7 +114,7 @@ const DivGrid = ({
           <div
             key={idx}
             className={cn(
-              "cell relative border-[1.5px] opacity-50 transition-opacity duration-150 will-change-transform hover:opacity-90 shadow-[0px_0px_40px_1px_var(--cell-shadow-color)_inset]",
+              "cell relative border-[1.5px] opacity-30 transition-opacity duration-150 will-change-transform hover:opacity-90 shadow-[0px_0px_40px_1px_var(--cell-shadow-color)_inset]",
               clickedCell && "animate-cell-ripple [animation-fill-mode:none]",
               !interactive && "pointer-events-none",
             )}
