@@ -362,43 +362,12 @@ const TeacherAIChatPage = () => {
   return (
     <MainLayout>
       <TeacherLayoutWrapper>
-        <div className="h-screen flex flex-col">
-          {/* Header - Mobile optimized */}
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-purple-200/40">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className="p-2 sm:p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 shrink-0">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-900 truncate">
-                  Chat com Mia - Professor
-                </h1>
-                <p className="text-xs sm:text-sm text-purple-600 hidden sm:block">
-                  Sua assistente pedagógica especializada
-                </p>
-              </div>
-            </div>
-            
-            {!showMobileHistory && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="md:hidden shrink-0 ml-2 border-purple-300 text-purple-700 hover:bg-purple-50"
-                onClick={() => setShowMobileHistory(true)}
-              >
-                <MessageCircle className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-
-          {/* Container flex para sidebar + chat */}
-          <div className="flex flex-1 overflow-hidden">
-            {/* Sidebar - Conversation History */}
-            <div className={cn(
-            "md:w-80 lg:w-96 bg-white/90 backdrop-blur-xl border-r border-purple-300/70 flex flex-col transition-all duration-300 ease-in-out shadow-lg",
-            "fixed lg:relative inset-0 z-50 lg:z-10",
-            showMobileHistory ? "block" : "hidden lg:block"
-          )}>
+        {/* Sidebar - Mobile Overlay Only */}
+        <div className={cn(
+          "md:w-80 lg:w-96 bg-white/90 backdrop-blur-xl border-r border-purple-300/70 flex flex-col transition-all duration-300 ease-in-out shadow-lg",
+          "fixed inset-0 z-50",
+          showMobileHistory ? "block" : "hidden"
+        )}>
           <div className="p-3 border-b border-purple-200/50 bg-white/50 flex justify-between items-center">
             <h2 className="font-semibold text-lg text-purple-900">Conversas com Mia</h2>
             <Button
@@ -524,10 +493,19 @@ const TeacherAIChatPage = () => {
           </ScrollArea>
         </div>
 
-            {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col relative">
-              <div className="flex-1 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1 p-4 pointer-events-auto">
+        {/* Main Chat Area */}
+        <div className="flex flex-col min-h-[calc(100vh-4rem)] relative">
+          {!showMobileHistory && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="lg:hidden absolute top-4 right-4 z-10 border-purple-300 text-purple-700 hover:bg-purple-50 bg-white/90 backdrop-blur-sm"
+              onClick={() => setShowMobileHistory(true)}
+            >
+              <MessageCircle className="w-4 h-4" />
+            </Button>
+          )}
+          <ScrollArea className="flex-1 p-4 pointer-events-auto">
               <div className="max-w-4xl mx-auto space-y-4">
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 px-4">
@@ -702,13 +680,10 @@ const TeacherAIChatPage = () => {
                     >
                       <Send className="w-4 h-4" />
                     </Button>
-                  </div>
                 </div>
               </div>
             </div>
-            </div>
-            </div> {/* Fecha main chat area */}
-          </div> {/* Fecha container flex sidebar + chat */}
+          </div>
         </div>
       </TeacherLayoutWrapper>
 
