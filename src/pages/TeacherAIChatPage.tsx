@@ -697,31 +697,41 @@ const TeacherAIChatPage = () => {
             
             <ScrollArea className="flex-1 px-4 py-6">
               <div className="max-w-4xl mx-auto space-y-6">
-                
+                 
                  {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center py-12 px-4">
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 mb-6">
-              <div className="absolute inset-0 rounded-full backdrop-blur-xl bg-white/10 border-2 border-white/30 shadow-2xl" />
-              <div className="absolute inset-3 rounded-full bg-white shadow-xl" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-pink-500 fill-pink-500 drop-shadow-lg relative z-10" />
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center py-8 px-4">
+            
+            {/* Header com ícone inline */}
+            <div className="flex items-center justify-center gap-4 mb-4">
+              {/* Ícone Sparkles com frosted glass */}
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-full backdrop-blur-xl bg-white/10 border-2 border-white/30 shadow-2xl" />
+                <div className="absolute inset-2 rounded-full bg-white shadow-xl" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 text-pink-500 fill-pink-500 drop-shadow-lg relative z-10" />
+                </div>
               </div>
+              
+              {/* Texto ao lado do ícone */}
+              <h3 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
+                Bem-vindo, Professor!
+              </h3>
             </div>
-            <h3 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent mb-3 drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
-              Bem-vindo, Professor!
-            </h3>
-            <p className="text-white/90 text-lg mb-8 max-w-md font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+            
+            {/* Subtítulo */}
+            <p className="text-white/90 text-lg mb-6 max-w-md font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
               Como posso ajudá-lo hoje?
             </p>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-4xl">
+                    {/* Grid compacto 2 colunas */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-3xl">
                       {getInitialActionButtons().map((btn, idx) => (
                         <button
                           key={idx}
                           onClick={() => handleActionButtonClick(btn.action)}
-                          className="group p-4 backdrop-blur-lg bg-white/20 border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] hover:shadow-2xl transition-all text-left shadow-xl"
+                          className="group p-3 backdrop-blur-lg bg-white/20 border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] hover:shadow-2xl transition-all text-left shadow-xl"
                         >
-                          <div className="text-white text-base font-semibold mb-1">
+                          <div className="text-white text-sm font-semibold mb-1">
                             {btn.label}
                           </div>
                           <div className="text-white/80 text-xs">
