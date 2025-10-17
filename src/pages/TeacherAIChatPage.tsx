@@ -1110,12 +1110,12 @@ const TeacherAIChatPage = () => {
         <div className="flex-1 flex overflow-hidden relative min-h-0">
             {/* Sidebar */}
             <div className={cn(
-              "border-r border-purple-200/40 bg-white/20 backdrop-blur-xl transition-transform duration-300 ease-in-out",
+              "bg-white/20 backdrop-blur-xl transition-transform duration-300 ease-in-out",
               showMobileHistory 
                 ? "fixed inset-y-0 left-0 z-50 w-full bg-white/20 backdrop-blur-xl transform translate-x-0 md:relative md:w-80 lg:w-96" 
                 : "hidden md:block md:w-80 lg:w-96"
             )}>
-              <div className="p-4 space-y-4 h-full flex flex-col">
+              <div className="p-4 space-y-4 h-full flex flex-col overflow-hidden">
                 {showMobileHistory && (
                   <Button 
                     variant="ghost" 
@@ -1129,7 +1129,7 @@ const TeacherAIChatPage = () => {
                 
                 <Button 
                   onClick={handleNewConversation}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 shrink-0"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Conversa
@@ -1181,7 +1181,7 @@ const TeacherAIChatPage = () => {
                   </div>
                 )}
 
-                <div className="flex-1 space-y-2 overflow-y-auto">
+                <div className="flex-1 space-y-2 overflow-y-auto min-h-0">
                   <h3 className="text-sm font-medium text-gray-900 px-2">Conversas Recentes</h3>
                   
                   {conversations.length === 0 ? (
@@ -1248,7 +1248,7 @@ const TeacherAIChatPage = () => {
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 flex flex-col overflow-hidden m-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
+            <div className="flex-1 flex flex-col overflow-hidden bg-white/10 backdrop-blur-sm">
               <ScrollArea className="flex-1">
                 <div className="h-full overflow-y-auto">
                 <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
