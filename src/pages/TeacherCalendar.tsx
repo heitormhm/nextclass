@@ -403,8 +403,8 @@ const TeacherCalendar = () => {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="border-0 shadow-sm bg-white/75 backdrop-blur-xl border-blue-100/30 min-h-[600px]">
-                  <CardContent className="p-6">
+                <Card className="border-0 shadow-sm bg-white/75 backdrop-blur-xl border-blue-100/30 h-[780px]">
+                  <CardContent className="p-6 h-full flex flex-col">
                     {/* Navigation bar */}
                     <div className="flex items-center justify-between mb-6">
                       <Button
@@ -592,7 +592,7 @@ const TeacherCalendar = () => {
                     {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
                   </p>
                 </CardHeader>
-                <CardContent className="min-h-[200px] max-h-[600px]">
+                <CardContent className="h-[600px]">
                   {selectedDateEvents.length === 0 ? (
                     <p className="text-sm text-gray-500 text-center py-8">
                       Nenhum evento neste dia
