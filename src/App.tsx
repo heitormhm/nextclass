@@ -36,6 +36,8 @@ import TeacherConfigurations from "./pages/TeacherConfigurations";
 import TeacherLessonPlans from "./pages/TeacherLessonPlans";
 import TeacherLessonPlanEditor from "./pages/TeacherLessonPlanEditor";
 import LectureTranscriptionPage from "./pages/LectureTranscriptionPage";
+import TeacherAnnotationsPage from "./pages/TeacherAnnotationsPage";
+import TeacherAnnotationPage from "./pages/TeacherAnnotationPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +86,8 @@ const App = () => (
           <Route path="/teachercalendar" element={<ProtectedRoute role="teacher"><TeacherCalendar /></ProtectedRoute>} />
           <Route path="/teacherprofilesettings" element={<ProtectedRoute role="teacher"><TeacherProfileSettings /></ProtectedRoute>} />
           <Route path="/teacherconfigurations" element={<ProtectedRoute role="teacher"><TeacherConfigurations /></ProtectedRoute>} />
+          <Route path="/teacher/annotations" element={<ProtectedRoute role="teacher"><TeacherAnnotationsPage /></ProtectedRoute>} />
+          <Route path="/teacher/annotation/:id" element={<ProtectedRoute role="teacher"><TeacherAnnotationPage /></ProtectedRoute>} />
           
           {/* Public routes */}
           <Route path="/auth" element={<AuthPage />} />

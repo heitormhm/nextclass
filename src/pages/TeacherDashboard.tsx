@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap, MessageCircle } from 'lucide-react';
+import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap, MessageCircle, StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -115,6 +115,14 @@ const TeacherDashboard = () => {
       gradientTo: 'to-blue-600',
       onClick: () => navigate('/teacher-aichat'),
       badge: 'IA',
+    },
+    {
+      icon: StickyNote,
+      title: 'Minhas Anotações',
+      description: 'Organize suas anotações pedagógicas',
+      gradientFrom: 'from-indigo-500',
+      gradientTo: 'to-indigo-600',
+      onClick: () => navigate('/teacher/annotations'),
     },
     {
       icon: Upload,
