@@ -594,9 +594,61 @@ const TeacherCalendar = () => {
                       Nenhum evento neste dia
                     </p>
                   ) : (
-                    <div className="space-y-3 max-h-[550px] overflow-y-auto overflow-x-hidden pr-2 pt-2 pb-4">
+                    <div className="space-y-3 max-h-[550px] overflow-y-auto pr-4 pt-2 pb-4">
                       {selectedDateEvents.map((event) => {
                         const colorClasses = getEventColorClasses(event.color);
+                        
+                        // Função para obter gradientes personalizados por cor
+                        const getEventGradientClasses = (color: string) => {
+                          const gradients: Record<string, {bg: string, hover: string, border: string, badge: string}> = {
+                            azul: {
+                              bg: 'bg-gradient-to-br from-blue-50 via-blue-100/50 to-blue-50',
+                              hover: 'hover:from-blue-100 hover:via-blue-50 hover:to-white',
+                              border: 'border-blue-200 hover:border-blue-400',
+                              badge: 'bg-blue-100 text-blue-700 border-blue-300'
+                            },
+                            roxo: {
+                              bg: 'bg-gradient-to-br from-purple-50 via-purple-100/50 to-purple-50',
+                              hover: 'hover:from-purple-100 hover:via-purple-50 hover:to-white',
+                              border: 'border-purple-200 hover:border-purple-400',
+                              badge: 'bg-purple-100 text-purple-700 border-purple-300'
+                            },
+                            verde: {
+                              bg: 'bg-gradient-to-br from-green-50 via-green-100/50 to-green-50',
+                              hover: 'hover:from-green-100 hover:via-green-50 hover:to-white',
+                              border: 'border-green-200 hover:border-green-400',
+                              badge: 'bg-green-100 text-green-700 border-green-300'
+                            },
+                            laranja: {
+                              bg: 'bg-gradient-to-br from-orange-50 via-orange-100/50 to-orange-50',
+                              hover: 'hover:from-orange-100 hover:via-orange-50 hover:to-white',
+                              border: 'border-orange-200 hover:border-orange-400',
+                              badge: 'bg-orange-100 text-orange-700 border-orange-300'
+                            },
+                            vermelho: {
+                              bg: 'bg-gradient-to-br from-red-50 via-red-100/50 to-red-50',
+                              hover: 'hover:from-red-100 hover:via-red-50 hover:to-white',
+                              border: 'border-red-200 hover:border-red-400',
+                              badge: 'bg-red-100 text-red-700 border-red-300'
+                            },
+                            amarelo: {
+                              bg: 'bg-gradient-to-br from-yellow-50 via-yellow-100/50 to-yellow-50',
+                              hover: 'hover:from-yellow-100 hover:via-yellow-50 hover:to-white',
+                              border: 'border-yellow-200 hover:border-yellow-400',
+                              badge: 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                            },
+                            rosa: {
+                              bg: 'bg-gradient-to-br from-pink-50 via-pink-100/50 to-pink-50',
+                              hover: 'hover:from-pink-100 hover:via-pink-50 hover:to-white',
+                              border: 'border-pink-200 hover:border-pink-400',
+                              badge: 'bg-pink-100 text-pink-700 border-pink-300'
+                            },
+                          };
+                          
+                          return gradients[color] || gradients.azul;
+                        };
+                        
+                        const gradientClasses = getEventGradientClasses(event.color || 'azul');
                         const isCompleted = event.status === 'completed';
                         const isCancelled = event.status === 'cancelled';
                         
@@ -611,10 +663,10 @@ const TeacherCalendar = () => {
                             }}
                             className={cn(
                               "group rounded-xl p-4 border-2 transition-all duration-200 cursor-pointer",
-                              "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50",
-                              "hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
-                              "hover:border-blue-400",
-                              "hover:bg-gradient-to-br hover:from-white hover:via-blue-50/80 hover:to-purple-50/80",
+                              gradientClasses.bg,
+                              gradientClasses.hover,
+                              gradientClasses.border,
+                              "hover:shadow-[0_4px_20px_rgb(0,0,0,0.08)]",
                               "hover:scale-[1.01]",
                               isCompleted && "opacity-50",
                               isCancelled && "opacity-40 line-through"
@@ -631,7 +683,10 @@ const TeacherCalendar = () => {
                                   </Badge>
                                   <Badge 
                                     variant="outline" 
-                                    className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 border-blue-200 font-medium h-6"
+                                    className={cn(
+                                      "text-xs px-2.5 py-1 font-medium h-6",
+                                      gradientClasses.badge
+                                    )}
                                   >
                                     {getCategoryLabel(event.category).toUpperCase()}
                                   </Badge>
