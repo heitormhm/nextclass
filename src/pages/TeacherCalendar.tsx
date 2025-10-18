@@ -671,7 +671,6 @@ const TeacherCalendar = () => {
                               gradientClasses.hover,
                               gradientClasses.border,
                               "hover:shadow-[0_4px_20px_rgb(0,0,0,0.08)]",
-                              "hover:scale-[1.01]",
                               isCompleted && "opacity-50",
                               isCancelled && "opacity-40 line-through"
                             )}
