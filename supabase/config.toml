@@ -132,3 +132,12 @@ verify_jwt = true
 
 [functions.save-internship-session]
 verify_jwt = true
+
+[functions.generate-teacher-annotation-title]
+verify_jwt = true
+
+[functions.generate-teacher-annotation-tags]
+verify_jwt = true
+
+[functions.teacher-ai-text-formatting]
+verify_jwt = true
