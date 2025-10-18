@@ -97,6 +97,16 @@ const AuthPage = () => {
       if (userData?.role === 'teacher') {
         navigate('/teacherdashboard', { replace: true });
       } else {
+        // Auto-enroll student if not already enrolled
+        try {
+          await supabase.functions.invoke('auto-enroll-student', {
+            body: { userId: authData.user.id }
+          });
+        } catch (enrollError) {
+          console.error('Error auto-enrolling student on login:', enrollError);
+          // Don't block login if enrollment fails
+        }
+        
         navigate('/dashboard', { replace: true });
       }
 

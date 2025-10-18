@@ -96,6 +96,7 @@ const TeacherCalendar = () => {
 
       setClasses(transformedClasses);
       console.log('[TeacherCalendar] Turmas carregadas do sistema:', transformedClasses);
+      console.log('[TeacherCalendar] Total de turmas:', transformedClasses.length);
     } catch (error) {
       console.error('Error fetching turmas:', error);
       toast.error('Erro ao carregar turmas');
@@ -474,6 +475,16 @@ const TeacherCalendar = () => {
                           {cls.name}
                         </SelectItem>
                       ))}
+                      {classes.length === 0 && (
+                        <div className="px-4 py-8 text-center">
+                          <p className="text-gray-500 text-sm mb-3">
+                            Nenhuma turma cadastrada no sistema ainda.
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            As turmas são criadas automaticamente quando alunos se cadastram com um período definido.
+                          </p>
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                 </CardContent>
