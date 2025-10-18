@@ -102,21 +102,28 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     const contentWidth = pageWidth - (2 * margin);
     let currentY = margin;
 
-    // CABEÇALHO (igual ao TeacherAIChatPage)
-    pdf.setFontSize(22);
+    // CABEÇALHO PROFISSIONAL
+    pdf.setFontSize(24);
     pdf.setFont('DejaVuSans', 'bold');
+    pdf.setTextColor(30, 30, 30);
     pdf.text(options.title, pageWidth / 2, currentY, { align: 'center' });
-    currentY += 12;
+    currentY += 10;
+
+    // Linha decorativa azul
+    pdf.setLineWidth(0.8);
+    pdf.setDrawColor(59, 130, 246);
+    pdf.line(margin, currentY, pageWidth - margin, currentY);
+    currentY += 8;
 
     pdf.setFontSize(10);
     pdf.setFont('DejaVuSans', 'normal');
-    pdf.setTextColor(120, 120, 120);
+    pdf.setTextColor(100, 100, 100);
     const date = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',
       year: 'numeric'
     });
-    pdf.text(`Gerado por NextClass AI • ${date}`, pageWidth / 2, currentY, { align: 'center' });
+    pdf.text(`Gerado por NextClass AI  •  ${date}`, pageWidth / 2, currentY, { align: 'center' });
     currentY += 15;
 
     // PROCESSAR CADA BLOCO
@@ -131,9 +138,18 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         const imageData = await captureBlockAsImage(bloco, contentWidth);
         
         if (imageData) {
-          // Verificar quebra de página
+          // Calcular dimensões da imagem
           const imageHeight = (imageData.height / imageData.width) * contentWidth;
+          let imageWidth = contentWidth;
+          let xPosition = margin;
+
+          // Se imagem é pequena (< 70% da largura), centralizar
+          if (imageHeight < 100 && imageData.width < imageData.height) {
+            imageWidth = contentWidth * 0.7;
+            xPosition = margin + (contentWidth - imageWidth) / 2;
+          }
           
+          // Verificar quebra de página
           if (currentY + imageHeight > pageHeight - margin) {
             pdf.addPage();
             stats.totalPages++;
@@ -142,10 +158,10 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 
           pdf.addImage(
             imageData.base64,
-            'PNG',
-            margin,
+            imageData.base64.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG',
+            xPosition,
             currentY,
-            contentWidth,
+            imageWidth,
             imageHeight
           );
 
@@ -177,15 +193,32 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 
     // RODAPÉ EM TODAS AS PÁGINAS
     const totalPages = (pdf as any).internal.pages.length - 1;
-    pdf.setFontSize(9);
-    pdf.setTextColor(150, 150, 150);
+    
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
+      
+      // Linha decorativa no rodapé
+      pdf.setLineWidth(0.3);
+      pdf.setDrawColor(220, 220, 220);
+      pdf.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
+      
+      // Número da página
+      pdf.setFontSize(9);
+      pdf.setFont('DejaVuSans', 'normal');
+      pdf.setTextColor(140, 140, 140);
       pdf.text(
-        `Página ${i} de ${totalPages}`,
+        `Pagina ${i} de ${totalPages}`,
         pageWidth / 2,
         pageHeight - 10,
         { align: 'center' }
+      );
+      
+      // Nome do documento (menor, no canto)
+      pdf.setFontSize(7);
+      pdf.text(
+        options.title.substring(0, 40) + (options.title.length > 40 ? '...' : ''),
+        margin,
+        pageHeight - 10
       );
     }
 
@@ -210,6 +243,34 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
   }
 };
 
+// FUNÇÃO: Redimensionar canvas
+const resizeCanvas = (originalCanvas: HTMLCanvasElement, maxWidth: number = 1200): HTMLCanvasElement => {
+  if (originalCanvas.width <= maxWidth) {
+    return originalCanvas;
+  }
+  
+  const scale = maxWidth / originalCanvas.width;
+  const resizedCanvas = document.createElement('canvas');
+  resizedCanvas.width = maxWidth;
+  resizedCanvas.height = originalCanvas.height * scale;
+  
+  const ctx = resizedCanvas.getContext('2d')!;
+  ctx.drawImage(originalCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+  
+  return resizedCanvas;
+};
+
+// FUNÇÃO: Comprimir imagem
+const compressImage = (canvas: HTMLCanvasElement, hasTransparency: boolean): string => {
+  if (hasTransparency) {
+    // PNG para elementos com transparência (bordas arredondadas, etc)
+    return canvas.toDataURL('image/png', 0.8);
+  } else {
+    // JPEG com compressão 0.85 para elementos opacos (economia de ~60%)
+    return canvas.toDataURL('image/jpeg', 0.85);
+  }
+};
+
 // FUNÇÃO: Capturar bloco como imagem
 const captureBlockAsImage = async (bloco: ContentBlock, maxWidth: number): Promise<{ base64: string; width: number; height: number } | null> => {
   try {
@@ -228,19 +289,23 @@ const captureBlockAsImage = async (bloco: ContentBlock, maxWidth: number): Promi
     container.appendChild(element);
 
     // Aguardar renderização de Mermaid/Charts
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Capturar com html2canvas
     const canvas = await html2canvas(container, {
       backgroundColor: '#ffffff',
-      scale: 2, // Alta resolução
+      scale: 1.2, // Resolução otimizada (reduz tamanho 65%)
       logging: false,
       useCORS: true,
       allowTaint: true
     });
 
-    // Converter para base64
-    const base64 = canvas.toDataURL('image/png');
+    // Redimensionar canvas se muito grande (máximo 1200px de largura)
+    const resizedCanvas = resizeCanvas(canvas, 1200);
+    
+    // Comprimir imagem baseado no tipo
+    const hasTransparency = bloco.tipo === 'post_it' || bloco.tipo === 'componente_react';
+    const base64 = compressImage(resizedCanvas, hasTransparency);
 
     // Limpar
     document.body.removeChild(container);
@@ -420,20 +485,42 @@ const addTextBlockToPDF = (
       break;
 
     case 'referencias':
-      pdf.setFontSize(14);
+      // Adicionar espaço antes das referências
+      if (currentY + 20 > pageHeight - margin) {
+        pdf.addPage();
+        currentY = margin;
+      }
+      
+      pdf.setFontSize(16);
       pdf.setFont('DejaVuSans', 'bold');
-      pdf.text('📚 ' + (bloco.titulo || 'Referências Bibliográficas'), margin, currentY);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('Referencias Bibliograficas', margin, currentY);
       currentY += 8;
+      
+      // Linha separadora
+      pdf.setLineWidth(0.5);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(margin, currentY, pageWidth - margin, currentY);
+      currentY += 6;
       
       pdf.setFontSize(9);
       pdf.setFont('DejaVuSans', 'normal');
-      pdf.setTextColor(80, 80, 80);
+      pdf.setTextColor(60, 60, 60);
       
-      bloco.itens?.forEach((ref: string) => {
-        const refLines = pdf.splitTextToSize(`• ${ref}`, contentWidth - 5);
-        pdf.text(refLines, margin + 5, currentY);
-        currentY += refLines.length * 4 + 2;
+      bloco.itens?.forEach((ref: string, index: number) => {
+        // Verificar quebra de página para cada referência
+        const estimatedHeight = Math.ceil(ref.length / 80) * 4 + 3;
+        if (currentY + estimatedHeight > pageHeight - margin - 15) {
+          pdf.addPage();
+          currentY = margin;
+        }
+        
+        const refLines = pdf.splitTextToSize(`[${index + 1}] ${ref}`, contentWidth - 8);
+        pdf.text(refLines, margin + 8, currentY);
+        currentY += refLines.length * 4 + 3;
       });
+      
+      currentY += 5; // Espaço extra após referências
       break;
   }
 
