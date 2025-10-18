@@ -598,7 +598,7 @@ const TeacherCalendar = () => {
                       Nenhum evento neste dia
                     </p>
                   ) : (
-                    <div className="space-y-3 max-h-[550px] overflow-y-auto px-6 py-4">
+                    <div className="space-y-3 max-h-[550px] overflow-y-auto py-4">
                       {selectedDateEvents.map((event) => {
                         const colorClasses = getEventColorClasses(event.color);
                         
