@@ -1070,6 +1070,35 @@ export type Database = {
         }
         Relationships: []
       }
+      teacher_turma_access: {
+        Row: {
+          created_at: string
+          id: string
+          teacher_id: string
+          turma_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          teacher_id: string
+          turma_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          teacher_id?: string
+          turma_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_turma_access_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       turma_enrollments: {
         Row: {
           aluno_id: string

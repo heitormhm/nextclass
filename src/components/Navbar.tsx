@@ -40,15 +40,29 @@ const Navbar = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, firstName } = useAuth();
+  const { signOut, firstName, user } = useAuth();
   const { toast } = useToast();
   
   // Generate user initials from firstName
   const userInitials = firstName ? firstName[0].toUpperCase() : 'U';
   const displayName = firstName || 'Usuário';
   
+  // Extract first and last name from full_name for teachers
+  const fullName = user?.user_metadata?.full_name || '';
+  const nameParts = fullName.split(' ').filter(Boolean);
+  const firstNameFromMeta = nameParts[0] || firstName || '';
+  const lastNameFromMeta = nameParts[nameParts.length - 1] || '';
+  
   // Determine if we're in teacher mode based on current route
   const isTeacherMode = location.pathname.startsWith('/teacher') || location.pathname === '/livelecture' || location.pathname === '/lecturetranscription';
+  
+  // Teacher-specific display name and initials
+  const teacherDisplayName = isTeacherMode && firstNameFromMeta && lastNameFromMeta 
+    ? `Prof. ${firstNameFromMeta} ${lastNameFromMeta}`
+    : displayName;
+  const teacherInitials = isTeacherMode && firstNameFromMeta && lastNameFromMeta
+    ? `${firstNameFromMeta[0]}${lastNameFromMeta[0]}`.toUpperCase()
+    : userInitials;
   const navigationItems = isTeacherMode ? teacherNavigationItems : studentNavigationItems;
 
   const handleSignOut = async () => {
@@ -155,10 +169,10 @@ const Navbar = () => {
             )}
           >
             <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-light rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-semibold">{isTeacherMode ? 'AS' : userInitials}</span>
+              <span className="text-white text-sm font-semibold">{teacherInitials}</span>
             </div>
-            {!mobile && <span className="font-medium">{isTeacherMode ? 'Prof. Ana Santos' : displayName}</span>}
-            {mobile && <span className="font-medium ml-1">{isTeacherMode ? 'Prof. Ana Santos' : displayName}</span>}
+            {!mobile && <span className="font-medium">{teacherDisplayName}</span>}
+            {mobile && <span className="font-medium ml-1">{teacherDisplayName}</span>}
             <ChevronDown className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -249,9 +263,9 @@ const Navbar = () => {
                             className="w-full justify-start gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-lg p-3 rounded-lg hover:bg-accent min-h-[48px]"
                           >
                             <div className="w-6 h-6 bg-gradient-to-br from-primary to-primary-light rounded-full flex items-center justify-center">
-                              <span className="text-white text-xs font-semibold">{isTeacherMode ? 'AS' : userInitials}</span>
+                              <span className="text-white text-xs font-semibold">{teacherInitials}</span>
                             </div>
-                            <span className="font-medium flex-1 text-left">{isTeacherMode ? 'Prof. Ana Santos' : displayName}</span>
+                            <span className="font-medium flex-1 text-left">{teacherDisplayName}</span>
                             <ChevronDown className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
