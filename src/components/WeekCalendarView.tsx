@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { format, addDays, startOfWeek, isSameDay, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Check, X, Video, Users, MapPin } from 'lucide-react';
+import { Check, X, Video, Users, MapPin, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -208,12 +208,13 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
         key={event.id}
         className={cn(
           "absolute left-1 right-1 rounded-lg p-2 cursor-pointer transition-all duration-300 isolate",
-          "hover:scale-[1.03] hover:shadow-xl hover:z-50 group",
+          "hover:scale-[1.05] hover:shadow-2xl hover:z-50 group hover:ring-2 hover:ring-white/50",
           isCompleted && "opacity-60",
-          `bg-gradient-to-br ${colorClasses.bg} text-white shadow-md`
+          `bg-gradient-to-br ${colorClasses.bg} text-white shadow-lg`
         )}
         style={{ top: `${top}px`, height: `${height}px`, minHeight: '40px' }}
         onClick={() => onEventClick?.(event)}
+        title="Clique para visualizar detalhes"
       >
                 <div className={cn(
                   "flex flex-col h-full justify-between relative z-[10]",
@@ -223,18 +224,25 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
               <div className="text-xs font-semibold truncate">
                 {event.title}
               </div>
-                            <div className="text-[10px] opacity-90 mt-0.5">
-                              {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}
-                            </div>
-                            {event.location && height > 50 && (
+                            {/* Tags alinhadas na mesma linha */}
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               <Badge 
                                 variant="outline" 
-                                className="text-[10px] mt-1 bg-white/20 border-white/30 text-white inline-flex items-center gap-0.5"
+                                className="text-[10px] py-0.5 px-1.5 bg-white/20 border-white/30 text-white inline-flex items-center gap-0.5 h-5"
                               >
-                                <MapPin className="h-2.5 w-2.5" />
-                                {event.location}
+                                <Clock className="h-2.5 w-2.5" />
+                                {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}
                               </Badge>
-                            )}
+                              {event.location && height > 50 && (
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-[10px] py-0.5 px-1.5 bg-white/20 border-white/30 text-white inline-flex items-center gap-0.5 h-5"
+                                >
+                                  <MapPin className="h-2.5 w-2.5" />
+                                  {event.location}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
 
                           {/* Action buttons - show on hover - Apenas para eventos pessoais */}

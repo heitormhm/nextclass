@@ -255,7 +255,7 @@ export const TeacherEventDetailsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar pb-20">
         <Button
           variant="ghost"
           size="icon"
@@ -435,14 +435,16 @@ export const TeacherEventDetailsDialog = ({
               </>
             )}
 
-            {isEditMode ? (
+            {isEditMode && (
               <>
                 <Separator />
                 <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Categoria</label>
+                  <div className="rounded-lg p-4 border bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+                    <label className="text-sm font-medium mb-2 block text-blue-700 flex items-center gap-2">
+                      <span>📂</span> Categoria
+                    </label>
                     <Select value={editedCategory} onValueChange={setEditedCategory}>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -455,108 +457,120 @@ export const TeacherEventDetailsDialog = ({
                     </Select>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Cor</label>
-                    <Select value={editedColor} onValueChange={setEditedColor}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {colorOptions.map(color => (
-                          <SelectItem key={color.value} value={color.value}>
-                            <div className="flex items-center gap-2">
-                              <div className={cn("h-4 w-4 rounded", color.class)} />
-                              {color.label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="rounded-lg p-4 border bg-gradient-to-br from-cyan-50 to-teal-50 border-cyan-200">
+                    <Label className="text-sm font-medium text-cyan-700 flex items-center gap-2 mb-2">
+                      <MapPin className="h-4 w-4" />
+                      📍 Local
+                    </Label>
+                    <Input
+                      value={editedLocation}
+                      onChange={(e) => setEditedLocation(e.target.value)}
+                      placeholder="Ex: Sala 201 ou Link da reunião"
+                      className="bg-white"
+                    />
                   </div>
-                </div>
-              </>
-            ) : null}
 
-            {(event.location || isEditMode) && (
-              <>
-                <Separator />
-                <div className="rounded-lg p-4 border bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-200">
-                  <div className="flex items-center gap-2 mb-2 text-indigo-700">
-                    <MapPin className="h-5 w-5" />
-                    <span className="font-semibold text-sm">Local</span>
-                  </div>
-                  <div className="ml-7">
-                    {isEditMode ? (
-                      <Input
-                        value={editedLocation}
-                        onChange={(e) => setEditedLocation(e.target.value)}
-                        placeholder="Local do evento"
-                        className="text-sm"
-                      />
-                    ) : (
-                      <p className="text-base text-gray-900">
-                        {event.location || 'Não especificado'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {(event.description || isEditMode) && (
-              <>
-                <Separator />
-                <div className="rounded-lg p-4 border bg-gray-50 border-gray-200">
-                  <h3 className="font-semibold text-sm mb-2 text-gray-700">
-                    Observações
-                  </h3>
-                  {isEditMode ? (
+                  <div className="rounded-lg p-4 border bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200">
+                    <Label className="text-sm font-medium text-gray-700 mb-2 block">📝 Descrição</Label>
                     <Textarea
                       value={editedDescription}
                       onChange={(e) => setEditedDescription(e.target.value)}
-                      placeholder="Adicione observações sobre o evento..."
-                      className="min-h-[100px]"
+                      placeholder="Adicione detalhes sobre o evento..."
+                      rows={3}
+                      className="bg-white"
                     />
-                  ) : (
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {event.description || 'Nenhuma observação'}
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
+                  </div>
 
-            {isEditMode && (
-              <>
-                <Separator />
-                <div className="flex justify-end gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsEditMode(false);
-                      setEditedTitle(event.title);
-                      setEditedStartTime(event.startTime);
-                      setEditedEndTime(event.endTime);
-                      setEditedLocation(event.location || "");
-                      setEditedDescription(event.description || "");
-                      setEditedCategory(event.category || "aula");
-                      setEditedColor(event.color || "azul");
-                    }}
-                    disabled={isSaving}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={handleSaveChanges}
-                    disabled={isSaving}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {isSaving ? 'Salvando...' : 'Salvar Alterações'}
-                  </Button>
+                  <div className="rounded-lg p-4 border bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+                    <label className="text-sm font-medium mb-3 block text-purple-700">🎨 Cor do Evento</label>
+                    <RadioGroup value={editedColor} onValueChange={setEditedColor} className="grid grid-cols-4 gap-2">
+                      {colorOptions.map(color => (
+                        <label
+                          key={color.value}
+                          className={cn(
+                            "relative flex items-center justify-center rounded-lg p-3 cursor-pointer transition-all border-2",
+                            editedColor === color.value ? "border-purple-500 scale-105 shadow-lg" : "border-gray-200 hover:border-purple-300"
+                          )}
+                        >
+                          <RadioGroupItem value={color.value} className="sr-only" />
+                          <div className={cn("w-8 h-8 rounded-full bg-gradient-to-br shadow-md", color.class)} />
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </div>
                 </div>
               </>
             )}
+            
+            {!isEditMode && (
+              <>
+                {(event.location || event.description) && <Separator />}
+                
+                {event.location && (
+                  <div className="rounded-lg p-4 border bg-gradient-to-br from-cyan-50 to-teal-50 border-cyan-200">
+                    <div className="flex items-center gap-2 mb-2 text-cyan-700">
+                      <MapPin className="h-5 w-5" />
+                      <span className="font-semibold text-sm">Local</span>
+                    </div>
+                    <div className="ml-7">
+                      <p className="text-base font-medium text-gray-900">
+                        {event.location}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {event.description && (
+                  <div className="rounded-lg p-4 border bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200">
+                    <div className="flex items-center gap-2 mb-2 text-gray-700">
+                      <span className="font-semibold text-sm">Descrição</span>
+                    </div>
+                    <div className="ml-2">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {event.description}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Rodapé fixo com botões de ação - Apenas em modo edição */}
+        {isEditMode && (
+          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent p-4 border-t shadow-2xl z-50 flex gap-3">
+            <Button
+              onClick={() => setIsEditMode(false)}
+              variant="outline"
+              size="lg"
+              className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-50 hover:scale-105 transition-all"
+              disabled={isSaving}
+            >
+              <X className="h-5 w-5 mr-2" />
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveChanges}
+              size="lg"
+              className={cn(
+                "flex-1 h-12 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105",
+                "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              )}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-5 w-5 mr-2" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
           </div>
         )}
       </DialogContent>

@@ -258,7 +258,7 @@ const TeacherCalendar = () => {
     }
   };
 
-  const formatClassNameToBadges = (className?: string) => {
+  const formatClassNameToBadges = (className?: string, uniformSize: boolean = false) => {
     if (!className) return null;
     
     const parts = className.split(' - ');
@@ -271,7 +271,10 @@ const TeacherCalendar = () => {
       <Badge 
         key={index} 
         variant="outline" 
-        className="text-[10px] py-0 px-1.5 bg-blue-50 text-blue-700 border-blue-200"
+        className={cn(
+          "bg-blue-50 text-blue-700 border-blue-200",
+          uniformSize ? "text-xs py-1 px-2 h-6" : "text-[10px] py-0 px-1.5"
+        )}
         title={part}
       >
         {truncateText(part, 25)}
@@ -591,84 +594,111 @@ const TeacherCalendar = () => {
                     </p>
                   ) : (
                     <div className="space-y-3 max-h-[550px] overflow-y-auto pr-2">
-                      {selectedDateEvents.map(event => (
-                        <div
-                          key={event.id}
-                          className={cn(
-                            "p-3 rounded-lg border-l-4",
-                            getEventColorClasses(event.color).badge,
-                            getEventColorClasses(event.color).border
-                          )}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-semibold text-sm">
-                              {event.title}
-                            </h4>
-                            <div className="flex items-center gap-1">
-                              <Badge variant="outline" className="text-xs">
-                                {event.type === 'online' ? (
-                                  <><Video className="h-3 w-3 mr-1" /> Online</>
-                                ) : (
-                                  <><MapPin className="h-3 w-3 mr-1" /> Presencial</>
-                                )}
-                              </Badge>
-                              {event.category && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {getCategoryLabel(event.category)}
+                      {selectedDateEvents.map((event) => {
+                        const colorClasses = getEventColorClasses(event.color);
+                        const isCompleted = event.status === 'completed';
+                        const isCancelled = event.status === 'cancelled';
+                        
+                        return (
+                          <div
+                            key={event.id}
+                            className={cn(
+                              "group rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer",
+                              "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50",
+                              "hover:shadow-2xl hover:scale-[1.02] hover:border-blue-300",
+                              "hover:from-blue-100 hover:via-purple-100 hover:to-pink-100",
+                              isCompleted && "opacity-50",
+                              isCancelled && "opacity-40 line-through"
+                            )}
+                          >
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex-1">
+                                <div className="flex gap-2 mb-2">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-xs px-2.5 py-1 font-semibold border-2 h-6",
+                                      event.type === 'online' ? "bg-blue-50 text-blue-700 border-blue-300" : "bg-green-50 text-green-700 border-green-300"
+                                    )}
+                                  >
+                                    {event.type === 'online' ? 'ONLINE' : 'PRESENCIAL'}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className="text-xs px-2.5 py-1 bg-purple-50 text-purple-700 border-purple-200 font-medium h-6"
+                                  >
+                                    {getCategoryLabel(event.category)}
+                                  </Badge>
+                                </div>
+                                <h3 className="font-bold text-base text-gray-900 mb-1">{event.title}</h3>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2.5 mb-4">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Clock className="h-4 w-4 text-yellow-600 shrink-0" />
+                                <Badge variant="outline" className="text-xs py-1 px-2.5 bg-yellow-50 text-yellow-700 border-yellow-200 h-6">
+                                  {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}
                                 </Badge>
+                              </div>
+                              
+                              {event.className && (
+                                <div className="flex items-center gap-2 text-sm flex-wrap">
+                                  <Users className="h-4 w-4 text-blue-600 shrink-0" />
+                                  {formatClassNameToBadges(event.className, true)}
+                                </div>
+                              )}
+                              
+                              {event.location && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <MapPin className="h-4 w-4 text-green-600 shrink-0" />
+                                  <Badge variant="outline" className="text-xs py-1 px-2.5 bg-green-50 text-green-700 border-green-200 h-6">
+                                    {event.location}
+                                  </Badge>
+                                </div>
                               )}
                             </div>
+
+                            {/* Action buttons com destaque */}
+                            <div className="flex gap-2 pt-3 border-t-2 border-gray-200">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedEventForEdit(event);
+                                  setShowEventDetailsDialog(true);
+                                }}
+                                className="flex-1 h-9 bg-white hover:bg-blue-50 hover:scale-105 hover:shadow-md transition-all border-2 border-blue-200"
+                                title="Visualizar/Editar evento"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              
+                              {!isCompleted && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEventUpdate(event.id, 'complete')}
+                                  className="flex-1 h-9 bg-white hover:bg-green-50 hover:scale-105 hover:shadow-md transition-all border-2 border-green-200"
+                                  title="Marcar como concluído"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                              )}
+                              
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEventDelete(event.id)}
+                                className="flex-1 h-9 bg-white hover:bg-red-50 hover:scale-105 hover:shadow-md transition-all border-2 border-red-200"
+                                title="Deletar evento"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline" className="flex items-center gap-1 text-xs bg-amber-50 text-amber-700 border-amber-200">
-                      <Clock className="h-3 w-3" />
-                      {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}
-                    </Badge>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1 mb-2">
-                    <Users className="h-3 w-3 text-gray-500" />
-                    {formatClassNameToBadges(event.className)}
-                  </div>
-                          {event.location && (
-                            <Badge variant="outline" className="flex items-center gap-1 text-xs bg-green-50 text-green-700 border-green-200 mb-2">
-                              <MapPin className="h-3 w-3" />
-                              {event.location}
-                            </Badge>
-                          )}
-                  <div className="flex gap-2 mt-2">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        setSelectedEventForEdit(event);
-                        setShowEventDetailsDialog(true);
-                      }}
-                      className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      title="Visualizar/Editar"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleEventUpdate(event.id, 'complete')}
-                      className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                      title="Concluir"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleEventDelete(event.id)}
-                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      title="Deletar"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
