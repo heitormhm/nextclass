@@ -47,15 +47,36 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
         );
       
       case 'post_it':
-        const postItColor = bloco.texto?.toLowerCase().includes('atenção') || bloco.texto?.toLowerCase().includes('cuidado') || bloco.texto?.toLowerCase().includes('alerta')
-          ? 'from-red-100/80 to-red-200/80 dark:from-red-900/30 dark:to-red-800/30 border-red-500 dark:border-red-400 text-red-900 dark:text-red-100'
-          : bloco.texto?.toLowerCase().includes('dica') || bloco.texto?.toLowerCase().includes('tip')
-          ? 'from-green-100/80 to-green-200/80 dark:from-green-900/30 dark:to-green-800/30 border-green-500 dark:border-green-400 text-green-900 dark:text-green-100'
-          : 'from-blue-100/80 to-blue-200/80 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-500 dark:border-blue-400 text-blue-900 dark:text-blue-100';
+        // Detectar tipo de post-it por keywords
+        let postItType = 'info';
+        let postItIcon = '💡';
+        const textoLower = bloco.texto?.toLowerCase() || '';
+        
+        if (textoLower.includes('atenção') || textoLower.includes('cuidado') || textoLower.includes('alerta')) {
+          postItType = 'warning';
+          postItIcon = '⚠️';
+        } else if (textoLower.includes('dica') || textoLower.includes('tip')) {
+          postItType = 'tip';
+          postItIcon = '💡';
+        } else if (textoLower.includes('pense') || textoLower.includes('reflexão')) {
+          postItType = 'reflection';
+          postItIcon = '🤔';
+        } else if (textoLower.includes('conexão') || textoLower.includes('aplicação') || textoLower.includes('prática')) {
+          postItType = 'application';
+          postItIcon = '🌍';
+        }
+        
+        const postItColors: Record<string, string> = {
+          warning: 'from-red-100/80 to-red-200/80 dark:from-red-900/30 dark:to-red-800/30 border-red-500 dark:border-red-400 text-red-900 dark:text-red-100',
+          tip: 'from-green-100/80 to-green-200/80 dark:from-green-900/30 dark:to-green-800/30 border-green-500 dark:border-green-400 text-green-900 dark:text-green-100',
+          reflection: 'from-purple-100/80 to-purple-200/80 dark:from-purple-900/30 dark:to-purple-800/30 border-purple-500 dark:border-purple-400 text-purple-900 dark:text-purple-100',
+          application: 'from-blue-100/80 to-blue-200/80 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-500 dark:border-blue-400 text-blue-900 dark:text-blue-100',
+          info: 'from-yellow-100/80 to-yellow-200/80 dark:from-yellow-900/30 dark:to-yellow-800/30 border-yellow-500 dark:border-yellow-400 text-yellow-900 dark:text-yellow-100'
+        };
         
         return (
-          <div key={index} className={`bg-gradient-to-br ${postItColor} border-2 border-dashed dark:border-opacity-60 p-4 rounded-lg shadow-sm my-4`}>
-            <p className={`italic leading-relaxed font-medium`} dangerouslySetInnerHTML={{ __html: `💡 ${bloco.texto || ''}` }} />
+          <div key={index} className={`bg-gradient-to-br ${postItColors[postItType]} border-2 border-dashed dark:border-opacity-60 p-4 rounded-lg shadow-sm my-4`}>
+            <p className="italic leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: `${postItIcon} ${bloco.texto || ''}` }} />
           </div>
         );
       

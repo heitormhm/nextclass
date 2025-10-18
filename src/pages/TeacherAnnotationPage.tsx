@@ -374,54 +374,66 @@ const TeacherAnnotationPage = () => {
       if (error) throw error;
       
       if (data?.formattedText) {
-          // Detectar se é JSON estruturado (Designer Instrucional)
-          let jsonString = data.formattedText.trim();
-          
-          // Remover blocos de código markdown se presentes
-          if (jsonString.startsWith('```json')) {
-            jsonString = jsonString.replace(/^```json\s*\n/, '').replace(/\n```\s*$/, '');
-          } else if (jsonString.startsWith('```')) {
-            jsonString = jsonString.replace(/^```\s*\n/, '').replace(/\n```\s*$/, '');
-          }
-          
-          // Tentar extrair JSON de texto misto (procurar primeiro { até último })
-          const firstBrace = jsonString.indexOf('{');
-          const lastBrace = jsonString.lastIndexOf('}');
-          if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
-            jsonString = jsonString.substring(firstBrace, lastBrace + 1);
-          }
-          
+        // Detectar se é JSON estruturado (Designer Instrucional)
+        let jsonString = data.formattedText.trim();
+        
+        // Remover blocos de código markdown se presentes
+        if (jsonString.startsWith('```json')) {
+          jsonString = jsonString.replace(/^```json\s*\n/, '').replace(/\n```\s*$/, '');
+        } else if (jsonString.startsWith('```')) {
+          jsonString = jsonString.replace(/^```\s*\n/, '').replace(/\n```\s*$/, '');
+        }
+        
+        // Tentar extrair JSON de texto misto (procurar primeiro { até último })
+        const firstBrace = jsonString.indexOf('{');
+        const lastBrace = jsonString.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
+          jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+        }
+        
+        // Verificar se é improve_didactic e tentar parsear JSON estruturado
+        if (actionType === 'improve_didactic') {
           try {
             const parsedContent = JSON.parse(jsonString);
             
             if (parsedContent.conteudo && Array.isArray(parsedContent.conteudo)) {
-              // É um conteúdo estruturado pelo Designer Instrucional - modo estruturado
-              setStructuredContent(parsedContent);
-              setIsStructuredMode(true);
-              setContent(JSON.stringify(parsedContent)); // Salvar JSON no banco
-              saveToHistory(JSON.stringify(parsedContent));
+              console.log('[Structured Content] JSON válido detectado - SUBSTITUINDO conteúdo');
               
-              toast.success('Conteúdo pedagógico estruturado gerado!', {
-                description: `${parsedContent.conteudo.length} blocos didáticos criados com visualização interativa`,
+              // ✅ SUBSTITUIR completamente o conteúdo
+              const jsonContent = JSON.stringify(parsedContent);
+              setContent(jsonContent); // Salvar JSON como string
+              setStructuredContent(parsedContent); // Definir objeto para renderização
+              setIsStructuredMode(true); // Ativar modo estruturado
+              
+              // ✅ LIMPAR o editor HTML (não será mais usado)
+              if (editorRef.current) {
+                editorRef.current.innerHTML = '';
+              }
+              
+              // Salvar no histórico
+              saveToHistory(jsonContent);
+              
+              toast.success('Material didático gerado! 🎓', {
+                description: `${parsedContent.conteudo.length} blocos pedagógicos criados`,
                 duration: 5000,
               });
               setIsProcessingAI(false);
-              return; // IMPORTANTE: return aqui para não continuar
+              return; // ✅ IMPORTANTE: Return early para não continuar com lógica HTML
             }
           } catch (jsonError) {
-            // Log detalhado para debug
-            console.warn('Tentativa de parse JSON falhou:', jsonError);
-            console.log('String recebida:', data.formattedText.substring(0, 200));
-            
-            // Não é JSON, é texto normal formatado
-            setContent(data.formattedText);
-            if (editorRef.current) {
-              editorRef.current.innerHTML = data.formattedText;
-            }
-            saveToHistory(data.formattedText);
-            toast.success('Texto formatado com sucesso!');
+            console.log('[Structured Content] Não é JSON válido, continuando com HTML');
+            // Não é JSON estruturado, continuar com lógica normal de HTML abaixo
           }
         }
+        
+        // Se não for JSON estruturado ou não for improve_didactic, usar HTML normal
+        setContent(data.formattedText);
+        if (editorRef.current) {
+          editorRef.current.innerHTML = data.formattedText;
+        }
+        saveToHistory(data.formattedText);
+        toast.success('Texto formatado com sucesso!');
+      }
       
       if (data?.suggestions) {
         toast.info(`Sugestões: ${data.suggestions}`, {
@@ -749,6 +761,23 @@ const TeacherAnnotationPage = () => {
                     <><Save className="h-4 w-4 mr-2" />Salvar e Sair</>
                   )}
                 </Button>
+                {isStructuredMode && (
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={() => {
+                      setIsStructuredMode(false);
+                      setStructuredContent(null);
+                      if (editorRef.current) {
+                        editorRef.current.innerHTML = content;
+                      }
+                      toast.info('Voltou ao modo editor');
+                    }}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Voltar ao Editor
+                  </Button>
+                )}
               </div>
             </div>
           </div>
