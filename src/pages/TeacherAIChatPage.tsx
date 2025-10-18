@@ -17,6 +17,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import { generateReportPDF } from "@/utils/pdfGenerator";
 
 interface Message {
   id: string;
@@ -570,45 +571,7 @@ const TeacherAIChatPage = () => {
       job_type_field: (job as any).job_type
     });
 
-    // 🔥 DESLIGAR LOADER quando DEEP_SEARCH completa
-    if (job.type === 'DEEP_SEARCH' && (job.status === 'COMPLETED' || job.status === 'FAILED')) {
-      console.log(`🏁 Deep search ${job.status}, closing loader`);
-      setIsDeepSearchLoading(false);
-      setDeepSearchProgress(deepSearchSteps.length - 1);
-      
-      // 🎯 CRIAR NOVA MENSAGEM COM BOTÕES DE AÇÃO
-      if (job.status === 'COMPLETED') {
-        console.log('✅ Deep search completed, adding action buttons message');
-        
-        const actionButtonsMessage: Message = {
-          id: `action-buttons-${Date.now()}`,
-          content: 'DEEP_SEARCH_ACTION_BUTTONS',
-          isUser: false,
-          timestamp: new Date(),
-          isSystemMessage: false,
-        };
-        
-        setMessages(prev => [...prev, actionButtonsMessage]);
-      }
-    }
-
-    // 📊 SINCRONIZAR PROGRESSO DO LOADER com STEPS reais do backend
-    if (job.type === 'DEEP_SEARCH' && job.status !== 'COMPLETED' && job.status !== 'FAILED') {
-      const currentStep = job.intermediate_data?.step;
-      
-      // Mapear steps do backend para índices do loader
-      const stepMap: Record<string, number> = {
-        '1': 1,  // Decomposing
-        '2': 3,  // Searching
-        '3': 4,  // Synthesizing
-        '4': 5   // Completing
-      };
-      
-      const loaderIndex = stepMap[currentStep] || 0;
-      
-      console.log(`📊 Deep search progress: step ${currentStep} → loader index ${loaderIndex}`);
-      setDeepSearchProgress(loaderIndex);
-    }
+  // 🔥 DESLIGAR LOADER quando DEEP_SEARCH completa (removido - agora usa timer)
     
     if (job.status === 'COMPLETED' || job.status === 'FAILED') {
       if (!processedJobsRef.current.has(job.id)) {
@@ -640,10 +603,39 @@ const TeacherAIChatPage = () => {
       return;
     }
     
-    // ✅ Progresso agora é controlado por processJobUpdate, não por timer
-    // Apenas garantir que resetamos quando loader inicia
+    // ⏱️ Timer de 15 segundos distribuído entre os steps
+    const totalDuration = 15000; // 15 segundos
+    const stepsCount = deepSearchSteps.length;
+    const stepDuration = totalDuration / stepsCount; // ~2.5s por step
+    
+    let currentStep = 0;
     setDeepSearchProgress(0);
-  }, [isDeepSearchLoading]);
+    
+    const interval = setInterval(() => {
+      currentStep++;
+      if (currentStep < stepsCount) {
+        setDeepSearchProgress(currentStep);
+      } else {
+        // Fechar loader após 15 segundos
+        clearInterval(interval);
+        setIsDeepSearchLoading(false);
+        setDeepSearchProgress(stepsCount - 1);
+        
+        // 🎯 CRIAR NOVA MENSAGEM COM BOTÕES DE AÇÃO após o timer
+        const actionButtonsMessage: Message = {
+          id: `action-buttons-${Date.now()}`,
+          content: 'DEEP_SEARCH_ACTION_BUTTONS',
+          isUser: false,
+          timestamp: new Date(),
+          isSystemMessage: false,
+        };
+        
+        setMessages(prev => [...prev, actionButtonsMessage]);
+      }
+    }, stepDuration);
+    
+    return () => clearInterval(interval);
+  }, [isDeepSearchLoading, deepSearchSteps.length]);
 
   // Realtime subscription
   useEffect(() => {
@@ -822,92 +814,105 @@ const TeacherAIChatPage = () => {
                   )}
                 >
                   {/* Caso especial: Renderizar botões de ação para Deep Search */}
-                  {!message.isUser && message.content === 'DEEP_SEARCH_ACTION_BUTTONS' ? (
-                    <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-purple-50/80 to-pink-50/80 border-2 border-purple-200">
-                      <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" />
-                        Continue explorando com Mia:
-                      </h3>
-                      
-                      {/* Grid 3x2 de botões */}
-                      <div className="grid grid-cols-3 gap-3">
-                        {/* Linha 1 */}
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_QUIZ', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                          className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
-                        >
-                          <FileQuestion className="w-4 h-4 mr-2" />
-                          <span className="font-bold text-sm">Criar Quiz</span>
-                        </Button>
+                    {!message.isUser && message.content === 'DEEP_SEARCH_ACTION_BUTTONS' ? (
+                      <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-purple-50/80 to-pink-50/80 border-2 border-purple-200">
+                        <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
+                          <Sparkles className="w-4 h-4" />
+                          Continue explorando com Mia:
+                        </h3>
                         
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_FLASHCARDS', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                          className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
-                        >
-                          <Layers className="w-4 h-4 mr-2" />
-                          <span className="font-bold text-sm">Criar Flashcards</span>
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_LESSON_PLAN', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
-                        >
-                          <BookOpen className="w-4 h-4 mr-2" />
-                          <span className="font-bold text-sm">Plano de Aula</span>
-                        </Button>
-                        
-                        {/* Linha 2 */}
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_SLIDES', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
-                        >
-                          <Presentation className="w-4 h-4 mr-2" />
-                          <span className="font-bold text-sm">Criar Slides</span>
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_MULTIPLE_CHOICE_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
-                        >
-                          <CheckSquare className="w-4 h-4 mr-2" />
-                          <span className="font-bold text-sm">Múltipla Escolha</span>
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_OPEN_ENDED_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                          className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          <span className="font-bold text-sm">Atividade Avaliativa</span>
-                        </Button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
+                          {/* Linha 1 */}
+                          <Button
+                            size="sm"
+                            onClick={() => handleAction('GENERATE_QUIZ', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                            className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
+                          >
+                            <FileQuestion className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="font-bold text-sm">Criar Quiz</span>
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            onClick={() => handleAction('GENERATE_FLASHCARDS', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                            className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
+                          >
+                            <Layers className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="font-bold text-sm">Criar Flashcards</span>
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            onClick={() => handleAction('GENERATE_LESSON_PLAN', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
+                          >
+                            <BookOpen className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="font-bold text-sm">Plano de Aula</span>
+                          </Button>
+                          
+                          {/* Linha 2 */}
+                          <Button
+                            size="sm"
+                            onClick={() => handleAction('GENERATE_SLIDES', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                            className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
+                          >
+                            <Presentation className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="font-bold text-sm">Criar Slides</span>
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            onClick={() => handleAction('GENERATE_MULTIPLE_CHOICE_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                            className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
+                          >
+                            <CheckSquare className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="font-bold text-sm">Múltipla Escolha</span>
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            onClick={() => handleAction('GENERATE_OPEN_ENDED_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
+                          >
+                            <Edit className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="font-bold text-sm">Atividade Avaliativa</span>
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
+                    ) : (
                     <>
                       <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm, remarkMath]}
                           rehypePlugins={[rehypeKatex]}
                           components={{
-                            a: ({node, ...props}) => (
-                              <a 
-                                {...props} 
-                                className="break-all text-blue-600 hover:text-blue-800 underline" 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                              />
-                            ),
-                            code: ({node, inline, ...props}: any) => (
+                            h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-4 mb-2 text-foreground" {...props} />,
+                            h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-3 mb-2 text-foreground" {...props} />,
+                            p: ({node, ...props}) => <p className="mb-2 text-foreground" {...props} />,
+                            strong: ({node, ...props}) => <strong className="font-bold text-foreground" {...props} />,
+                            div: ({node, className, ...props}: any) => {
+                              if (className === 'math math-display') {
+                                return <div className="my-4 overflow-x-auto text-center" {...props} />;
+                              }
+                              return <div className={className} {...props} />;
+                            },
+                            span: ({node, className, ...props}: any) => {
+                              if (className === 'math math-inline') {
+                                return <span className="mx-1" {...props} />;
+                              }
+                              return <span className={className} {...props} />;
+                            },
+                            code: ({node, inline, ...props}: any) => 
                               inline 
-                                ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-sm break-all" />
-                                : <code {...props} className="block bg-gray-100 p-2 rounded my-2 overflow-x-auto text-sm" />
-                            )
+                                ? <code className="bg-background/50 px-1.5 py-0.5 rounded text-xs font-mono text-primary" {...props} />
+                                : <code className="block bg-background/50 p-3 rounded text-xs font-mono overflow-x-auto my-2 text-foreground" {...props} />,
+                            pre: ({node, ...props}) => <pre className="bg-background/50 p-3 rounded overflow-x-auto my-2" {...props} />,
+                            a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 space-y-1 my-2 text-foreground" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 space-y-1 my-2 text-foreground" {...props} />,
+                            li: ({node, ...props}) => <li className="text-foreground pl-1" {...props} />,
+                            blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/50 pl-4 italic my-2 text-foreground/80" {...props} />,
+                            sup: ({node, ...props}) => <sup className="text-primary font-semibold" {...props} />,
                           }}
                         >
                           {message.content}
@@ -916,16 +921,78 @@ const TeacherAIChatPage = () => {
 
                       {/* Botão Exportar PDF para mensagens de Deep Search */}
                       {!message.isUser && deepSearchIndicators.some(indicator => message.content.includes(indicator)) && (
-                        <div className="mt-4 flex justify-end">
+                        <div className="mt-4">
                           <Button
                             size="sm"
-                            onClick={() => {
-                              toast({
-                                title: "Exportando PDF",
-                                description: "Preparando documento para download...",
+                            onClick={async () => {
+                              console.log('🎯 Iniciando geração de PDF...');
+                              console.log('📄 Conteúdo:', message.content.substring(0, 200) + '...');
+                              console.log('📏 Tamanho do conteúdo:', message.content.length, 'caracteres');
+                              
+                              const result = await generateReportPDF({
+                                content: message.content,
+                                title: 'Relatório de Pesquisa Profunda',
+                                logoSvg: '',
                               });
+                              
+                              if (result.success) {
+                                let description = "O relatório foi gerado e o download iniciou.";
+                                
+                                if (result.fixesApplied && result.fixesApplied.length > 0) {
+                                  description = "✅ PDF gerado com sucesso após correções automáticas!\n\n";
+                                  description += `🔧 Correções aplicadas:\n${result.fixesApplied.map(f => `• ${f}`).join('\n')}`;
+                                }
+                                
+                                if (result.stats) {
+                                  description += `\n\n📊 Estatísticas:\n`;
+                                  description += `• Conteúdo: ${result.stats.content.h1Count + result.stats.content.h2Count + result.stats.content.h3Count} títulos, ${result.stats.content.paragraphCount} parágrafos\n`;
+                                  if (result.stats.render) {
+                                    description += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
+                                  }
+                                  description += `• PDF: ${result.stats.pdf.pageCount} páginas geradas`;
+                                }
+                                
+                                if (result.warnings && result.warnings.length > 0) {
+                                  description += `\n\n⚠️ Avisos:\n${result.warnings.map(w => `• ${w}`).join('\n')}`;
+                                }
+                                
+                                toast({
+                                  title: result.fixesApplied ? "✅ PDF Gerado (Auto-Corrigido)" : "✅ PDF Gerado com Sucesso",
+                                  description,
+                                  duration: result.fixesApplied ? 8000 : 5000,
+                                });
+                              } else {
+                                let errorDescription = result.error || "Erro desconhecido";
+                                
+                                if (result.diagnostics && result.diagnostics.length > 0) {
+                                  errorDescription += `\n\n🔍 Problemas detectados:\n`;
+                                  errorDescription += result.diagnostics.map(d => `• ${d.issue}\n  Sugestão: ${d.suggestedFix}`).join('\n');
+                                }
+                                
+                                if (result.stats?.render) {
+                                  errorDescription += `\n\n📊 Debug Info:\n`;
+                                  errorDescription += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
+                                  errorDescription += `• Páginas adicionadas: ${result.stats.render.pagesAdded}`;
+                                }
+                                
+                                toast({
+                                  title: "❌ Erro ao Gerar PDF",
+                                  description: errorDescription,
+                                  variant: "destructive",
+                                  duration: 10000,
+                                });
+                                
+                                console.error('❌ Falha na geração do PDF');
+                                console.error('Erro:', result.error);
+                                if (result.diagnostics) {
+                                  console.error('Diagnósticos:', result.diagnostics);
+                                }
+                                if (result.stats) {
+                                  console.error('Stats:', result.stats);
+                                }
+                              }
                             }}
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2 rounded-xl"
+                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
                           >
                             <FileDown className="w-4 h-4 mr-2" />
                             <span className="font-bold text-sm">Exportar PDF</span>
