@@ -14,7 +14,6 @@ import { EventCard } from '@/components/dashboard/EventCard';
 import { MiniStatCard } from '@/components/dashboard/MiniStatCard';
 import { UploadMaterialModal } from '@/components/UploadMaterialModal';
 import { LessonPlanFloatingIndicator } from '@/components/LessonPlanFloatingIndicator';
-import UniversalSchedulingModal from '@/components/UniversalSchedulingModal';
 import AnnouncementModal from '@/components/AnnouncementModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -42,7 +41,6 @@ const TeacherDashboard = () => {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isSchedulingModalOpen, setIsSchedulingModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -332,7 +330,7 @@ const TeacherDashboard = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => setIsSchedulingModalOpen(true)}
+                      onClick={() => navigate('/teachercalendar')}
                       className="text-purple-500 hover:text-purple-600 hover:bg-purple-50"
                     >
                       <Plus className="h-4 w-4" />
@@ -386,11 +384,6 @@ const TeacherDashboard = () => {
         />
         
         <LessonPlanFloatingIndicator />
-        
-        <UniversalSchedulingModal
-          open={isSchedulingModalOpen}
-          onOpenChange={setIsSchedulingModalOpen}
-        />
         
         <AnnouncementModal
           open={isAnnouncementModalOpen}
