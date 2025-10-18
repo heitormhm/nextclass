@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation, FileDown, BookText } from "lucide-react";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
+import { preprocessMarkdownContent } from "@/utils/markdownPreprocessor";
+import { SuggestionsButtons } from "@/components/SuggestionsButtons";
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ interface Message {
   jobIds?: string[];
   jobMetadata?: Map<string, { type: string; context: string }>;
   isSystemMessage?: boolean;
+  suggestionsJobId?: string;
 }
 
 interface Conversation {
@@ -172,6 +175,11 @@ const TeacherAIChatPage = () => {
         content: msg.content,
         isUser: msg.role === 'user',
         timestamp: new Date(msg.created_at),
+        suggestionsJobId: msg.suggestions_job_id,
+        jobIds: msg.metadata?.jobIds || [],
+        jobMetadata: msg.metadata?.jobMetadata 
+          ? new Map(Object.entries(msg.metadata.jobMetadata))
+          : new Map(),
       })) || [];
 
       setMessages(loadedMessages);
@@ -535,18 +543,6 @@ const TeacherAIChatPage = () => {
   };
 
   // Preprocess markdown to prevent math symbols from being rendered as code
-  const preprocessMarkdownContent = (content: string): string => {
-    // Remove backticks from math variables (1-5 chars with symbols)
-    content = content.replace(/`([A-Za-zΔΣπθλμαβγΩωΦψÁρ]{1,5}[₀-₉⁰-⁹]*)`/g, '$1');
-    
-    // Remove backticks from simple math formulas (ex: `P = F / A`)
-    content = content.replace(/`([A-Za-zΔΣπθλμαβγΩωΦψÁρ₀-₉⁰-⁹\s=+\-*/()]{3,30})`/g, '$1');
-    
-    // Remove backticks from numbers with subscripts (ex: `P_2`)
-    content = content.replace(/`([A-Za-z]_\d+)`/g, '$1');
-    
-    return content;
-  };
 
   const handleActionButtonClick = (action: string) => {
     let prompt = "";
@@ -695,6 +691,44 @@ const TeacherAIChatPage = () => {
 
     return () => {
       supabase.removeChannel(channel);
+    };
+  }, [activeConversationId]);
+
+  // Subscription para novas mensagens
+  useEffect(() => {
+    if (!activeConversationId) return;
+
+    const messagesChannel = supabase
+      .channel(`messages-teacher-${activeConversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${activeConversationId}`
+        },
+        (payload) => {
+          console.log('📨 Nova mensagem detectada:', payload.new);
+          const newMessage = payload.new as any;
+          
+          setMessages(prev => [...prev, {
+            id: newMessage.id,
+            content: newMessage.content,
+            isUser: newMessage.role === 'user',
+            timestamp: new Date(newMessage.created_at),
+            suggestionsJobId: newMessage.suggestions_job_id,
+            jobIds: newMessage.metadata?.jobIds || [],
+            jobMetadata: newMessage.metadata?.jobMetadata 
+              ? new Map(Object.entries(newMessage.metadata.jobMetadata))
+              : new Map(),
+          }]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messagesChannel);
     };
   }, [activeConversationId]);
 
@@ -849,82 +883,17 @@ const TeacherAIChatPage = () => {
                       : "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
                   )}
                 >
-                  {/* Caso especial: Renderizar botões de ação para Deep Search */}
-                    {!message.isUser && message.content === 'DEEP_SEARCH_ACTION_BUTTONS' ? (
-                      <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-purple-50/80 to-pink-50/80 border-2 border-purple-200">
-                        <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
-                          <Sparkles className="w-4 h-4" />
-                          ✨ Continue explorando sobre <strong>plano de AULA:</strong>
-                        </h3>
-                        
-                        <div 
-                          className="grid gap-3 w-full" 
-                          style={{ 
-                            gridTemplateColumns: 'repeat(3, 1fr)',
-                            gridTemplateRows: 'repeat(2, 1fr)',
-                            height: '180px',
-                            gridAutoFlow: 'row',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          {/* LINHA 1 */}
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_SLIDES', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full h-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <Presentation className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Criar Apresentação em Slides</span>
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_QUIZ', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full h-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <FileQuestion className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Criar Quiz</span>
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_FLASHCARDS', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full h-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <Layers className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Criar Flashcards</span>
-                          </Button>
-                          
-                          {/* LINHA 2 */}
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_OPEN_ENDED_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full h-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <Edit className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Criar Atividade Avaliativa</span>
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_LESSON_PLAN', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full h-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <BookOpen className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Criar Plano de Aula</span>
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_STUDY_MATERIAL', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full h-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <BookText className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Criar Material de Estudo</span>
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
+                  {!message.isUser && message.suggestionsJobId ? (
+                    <SuggestionsButtons
+                      suggestionsJobId={message.suggestionsJobId}
+                      activeJobs={activeJobs}
+                      onSuggestionClick={(suggestion) => {
+                        setInputMessage(suggestion);
+                        handleSendMessage();
+                      }}
+                      disabled={isLoading}
+                    />
+                  ) : !message.isUser ? (
                     <>
                       <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
                         <ReactMarkdown
@@ -1070,7 +1039,7 @@ const TeacherAIChatPage = () => {
                         </div>
                       )}
                     </>
-                  )}
+                  ) : null}
                            
                           {!message.isUser && message.jobIds?.map((jobId) => {
                             const job = activeJobs.get(jobId);

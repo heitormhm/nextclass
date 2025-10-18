@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { loadUnicodeFont, unicodeFontConfig } from './unicodeFont';
+import { preprocessMarkdownContent } from './markdownPreprocessor';
 
 interface PDFOptions {
   content: string;
@@ -1187,18 +1188,12 @@ const cleanFooters = (content: string): string => {
 };
 
 // Preprocessar conteúdo matemático para melhor renderização no PDF
-function preprocessMathContent(content: string): string {
+function preprocessMathContentForPDF(content: string): string {
+  // Primeiro aplica o preprocessamento padrão
+  content = preprocessMarkdownContent(content);
+  
   // Preservar quebras de linha explícitas
   content = content.replace(/\n\n+/g, '\n\n');
-  
-  // Remove backticks from math variables (1-5 chars with symbols)
-  content = content.replace(/`([A-Za-zΔΣπθλμαβγΩωΦψÁρ]{1,5}[₀-₉⁰-⁹]*)`/g, '$1');
-  
-  // Remove backticks from simple math formulas (ex: `P = F / A`)
-  content = content.replace(/`([A-Za-zΔΣπθλμαβγΩωΦψÁρ₀-₉⁰-⁹\s=+\-*/()]{3,30})`/g, '$1');
-  
-  // Remove backticks from numbers with subscripts (ex: `P_2`)
-  content = content.replace(/`([A-Za-z]_\d+)`/g, '$1');
   
   // Converter subscripts Unicode para formato legível
   const subscriptMap: Record<string, string> = {
@@ -1228,7 +1223,7 @@ export const generateReportPDF = async ({ content, title }: PDFOptions): Promise
   console.log('🔍 FASE 1: Analisando conteúdo...');
   
   // Preprocessar conteúdo matemático
-  const preprocessedContent = preprocessMathContent(content);
+  const preprocessedContent = preprocessMathContentForPDF(content);
   
   // Clean footers before processing
   const cleanedContent = cleanFooters(preprocessedContent);
