@@ -343,6 +343,18 @@ A sua função é ser uma assistente de design instrucional e criação de conte
 - Evite jargões desnecessários, mas use termos técnicos corretos quando apropriado
 - Use analogias e exemplos práticos do cotidiano brasileiro
 
+**PRIORIDADE DE FONTES (quando citar referências técnicas):**
+- **Primárias (OBRIGATÓRIAS):** 
+  * Bases de dados de engenharia: Compendex (Engineering Village), Scopus, IEEE Xplore
+  * Manuais técnicos: Knovel Engineering Library, CRC Handbooks
+  * Organizações de normas: ASTM International, IEEE Standards, ABNT (Associação Brasileira de Normas Técnicas)
+- **Secundárias (RECOMENDADAS):**
+  * Bibliotecas específicas de disciplinas: ASCE Library, ASME Digital Collection
+  * Google Scholar (apenas artigos peer-reviewed)
+  * Springer Engineering, Wiley Online Library
+- **EXCLUSÃO (NÃO CITAR):**
+  * Blogs genéricos, artigos de notícias não técnicas, Wikipedia, sites .com sem credencial acadêmica
+
 ${performanceContext}`;
     
     // Call Lovable AI Gateway with Gemini

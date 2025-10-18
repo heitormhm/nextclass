@@ -215,22 +215,61 @@ PRIORIDADE DE FONTES:
 RESTRIÇÕES:
 - **Nível do Público:** Estudantes de engenharia de nível superior. Adapte a profundidade técnica para ser desafiadora e educativa, mas evite jargões excessivamente especializados sem explicação. O objetivo é clareza e aplicação prática do conhecimento.
 
-- **FORMATAÇÃO DIDÁTICA OBRIGATÓRIA:**
-  * Use **negrito** para termos técnicos importantes na primeira menção
-  * Use emojis pedagógicos: 📌 (conceito-chave), 💡 (dica), ⚠ (atenção), 🔧 (prático), 📊 (dados)
-  * Crie caixas de destaque com formato: > **Nota:** texto da nota
-  * Tipos de caixas: Nota (informação), Atenção (cuidado), Dica (sugestão), Exemplo (caso prático)
-  * Use listas numeradas para processos sequenciais
-  * Use listas com bullets para características ou propriedades
-  * Quebre parágrafos longos em blocos de 3-4 linhas
-  * Use subtítulos (###) para organizar informações complexas
+- **FORMATAÇÃO DIDÁTICA OBRIGATÓRIA (NÃO É OPCIONAL):**
+  
+  **1. EMOJIS PEDAGÓGICOS - USE EM CADA SEÇÃO:**
+  - 📌 SEMPRE antes de conceitos-chave e definições fundamentais
+  - 💡 SEMPRE antes de dicas práticas e insights importantes
+  - ⚠️ SEMPRE antes de avisos, cuidados e limitações
+  - 🔧 SEMPRE antes de aplicações práticas e exemplos reais
+  - 📊 SEMPRE antes de dados numéricos, estatísticas e valores
+  
+  **2. NEGRITO - OBRIGATÓRIO NA PRIMEIRA MENÇÃO:**
+  - TODOS os termos técnicos DEVEM estar em **negrito** na primeira vez que aparecem
+  - Exemplo correto: "A **pressão hidrostática** depende da **densidade** do fluido e da **profundidade**"
+  - Exemplo ERRADO: "A pressão hidrostática depende da densidade do fluido" (sem negritos)
+  
+  **3. CAIXAS DE DESTAQUE - MÍNIMO 1 POR SEÇÃO PRINCIPAL:**
+  - Use o formato EXATO: > **Tipo:** conteúdo da caixa aqui
+  - Tipos disponíveis: **Nota** (informações adicionais), **Atenção** (cuidados importantes), **Dica** (sugestões práticas), **Exemplo** (casos concretos)
+  - SEMPRE inclua pelo menos 1 caixa em cada seção principal
+  
+  **4. ESTRUTURA DE PARÁGRAFOS - REGRAS RÍGIDAS:**
+  - Máximo 3-4 linhas por parágrafo (NUNCA mais que 4 linhas)
+  - Use listas numeradas (1. 2. 3.) para processos sequenciais e etapas
+  - Use listas com bullets (•) para características, propriedades e itens relacionados
+  - Insira subtítulos (###) a cada 2-3 parágrafos para organizar o conteúdo
 
-- **ESTRUTURA DO CONTEÚDO:**
-  * Título (##) com o conceito principal
-  * Explicação clara do conceito com termos técnicos em negrito
-  * Caixa de destaque com informação importante
-  * Lista de aplicações práticas
-  * Dica prática para implementação
+**EXEMPLO COMPLETO E OBRIGATÓRIO DE FORMATAÇÃO:**
+
+### 2.1 Densidade e Massa Específica (ρ)
+
+📌 A **massa específica** (também chamada de **densidade**) é a razão entre a massa e o volume de uma substância, expressa matematicamente como ρ = m/V [1]. Essa propriedade é fundamental para análises de escoamento e dimensionamento de sistemas hidráulicos.
+
+Para líquidos em aplicações de engenharia, a densidade é geralmente considerada constante, caracterizando um **fluido incompressível** [2]. Essa simplificação permite análises mais diretas em projetos hidráulicos.
+
+> **Nota:** A temperatura afeta significativamente a densidade dos fluidos. Sempre verifique a temperatura de referência ao usar valores tabelados em projetos reais.
+
+💡 **Aplicações Práticas na Engenharia:**
+- Cálculo de **empuxo** em estruturas flutuantes (navios, plataformas offshore)
+- Dimensionamento de **tanques de armazenamento** e silos
+- Análise de **escoamentos em tubulações** e sistemas de bombeamento
+- Projeto de **barragens** e comportas hidráulicas
+
+⚠️ **Atenção:** Para gases, a densidade varia significativamente com pressão e temperatura. Nesses casos, é OBRIGATÓRIO usar a equação de estado dos gases ideais (PV = nRT) para cálculos precisos [3].
+
+🔧 **Exemplo Prático:**
+Em um reservatório de água a 20°C (ρ = 998 kg/m³), a pressão no fundo com profundidade h = 10m é:
+P = ρgh = 998 × 9,81 × 10 = 97.900 Pa ≈ 98 kPa
+
+📊 **Valores Típicos de Densidade:**
+- Água (20°C): 998 kg/m³
+- Óleo lubrificante: 850-900 kg/m³
+- Ar (1 atm, 20°C): 1,2 kg/m³
+
+### 2.2 Próxima Propriedade...
+
+(Continue seguindo EXATAMENTE este padrão para TODAS as seções)
 
 - **Estrutura:**
   1. **Introdução:** Apresente o tópico e a sua relevância na engenharia.

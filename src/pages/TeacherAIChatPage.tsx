@@ -493,7 +493,6 @@ const TeacherAIChatPage = () => {
       });
     } finally {
       setIsLoading(false);
-      setIsDeepSearchLoading(false);
       setDeepSearchProgress(0);
     }
   };
@@ -877,7 +876,7 @@ const TeacherAIChatPage = () => {
                           height: 'auto'
                         }}
                       >
-                        {/* LINHA 1 */}
+                        {/* LINHA 1 - Gradiente Rosa → Roxo → Índigo */}
                         <Button
                           size="sm"
                           onClick={() => handleAction('GENERATE_SLIDES', { 
@@ -896,7 +895,7 @@ const TeacherAIChatPage = () => {
                             context: messages[messages.length - 2]?.content || '', 
                             topic: 'este tópico' 
                           })}
-                          className="h-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
+                          className="h-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
                         >
                           <FileQuestion className="w-5 h-5 shrink-0" />
                           <span className="font-bold text-xs text-center">Criar quiz</span>
@@ -908,20 +907,20 @@ const TeacherAIChatPage = () => {
                             context: messages[messages.length - 2]?.content || '', 
                             topic: 'este tópico' 
                           })}
-                          className="h-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
+                          className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
                         >
                           <Layers className="w-5 h-5 shrink-0" />
                           <span className="font-bold text-xs text-center">Criar flashcards</span>
                         </Button>
                         
-                        {/* LINHA 2 */}
+                        {/* LINHA 2 - Contraste Laranja → Azul → Verde */}
                         <Button
                           size="sm"
                           onClick={() => handleAction('GENERATE_OPEN_ENDED_ACTIVITY', { 
                             context: messages[messages.length - 2]?.content || '', 
                             topic: 'este tópico' 
                           })}
-                          className="h-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
+                          className="h-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
                         >
                           <Edit className="w-5 h-5 shrink-0" />
                           <span className="font-bold text-xs text-center">Criar atividade avaliativa</span>
