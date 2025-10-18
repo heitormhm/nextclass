@@ -354,12 +354,34 @@ const TeacherAnnotationPage = () => {
       if (error) throw error;
       
         if (data?.formattedText) {
-          setContent(data.formattedText);
-          if (editorRef.current) {
-            editorRef.current.innerHTML = data.formattedText;
+          // Detectar se é JSON estruturado (Designer Instrucional)
+          try {
+            const parsedContent = JSON.parse(data.formattedText);
+            
+            if (parsedContent.conteudo && Array.isArray(parsedContent.conteudo)) {
+              // É um conteúdo estruturado pelo Designer Instrucional
+              const htmlContent = renderStructuredContent(parsedContent);
+              setContent(htmlContent);
+              if (editorRef.current) {
+                editorRef.current.innerHTML = htmlContent;
+              }
+              saveToHistory(htmlContent);
+              toast.success('Conteúdo pedagógico estruturado gerado!', {
+                description: `${parsedContent.conteudo.length} blocos didáticos criados`,
+                duration: 5000,
+              });
+            } else {
+              throw new Error('JSON inválido');
+            }
+          } catch (jsonError) {
+            // Não é JSON, é texto normal formatado
+            setContent(data.formattedText);
+            if (editorRef.current) {
+              editorRef.current.innerHTML = data.formattedText;
+            }
+            saveToHistory(data.formattedText);
+            toast.success('Texto formatado com sucesso!');
           }
-          saveToHistory(data.formattedText);
-          toast.success('Texto formatado com sucesso!');
         }
       
       if (data?.suggestions) {
@@ -594,6 +616,75 @@ const TeacherAnnotationPage = () => {
     } else {
       startVoiceTranscription();
     }
+  };
+
+  const renderStructuredContent = (structuredData: any): string => {
+    let html = `<h2>${structuredData.titulo_geral}</h2>\n\n`;
+    
+    structuredData.conteudo.forEach((bloco: any) => {
+      switch (bloco.tipo) {
+        case 'paragrafo':
+          html += `<p>${bloco.texto}</p>\n`;
+          break;
+          
+        case 'caixa_de_destaque':
+          html += `
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 16px 0; border-radius: 8px;">
+              <strong>${bloco.titulo}</strong>
+              <p>${bloco.texto}</p>
+            </div>\n`;
+          break;
+          
+        case 'post_it':
+          html += `
+            <div style="background: #dbeafe; border: 2px dashed #3b82f6; padding: 12px; margin: 12px 0; border-radius: 6px; font-style: italic;">
+              💡 ${bloco.texto}
+            </div>\n`;
+          break;
+          
+        case 'fluxograma':
+        case 'mapa_mental':
+        case 'diagrama':
+          html += `
+            <div style="background: #f3f4f6; padding: 20px; margin: 20px 0; border-radius: 8px;">
+              <h4>${bloco.titulo}</h4>
+              <p><em>${bloco.descricao}</em></p>
+              <pre style="background: #1f2937; color: #e5e7eb; padding: 16px; border-radius: 6px; overflow-x: auto;"><code class="language-mermaid">${bloco.definicao_mermaid}</code></pre>
+              <p style="font-size: 12px; color: #6b7280;">💡 Use uma ferramenta Mermaid para visualizar este diagrama</p>
+            </div>\n`;
+          break;
+          
+        case 'grafico':
+          html += `
+            <div style="background: #f3f4f6; padding: 20px; margin: 20px 0; border-radius: 8px;">
+              <h4>${bloco.titulo}</h4>
+              <p><em>${bloco.descricao}</em></p>
+              <p><strong>Tipo:</strong> ${bloco.tipo_grafico}</p>
+              <ul>
+                ${bloco.dados.map((d: any) => `<li>${d.categoria}: ${d.valor}</li>`).join('')}
+              </ul>
+            </div>\n`;
+          break;
+          
+        case 'componente_react':
+          html += `
+            <div style="background: #ede9fe; padding: 20px; margin: 20px 0; border-radius: 8px; border: 2px solid #8b5cf6;">
+              <h4>⚛️ ${bloco.titulo}</h4>
+              <p><em>${bloco.descricao}</em></p>
+              <p><strong>Componente:</strong> ${bloco.componente} (${bloco.biblioteca})</p>
+              <details>
+                <summary style="cursor: pointer; font-weight: bold;">Ver Props</summary>
+                <pre style="background: #1f2937; color: #e5e7eb; padding: 12px; border-radius: 6px; margin-top: 8px;"><code>${JSON.stringify(bloco.props, null, 2)}</code></pre>
+              </details>
+            </div>\n`;
+          break;
+          
+        default:
+          console.warn('Tipo de bloco desconhecido:', bloco.tipo);
+      }
+    });
+    
+    return html;
   };
 
   const handleAddTag = () => {
