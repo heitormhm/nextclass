@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format, addMonths, subMonths, addDays, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, MapPin, Video, Trash2, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, MapPin, Video, Trash2, Check, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -126,32 +126,44 @@ const TeacherCalendar = () => {
         return;
       }
 
-      // Fetch class events
+      // Fetch class events with turmas join
       const { data: classEvents, error } = await supabase
         .from('class_events')
-        .select('*, classes(name)')
+        .select(`
+          *,
+          turmas:class_id (
+            nome_turma,
+            curso,
+            periodo
+          )
+        `)
         .in('class_id', filterIds)
         .gte('event_date', monthStart.toISOString())
-        .lte('event_date', monthEnd.toISOString());
+        .lte('event_date', monthEnd.toISOString())
+        .order('start_time');
 
       if (error) throw error;
 
       // Format events
-      const formattedEvents: CalendarEvent[] = classEvents?.map(event => ({
-        id: event.id,
-        title: event.title,
-        date: parseISO(event.event_date.split('T')[0]),
-        startTime: event.start_time,
-        endTime: event.end_time,
-        type: event.event_type as 'online' | 'presencial',
-        status: (event.status || 'pending') as 'pending' | 'completed' | 'cancelled',
-        location: event.location,
-        description: event.description || event.notes,
-        color: event.color || 'azul',
-        category: event.category,
-        className: (event.classes as any)?.name,
-        isPersonalEvent: false,
-      })) || [];
+      const formattedEvents: CalendarEvent[] = classEvents?.map(event => {
+        const turma = event.turmas as any;
+        
+        return {
+          id: event.id,
+          title: event.title,
+          date: parseISO(event.event_date.split('T')[0]),
+          startTime: event.start_time,
+          endTime: event.end_time,
+          type: event.event_type as 'online' | 'presencial',
+          status: (event.status || 'pending') as 'pending' | 'completed' | 'cancelled',
+          location: event.location,
+          description: event.description || event.notes,
+          color: event.color || 'azul',
+          category: event.category,
+          className: turma?.nome_turma || 'Turma não especificada',
+          isPersonalEvent: false,
+        };
+      }) || [];
 
       setEvents(formattedEvents);
     } catch (error) {
@@ -516,26 +528,32 @@ const TeacherCalendar = () => {
                             getEventColorClasses(event.color).border
                           )}
                         >
-                          <div className="flex items-start justify-between mb-1">
+                          <div className="flex items-start justify-between mb-2">
                             <h4 className="font-semibold text-sm">
                               {event.title}
                             </h4>
-                            <Badge variant="outline" className="text-xs">
-                              {event.type === 'online' ? (
-                                <><Video className="h-3 w-3 mr-1" /> Online</>
-                              ) : (
-                                <><MapPin className="h-3 w-3 mr-1" /> Presencial</>
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="text-xs">
+                                {event.type === 'online' ? (
+                                  <><Video className="h-3 w-3 mr-1" /> Online</>
+                                ) : (
+                                  <><MapPin className="h-3 w-3 mr-1" /> Presencial</>
+                                )}
+                              </Badge>
+                              {event.category && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {getCategoryLabel(event.category)}
+                                </Badge>
                               )}
-                            </Badge>
+                            </div>
                           </div>
                           <p className="text-xs text-gray-600 mb-1">
                             {event.startTime} - {event.endTime}
                           </p>
-                          {event.className && (
-                            <p className="text-xs text-gray-500">
-                              Turma: {event.className}
-                            </p>
-                          )}
+                          <p className="text-xs text-gray-500 flex items-center gap-1 mb-1">
+                            <Users className="h-3 w-3" />
+                            {event.className}
+                          </p>
                           {event.location && (
                             <p className="text-xs text-gray-500">
                               Local: {event.location}
