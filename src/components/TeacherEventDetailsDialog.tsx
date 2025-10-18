@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Dialog } from '@/components/ui/dialog';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -134,27 +133,6 @@ const getColorAccents = (color: string = 'azul') => {
   };
   return accentMap[color] || accentMap['azul'];
 };
-
-// Custom DialogContent com flex layout
-const CustomDialogContent = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DialogPrimitive.Portal>
-    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] flex flex-col shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg bg-background",
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </DialogPrimitive.Content>
-  </DialogPrimitive.Portal>
-));
-CustomDialogContent.displayName = "CustomDialogContent";
 
 export const TeacherEventDetailsDialog = ({
   event,
@@ -339,7 +317,10 @@ export const TeacherEventDetailsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <CustomDialogContent className="max-w-3xl max-h-[90vh] p-0 relative">
+      <DialogContent className={cn(
+        "max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar",
+        isEditMode ? "pb-28" : "pb-6"
+      )}>
         <Button
           variant="ghost"
           size="icon"
@@ -349,11 +330,7 @@ export const TeacherEventDetailsDialog = ({
           <X className="h-5 w-5 text-gray-800 font-bold" />
         </Button>
 
-        {/* Wrapper div para controlar layout flex */}
-        <div className="flex flex-col max-h-[90vh]">
-          {/* Conteúdo scrollável */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pt-6">
-          <div className={cn(
+        <div className={cn(
           "rounded-lg p-4 pr-14 bg-gradient-to-br mb-4 text-white",
           colorClasses
         )}>
@@ -625,47 +602,45 @@ export const TeacherEventDetailsDialog = ({
             )}
           </div>
         )}
-          </div>
 
-          {/* Rodapé fixo - Apenas em modo edição */}
-          {isEditMode && (
-            <div className="flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent p-4 px-6 border-t shadow-2xl backdrop-blur-sm flex gap-3">
-              <Button
-                onClick={() => setIsEditMode(false)}
-                variant="outline"
-                size="lg"
-                className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-50 hover:scale-105 transition-all"
-                disabled={isSaving}
-              >
-                <X className="h-5 w-5 mr-2" />
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleSaveChanges}
-                size="lg"
-                className={cn(
-                  "flex-1 h-12 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 text-white",
-                  colorAccents.buttonBg,
-                  colorAccents.buttonHover
-                )}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-5 w-5 mr-2" />
-                    Salvar Alterações
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-        </div>
-      </CustomDialogContent>
+        {/* Rodapé fixo com botões de ação - Apenas em modo edição */}
+        {isEditMode && (
+          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/95 to-transparent p-4 border-t shadow-2xl backdrop-blur-sm z-[70] flex gap-3">
+            <Button
+              onClick={() => setIsEditMode(false)}
+              variant="outline"
+              size="lg"
+              className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-50 hover:scale-105 transition-all"
+              disabled={isSaving}
+            >
+              <X className="h-5 w-5 mr-2" />
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveChanges}
+              size="lg"
+              className={cn(
+                "flex-1 h-12 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 text-white",
+                colorAccents.buttonBg,
+                colorAccents.buttonHover
+              )}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-5 w-5 mr-2" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </DialogContent>
     </Dialog>
   );
 };
