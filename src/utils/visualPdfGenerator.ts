@@ -3,6 +3,10 @@ import html2canvas from 'html2canvas';
 import { loadUnicodeFont } from './unicodeFont';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+// FASE 1: Importar fontes Inter + STIXTwoMath
+import interFontNormal from '@/assets/fonts/Inter-Regular.ttf';
+import interFontBold from '@/assets/fonts/Inter-Bold.ttf';
+import stixMathFont from '@/assets/fonts/STIXTwoMath-Regular.ttf';
 
 interface VisualPDFOptions {
   structuredData: StructuredData;
@@ -103,6 +107,26 @@ const detectAndConvertMarkdown = (bloco: ContentBlock): ContentBlock => {
   return bloco;
 };
 
+// Função auxiliar para converter Blob para Base64
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      resolve(base64.split(',')[1]); // Remover prefixo data:
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+// Função para detectar símbolos matemáticos
+const detectMathSymbols = (text: string): boolean => {
+  // Detectar símbolos matemáticos comuns
+  const mathPattern = /[∫∑∏∂∆∇√∞≈≠≤≥±×÷∈∉⊂⊃∪∩αβγδεζηθλμπρσφψω]/;
+  return mathPattern.test(text);
+};
+
 // FASE 1: Função para converter SVG para PNG de alta qualidade
 const convertSVGtoPNG = async (svgString: string, width: number, height: number): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -166,10 +190,39 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       format: 'a4'
     });
 
-    // Carregar fonte Unicode
-    const fontBase64 = await loadUnicodeFont();
-    pdf.addFileToVFS('DejaVuSans.ttf', fontBase64);
-    pdf.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
+    // FASE 1: Carregar fontes Inter + STIX Two Math
+    try {
+      // Carregar Inter como fonte principal
+      const interNormalResponse = await fetch(interFontNormal);
+      const interNormalBlob = await interNormalResponse.blob();
+      const interNormalBase64 = await blobToBase64(interNormalBlob);
+      
+      const interBoldResponse = await fetch(interFontBold);
+      const interBoldBlob = await interBoldResponse.blob();
+      const interBoldBase64 = await blobToBase64(interBoldBlob);
+      
+      // Carregar STIX Two Math para símbolos matemáticos
+      const stixResponse = await fetch(stixMathFont);
+      const stixBlob = await stixResponse.blob();
+      const stixBase64 = await blobToBase64(stixBlob);
+      
+      // Adicionar fontes ao jsPDF
+      pdf.addFileToVFS('Inter-Regular.ttf', interNormalBase64);
+      pdf.addFont('Inter-Regular.ttf', 'Inter', 'normal');
+      
+      pdf.addFileToVFS('Inter-Bold.ttf', interBoldBase64);
+      pdf.addFont('Inter-Bold.ttf', 'Inter', 'bold');
+      
+      pdf.addFileToVFS('STIXTwoMath-Regular.ttf', stixBase64);
+      pdf.addFont('STIXTwoMath-Regular.ttf', 'STIXTwoMath', 'normal');
+      
+      pdf.setFont('Inter', 'normal'); // Definir Inter como padrão
+      
+      console.log('✅ Fontes Inter + STIX Two Math carregadas');
+    } catch (error) {
+      console.warn('⚠️ Erro ao carregar fontes, usando padrão do sistema');
+      warnings.push('Fontes personalizadas não foram carregadas');
+    }
     
     // Dimensões da página
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -216,32 +269,58 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 </defs>
 </svg>`;
     
-    // Converter SVG para PNG de alta qualidade
-    const logoWidthPx = 188 * 2; // Dobrar resolução para qualidade
-    const logoHeightPx = 27 * 2;
-    const logoWidth = 35; // mm no PDF
-    const logoHeight = logoWidth * (27 / 188); // Manter aspect ratio 188:27
+    // FASE 4: Converter SVG para PNG de ALTÍSSIMA qualidade (4x resolução)
+    const logoWidthPx = 188 * 4; // 752px para qualidade 4K
+    const logoHeightPx = 27 * 4;  // 108px
+    const logoWidth = 70; // mm no PDF (2x maior)
+    const logoHeight = logoWidth * (27 / 188); // ~10mm altura
     
     try {
       const logoPNG = await convertSVGtoPNG(nextclassLogoSVG, logoWidthPx, logoHeightPx);
       
-      // Inserir logo PNG no PDF
-      pdf.addImage(logoPNG, 'PNG', (pageWidth - logoWidth) / 2, logoY, logoWidth, logoHeight);
+      // POSICIONAR LOGO NO CANTO SUPERIOR ESQUERDO
+      const logoX = margin; // Alinhado à margem esquerda
+      pdf.addImage(logoPNG, 'PNG', logoX, logoY, logoWidth, logoHeight);
       
-      console.log('✅ Logo NextClass renderizada como PNG de alta qualidade');
+      // ADICIONAR COLUNA DEGRADÊ ROXA AO LADO DA LOGO
+      const gradientX = logoX + logoWidth + 3; // 3mm de espaço
+      const gradientWidth = 5; // Coluna de 5mm
+      const gradientHeight = logoHeight;
+      
+      // Simular gradiente com linhas horizontais (roxo claro → roxo escuro)
+      const gradientSteps = 20;
+      const stepHeight = gradientHeight / gradientSteps;
+      
+      for (let i = 0; i < gradientSteps; i++) {
+        const ratio = i / gradientSteps;
+        // Interpolação: roxo claro (#917FFB) → roxo escuro (#3F2DAF)
+        const r = Math.round(145 - (145 - 63) * ratio);
+        const g = Math.round(127 - (127 - 45) * ratio);
+        const b = Math.round(251 - (251 - 175) * ratio);
+        
+        pdf.setFillColor(r, g, b);
+        pdf.rect(gradientX, logoY + (i * stepHeight), gradientWidth, stepHeight, 'F');
+      }
+      
+      console.log('✅ Logo NextClass 2x maior renderizada no canto esquerdo com coluna degradê');
     } catch (error) {
-      console.warn('⚠️ Falha ao renderizar logo, continuando sem logo:', error);
+      console.warn('⚠️ Falha ao renderizar logo:', error);
       warnings.push('Logo NextClass não foi adicionada ao PDF');
     }
     
-    currentY += logoHeight + 6;
+    currentY = logoY + logoHeight + 8; // Espaço maior após logo
     
-    // Título principal
+    // TÍTULO AGORA À DIREITA DA COLUNA DEGRADÊ
+    const titleX = margin + logoWidth + 3 + 5 + 5; // Após logo + espaço + coluna + 5mm espaço
+    const titleMaxWidth = pageWidth - titleX - margin;
+    
     pdf.setFontSize(22);
-    pdf.setFont('DejaVuSans', 'bold');
+    pdf.setFont('Inter', 'bold');
     pdf.setTextColor(63, 45, 175); // Roxo escuro
-    pdf.text(options.title, pageWidth / 2, currentY, { align: 'center' });
-    currentY += 8;
+    const titleLines = pdf.splitTextToSize(options.title, titleMaxWidth);
+    pdf.text(titleLines, titleX, logoY + (logoHeight / 2), { align: 'left', baseline: 'middle' });
+    
+    currentY = Math.max(currentY, logoY + logoHeight + 8);
 
     // Linha decorativa com gradiente rosa→roxo
     const lineSegments = 20;
@@ -268,7 +347,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 
     // Subtítulo com data em rosa
     pdf.setFontSize(9);
-    pdf.setFont('DejaVuSans', 'normal');
+    pdf.setFont('Inter', 'normal');
     pdf.setTextColor(255, 70, 130); // Rosa
     const date = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -291,21 +370,45 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         
         if (imageData) {
           // Calcular dimensões da imagem
-          const imageHeight = (imageData.height / imageData.width) * contentWidth;
+          let imageHeight = (imageData.height / imageData.width) * contentWidth;
           let imageWidth = contentWidth;
           let xPosition = margin;
 
+          // FASE 3: Adicionar margem de segurança do rodapé
+          const FOOTER_SAFE_ZONE = 20; // 15mm rodapé + 5mm buffer
+          
+          // Garantir que imagens estejam contidas nos limites
+          if (imageWidth > contentWidth) {
+            const scaleFactor = contentWidth / imageWidth;
+            imageWidth = contentWidth;
+            imageHeight = imageHeight * scaleFactor;
+          }
+          
           // Se imagem é pequena (< 70% da largura), centralizar
           if (imageHeight < 100 && imageData.width < imageData.height) {
             imageWidth = contentWidth * 0.7;
             xPosition = margin + (contentWidth - imageWidth) / 2;
+          } else if (imageWidth < contentWidth * 0.8) {
+            // Centralizar imagens pequenas
+            xPosition = margin + (contentWidth - imageWidth) / 2;
+          }
+          
+          // Limitar altura máxima de imagens grandes
+          const maxImageHeight = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
+          if (imageHeight > maxImageHeight && maxImageHeight > 50) {
+            // Redimensionar imagem para caber na página
+            const scaleFactor = maxImageHeight / imageHeight;
+            imageHeight = maxImageHeight;
+            imageWidth = imageWidth * scaleFactor;
+            console.log('📐 Imagem redimensionada para caber na página sem invadir rodapé');
           }
           
           // Verificar quebra de página
-          if (currentY + imageHeight > pageHeight - margin) {
+          if (currentY + imageHeight > pageHeight - margin - FOOTER_SAFE_ZONE) {
             pdf.addPage();
             stats.totalPages++;
             currentY = margin;
+            console.log('📄 Nova página criada para imagem (evitar invasão de rodapé)');
           }
 
           pdf.addImage(
@@ -373,7 +476,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       
       // Número da página (centro, roxo)
       pdf.setFontSize(9);
-      pdf.setFont('DejaVuSans', 'bold');
+      pdf.setFont('Inter', 'bold');
       pdf.setTextColor(63, 45, 175); // Roxo
       pdf.text(
         `Pagina ${i} de ${totalPages}`,
@@ -384,7 +487,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       
       // Nome do documento (esquerda, rosa)
       pdf.setFontSize(7);
-      pdf.setFont('DejaVuSans', 'normal');
+      pdf.setFont('Inter', 'normal');
       pdf.setTextColor(255, 70, 130); // Rosa
       const truncatedTitle = options.title.substring(0, 35) + (options.title.length > 35 ? '...' : '');
       pdf.text(truncatedTitle, margin, pageHeight - 10);
@@ -628,7 +731,7 @@ const addTextBlockToPDF = (
   switch (processedBloco.tipo) {
     case 'h2':
       pdf.setFontSize(16);
-      pdf.setFont('DejaVuSans', 'bold');
+      pdf.setFont('Inter', 'bold');
       pdf.setTextColor(63, 45, 175); // Roxo escuro
       const h2Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h2Lines, margin, currentY);
@@ -636,16 +739,17 @@ const addTextBlockToPDF = (
       const h2Height = h2Lines.length * 7;
       currentY += h2Height;
       
-      // Linha rosa decorativa
+      // FASE 5: Linha rosa decorativa mais espessa
       pdf.setDrawColor(255, 70, 130); // Rosa
-      pdf.setLineWidth(0.8);
-      pdf.line(margin, currentY, margin + 60, currentY);
-      currentY += 6;
+      pdf.setLineWidth(1.2); // ANTES: 0.8, AGORA: 1.2mm (50% mais espesso)
+      const underlineLength = Math.min(pdf.getTextWidth(processedBloco.texto || '') + 5, 80);
+      pdf.line(margin, currentY, margin + underlineLength, currentY); // Linha proporcional ao texto
+      currentY += 7; // ANTES: 6mm
       break;
 
     case 'h3':
       pdf.setFontSize(13);
-      pdf.setFont('DejaVuSans', 'bold');
+      pdf.setFont('Inter', 'bold');
       pdf.setTextColor(145, 127, 251); // Roxo claro
       const h3Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h3Lines, margin, currentY);
@@ -653,16 +757,17 @@ const addTextBlockToPDF = (
       const h3Height = h3Lines.length * 6;
       currentY += h3Height;
       
-      // Linha roxa decorativa
+      // FASE 5: Linha roxa decorativa mais visível
       pdf.setDrawColor(145, 127, 251); // Roxo claro
-      pdf.setLineWidth(0.5);
-      pdf.line(margin, currentY, margin + 40, currentY);
-      currentY += 5;
+      pdf.setLineWidth(0.8); // ANTES: 0.5, AGORA: 0.8mm
+      const h3UnderlineLength = Math.min(pdf.getTextWidth(processedBloco.texto || '') + 3, 60);
+      pdf.line(margin, currentY, margin + h3UnderlineLength, currentY);
+      currentY += 6;
       break;
 
     case 'h4':
       pdf.setFontSize(11);
-      pdf.setFont('DejaVuSans', 'bold');
+      pdf.setFont('Inter', 'bold');
       pdf.setTextColor(255, 113, 160); // Rosa claro
       const h4Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h4Lines, margin, currentY);
@@ -675,6 +780,10 @@ const addTextBlockToPDF = (
       
       // FASE 2: Sanitizar markdown antes de processar
       const { cleanText: sanitizedText, hasBold: hasMarkdown } = sanitizeMarkdown(processedBloco.texto || '');
+      
+      // DETECTAR SÍMBOLOS MATEMÁTICOS
+      const hasMath = detectMathSymbols(sanitizedText);
+      const fontToUse = hasMath ? 'STIXTwoMath' : 'Inter';
       
       if (hasMarkdown) {
         // Processar **negrito**
@@ -699,18 +808,20 @@ const addTextBlockToPDF = (
         let lineY = currentY;
         segments.forEach(seg => {
           const lines = pdf.splitTextToSize(seg.text, contentWidth);
-          pdf.setFont('DejaVuSans', seg.bold ? 'bold' : 'normal');
+          // Usar fonte matemática se houver símbolos, senão Inter
+          const segFont = detectMathSymbols(seg.text) ? 'STIXTwoMath' : 'Inter';
+          pdf.setFont(segFont, seg.bold && segFont === 'Inter' ? 'bold' : 'normal');
           pdf.text(lines, margin, lineY);
-          lineY += lines.length * 5;
+          lineY += lines.length * 6.5; // FASE 2: ANTES: 5, AGORA: 6.5mm
         });
         
-        currentY = lineY + 4;
+        currentY = lineY + 5; // FASE 2: ANTES: 4, AGORA: 5mm
       } else {
         // Texto sem markdown - renderizar normalmente
         const lines = pdf.splitTextToSize(sanitizedText, contentWidth);
-        pdf.setFont('DejaVuSans', 'normal');
+        pdf.setFont(fontToUse, 'normal');
         pdf.text(lines, margin, currentY);
-        currentY += lines.length * 5 + 4;
+        currentY += lines.length * 6.5 + 5; // FASE 2: ANTES: 5 + 4, AGORA: 6.5 + 5mm
       }
       break;
 
@@ -723,7 +834,7 @@ const addTextBlockToPDF = (
       
       // Título com cor roxa
       pdf.setFontSize(14);
-      pdf.setFont('DejaVuSans', 'bold');
+      pdf.setFont('Inter', 'bold');
       pdf.setTextColor(63, 45, 175); // Roxo
       pdf.text('Referencias Bibliograficas', margin, currentY);
       currentY += 8;
@@ -753,7 +864,7 @@ const addTextBlockToPDF = (
       
       // Lista de referências
       pdf.setFontSize(9);
-      pdf.setFont('DejaVuSans', 'normal');
+      pdf.setFont('Inter', 'normal');
       pdf.setTextColor(60, 60, 60);
       
       bloco.itens?.forEach((ref: string, index: number) => {
@@ -764,12 +875,12 @@ const addTextBlockToPDF = (
         }
         
         // Número da referência em rosa
-        pdf.setFont('DejaVuSans', 'bold');
+        pdf.setFont('Inter', 'bold');
         pdf.setTextColor(255, 70, 130); // Rosa
         pdf.text(`[${index + 1}]`, margin, currentY);
         
         // Texto da referência
-        pdf.setFont('DejaVuSans', 'normal');
+        pdf.setFont('Inter', 'normal');
         pdf.setTextColor(60, 60, 60);
         const refLines = pdf.splitTextToSize(ref, contentWidth - 12);
         pdf.text(refLines, margin + 12, currentY);
