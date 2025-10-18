@@ -1,17 +1,21 @@
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Clock, MapPin, User, BookOpen, Users, X, Edit2, Save } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { format, parseISO, isSameDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Calendar, Clock, MapPin, User, BookOpen, Users, Edit2, Save, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CalendarEvent {
   id: string;
@@ -82,23 +86,27 @@ export const TeacherEventDetailsDialog = ({
   const [details, setDetails] = useState<EventDetails | null>(null);
   
   const [editedTitle, setEditedTitle] = useState("");
+  const [editedDate, setEditedDate] = useState<Date | undefined>();
   const [editedStartTime, setEditedStartTime] = useState("");
   const [editedEndTime, setEditedEndTime] = useState("");
   const [editedLocation, setEditedLocation] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
   const [editedCategory, setEditedCategory] = useState("");
   const [editedColor, setEditedColor] = useState("");
+  const [editedStatus, setEditedStatus] = useState("");
 
   useEffect(() => {
     if (event && open) {
       fetchEventDetails();
       setEditedTitle(event.title);
+      setEditedDate(event.date);
       setEditedStartTime(event.startTime);
       setEditedEndTime(event.endTime);
       setEditedLocation(event.location || "");
       setEditedDescription(event.description || "");
       setEditedCategory(event.category || "aula");
       setEditedColor(event.color || "azul");
+      setEditedStatus(event.status || "pending");
       setIsEditMode(false);
     }
   }, [event, open]);
@@ -164,31 +172,59 @@ export const TeacherEventDetailsDialog = ({
     setIsSaving(true);
     
     try {
-      const changes: string[] = [];
-      if (editedTitle !== event.title) changes.push('título');
-      if (editedStartTime !== event.startTime) changes.push('horário de início');
-      if (editedEndTime !== event.endTime) changes.push('horário de término');
-      if (editedLocation !== (event.location || '')) changes.push('local');
-      if (editedDescription !== (event.description || '')) changes.push('descrição');
-      if (editedCategory !== (event.category || 'aula')) changes.push('categoria');
-      if (editedColor !== (event.color || 'azul')) changes.push('cor');
-
+      // Detectar tipo de mudança
+      const isDateChanged = editedDate && !isSameDay(editedDate, event.date);
+      const isCancelled = editedStatus === 'cancelled';
+      
       const { error } = await supabase
         .from('class_events')
         .update({
           title: editedTitle,
+          event_date: editedDate ? format(editedDate, 'yyyy-MM-dd') + 'T00:00:00.000Z' : format(event.date, 'yyyy-MM-dd') + 'T00:00:00.000Z',
           start_time: editedStartTime,
           end_time: editedEndTime,
           location: editedLocation || null,
           description: editedDescription || null,
           category: editedCategory as any,
           color: editedColor as any,
+          status: editedStatus,
         })
         .eq('id', event.id);
       
       if (error) throw error;
-
-      if (changes.length > 0) {
+      
+      // Enviar notificação personalizada com base no tipo de mudança
+      if (isCancelled) {
+        await supabase.functions.invoke('send-class-event-cancellation-notification', {
+          body: {
+            eventId: event.id,
+            classId: event.classId,
+            title: editedTitle,
+            originalDate: format(event.date, 'yyyy-MM-dd'),
+          }
+        });
+        toast.success('✓ Evento cancelado!', {
+          description: 'Alunos foram notificados sobre o cancelamento'
+        });
+      } else if (isDateChanged) {
+        await supabase.functions.invoke('send-class-event-date-change-notification', {
+          body: {
+            eventId: event.id,
+            classId: event.classId,
+            title: editedTitle,
+            oldDate: format(event.date, 'yyyy-MM-dd'),
+            newDate: format(editedDate!, 'yyyy-MM-dd'),
+          }
+        });
+        toast.success('✓ Data do evento atualizada!', {
+          description: 'Alunos foram notificados sobre a nova data'
+        });
+      } else {
+        const changes: string[] = [];
+        if (editedTitle !== event.title) changes.push('título');
+        if (editedStartTime !== event.startTime) changes.push('horário');
+        if (editedLocation !== (event.location || '')) changes.push('local');
+        
         await supabase.functions.invoke('send-class-event-update-notification', {
           body: {
             eventId: event.id,
@@ -197,11 +233,10 @@ export const TeacherEventDetailsDialog = ({
             title: editedTitle,
           }
         });
+        toast.success('✓ Evento atualizado!', {
+          description: 'Alunos foram notificados sobre a alteração'
+        });
       }
-      
-      toast.success('✓ Evento atualizado!', {
-        description: changes.length > 0 ? 'Alunos foram notificados sobre a alteração' : ''
-      });
       
       onEventUpdated?.();
       onOpenChange(false);
@@ -270,6 +305,35 @@ export const TeacherEventDetailsDialog = ({
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Data com edição */}
+            {isEditMode ? (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-blue-600" />
+                  📅 Data *
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start bg-white/20 backdrop-blur-xl border-blue-200"
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {editedDate ? format(editedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : "Selecione uma data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={editedDate}
+                      onSelect={setEditedDate}
+                      locale={ptBR}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            ) : (
               <div className="rounded-lg p-4 border bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
                 <div className="flex items-center gap-2 mb-2 text-blue-700">
                   <Calendar className="h-5 w-5" />
@@ -284,6 +348,7 @@ export const TeacherEventDetailsDialog = ({
                   </p>
                 </div>
               </div>
+            )}
 
               <div className="rounded-lg p-4 border bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
                 <div className="flex items-center gap-2 mb-2 text-amber-700">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format, addMonths, subMonths, addDays, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, MapPin, Video, Trash2, Check, Users, Edit } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, MapPin, Video, Trash2, Check, Users, Edit, X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -277,6 +277,35 @@ const TeacherCalendar = () => {
         {truncateText(part, 25)}
       </Badge>
     ));
+  };
+
+  const formatClassNameToFilterBadges = (className: string) => {
+    const parts = className.split(' - ');
+    
+    const truncateUniversity = (text: string) => {
+      const maxLength = 30;
+      return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    };
+    
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {parts.map((part, index) => {
+          const isUniversity = index === 2;
+          const displayText = isUniversity ? truncateUniversity(part) : part;
+          
+          return (
+            <Badge 
+              key={index} 
+              variant="outline" 
+              className="text-xs py-1 px-2 bg-blue-50 text-blue-700 border-blue-200"
+              title={part}
+            >
+              {displayText}
+            </Badge>
+          );
+        })}
+      </div>
+    );
   };
 
   const handleEventDelete = async (eventId: string) => {
@@ -590,48 +619,52 @@ const TeacherCalendar = () => {
                               )}
                             </div>
                           </div>
-                  <p className="text-xs text-gray-600 mb-1">
-                    {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-1 mb-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className="flex items-center gap-1 text-xs bg-amber-50 text-amber-700 border-amber-200">
+                      <Clock className="h-3 w-3" />
+                      {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1 mb-2">
                     <Users className="h-3 w-3 text-gray-500" />
                     {formatClassNameToBadges(event.className)}
                   </div>
                           {event.location && (
-                            <p className="text-xs text-gray-500">
-                              Local: {event.location}
-                            </p>
+                            <Badge variant="outline" className="flex items-center gap-1 text-xs bg-green-50 text-green-700 border-green-200 mb-2">
+                              <MapPin className="h-3 w-3" />
+                              {event.location}
+                            </Badge>
                           )}
                   <div className="flex gap-2 mt-2">
                     <Button
-                      size="sm"
-                      variant="outline"
+                      size="icon"
+                      variant="ghost"
                       onClick={() => {
                         setSelectedEventForEdit(event);
                         setShowEventDetailsDialog(true);
                       }}
-                      className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      title="Visualizar/Editar"
                     >
-                      <Edit className="h-3 w-3 mr-1" />
-                      Visualizar
+                      <Edit className="h-4 w-4" />
                     </Button>
                     <Button
-                      size="sm"
-                      variant="outline"
+                      size="icon"
+                      variant="ghost"
                       onClick={() => handleEventUpdate(event.id, 'complete')}
-                      className="text-xs"
+                      className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                      title="Concluir"
                     >
-                      <Check className="h-3 w-3 mr-1" />
-                      Concluir
+                      <Check className="h-4 w-4" />
                     </Button>
                     <Button
-                      size="sm"
-                      variant="outline"
+                      size="icon"
+                      variant="ghost"
                       onClick={() => handleEventDelete(event.id)}
-                      className="text-xs text-red-600 hover:text-red-700"
+                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      title="Deletar"
                     >
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Deletar
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                         </div>

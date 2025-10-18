@@ -1,7 +1,21 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Clock, MapPin, Video, X } from 'lucide-react';
+import { CalendarIcon, Clock, MapPin, Video, X, Users } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +28,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface Class {
   id: string;
@@ -80,6 +94,35 @@ const TEACHER_COLORS = [
   { value: 'amarelo', label: 'Amarelo', color: 'bg-yellow-600' },
   { value: 'rosa', label: 'Rosa', color: 'bg-pink-600' },
 ];
+
+const formatClassNameToFilterBadges = (className: string) => {
+  const parts = className.split(' - ');
+  
+  const truncateUniversity = (text: string) => {
+    const maxLength = 30;
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  };
+  
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {parts.map((part, index) => {
+        const isUniversity = index === 2;
+        const displayText = isUniversity ? truncateUniversity(part) : part;
+        
+        return (
+          <Badge 
+            key={index} 
+            variant="outline" 
+            className="text-xs py-1 px-2 bg-blue-50 text-blue-700 border-blue-200"
+            title={part}
+          >
+            {displayText}
+          </Badge>
+        );
+      })}
+    </div>
+  );
+};
 
 export const TeacherCalendarEventModal = ({
   open,
@@ -493,12 +536,15 @@ export const TeacherCalendarEventModal = ({
                 <SelectValue placeholder="Selecione uma turma" />
               </SelectTrigger>
               <SelectContent className="z-[10000]" sideOffset={5}>
-                <SelectItem value="ALL_CLASSES" className="font-semibold text-blue-600">
-                  👥 Todas as Turmas
+                <SelectItem value="ALL_CLASSES">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span className="font-semibold">Todas as Turmas</span>
+                  </div>
                 </SelectItem>
                 {classes.map((cls) => (
                   <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name} - {cls.period}
+                    {formatClassNameToFilterBadges(cls.name)}
                   </SelectItem>
                 ))}
               </SelectContent>

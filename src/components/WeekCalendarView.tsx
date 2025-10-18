@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { format, addDays, startOfWeek, isSameDay, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Check, X, Video, Users } from 'lucide-react';
+import { Check, X, Video, Users, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -224,12 +224,16 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                 {event.title}
               </div>
                             <div className="text-[10px] opacity-90 mt-0.5">
-                              {event.startTime} - {event.endTime}
+                              {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}
                             </div>
                             {event.location && height > 50 && (
-                              <div className="text-[10px] opacity-80 truncate mt-1">
+                              <Badge 
+                                variant="outline" 
+                                className="text-[10px] mt-1 bg-white/20 border-white/30 text-white inline-flex items-center gap-0.5"
+                              >
+                                <MapPin className="h-2.5 w-2.5" />
                                 {event.location}
-                              </div>
+                              </Badge>
                             )}
                           </div>
 
