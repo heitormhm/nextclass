@@ -403,8 +403,8 @@ const TeacherCalendar = () => {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="border-0 shadow-sm bg-white/75 backdrop-blur-xl border-blue-100/30 min-h-[600px]">
-                  <CardContent className="p-6 max-h-[600px] overflow-y-auto">
+                <Card className="border-0 shadow-sm bg-white/75 backdrop-blur-xl border-blue-100/30">
+                  <CardContent className="p-6">
                     {/* Navigation bar */}
                     <div className="flex items-center justify-between mb-6">
                       <Button
