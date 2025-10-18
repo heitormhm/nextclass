@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   Bold, Italic, Underline, Highlighter, List, ListOrdered, 
   ImagePlus, Type, Save, ArrowLeft, Tag, 
-  Sparkles, X, Loader2, CheckCircle2, FileText,
+  Sparkles, X, Loader2, CheckCircle2, FileText, FileDown,
   Mic, Undo, Redo, BookOpen, Table as TableIcon, 
   Lightbulb, GraduationCap
 } from 'lucide-react';
@@ -20,6 +20,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
+import { generateReportPDF } from '@/utils/pdfGenerator';
+import { structuredContentToMarkdown } from '@/utils/structuredContentToMarkdown';
 
 const TeacherAnnotationPage = () => {
   const navigate = useNavigate();
@@ -46,6 +48,10 @@ const TeacherAnnotationPage = () => {
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
   const [isStructuredMode, setIsStructuredMode] = useState(false);
+  
+  // PDF Export state
+  const [lastAIFormattedContent, setLastAIFormattedContent] = useState<string>('');
+  const [showPDFExportButton, setShowPDFExportButton] = useState(false);
   
   // History state for undo/redo
   const [history, setHistory] = useState<string[]>([]);
@@ -443,6 +449,15 @@ const TeacherAnnotationPage = () => {
       
       setIsProcessingAI(false);
       
+      // Se não for conteúdo estruturado, mas foi formatação de IA
+      if (actionType !== 'improve_didactic') {
+        setLastAIFormattedContent(data.formattedText);
+        setShowPDFExportButton(true);
+        
+        // Auto-esconder após 30 segundos
+        setTimeout(() => setShowPDFExportButton(false), 30000);
+      }
+      
     } catch (error: any) {
       console.error('Error processing with AI:', error);
       
@@ -553,6 +568,140 @@ const TeacherAnnotationPage = () => {
     `;
     executeCommand('insertHTML', textboxHtml);
     toast.success('Textbox adicionado!');
+  };
+
+  const handleExportPDF = async () => {
+    if (!isStructuredMode || !structuredContent) {
+      toast.error('Nenhum conteúdo estruturado disponível para exportar');
+      return;
+    }
+
+    try {
+      toast.info('Gerando PDF...', { duration: 2000 });
+      
+      // Converter JSON estruturado para Markdown
+      const markdownContent = structuredContentToMarkdown(structuredContent);
+      
+      console.log('🎯 Iniciando geração de PDF do material didático...');
+      console.log('📄 Conteúdo convertido:', markdownContent.substring(0, 200) + '...');
+      console.log('📏 Tamanho do conteúdo:', markdownContent.length, 'caracteres');
+      
+      const result = await generateReportPDF({
+        content: markdownContent,
+        title: title || structuredContent.titulo_geral || 'Material Didático',
+        logoSvg: '',
+      });
+      
+      if (result.success) {
+        let description = "O material didático foi exportado como PDF.";
+        
+        if (result.fixesApplied && result.fixesApplied.length > 0) {
+          description = "✅ PDF gerado com sucesso após correções automáticas!\n\n";
+          description += `🔧 Correções aplicadas:\n${result.fixesApplied.map(f => `• ${f}`).join('\n')}`;
+        }
+        
+        if (result.stats) {
+          description += `\n\n📊 Estatísticas:\n`;
+          description += `• Conteúdo: ${result.stats.content.h1Count + result.stats.content.h2Count + result.stats.content.h3Count} títulos, ${result.stats.content.paragraphCount} parágrafos\n`;
+          if (result.stats.render) {
+            description += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
+          }
+          description += `• PDF: ${result.stats.pdf.pageCount} páginas geradas`;
+        }
+        
+        if (result.warnings && result.warnings.length > 0) {
+          description += `\n\n⚠️ Avisos:\n${result.warnings.map(w => `• ${w}`).join('\n')}`;
+        }
+        
+        toast.success(
+          result.fixesApplied ? "✅ PDF Gerado (Auto-Corrigido)" : "✅ PDF Gerado com Sucesso",
+          { description, duration: result.fixesApplied ? 8000 : 5000 }
+        );
+      } else {
+        let errorDescription = result.error || "Erro desconhecido";
+        
+        if (result.diagnostics && result.diagnostics.length > 0) {
+          errorDescription += `\n\n🔍 Problemas detectados:\n`;
+          errorDescription += result.diagnostics.map(d => `• ${d.issue}\n  Sugestão: ${d.suggestedFix}`).join('\n');
+        }
+        
+        if (result.stats?.render) {
+          errorDescription += `\n\n📊 Debug Info:\n`;
+          errorDescription += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
+          errorDescription += `• Páginas adicionadas: ${result.stats.render.pagesAdded}`;
+        }
+        
+        toast.error("❌ Erro ao Gerar PDF", {
+          description: errorDescription,
+          duration: 10000
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      toast.error('Erro ao exportar PDF', {
+        description: (error as Error).message
+      });
+    }
+  };
+
+  const handleExportHTMLToPDF = async () => {
+    if (!editorRef.current) {
+      toast.error('Nenhum conteúdo disponível para exportar');
+      return;
+    }
+
+    try {
+      toast.info('Gerando PDF...', { duration: 2000 });
+      
+      // Extrair texto do HTML
+      const htmlContent = editorRef.current.innerHTML;
+      
+      // Converter HTML para Markdown simplificado
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+      
+      console.log('🎯 Iniciando geração de PDF do conteúdo formatado...');
+      console.log('📄 Conteúdo:', textContent.substring(0, 200) + '...');
+      console.log('📏 Tamanho do conteúdo:', textContent.length, 'caracteres');
+      
+      const result = await generateReportPDF({
+        content: textContent,
+        title: title || 'Anotação Formatada',
+        logoSvg: '',
+      });
+      
+      if (result.success) {
+        let description = "A anotação foi exportada como PDF.";
+        
+        if (result.fixesApplied && result.fixesApplied.length > 0) {
+          description = "✅ PDF gerado com sucesso após correções automáticas!\n\n";
+          description += `🔧 Correções aplicadas:\n${result.fixesApplied.map(f => `• ${f}`).join('\n')}`;
+        }
+        
+        if (result.stats) {
+          description += `\n\n📊 Estatísticas:\n`;
+          description += `• PDF: ${result.stats.pdf.pageCount} páginas geradas`;
+        }
+        
+        toast.success(
+          result.fixesApplied ? "✅ PDF Gerado (Auto-Corrigido)" : "✅ PDF Gerado com Sucesso",
+          { description, duration: 5000 }
+        );
+        
+        setShowPDFExportButton(false);
+      } else {
+        toast.error("❌ Erro ao Gerar PDF", {
+          description: result.error || "Erro desconhecido",
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      toast.error('Erro ao exportar PDF', {
+        description: (error as Error).message
+      });
+    }
   };
 
   const handleInput = () => {
@@ -765,17 +914,11 @@ const TeacherAnnotationPage = () => {
                   <Button
                     variant="outline"
                     size="default"
-                    onClick={() => {
-                      setIsStructuredMode(false);
-                      setStructuredContent(null);
-                      if (editorRef.current) {
-                        editorRef.current.innerHTML = content;
-                      }
-                      toast.info('Voltou ao modo editor');
-                    }}
+                    onClick={handleExportPDF}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-lg"
                   >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Voltar ao Editor
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Exportar como PDF
                   </Button>
                 )}
               </div>
@@ -798,20 +941,11 @@ const TeacherAnnotationPage = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setIsStructuredMode(false);
-                          setStructuredContent(null);
-                          // Converter de volta para editor editável (limpar)
-                          setContent('');
-                          if (editorRef.current) {
-                            editorRef.current.innerHTML = '';
-                          }
-                          toast.info('Voltou ao editor de texto. O conteúdo estruturado foi preservado.');
-                        }}
-                        className="hover:bg-purple-100 hover:text-purple-700"
+                        onClick={handleExportPDF}
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-md hover:shadow-lg transition-all"
                       >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Voltar ao Editor
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Exportar como PDF
                       </Button>
                     </div>
                     <div className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg bg-gradient-to-br from-purple-50/50 to-blue-50/50">
@@ -1041,6 +1175,23 @@ const TeacherAnnotationPage = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Floating PDF Export Button */}
+        {showPDFExportButton && !isStructuredMode && (
+          <div className="fixed bottom-32 right-8 z-30 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Button
+              onClick={handleExportHTMLToPDF}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-2xl border-0 px-6 py-6 rounded-2xl hover:scale-105 transition-all duration-300"
+              size="lg"
+            >
+              <FileDown className="h-5 w-5 mr-2" />
+              <div className="flex flex-col items-start">
+                <span className="font-bold text-sm">Exportar como PDF</span>
+                <span className="text-xs opacity-90">Conteúdo formatado por IA</span>
+              </div>
+            </Button>
+          </div>
+        )}
 
         {/* Save Dialog */}
         <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
