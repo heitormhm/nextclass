@@ -21,10 +21,31 @@ Deno.serve(async (req) => {
 
     console.log('Auto-enrolling student:', userId);
 
-    // Step 1: Get user data
+    // Step 1: Get user role from user_roles table
+    const { data: roleData, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+
+    if (roleError) {
+      console.error('Error fetching user role:', roleError);
+      throw new Error('Failed to fetch user role');
+    }
+
+    // Step 2: Only proceed if user is a student
+    if (roleData.role !== 'student') {
+      console.log('User is not a student, skipping auto-enrollment');
+      return new Response(
+        JSON.stringify({ message: 'User is not a student, no enrollment needed' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    // Step 3: Get user period from users table
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('role, course, period, university, city')
+      .select('period')
       .eq('id', userId)
       .single();
 
@@ -33,88 +54,69 @@ Deno.serve(async (req) => {
       throw new Error('Failed to fetch user data');
     }
 
-    // Step 2: Only proceed if user is a student
-    if (userData.role !== 'student') {
-      console.log('User is not a student, skipping auto-enrollment');
+    console.log('Student period:', userData.period);
+
+    // Step 4: Find the standard turma for this period (fixed turmas only)
+    const { data: turma, error: turmaError } = await supabase
+      .from('turmas')
+      .select('id, nome_turma')
+      .eq('periodo', userData.period)
+      .eq('curso', 'Engenharia')
+      .eq('faculdade', 'Centro Universitário Afya Montes Claros')
+      .maybeSingle();
+
+    if (turmaError) {
+      console.error('Error finding turma:', turmaError);
+      throw new Error('Failed to find turma');
+    }
+
+    if (!turma) {
+      console.error(`No standard turma found for period ${userData.period}`);
+      throw new Error(`Turma não encontrada para o período ${userData.period}. Entre em contato com o suporte.`);
+    }
+
+    console.log('Found standard turma:', turma.nome_turma, 'ID:', turma.id);
+
+    // Step 5: Check if already enrolled
+    const { data: existingEnrollment } = await supabase
+      .from('turma_enrollments')
+      .select('id')
+      .eq('aluno_id', userId)
+      .eq('turma_id', turma.id)
+      .maybeSingle();
+
+    if (existingEnrollment) {
+      console.log('Student already enrolled in this turma');
       return new Response(
-        JSON.stringify({ message: 'User is not a student, no enrollment needed' }),
+        JSON.stringify({ 
+          message: 'Student already enrolled', 
+          turmaId: turma.id,
+          nomeTurma: turma.nome_turma
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
 
-    // Step 3: Build turma name
-    const nomeTurma = `${userData.course} - ${userData.period}º Período - ${userData.university}`;
-    console.log('Looking for turma:', nomeTurma);
-
-    // Step 4: Check if turma exists
-    let turmaId: string;
-    const { data: existingTurma, error: turmaFetchError } = await supabase
-      .from('turmas')
-      .select('id')
-      .eq('nome_turma', nomeTurma)
-      .maybeSingle();
-
-    if (turmaFetchError) {
-      console.error('Error checking turma existence:', turmaFetchError);
-      throw new Error('Failed to check turma existence');
-    }
-
-    if (existingTurma) {
-      // Turma exists, use its id
-      turmaId = existingTurma.id;
-      console.log('Turma already exists with id:', turmaId);
-    } else {
-      // Step 5: Create new turma
-      console.log('Creating new turma:', nomeTurma);
-      const { data: newTurma, error: createError } = await supabase
-        .from('turmas')
-        .insert({
-          nome_turma: nomeTurma,
-          curso: userData.course,
-          periodo: userData.period,
-          faculdade: userData.university,
-          cidade: userData.city
-        })
-        .select('id')
-        .single();
-
-      if (createError) {
-        console.error('Error creating turma:', createError);
-        throw new Error('Failed to create turma');
-      }
-
-      turmaId = newTurma.id;
-      console.log('New turma created with id:', turmaId);
-    }
-
-    // Step 6: Enroll student in turma
+    // Step 6: Enroll student in the standard turma
     const { error: enrollmentError } = await supabase
       .from('turma_enrollments')
       .insert({
         aluno_id: userId,
-        turma_id: turmaId
+        turma_id: turma.id
       });
 
     if (enrollmentError) {
-      // Check if it's a duplicate enrollment error
-      if (enrollmentError.code === '23505') {
-        console.log('Student already enrolled in this turma');
-        return new Response(
-          JSON.stringify({ message: 'Student already enrolled', turmaId }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-        );
-      }
       console.error('Error enrolling student:', enrollmentError);
       throw new Error('Failed to enroll student');
     }
 
-    console.log('Student successfully enrolled in turma:', turmaId);
+    console.log('Student successfully enrolled in turma:', turma.id);
 
     return new Response(
       JSON.stringify({ 
-        message: 'Student successfully enrolled',
-        turmaId,
-        nomeTurma
+        message: 'Student successfully enrolled in standard turma',
+        turmaId: turma.id,
+        nomeTurma: turma.nome_turma
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
