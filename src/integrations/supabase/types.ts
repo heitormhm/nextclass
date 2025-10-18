@@ -256,6 +256,7 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          user_role: string
         }
         Insert: {
           created_at?: string
@@ -264,6 +265,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id: string
+          user_role: string
         }
         Update: {
           created_at?: string
@@ -272,6 +274,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          user_role?: string
         }
         Relationships: []
       }
@@ -571,6 +574,7 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          user_role: string
         }
         Insert: {
           conversation_id?: string | null
@@ -584,6 +588,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          user_role: string
         }
         Update: {
           conversation_id?: string | null
@@ -597,6 +602,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          user_role?: string
         }
         Relationships: [
           {

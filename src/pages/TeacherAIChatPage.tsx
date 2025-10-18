@@ -377,6 +377,7 @@ const TeacherAIChatPage = () => {
           .insert({
             user_id: session.user.id,
             title: title,
+            user_role: 'teacher',
           })
           .select()
           .single();

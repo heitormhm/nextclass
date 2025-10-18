@@ -329,6 +329,197 @@ graph TD
 
 ---
 
+---
+
+## 🤖 Separação AIChat - Teacher vs Student
+
+### **Princípio Fundamental**
+O sistema AIChat possui **vias de processamento completamente isoladas** entre professores e estudantes para garantir:
+- ✅ Contextos pedagógicos vs acadêmicos distintos
+- ✅ Prompts especializados por perfil
+- ✅ Ações de IA personalizadas (teacher: gerar planos de aula / student: resumir conteúdo)
+- ✅ Edições em uma rota **NUNCA** impactam a outra
+
+### **Frontend - Rotas Isoladas**
+
+#### **Estudantes:**
+- **Rota:** `/aichat`
+- **Página:** `src/pages/AIChatPage.tsx`
+- **Proteção:** `<ProtectedRoute role="student">`
+
+#### **Professores:**
+- **Rota:** `/teacher-aichat`
+- **Página:** `src/pages/TeacherAIChatPage.tsx`
+- **Proteção:** `<ProtectedRoute role="teacher">`
+
+### **Backend - Edge Functions Dedicadas**
+
+#### **Estudantes:**
+| Função | Propósito | Contexto |
+|--------|-----------|----------|
+| `mia-student-chat` | Chat interativo | Desempenho acadêmico, quizzes, flashcards |
+| `job-runner` | Processar Deep Search, Quiz, Flashcard | Contexto estudantil |
+| `generate-conversation-title` | Gerar títulos | "Dúvida:", "Estudo:", "Revisão:" |
+
+**System Prompt (mia-student-chat):**
+```
+Você é Mia, assistente IA para estudantes de engenharia...
+NUNCA sugira estratégias de ensino...
+```
+
+#### **Professores:**
+| Função | Propósito | Contexto |
+|--------|-----------|----------|
+| `mia-teacher-chat` | Chat pedagógico | Turmas ativas, lesson plans, estratégias de ensino |
+| `teacher-job-runner` | Processar Deep Search pedagógico, Lesson Plan | Contexto didático |
+| `generate-teacher-conversation-title` | Gerar títulos pedagógicos | "Plano:", "Avaliação:", "Material:" |
+
+**System Prompt (mia-teacher-chat):**
+```
+Você é Mia, assistente pedagógica para professores de engenharia...
+SEMPRE considere metodologias ativas (PBL, flipped classroom)...
+```
+
+### **Diferenças Críticas de Processamento**
+
+#### **1. Deep Search**
+
+**Student (`job-runner`):**
+```typescript
+// Fontes: Wikipedia, Stack Overflow, Khan Academy
+const sources = [
+  { query: topic, source: 'academic' },
+  { query: topic + ' tutorial', source: 'educational' }
+];
+```
+
+**Teacher (`teacher-job-runner`):**
+```typescript
+// Fontes: ERIC, IEEE, pedagogical journals
+const sources = [
+  { query: topic + ' engineering education', source: 'pedagogical' },
+  { query: topic + ' teaching strategies PBL', source: 'didactic' }
+];
+```
+
+#### **2. Geração de Quiz**
+
+**Student:**
+- Foco: Avaliar conhecimento do aluno
+- Formato: Perguntas diretas, conceituais
+
+**Teacher:**
+- Foco: Criar avaliação para turma
+- Formato: Inclui **rubrica de correção** e **objetivos de aprendizagem**
+
+#### **3. Títulos de Conversa**
+
+**Student:**
+```
+"Dúvida: Leis de Newton"
+"Estudo: Termodinâmica"
+"Revisão: Circuitos Elétricos"
+```
+
+**Teacher:**
+```
+"Plano: Termodinâmica PBL"
+"Avaliação: Rubrica de Projeto"
+"Material: Estudo de Caso Estruturas"
+```
+
+### **Fluxo de Segurança AIChat**
+
+```mermaid
+graph TD
+    A[Usuário envia mensagem] --> B{Role?}
+    B -->|Student| C[/aichat invoca mia-student-chat]
+    B -->|Teacher| D[/teacher-aichat invoca mia-teacher-chat]
+    C --> E[job-runner processa ações]
+    D --> F[teacher-job-runner processa ações]
+    E --> G[Contexto: Desempenho acadêmico]
+    F --> H[Contexto: Estratégias pedagógicas]
+    G --> I[RLS filtra por user_id]
+    H --> I
+    I --> J[Resposta retornada]
+```
+
+### **Garantias de Isolamento**
+
+| Aspecto | Student | Teacher | Validação |
+|---------|---------|---------|-----------|
+| **Edge Function** | `mia-student-chat` | `mia-teacher-chat` | ✅ Nomes distintos |
+| **System Prompt** | Foco em aprender | Foco em ensinar | ✅ Contextos opostos |
+| **Ações Disponíveis** | STUDY_QUIZ, FLASH_REVIEW | LESSON_PLAN, RUBRIC | ✅ Não há overlap |
+| **Deep Search** | Fontes acadêmicas | Fontes pedagógicas | ✅ Queries diferentes |
+| **Títulos** | Prefixos estudantis | Prefixos pedagógicos | ✅ Gerados por funções separadas |
+| **RLS** | `user_id = auth.uid()` | `user_id = auth.uid()` | ✅ Dados isolados |
+
+### **Checklist AIChat**
+
+- [x] Rotas frontend separadas
+- [x] Edge functions dedicadas por role
+- [x] System prompts especializados
+- [x] Ações de IA não compartilhadas
+- [x] Deep Search com contextos distintos
+- [x] Títulos gerados por funções separadas
+- [x] Coluna `user_role` em `conversations`
+- [x] Coluna `user_role` em `jobs`
+- [ ] Testes automatizados de isolamento
+
+### **Vulnerabilidades a Evitar**
+
+❌ **NÃO compartilhar edge functions:**
+```typescript
+// ERRADO
+if (userRole === 'teacher') {
+  // lógica pedagógica
+} else {
+  // lógica estudantil
+}
+```
+
+✅ **CORRETO - Funções completamente separadas:**
+```typescript
+// mia-teacher-chat/index.ts (só professores)
+// mia-student-chat/index.ts (só estudantes)
+```
+
+❌ **NÃO misturar contextos em prompts:**
+```typescript
+// ERRADO
+const prompt = "Você ajuda estudantes E professores...";
+```
+
+✅ **CORRETO - Prompts especializados:**
+```typescript
+// Teacher: "Você é especialista em pedagogia..."
+// Student: "Você ajuda estudantes a aprender..."
+```
+
+---
+
+## 📚 Referências
+
+- [Supabase RLS Documentation](https://supabase.com/docs/guides/auth/row-level-security)
+- [JWT Best Practices](https://auth0.com/docs/secure/tokens/json-web-tokens/json-web-token-best-practices)
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [AIChat Isolation Architecture](#-separação-aichat---teacher-vs-student)
+
+---
+
+## 🔧 Manutenção
+
+**Ao adicionar novas funcionalidades:**
+
+1. ✅ Pergunte-se: "Isso deve ser separado por role?"
+2. ✅ Se sim, crie rotas/functions/prompts distintos
+3. ✅ Nunca compartilhe código sensível entre roles
+4. ✅ Sempre teste com ambos os perfis
+5. ✅ Atualize este documento se a arquitetura mudar
+
+---
+
 **Última atualização:** 2024-01-15  
 **Responsável:** Equipe de Desenvolvimento  
-**Versão:** 1.0
+**Versão:** 1.1

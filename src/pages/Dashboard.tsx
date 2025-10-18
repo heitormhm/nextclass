@@ -58,6 +58,7 @@ const Dashboard = () => {
             user_id: user.id,
             job_type: 'GENERATE_RECOMMENDATION',
             status: 'PENDING',
+            user_role: 'student',
             input_payload: {
               userId: user.id
             }
