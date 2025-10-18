@@ -317,10 +317,7 @@ export const TeacherEventDetailsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn(
-        "max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar",
-        isEditMode ? "pb-28" : "pb-6"
-      )}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar pb-6 relative">
         <Button
           variant="ghost"
           size="icon"
@@ -605,7 +602,7 @@ export const TeacherEventDetailsDialog = ({
 
         {/* Rodapé fixo com botões de ação - Apenas em modo edição */}
         {isEditMode && (
-          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/95 to-transparent p-4 border-t shadow-2xl backdrop-blur-sm z-[70] flex gap-3">
+          <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent p-4 border-t shadow-2xl backdrop-blur-sm z-10 flex gap-3 mt-6 -mx-6 -mb-6">
             <Button
               onClick={() => setIsEditMode(false)}
               variant="outline"
