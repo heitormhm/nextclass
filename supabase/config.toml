@@ -156,3 +156,6 @@ verify_jwt = false
 
 [functions.send-class-event-notification]
 verify_jwt = false
+
+[functions.send-class-event-update-notification]
+verify_jwt = false

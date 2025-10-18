@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format, addMonths, subMonths, addDays, isSameDay, isSameMonth, isToday, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, MapPin, Video, Trash2, Check, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, MapPin, Video, Trash2, Check, Users, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import { TeacherCalendarEventModal } from '@/components/TeacherCalendarEventModal';
+import { TeacherEventDetailsDialog } from '@/components/TeacherEventDetailsDialog';
 import { WeekCalendarView } from '@/components/WeekCalendarView';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,6 +30,8 @@ interface CalendarEvent {
   category?: string;
   className?: string;
   isPersonalEvent?: boolean;
+  classId?: string;
+  disciplinaId?: string;
 }
 
 interface Class {
@@ -48,6 +51,8 @@ const TeacherCalendar = () => {
   const [selectedClassId, setSelectedClassId] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [showEventModal, setShowEventModal] = useState(false);
+  const [selectedEventForEdit, setSelectedEventForEdit] = useState<CalendarEvent | null>(null);
+  const [showEventDetailsDialog, setShowEventDetailsDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
   // Debug logs
@@ -152,16 +157,18 @@ const TeacherCalendar = () => {
           id: event.id,
           title: event.title,
           date: parseISO(event.event_date.split('T')[0]),
-          startTime: event.start_time,
-          endTime: event.end_time,
-          type: event.event_type as 'online' | 'presencial',
-          status: (event.status || 'pending') as 'pending' | 'completed' | 'cancelled',
-          location: event.location,
-          description: event.description || event.notes,
-          color: event.color || 'azul',
-          category: event.category,
-          className: turma?.nome_turma || 'Turma não especificada',
-          isPersonalEvent: false,
+        startTime: event.start_time,
+        endTime: event.end_time,
+        type: event.event_type as 'online' | 'presencial',
+        status: (event.status || 'pending') as 'pending' | 'completed' | 'cancelled',
+        location: event.location,
+        description: event.description || event.notes,
+        color: event.color || 'azul',
+        category: event.category,
+        className: turma?.nome_turma || 'Turma não especificada',
+        isPersonalEvent: false,
+        classId: event.class_id,
+        disciplinaId: event.disciplina_id,
         };
       }) || [];
 
@@ -249,6 +256,27 @@ const TeacherCalendar = () => {
       setViewMode('week');
       setCurrentDate(date);
     }
+  };
+
+  const formatClassNameToBadges = (className?: string) => {
+    if (!className) return null;
+    
+    const parts = className.split(' - ');
+    
+    const truncateText = (text: string, maxLength: number = 25) => {
+      return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    };
+    
+    return parts.map((part, index) => (
+      <Badge 
+        key={index} 
+        variant="outline" 
+        className="text-[10px] py-0 px-1.5 bg-blue-50 text-blue-700 border-blue-200"
+        title={part}
+      >
+        {truncateText(part, 25)}
+      </Badge>
+    ));
   };
 
   const handleEventDelete = async (eventId: string) => {
@@ -562,38 +590,50 @@ const TeacherCalendar = () => {
                               )}
                             </div>
                           </div>
-                          <p className="text-xs text-gray-600 mb-1">
-                            {event.startTime} - {event.endTime}
-                          </p>
-                          <p className="text-xs text-gray-500 flex items-center gap-1 mb-1">
-                            <Users className="h-3 w-3" />
-                            {event.className}
-                          </p>
+                  <p className="text-xs text-gray-600 mb-1">
+                    {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1 mb-1">
+                    <Users className="h-3 w-3 text-gray-500" />
+                    {formatClassNameToBadges(event.className)}
+                  </div>
                           {event.location && (
                             <p className="text-xs text-gray-500">
                               Local: {event.location}
                             </p>
                           )}
-                          <div className="flex gap-2 mt-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEventUpdate(event.id, 'complete')}
-                              className="text-xs"
-                            >
-                              <Check className="h-3 w-3 mr-1" />
-                              Concluir
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEventDelete(event.id)}
-                              className="text-xs text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-3 w-3 mr-1" />
-                              Deletar
-                            </Button>
-                          </div>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedEventForEdit(event);
+                        setShowEventDetailsDialog(true);
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      Visualizar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEventUpdate(event.id, 'complete')}
+                      className="text-xs"
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Concluir
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEventDelete(event.id)}
+                      className="text-xs text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Deletar
+                    </Button>
+                  </div>
                         </div>
                       ))}
                     </div>
@@ -604,13 +644,23 @@ const TeacherCalendar = () => {
           </div>
         </div>
 
-        {/* Modal */}
+        {/* Modals */}
         <TeacherCalendarEventModal
           open={showEventModal}
           onOpenChange={setShowEventModal}
           selectedDate={selectedDate}
           classes={classes}
           onEventCreated={fetchClassEvents}
+        />
+        
+        <TeacherEventDetailsDialog
+          event={selectedEventForEdit}
+          open={showEventDetailsDialog}
+          onOpenChange={setShowEventDetailsDialog}
+          onEventUpdated={() => {
+            fetchClassEvents();
+            setSelectedEventForEdit(null);
+          }}
         />
       </div>
     </MainLayout>
