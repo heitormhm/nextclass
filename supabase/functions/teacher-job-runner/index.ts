@@ -564,6 +564,250 @@ FORMATO JSON:
   }
 }
 
+async function handleGenerateTeacherQuiz(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  console.log(`[TEACHER] 📝 [${job.id}] Generating pedagogical quiz with rubric`);
+  
+  const { context, topic } = job.input_payload;
+  
+  const systemPrompt = `IDIOMA OBRIGATÓRIO: Todo o quiz deve estar em PORTUGUÊS BRASILEIRO (pt-BR).
+
+Você é um especialista em avaliação pedagógica para cursos de engenharia.
+
+OBJETIVO: Criar um quiz com 8-10 questões de múltipla escolha que:
+- Avalie competências de ordem superior (Bloom: Aplicação, Análise, Síntese, Avaliação)
+- Inclua rubrica de correção detalhada
+- Forneça feedback formativo para cada distrator
+- Seja adequado para uso em sala de aula
+
+FORMATO JSON OBRIGATÓRIO:
+{
+  "title": "Avaliação: [Tópico]",
+  "learning_objectives": [
+    "Objetivo 1 (nível Bloom)",
+    "Objetivo 2 (nível Bloom)"
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "stem": "[Enunciado contextualizado em cenário real de engenharia]",
+      "options": [
+        { "id": "A", "text": "[Opção]" },
+        { "id": "B", "text": "[Opção]" },
+        { "id": "C", "text": "[Opção]" },
+        { "id": "D", "text": "[Opção]" }
+      ],
+      "correct_answer": "B",
+      "explanation": "[Explicação pedagógica detalhada do conceito]",
+      "distractor_analysis": {
+        "A": "Aluno que escolheu esta resposta provavelmente confundiu [conceito X] com [conceito Y]",
+        "C": "[Análise do erro conceitual]",
+        "D": "[Análise do erro conceitual]"
+      },
+      "feedback_suggestions": "[Como o professor deve abordar este erro comum]",
+      "bloom_level": "Aplicação",
+      "difficulty": "Médio",
+      "topic": "[Sub-tópico específico]"
+    }
+  ],
+  "rubric": {
+    "grading_criteria": [
+      "Pontuação: 1 ponto por questão correta",
+      "Aprovação: ≥70% (7/10 questões)",
+      "Excelente: ≥90% (9/10 questões)"
+    ],
+    "feedback_guidelines": [
+      "Para alunos abaixo de 50%: Revisar fundamentos com [recurso específico]",
+      "Para alunos entre 50-70%: Focar em [área de dificuldade detectada]",
+      "Para alunos acima de 70%: Desafios adicionais em [tópico avançado]"
+    ]
+  },
+  "pedagogical_notes": {
+    "common_misconceptions": ["[Erro conceitual frequente]", "[Outro erro]"],
+    "suggested_interventions": ["[Estratégia de remediação]"],
+    "extensions": ["[Questão desafiadora adicional para alunos avançados]"]
+  }
+}
+
+REGRAS CRÍTICAS:
+1. **Contexto Real**: Todas as questões devem usar cenários de engenharia brasileiros quando possível
+2. **Distratores Plausíveis**: Cada opção incorreta deve refletir um erro conceitual específico
+3. **Feedback Formativo**: Explique POR QUE cada distrator é tentador e como corrigir o raciocínio
+4. **Bloom Alto**: Mínimo 60% das questões em níveis Aplicação ou superior
+5. **Rubrica Prática**: Inclua critérios claros de avaliação e orientações de feedback
+6. **Máximo 3000 caracteres por questão**`;
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-pro',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Tópico: ${topic}\n\nContexto: ${context.substring(0, 1500)}` }
+        ],
+      }),
+    });
+    
+    if (!response.ok) throw new Error(`AI error: ${response.status}`);
+    
+    const data = await response.json();
+    const quizText = data.choices[0].message.content;
+    
+    const jsonMatch = quizText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No valid JSON found in response');
+    
+    const quiz = JSON.parse(sanitizeJSON(jsonMatch[0]));
+    
+    await supabaseAdmin
+      .from('generated_quizzes')
+      .insert({
+        user_id: job.user_id,
+        conversation_id: job.conversation_id,
+        title: quiz.title || `Quiz Pedagógico: ${topic}`,
+        topic: topic,
+        questions: quiz
+      });
+    
+    await supabaseAdmin
+      .from('messages')
+      .insert({
+        conversation_id: job.input_payload.conversationId,
+        role: 'assistant',
+        content: `✅ **Quiz Pedagógico Criado!**\n\n**${quiz.title}**\n\n📊 ${quiz.questions.length} questões com rubrica de avaliação.\n\n*Use o botão "Ver Quiz" para revisar as questões, objetivos de aprendizagem e orientações de feedback.*`
+      });
+    
+    await supabaseAdmin
+      .from('jobs')
+      .update({
+        status: 'COMPLETED',
+        result: JSON.stringify(quiz)
+      })
+      .eq('id', job.id);
+    
+    console.log(`[TEACHER] ✅ [${job.id}] Pedagogical quiz generated with rubric`);
+    
+  } catch (error) {
+    console.error(`[TEACHER] Error generating quiz:`, error);
+    throw error;
+  }
+}
+
+async function handleGenerateTeacherFlashcards(job: any, supabaseAdmin: any, lovableApiKey: string) {
+  console.log(`[TEACHER] 🎴 [${job.id}] Generating pedagogical flashcards`);
+  
+  const { context, topic } = job.input_payload;
+  
+  const systemPrompt = `IDIOMA OBRIGATÓRIO: Todos os flashcards devem estar em PORTUGUÊS BRASILEIRO (pt-BR).
+
+Você é um especialista em design instrucional para engenharia.
+
+OBJETIVO: Criar 10-15 flashcards pedagógicos que:
+- Destaquem conceitos-chave essenciais para ensino
+- Incluam conexões interdisciplinares
+- Forneçam dicas de aplicação em aula
+- Sirvam como guia de ensino rápido
+
+FORMATO JSON OBRIGATÓRIO:
+{
+  "title": "Flashcards Pedagógicos: [Tópico]",
+  "description": "Guia rápido para ensinar [tópico] com estratégias didáticas",
+  "cards": [
+    {
+      "id": 1,
+      "front": "[CONCEITO-CHAVE]\n[Pergunta pedagógica: Como ensinar isso?]",
+      "back": "**Definição:**\n[Explicação concisa]\n\n**Como Ensinar:**\n- Estratégia 1: [abordagem prática]\n- Estratégia 2: [analogia ou exemplo]\n\n**Conexão Interdisciplinar:**\n[Relacionar com outras disciplinas]\n\n**Erro Comum:**\n[Misconception frequente dos alunos]\n\n**Dica de Avaliação:**\n[Como verificar compreensão]",
+      "tags": ["[categoria]", "metodologia_ativa", "PBL"],
+      "difficulty": "intermediário",
+      "teaching_tip": "[Insight pedagógico específico]"
+    }
+  ],
+  "pedagogical_sequence": {
+    "suggested_order": "[Sequência recomendada de apresentação dos conceitos]",
+    "pre_requisites": ["[Conceito que deve ser ensinado antes]"],
+    "extensions": ["[Tópico avançado relacionado]"]
+  },
+  "classroom_activities": [
+    {
+      "concept": "[Conceito do flashcard X]",
+      "activity": "[Atividade prática de 5-10 min para fixar este conceito]",
+      "materials": ["[Material necessário]"]
+    }
+  ]
+}
+
+REGRAS CRÍTICAS:
+1. **Foco no Professor**: Cada flashcard deve ajudar o PROFESSOR a ensinar, não o aluno a estudar
+2. **Praticidade**: Inclua estratégias IMEDIATAMENTE APLICÁVEIS em sala de aula
+3. **Misconceptions**: Sempre destaque erros conceituais comuns dos alunos
+4. **Interdisciplinaridade**: Conecte conceitos com outras disciplinas de engenharia
+5. **Metodologias Ativas**: Sugira como usar PBL, flipped classroom, peer instruction
+6. **Avaliação Formativa**: Inclua formas rápidas de verificar compreensão
+7. **Concisão**: Máximo 500 caracteres por lado do flashcard`;
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Tópico: ${topic}\n\nContexto: ${context.substring(0, 1500)}` }
+        ],
+      }),
+    });
+    
+    if (!response.ok) throw new Error(`AI error: ${response.status}`);
+    
+    const data = await response.json();
+    const flashcardsText = data.choices[0].message.content;
+    
+    const jsonMatch = flashcardsText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No valid JSON found in response');
+    
+    const flashcards = JSON.parse(sanitizeJSON(jsonMatch[0]));
+    
+    await supabaseAdmin
+      .from('generated_flashcard_sets')
+      .insert({
+        user_id: job.user_id,
+        conversation_id: job.conversation_id,
+        title: flashcards.title || `Flashcards Pedagógicos: ${topic}`,
+        topic: topic,
+        cards: flashcards
+      });
+    
+    await supabaseAdmin
+      .from('messages')
+      .insert({
+        conversation_id: job.input_payload.conversationId,
+        role: 'assistant',
+        content: `✅ **Flashcards Pedagógicos Criados!**\n\n**${flashcards.title}**\n\n📚 ${flashcards.cards.length} conceitos-chave com estratégias de ensino.\n\n*Use o botão "Ver Flashcards" para acessar o guia pedagógico completo.*`
+      });
+    
+    await supabaseAdmin
+      .from('jobs')
+      .update({
+        status: 'COMPLETED',
+        result: JSON.stringify(flashcards)
+      })
+      .eq('id', job.id);
+    
+    console.log(`[TEACHER] ✅ [${job.id}] Pedagogical flashcards generated`);
+    
+  } catch (error) {
+    console.error(`[TEACHER] Error generating flashcards:`, error);
+    throw error;
+  }
+}
+
 async function handleGenerateLessonPlan(job: any, supabaseAdmin: any, lovableApiKey: string) {
   console.log(`[TEACHER] 📋 [${job.id}] Generating lesson plan with PBL framework`);
   
@@ -738,12 +982,9 @@ async function runJob(jobId: string) {
     if (job.job_type === 'GENERATE_SUGGESTIONS') {
       await handleGenerateSuggestions(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'GENERATE_QUIZ') {
-      // Usar o handler original mas com contexto pedagógico
-      console.log('[TEACHER] Using standard quiz handler with pedagogical context');
-      // NOTA: Pode reutilizar handleGenerateQuiz do job-runner original
+      await handleGenerateTeacherQuiz(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'GENERATE_FLASHCARDS') {
-      // Usar o handler original
-      console.log('[TEACHER] Using standard flashcard handler');
+      await handleGenerateTeacherFlashcards(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'GENERATE_LESSON_PLAN') {
       await handleGenerateLessonPlan(job, supabaseAdmin, LOVABLE_API_KEY);
     } else if (job.job_type === 'GENERATE_RUBRIC') {
