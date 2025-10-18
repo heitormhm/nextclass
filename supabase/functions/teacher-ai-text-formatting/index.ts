@@ -222,6 +222,68 @@ O público-alvo são estudantes de graduação e pós-graduação, que precisam 
 
 **Identificação de Elementos Pedagógicos:** Com base na sua análise, identifique sistematicamente os componentes fundamentais do texto. Isso inclui, mas não se limita a: conceitos-chave que exigem definição, processos sequenciais (metodologias, linhas do tempo, cadeias de causa e efeito), hierarquias e estruturas organizacionais, comparações (teorias contrastantes, vantagens vs. desvantagens), dados quantitativos que podem ser visualizados, definições formais e pontos de controvérsia ou que merecem ênfase especial.
 
+### $$DIRETRIZES DE EQUILÍBRIO E VARIEDADE$$
+
+Para criar uma experiência pedagógica rica e diversificada, siga estas regras de distribuição:
+
+**1. VARIEDADE OBRIGATÓRIA DE BLOCOS:**
+   - Use NO MÁXIMO 2-3 Accordions (componente_react) por material
+   - Intercale blocos textuais com elementos visuais a cada 2-3 parágrafos
+   - SEMPRE inclua pelo menos 3-4 post_its estrategicamente posicionados para:
+     * Perguntas reflexivas ("Pense Nisto:")
+     * Dicas práticas ("Dica Profissional:")
+     * Conexões com o mundo real ("Aplicação Prática:")
+     * Alertas importantes ("Atenção:")
+
+**2. PRIORIZAÇÃO DE ELEMENTOS VISUAIS:**
+   - SEMPRE prefira fluxogramas/diagramas/mapas mentais a Accordions quando houver:
+     * Processos sequenciais → Use fluxograma
+     * Hierarquias ou estruturas → Use diagrama
+     * Conceito central com ramificações → Use mapa_mental
+     * Comparações ou intersecções → Use diagrama (ex: Venn)
+   
+**3. DIVERSIDADE DE GRÁFICOS:**
+   Quando houver dados quantitativos, escolha o tipo de gráfico apropriado:
+   - **barras**: Para comparações entre categorias (ex: vendas por região)
+   - **pizza**: Para composição/proporção de um todo (ex: distribuição de orçamento)
+   - **linha**: Para tendências ao longo do tempo (ex: crescimento anual)
+   - SEMPRE inclua pelo menos 1-2 gráficos se o texto mencionar números ou estatísticas
+
+**4. POST-ITS ESTRATÉGICOS:**
+   Use post_its para criar momentos de pausa reflexiva. Exemplos:
+   - "Pense Nisto: Como você aplicaria esse conceito no seu projeto atual?"
+   - "Dica: Esta fórmula é frequentemente cobrada em provas."
+   - "Conexão Real: Este princípio explica por que aviões conseguem voar."
+   - "Cuidado: Erro comum dos estudantes ao calcular este valor."
+
+**5. CAIXAS DE DESTAQUE FOCADAS:**
+   Reserve caixa_de_destaque APENAS para:
+   - Definições formais e técnicas
+   - Fórmulas matemáticas importantes
+   - Teoremas e leis fundamentais
+   - Citações de autores relevantes
+
+### $$EXEMPLO DE ESTRUTURA BALANCEADA$$
+
+Para um texto de 2000 palavras sobre "Hidrodinâmica", a estrutura ideal seria:
+
+- 1 h2 (título principal)
+- 4-5 h3 (subtítulos)
+- 8-10 parágrafos
+- 2 caixas_de_destaque (definições chave)
+- 4-5 post_its (perguntas reflexivas e dicas)
+- 2 fluxogramas/diagramas (processos e sistemas)
+- 1 mapa_mental (visão geral do tema)
+- 2-3 gráficos (dados quantitativos)
+- 1-2 Accordions (APENAS para conteúdo suplementar extenso)
+
+**ANTI-PADRÕES A EVITAR:**
+❌ Mais de 3 Accordions em um material
+❌ Zero post_its (material fica impessoal)
+❌ Apenas um tipo de diagrama
+❌ Gráficos de barras para tudo (variar os tipos)
+❌ Longos blocos de texto sem elementos visuais
+
 **Desconstrução e Aumento Estratégico:** Desconstrua o texto original em uma sequência lógica de "blocos de conteúdo". Para cada bloco, ou entre eles, proponha proativamente a inserção de um dos seguintes elementos, explicando seu propósito pedagógico:
 
 - **paragrafo**: O bloco de texto principal, reescrito para máxima clareza e fluidez, explicando um conceito de forma sequencial.
@@ -323,7 +385,11 @@ Sua resposta deve ser estritamente formatada como um único objeto JSON. Esta es
 
 5. **Especificação de Componentes React**: Ao usar o tipo componente_react, especifique a biblioteca (usar lucide-react para ícones e shadcn/ui para componentes de UI) e o nome exato do componente. As props devem ser um objeto JSON válido que corresponda à API do componente especificado.
 
-6. **Validação Estrita do JSON**: A saída final DEVE ser um único bloco de código JSON válido, começando com { e terminando com }. Nenhum comentário, introdução, ou qualquer texto explicativo deve estar fora do objeto JSON. A resposta inteira deve ser o JSON.
+6. **Distribuição Balanceada Obrigatória**: Revise mentalmente seu JSON final antes de responder. Conte quantos blocos de cada tipo você usou. Se houver mais de 3 Accordions, substitua alguns por diagramas ou post_its. Se houver zero post_its, adicione pelo menos 3 em pontos estratégicos do conteúdo.
+
+7. **Justificativa Visual**: Toda escolha de elemento visual deve ter um propósito pedagógico claro. Não use um fluxograma apenas por usar; use porque há um processo sequencial que precisa ser visualizado.
+
+8. **Validação Estrita do JSON**: A saída final DEVE ser um único bloco de código JSON válido, começando com { e terminando com }. Nenhum comentário, introdução, ou qualquer texto explicativo deve estar fora do objeto JSON. A resposta inteira deve ser o JSON.
 
 ## 📤 FORMATO DE RESPOSTA
 

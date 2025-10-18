@@ -12,14 +12,39 @@ interface InteractiveChartProps {
   dados: ChartData[];
 }
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))'];
+const COLORS = [
+  '#3b82f6', // Azul vibrante
+  '#8b5cf6', // Roxo
+  '#f59e0b', // Âmbar
+  '#10b981', // Verde
+  '#ef4444', // Vermelho
+  '#06b6d4', // Ciano
+  '#ec4899', // Rosa
+  '#14b8a6', // Teal
+  '#f97316', // Laranja
+  '#6366f1', // Índigo
+  '#84cc16', // Lima
+  '#a855f7'  // Púrpura
+];
 
 export const InteractiveChart = ({ title, description, tipo_grafico, dados }: InteractiveChartProps) => {
+  const getChartHeight = () => {
+    if (tipo_grafico === 'pizza') return 380;
+    if (tipo_grafico === 'barras' && dados.length > 10) return 450;
+    return 320;
+  };
+
   const renderChart = () => {
     switch (tipo_grafico) {
       case 'barras':
         return (
           <BarChart data={dados}>
+            <defs>
+              <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.9}/>
+                <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.7}/>
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="categoria" stroke="hsl(var(--muted-foreground))" />
             <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -31,7 +56,7 @@ export const InteractiveChart = ({ title, description, tipo_grafico, dados }: In
               }}
             />
             <Legend />
-            <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="valor" fill="url(#colorGradient)" radius={[8, 8, 0, 0]} />
           </BarChart>
         );
       
@@ -44,7 +69,7 @@ export const InteractiveChart = ({ title, description, tipo_grafico, dados }: In
               nameKey="categoria" 
               cx="50%" 
               cy="50%" 
-              outerRadius={100}
+              outerRadius={120}
               label={(entry) => `${entry.categoria}: ${entry.valor}`}
             >
               {dados.map((_, index) => (
@@ -76,7 +101,7 @@ export const InteractiveChart = ({ title, description, tipo_grafico, dados }: In
               }}
             />
             <Legend />
-            <Line type="monotone" dataKey="valor" stroke="hsl(var(--primary))" strokeWidth={3} />
+            <Line type="monotone" dataKey="valor" stroke={COLORS[0]} strokeWidth={3} />
           </LineChart>
         );
       
@@ -86,13 +111,13 @@ export const InteractiveChart = ({ title, description, tipo_grafico, dados }: In
   };
 
   return (
-    <div className="bg-gradient-to-br from-muted/30 to-muted/50 p-6 rounded-xl border-2 border-border my-6 shadow-sm">
+    <div className="bg-gradient-to-br from-muted/30 to-muted/50 p-6 rounded-xl border-2 border-border my-6 shadow-sm max-w-4xl mx-auto">
       <h4 className="font-bold text-foreground mb-2 text-lg">📈 {title}</h4>
       <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
       <p className="text-xs font-semibold text-foreground/80 mb-3">
         Tipo: <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">{tipo_grafico}</span>
       </p>
-      <ResponsiveContainer width="100%" height={350}>
+      <ResponsiveContainer width="100%" height={getChartHeight()}>
         {renderChart()}
       </ResponsiveContainer>
     </div>

@@ -17,7 +17,19 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
       if (ref.current && code) {
         try {
           mermaid.initialize({ 
-            theme: 'neutral',
+            theme: 'default',
+            themeVariables: {
+              primaryColor: '#3b82f6',
+              primaryTextColor: '#fff',
+              primaryBorderColor: '#2563eb',
+              lineColor: '#8b5cf6',
+              secondaryColor: '#10b981',
+              tertiaryColor: '#f59e0b',
+              background: '#ffffff',
+              mainBkg: '#dbeafe',
+              secondBkg: '#e9d5ff',
+              tertiaryBkg: '#fef3c7',
+            },
             startOnLoad: false,
             securityLevel: 'loose',
             fontFamily: 'system-ui, -apple-system, sans-serif'
@@ -46,7 +58,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           ⚠️ {error}
         </div>
       ) : (
-        <div ref={ref} className="flex justify-center items-center min-h-[200px] bg-background/50 rounded-lg p-4" />
+        <div ref={ref} className="flex justify-center items-center min-h-[200px] bg-white rounded-lg p-4" />
       )}
     </div>
   );

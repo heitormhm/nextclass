@@ -27,13 +27,13 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
   const renderBlock = (bloco: ContentBlock, index: number) => {
     switch (bloco.tipo) {
       case 'h2':
-        return <h2 key={index} className="text-3xl font-bold mt-8 mb-4 text-foreground">{bloco.texto}</h2>;
+        return <h2 key={index} className="text-3xl font-bold mt-8 mb-4 text-foreground scroll-mt-20">{bloco.texto}</h2>;
       
       case 'h3':
-        return <h3 key={index} className="text-2xl font-bold mt-6 mb-3 text-foreground/90">{bloco.texto}</h3>;
+        return <h3 key={index} className="text-2xl font-bold mt-6 mb-3 text-foreground/90 scroll-mt-20">{bloco.texto}</h3>;
       
       case 'h4':
-        return <h4 key={index} className="text-xl font-bold mt-4 mb-2 text-foreground/80">{bloco.texto}</h4>;
+        return <h4 key={index} className="text-xl font-bold mt-4 mb-2 text-foreground/80 scroll-mt-20">{bloco.texto}</h4>;
       
       case 'paragrafo':
         return <p key={index} className="my-3 leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: bloco.texto || '' }} />;
@@ -47,9 +47,15 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
         );
       
       case 'post_it':
+        const postItColor = bloco.texto?.toLowerCase().includes('atenção') || bloco.texto?.toLowerCase().includes('cuidado') || bloco.texto?.toLowerCase().includes('alerta')
+          ? 'from-red-100/80 to-red-200/80 dark:from-red-900/30 dark:to-red-800/30 border-red-500 dark:border-red-400 text-red-900 dark:text-red-100'
+          : bloco.texto?.toLowerCase().includes('dica') || bloco.texto?.toLowerCase().includes('tip')
+          ? 'from-green-100/80 to-green-200/80 dark:from-green-900/30 dark:to-green-800/30 border-green-500 dark:border-green-400 text-green-900 dark:text-green-100'
+          : 'from-blue-100/80 to-blue-200/80 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-500 dark:border-blue-400 text-blue-900 dark:text-blue-100';
+        
         return (
-          <div key={index} className="bg-gradient-to-br from-blue-100/80 to-blue-200/80 dark:from-blue-900/30 dark:to-blue-800/30 border-2 border-dashed border-blue-500 dark:border-blue-400 p-4 rounded-lg shadow-sm my-4">
-            <p className="italic text-blue-900 dark:text-blue-100 leading-relaxed" dangerouslySetInnerHTML={{ __html: `💡 ${bloco.texto || ''}` }} />
+          <div key={index} className={`bg-gradient-to-br ${postItColor} border-2 border-dashed dark:border-opacity-60 p-4 rounded-lg shadow-sm my-4`}>
+            <p className={`italic leading-relaxed font-medium`} dangerouslySetInnerHTML={{ __html: `💡 ${bloco.texto || ''}` }} />
           </div>
         );
       
@@ -117,8 +123,8 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
 
   return (
     <div className="structured-content prose prose-slate dark:prose-invert max-w-none">
-      <h1 className="text-4xl font-bold mb-8 text-foreground border-b pb-4">{structuredData.titulo_geral}</h1>
-      <div className="space-y-2">
+      <h1 className="text-4xl font-bold mb-8 text-foreground border-b pb-4 scroll-mt-20">{structuredData.titulo_geral}</h1>
+      <div className="space-y-4">
         {structuredData.conteudo.map((bloco, index) => renderBlock(bloco, index))}
       </div>
     </div>
