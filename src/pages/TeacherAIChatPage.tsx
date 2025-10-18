@@ -400,10 +400,11 @@ const TeacherAIChatPage = () => {
             console.error('❌ Erro ao gerar título:', titleError);
           } else {
             console.log('✅ Título gerado com sucesso:', titleData?.title);
-            // Esperar 1 segundo antes de recarregar para dar tempo do banco atualizar
             setTimeout(() => {
               loadConversations();
-            }, 1000);
+              // Forçar re-render
+              setConversations(prev => [...prev]);
+            }, 2000);
           }
         } catch (error) {
           console.error('❌ Exceção ao chamar geração de título:', error);
@@ -534,6 +535,17 @@ const TeacherAIChatPage = () => {
     setInputMessage(suggestion);
   };
 
+  // Preprocessar conteúdo markdown para remover backticks de símbolos matemáticos
+  const preprocessMarkdownContent = (content: string): string => {
+    // Remover backticks de variáveis matemáticas simples (1-3 chars)
+    content = content.replace(/`([A-Za-zΔΣπθλμαβγ]{1,3}[₀-₉⁰-⁹]*)`/g, '$1');
+    
+    // Remover backticks de símbolos matemáticos gregos isolados
+    content = content.replace(/`([ΔΣπθλμαβγΩωΦψ])`/g, '$1');
+    
+    return content;
+  };
+
   const handleActionButtonClick = (action: string) => {
     let prompt = "";
     
@@ -647,10 +659,12 @@ const TeacherAIChatPage = () => {
       if (currentStep > stepsCount) {
         clearInterval(interval);
         setDeepSearchProgress(stepsCount - 1);
-        // ESTE É O ÚNICO LUGAR que fecha o loader após 15 segundos
+        // Calcular tempo restante corretamente
+        const timeElapsed = currentStep * stepDuration;
+        const remainingTime = Math.max(totalDuration - timeElapsed, 0);
         setTimeout(() => {
           setIsDeepSearchLoading(false);
-        }, stepDuration);
+        }, remainingTime);
       }
     }, stepDuration);
     
@@ -734,8 +748,8 @@ const TeacherAIChatPage = () => {
                           : "hover:bg-white/60 dark:hover:bg-gray-800/60 hover:shadow-sm hover:scale-[1.01]"
                       )}
                     >
-                      <div className="flex-1 min-w-0 pr-2">
-                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate max-w-[180px]">
+                      <div className="flex-1 min-w-0 pr-2 max-w-[180px]">
+                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
                           {conv.title}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -845,8 +859,8 @@ const TeacherAIChatPage = () => {
                           className="grid gap-3 w-full" 
                           style={{ 
                             gridTemplateColumns: 'repeat(3, 1fr)',
-                            gridTemplateRows: 'repeat(2, 1fr)',
-                            minHeight: '180px'
+                            height: '180px',
+                            gridAutoFlow: 'row'
                           }}
                         >
                           {/* LINHA 1 */}
@@ -910,6 +924,7 @@ const TeacherAIChatPage = () => {
                     <>
                       <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
                         <ReactMarkdown
+                          children={preprocessMarkdownContent(message.content)}
                           remarkPlugins={[remarkGfm, remarkMath]}
                           rehypePlugins={[rehypeKatex]}
                           components={{
@@ -967,9 +982,7 @@ const TeacherAIChatPage = () => {
                             sub: ({node, ...props}) => <sub className="text-xs" {...props} />,
                             sup: ({node, ...props}) => <sup className="text-xs text-pink-600 font-semibold" {...props} />,
                           }}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
+                        />
                       </div>
 
                       {/* Botão Exportar PDF para mensagens de Deep Search */}

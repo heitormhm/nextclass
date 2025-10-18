@@ -980,32 +980,26 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
           
           console.log(`   [${segIdx}] REF: "${segment.text}" em cinza 9pt`);
         } else {
-          // Texto normal - quebrar se necessário
-          const words = segment.text.split(' ');
+          // Texto normal - quebrar ANTES de processar
+          const wrappedLines = doc.splitTextToSize(segment.text, contentWidth);
           
-      words.forEach(word => {
-        const wordWidth = doc.getTextWidth(word + ' ');
-        
-        if (currentX + wordWidth > margin + contentWidth) {
-          // Nova linha
-          yPosition += 6;
-          checkPageBreak(8);
-          currentX = margin;
-        }
-        
-        // Usar fonte Unicode se palavra contém símbolos matemáticos
-        if (hasMathSymbols(word)) {
-          doc.setFont(unicodeFontConfig.fontName, 'normal');
-        }
-        
-        doc.text(word + ' ', currentX, yPosition);
-        currentX += wordWidth;
-        
-        // Restaurar fonte normal
-        if (hasMathSymbols(word)) {
-          doc.setFont('helvetica', 'normal');
-        }
-      });
+          wrappedLines.forEach((line: string) => {
+            checkPageBreak(8);
+            
+            // Usar fonte Unicode se linha contém símbolos matemáticos
+            if (hasMathSymbols(line)) {
+              doc.setFont(unicodeFontConfig.fontName, 'normal');
+            }
+            
+            doc.text(line, currentX, yPosition);
+            yPosition += 6;
+            currentX = margin;
+            
+            // Restaurar fonte normal
+            if (hasMathSymbols(line)) {
+              doc.setFont('helvetica', 'normal');
+            }
+          });
           
           console.log(`   [${segIdx}] TEXT: "${segment.text.substring(0, 30)}..."`);
         }
