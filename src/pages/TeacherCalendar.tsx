@@ -470,6 +470,21 @@ const TeacherCalendar = () => {
 
             {/* Sidebar - 1 column */}
             <div className="space-y-6">
+              {/* Quick action - PRIORIZADO */}
+              <Card className="bg-white/75 backdrop-blur-xl border-blue-100/30 shadow-lg">
+                <CardContent className="pt-6">
+                  <Button 
+                    onClick={() => {
+                      console.log('[TeacherCalendar] Button clicked, opening modal');
+                      setShowEventModal(true);
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Criar Evento
+                  </Button>
+                </CardContent>
+              </Card>
+
               {/* Class filter */}
               <Card className="bg-white/75 backdrop-blur-xl border-blue-100/30">
                 <CardHeader>
@@ -502,7 +517,7 @@ const TeacherCalendar = () => {
                 </CardContent>
               </Card>
 
-              {/* Selected day events */}
+              {/* Selected day events - COM SCROLL */}
               <Card className="bg-white/75 backdrop-blur-xl border-blue-100/30">
                 <CardHeader>
                   <CardTitle className="text-gray-800">
@@ -512,13 +527,13 @@ const TeacherCalendar = () => {
                     {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
                   </p>
                 </CardHeader>
-                <CardContent className="min-h-[400px]">
+                <CardContent className="min-h-[200px] max-h-[600px]">
                   {selectedDateEvents.length === 0 ? (
                     <p className="text-sm text-gray-500 text-center py-8">
                       Nenhum evento neste dia
                     </p>
                   ) : (
-                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                    <div className="space-y-3 max-h-[550px] overflow-y-auto pr-2">
                       {selectedDateEvents.map(event => (
                         <div
                           key={event.id}
@@ -583,21 +598,6 @@ const TeacherCalendar = () => {
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Quick action */}
-              <Card className="bg-white/75 backdrop-blur-xl border-blue-100/30">
-                <CardContent className="pt-6">
-                  <Button 
-                    onClick={() => {
-                      console.log('[TeacherCalendar] Button clicked, opening modal');
-                      setShowEventModal(true);
-                    }}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> Criar Evento
-                  </Button>
                 </CardContent>
               </Card>
             </div>
