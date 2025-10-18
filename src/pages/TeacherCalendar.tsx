@@ -36,6 +36,8 @@ interface Class {
   name: string;
   course: string;
   period: string;
+  university?: string;
+  city?: string;
 }
 
 const TeacherCalendar = () => {
@@ -74,17 +76,28 @@ const TeacherCalendar = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('classes')
+      // Buscar turmas automáticas do sistema (criadas pelos alunos)
+      const { data: turmas, error } = await supabase
+        .from('turmas')
         .select('*')
-        .eq('teacher_id', user.id)
-        .order('name');
+        .order('periodo', { ascending: true });
 
       if (error) throw error;
 
-      setClasses(data || []);
+      // Transformar formato de 'turmas' para 'classes'
+      const transformedClasses = turmas?.map(turma => ({
+        id: turma.id,
+        name: turma.nome_turma,
+        course: turma.curso,
+        period: turma.periodo,
+        university: turma.faculdade,
+        city: turma.cidade
+      })) || [];
+
+      setClasses(transformedClasses);
+      console.log('[TeacherCalendar] Turmas carregadas do sistema:', transformedClasses);
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      console.error('Error fetching turmas:', error);
       toast.error('Erro ao carregar turmas');
     }
   };

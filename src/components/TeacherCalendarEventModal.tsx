@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Clock, MapPin, Video, X } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,8 @@ interface Class {
   name: string;
   course: string;
   period: string;
+  university?: string;
+  city?: string;
 }
 
 interface TeacherCalendarEventModalProps {
@@ -114,14 +116,56 @@ export const TeacherCalendarEventModal = ({
       
       if (!user) {
         toast.error('Você precisa estar logado para criar eventos');
+        setIsSubmitting(false);
         return;
       }
 
+      // Buscar turma selecionada para obter dados
+      const selectedClass = classes.find(c => c.id === selectedClassId);
+      if (!selectedClass) {
+        toast.error('Turma não encontrada');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Verificar se existe uma 'class' correspondente na tabela classes
+      let actualClassId = selectedClassId;
+      
+      const { data: existingClass } = await supabase
+        .from('classes')
+        .select('id')
+        .eq('course', selectedClass.course)
+        .eq('period', selectedClass.period)
+        .maybeSingle();
+      
+      if (!existingClass) {
+        console.log('[TeacherCalendarEventModal] Creating class entry for event...');
+        // Criar class temporária para este evento
+        const { data: newClass, error: classError } = await supabase
+          .from('classes')
+          .insert({
+            name: selectedClass.name,
+            course: selectedClass.course,
+            period: selectedClass.period,
+            teacher_id: user.id
+          })
+          .select('id')
+          .single();
+        
+        if (classError) throw classError;
+        actualClassId = newClass.id;
+        console.log('[TeacherCalendarEventModal] Class created with id:', actualClassId);
+      } else {
+        actualClassId = existingClass.id;
+        console.log('[TeacherCalendarEventModal] Using existing class id:', actualClassId);
+      }
+
+      // Criar o evento com class_id válido
       const { error } = await supabase
         .from('class_events')
         .insert({
           title: title.trim(),
-          class_id: selectedClassId,
+          class_id: actualClassId,
           event_date: format(date, 'yyyy-MM-dd') + 'T00:00:00.000Z',
           start_time: startTime,
           end_time: endTime,
@@ -168,8 +212,7 @@ export const TeacherCalendarEventModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPortal>
-        <DialogContent 
+      <DialogContent
           className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white border-blue-100/30 shadow-2xl
             [&::-webkit-scrollbar]:w-2
             [&::-webkit-scrollbar-track]:bg-gray-100
@@ -428,7 +471,6 @@ export const TeacherCalendarEventModal = ({
           </Button>
         </div>
         </DialogContent>
-      </DialogPortal>
     </Dialog>
   );
 };
