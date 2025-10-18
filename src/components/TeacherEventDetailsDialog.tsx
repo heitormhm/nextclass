@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -317,7 +317,7 @@ export const TeacherEventDetailsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar pb-6 relative">
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col pb-0 relative">
         <Button
           variant="ghost"
           size="icon"
@@ -327,7 +327,9 @@ export const TeacherEventDetailsDialog = ({
           <X className="h-5 w-5 text-gray-800 font-bold" />
         </Button>
 
-        <div className={cn(
+        {/* Conteúdo scrollável */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pt-6">
+          <div className={cn(
           "rounded-lg p-4 pr-14 bg-gradient-to-br mb-4 text-white",
           colorClasses
         )}>
@@ -599,45 +601,44 @@ export const TeacherEventDetailsDialog = ({
             )}
           </div>
         )}
+        </div>
 
-        {/* Rodapé com botões de ação - Apenas em modo edição */}
+        {/* Rodapé fixo - Apenas em modo edição */}
         {isEditMode && (
-          <DialogFooter className="mt-6 pt-4 border-t bg-gradient-to-t from-gray-50 to-transparent">
-            <div className="flex gap-3 w-full">
-              <Button
-                onClick={() => setIsEditMode(false)}
-                variant="outline"
-                size="lg"
-                className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-50 hover:scale-105 transition-all"
-                disabled={isSaving}
-              >
-                <X className="h-5 w-5 mr-2" />
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleSaveChanges}
-                size="lg"
-                className={cn(
-                  "flex-1 h-12 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 text-white",
-                  colorAccents.buttonBg,
-                  colorAccents.buttonHover
-                )}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-5 w-5 mr-2" />
-                    Salvar Alterações
-                  </>
-                )}
-              </Button>
-            </div>
-          </DialogFooter>
+          <div className="flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent p-4 px-6 border-t shadow-2xl backdrop-blur-sm flex gap-3">
+            <Button
+              onClick={() => setIsEditMode(false)}
+              variant="outline"
+              size="lg"
+              className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-50 hover:scale-105 transition-all"
+              disabled={isSaving}
+            >
+              <X className="h-5 w-5 mr-2" />
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveChanges}
+              size="lg"
+              className={cn(
+                "flex-1 h-12 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 text-white",
+                colorAccents.buttonBg,
+                colorAccents.buttonHover
+              )}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-5 w-5 mr-2" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </DialogContent>
     </Dialog>
