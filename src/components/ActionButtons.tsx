@@ -36,14 +36,7 @@ export const ActionButtons = ({ messageContent, topic, onAction, disabled, activ
     'MATERIAL 2: NOTA TÉCNICA',
     'MATERIAL 3: LISTA DE RECURSOS',
     'Referências Bibliográficas',
-    'PROTOCOLO DE FACT-CHECKING',
-    '## 📊 MATERIAL 1:',
-    '## 📝 MATERIAL 2:',
-    '## 🔗 MATERIAL 3:',
-    '## 📚 Referências',
-    'ANÁLISE PROFUNDA SOBRE',
-    'ANÁLISE APROFUNDADA SOBRE',
-    'DEEP_SEARCH_ACTION_BUTTONS'
+    'PROTOCOLO DE FACT-CHECKING'
   ];
 
   const isDeepSearchResult = deepSearchIndicators.some(indicator => 

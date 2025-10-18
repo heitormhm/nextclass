@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation, FileDown, BookText } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation } from "lucide-react";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
-import { preprocessMarkdownContent } from "@/utils/markdownPreprocessor";
-import { SuggestionsButtons } from "@/components/SuggestionsButtons";
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -19,7 +17,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { generateReportPDF } from "@/utils/pdfGenerator";
 
 interface Message {
   id: string;
@@ -29,7 +26,6 @@ interface Message {
   jobIds?: string[];
   jobMetadata?: Map<string, { type: string; context: string }>;
   isSystemMessage?: boolean;
-  suggestionsJobId?: string;
 }
 
 interface Conversation {
@@ -64,20 +60,6 @@ const TeacherAIChatPage = () => {
     { text: "📊 Compilando informações relevantes..." },
     { text: "✨ Gerando relatório personalizado..." },
     { text: "✅ Finalizando análise..." }
-  ];
-
-  const deepSearchIndicators = [
-    'MATERIAL 1: ESTUDO DE CASO',
-    'MATERIAL 2: NOTA TÉCNICA',
-    'MATERIAL 3: LISTA DE RECURSOS',
-    'Referências Bibliográficas',
-    'PROTOCOLO DE FACT-CHECKING',
-    '## 📊 MATERIAL 1:',
-    '## 📝 MATERIAL 2:',
-    '## 🔗 MATERIAL 3:',
-    '## 📚 Referências',
-    'ANÁLISE PROFUNDA SOBRE',
-    'ANÁLISE APROFUNDADA SOBRE'
   ];
 
   const getInitialActionButtons = () => [
@@ -133,18 +115,12 @@ const TeacherAIChatPage = () => {
         .from('conversations')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10); // Últimas 10 conversas
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setConversations(data || []);
     } catch (error) {
       console.error('Error loading conversations:', error);
-      toast({
-        title: "Erro ao carregar conversas",
-        description: "Não foi possível carregar o histórico.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -175,11 +151,6 @@ const TeacherAIChatPage = () => {
         content: msg.content,
         isUser: msg.role === 'user',
         timestamp: new Date(msg.created_at),
-        suggestionsJobId: msg.suggestions_job_id,
-        jobIds: msg.metadata?.jobIds || [],
-        jobMetadata: msg.metadata?.jobMetadata 
-          ? new Map(Object.entries(msg.metadata.jobMetadata))
-          : new Map(),
       })) || [];
 
       setMessages(loadedMessages);
@@ -394,28 +365,6 @@ const TeacherAIChatPage = () => {
         conversationId = newConversation.id;
         setActiveConversationId(conversationId);
         loadConversations();
-        
-        // Gerar título automaticamente com IA
-        try {
-          console.log('🎯 Iniciando geração de título para:', newConversation.id);
-          
-          const { data: titleData, error: titleError } = await supabase.functions.invoke(
-            'generate-conversation-title',
-            { body: { conversationId: newConversation.id, firstMessage: currentMessage } }
-          );
-          
-          if (titleError) {
-            console.error('❌ Erro ao gerar título:', titleError);
-          } else {
-            console.log('✅ Título gerado com sucesso:', titleData?.title);
-            setTimeout(async () => {
-              await loadConversations(); // Wait for conversations to load
-              setConversations(prev => [...prev]); // Force re-render after load completes
-            }, 2000);
-          }
-        } catch (error) {
-          console.error('❌ Exceção ao chamar geração de título:', error);
-        }
       } catch (error) {
         console.error('Error creating conversation:', error);
         toast({
@@ -542,8 +491,6 @@ const TeacherAIChatPage = () => {
     setInputMessage(suggestion);
   };
 
-  // Preprocess markdown to prevent math symbols from being rendered as code
-
   const handleActionButtonClick = (action: string) => {
     let prompt = "";
     
@@ -601,13 +548,45 @@ const TeacherAIChatPage = () => {
       return newJobs;
     });
 
-    // 📊 Logging detalhado para debug
-    console.log(`🔍 Job update received:`, { 
-      id: job.id, 
-      type: job.type, 
-      status: job.status,
-      job_type_field: (job as any).job_type
-    });
+    // 🔥 DESLIGAR LOADER quando DEEP_SEARCH completa
+    if (job.job_type === 'DEEP_SEARCH' && (job.status === 'COMPLETED' || job.status === 'FAILED')) {
+      console.log(`🏁 Deep search ${job.status}, closing loader`);
+      setIsDeepSearchLoading(false);
+      setDeepSearchProgress(deepSearchSteps.length - 1);
+      
+      // 🎯 CRIAR NOVA MENSAGEM COM BOTÕES DE AÇÃO
+      if (job.status === 'COMPLETED') {
+        console.log('✅ Deep search completed, adding action buttons message');
+        
+        const actionButtonsMessage: Message = {
+          id: `action-buttons-${Date.now()}`,
+          content: 'DEEP_SEARCH_ACTION_BUTTONS',
+          isUser: false,
+          timestamp: new Date(),
+          isSystemMessage: false,
+        };
+        
+        setMessages(prev => [...prev, actionButtonsMessage]);
+      }
+    }
+
+    // 📊 SINCRONIZAR PROGRESSO DO LOADER com STEPS reais do backend
+    if (job.job_type === 'DEEP_SEARCH' && job.status !== 'COMPLETED' && job.status !== 'FAILED') {
+      const currentStep = job.intermediate_data?.step;
+      
+      // Mapear steps do backend para índices do loader
+      const stepMap: Record<string, number> = {
+        '1': 1,  // Decomposing
+        '2': 3,  // Searching
+        '3': 4,  // Synthesizing
+        '4': 5   // Completing
+      };
+      
+      const loaderIndex = stepMap[currentStep] || 0;
+      
+      console.log(`📊 Deep search progress: step ${currentStep} → loader index ${loaderIndex}`);
+      setDeepSearchProgress(loaderIndex);
+    }
     
     if (job.status === 'COMPLETED' || job.status === 'FAILED') {
       if (!processedJobsRef.current.has(job.id)) {
@@ -633,41 +612,16 @@ const TeacherAIChatPage = () => {
     localStorage.setItem('teacher-deep-search-mode', String(isDeepSearch));
   }, [isDeepSearch]);
 
-  // Effect to manage deep search progress animation with absolute 15-second timer
   useEffect(() => {
     if (!isDeepSearchLoading) {
       setDeepSearchProgress(0);
       return;
     }
-
-    const totalDuration = 15000; // 15 seconds total
-    const stepsCount = deepSearchSteps.length;
-    const stepDuration = totalDuration / stepsCount;
-
-    let currentStep = 0;
+    
+    // ✅ Progresso agora é controlado por processJobUpdate, não por timer
+    // Apenas garantir que resetamos quando loader inicia
     setDeepSearchProgress(0);
-
-    // Step progression interval
-    const interval = setInterval(() => {
-      currentStep++;
-      if (currentStep < stepsCount) {
-        setDeepSearchProgress(currentStep);
-      } else {
-        setDeepSearchProgress(stepsCount - 1);
-      }
-    }, stepDuration);
-
-    // Absolute timer to close loader after exactly 15 seconds
-    const closeTimer = setTimeout(() => {
-      clearInterval(interval);
-      setIsDeepSearchLoading(false);
-    }, totalDuration);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(closeTimer);
-    };
-  }, [isDeepSearchLoading, deepSearchSteps.length]);
+  }, [isDeepSearchLoading]);
 
   // Realtime subscription
   useEffect(() => {
@@ -691,44 +645,6 @@ const TeacherAIChatPage = () => {
 
     return () => {
       supabase.removeChannel(channel);
-    };
-  }, [activeConversationId]);
-
-  // Subscription para novas mensagens
-  useEffect(() => {
-    if (!activeConversationId) return;
-
-    const messagesChannel = supabase
-      .channel(`messages-teacher-${activeConversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${activeConversationId}`
-        },
-        (payload) => {
-          console.log('📨 Nova mensagem detectada:', payload.new);
-          const newMessage = payload.new as any;
-          
-          setMessages(prev => [...prev, {
-            id: newMessage.id,
-            content: newMessage.content,
-            isUser: newMessage.role === 'user',
-            timestamp: new Date(newMessage.created_at),
-            suggestionsJobId: newMessage.suggestions_job_id,
-            jobIds: newMessage.metadata?.jobIds || [],
-            jobMetadata: newMessage.metadata?.jobMetadata 
-              ? new Map(Object.entries(newMessage.metadata.jobMetadata))
-              : new Map(),
-          }]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(messagesChannel);
     };
   }, [activeConversationId]);
 
@@ -766,7 +682,7 @@ const TeacherAIChatPage = () => {
             <div className="mb-3 px-2">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Conversas Recentes</h3>
             </div>
-            <ScrollArea className="h-[calc(100vh-280px)] pr-2">
+            <ScrollArea className="h-full pr-2">
               {conversations.length === 0 ? (
                 <p className="text-center text-muted-foreground text-sm py-8">
                   Nenhuma conversa ainda
@@ -784,14 +700,14 @@ const TeacherAIChatPage = () => {
                           : "hover:bg-white/60 dark:hover:bg-gray-800/60 hover:shadow-sm hover:scale-[1.01]"
                       )}
                     >
-                  <div className="flex-1 min-w-0 pr-2 max-w-[180px]">
-                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                      {conv.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(conv.created_at).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                          {conv.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(conv.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
                   <button
                     onClick={(e) => handleDeleteConversation(conv.id, e)}
                     className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-all flex items-center justify-center"
@@ -883,163 +799,98 @@ const TeacherAIChatPage = () => {
                       : "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
                   )}
                 >
-                  {!message.isUser && message.suggestionsJobId ? (
-                    <SuggestionsButtons
-                      suggestionsJobId={message.suggestionsJobId}
-                      activeJobs={activeJobs}
-                      onSuggestionClick={(suggestion) => {
-                        setInputMessage(suggestion);
-                        handleSendMessage();
+                  <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkMath]}
+                      rehypePlugins={[rehypeKatex]}
+                      components={{
+                        a: ({node, ...props}) => (
+                          <a 
+                            {...props} 
+                            className="break-all text-blue-600 hover:text-blue-800 underline" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                          />
+                        ),
+                        code: ({node, inline, ...props}: any) => (
+                          inline 
+                            ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-sm break-all" />
+                            : <code {...props} className="block bg-gray-100 p-2 rounded my-2 overflow-x-auto text-sm" />
+                        )
                       }}
-                      disabled={isLoading}
-                    />
-                  ) : !message.isUser ? (
-                    <>
-                      <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
-                        <ReactMarkdown
-                          children={preprocessMarkdownContent(message.content)}
-                          remarkPlugins={[remarkGfm, remarkMath]}
-                          rehypePlugins={[rehypeKatex]}
-                          components={{
-                            h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-4 mb-2 text-foreground" {...props} />,
-                            h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-3 mb-2 text-foreground" {...props} />,
-                            p: ({node, children, ...props}) => {
-                              return <p className="mb-2 text-foreground leading-relaxed" {...props}>{children}</p>;
-                            },
-                            strong: ({node, ...props}) => <strong className="font-bold text-foreground" {...props} />,
-                            div: ({node, className, ...props}: any) => {
-                              if (className === 'math math-display') {
-                                return <div className="my-4 overflow-x-auto text-center" {...props} />;
-                              }
-                              return <div className={className} {...props} />;
-                            },
-                            span: ({node, className, ...props}: any) => {
-                              if (className === 'math math-inline') {
-                                return <span className="mx-1" {...props} />;
-                              }
-                              return <span className={className} {...props} />;
-                            },
-                            code: ({node, inline, className, children, ...props}: any) => {
-                              const content = String(children).replace(/\n$/, '');
-                              
-                              if (inline) {
-                                // Detectar LaTeX inline ($...$)
-                                if (content.match(/^\$.+\$$/)) {
-                                  return <span className="mx-1 font-medium">{content}</span>;
-                                }
-                                
-                                // Detectar símbolos matemáticos comuns
-                                const isMathSymbol = content.match(/^[A-Za-zΔΣπθλμ]{1,3}[₀-₉⁰-⁹]*$/);
-                                const hasGreekLetter = /[ΔΣπθλμαβγ]/.test(content);
-                                const hasSubscript = /[₀-₉]/.test(content);
-                                const hasSuperscript = /[⁰-⁹]/.test(content);
-                                
-                                // Se for variável matemática simples, renderizar como texto
-                                if (isMathSymbol || hasGreekLetter || hasSubscript || hasSuperscript) {
-                                  return <span className="font-medium text-foreground">{content}</span>;
-                                }
-                                
-                                // Caso contrário, renderizar como código
-                                return <code className="bg-background/50 px-1.5 py-0.5 rounded text-xs font-mono text-primary break-all whitespace-pre-wrap" {...props}>{content}</code>;
-                              }
-                              
-                              // Código em bloco
-                              return <code className="block bg-background/50 p-3 rounded text-xs font-mono overflow-x-auto my-2 text-foreground whitespace-pre-wrap" {...props}>{content}</code>;
-                            },
-                            pre: ({node, ...props}) => <pre className="bg-background/50 p-3 rounded overflow-x-auto my-2" {...props} />,
-                            a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer" {...props} />,
-                            ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 space-y-1 my-2 text-foreground" {...props} />,
-                            ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 space-y-1 my-2 text-foreground" {...props} />,
-                            li: ({node, ...props}) => <li className="text-foreground pl-1" {...props} />,
-                            blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/50 pl-4 italic my-2 text-foreground/80" {...props} />,
-                            sub: ({node, ...props}) => <sub className="text-xs" {...props} />,
-                            sup: ({node, ...props}) => <sup className="text-xs text-pink-600 font-semibold" {...props} />,
-                          }}
-                        />
-                      </div>
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
 
-                      {/* Botão Exportar PDF para mensagens de Deep Search */}
-                      {!message.isUser && deepSearchIndicators.some(indicator => message.content.includes(indicator)) && (
-                        <div className="mt-4">
-                          <Button
-                            size="sm"
-                            onClick={async () => {
-                              console.log('🎯 Iniciando geração de PDF...');
-                              console.log('📄 Conteúdo:', message.content.substring(0, 200) + '...');
-                              console.log('📏 Tamanho do conteúdo:', message.content.length, 'caracteres');
-                              
-                              const result = await generateReportPDF({
-                                content: message.content,
-                                title: 'Relatório de Pesquisa Profunda',
-                                logoSvg: '',
-                              });
-                              
-                              if (result.success) {
-                                let description = "O relatório foi gerado e o download iniciou.";
-                                
-                                if (result.fixesApplied && result.fixesApplied.length > 0) {
-                                  description = "✅ PDF gerado com sucesso após correções automáticas!\n\n";
-                                  description += `🔧 Correções aplicadas:\n${result.fixesApplied.map(f => `• ${f}`).join('\n')}`;
-                                }
-                                
-                                if (result.stats) {
-                                  description += `\n\n📊 Estatísticas:\n`;
-                                  description += `• Conteúdo: ${result.stats.content.h1Count + result.stats.content.h2Count + result.stats.content.h3Count} títulos, ${result.stats.content.paragraphCount} parágrafos\n`;
-                                  if (result.stats.render) {
-                                    description += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
-                                  }
-                                  description += `• PDF: ${result.stats.pdf.pageCount} páginas geradas`;
-                                }
-                                
-                                if (result.warnings && result.warnings.length > 0) {
-                                  description += `\n\n⚠️ Avisos:\n${result.warnings.map(w => `• ${w}`).join('\n')}`;
-                                }
-                                
-                                toast({
-                                  title: result.fixesApplied ? "✅ PDF Gerado (Auto-Corrigido)" : "✅ PDF Gerado com Sucesso",
-                                  description,
-                                  duration: result.fixesApplied ? 8000 : 5000,
-                                });
-                              } else {
-                                let errorDescription = result.error || "Erro desconhecido";
-                                
-                                if (result.diagnostics && result.diagnostics.length > 0) {
-                                  errorDescription += `\n\n🔍 Problemas detectados:\n`;
-                                  errorDescription += result.diagnostics.map(d => `• ${d.issue}\n  Sugestão: ${d.suggestedFix}`).join('\n');
-                                }
-                                
-                                if (result.stats?.render) {
-                                  errorDescription += `\n\n📊 Debug Info:\n`;
-                                  errorDescription += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
-                                  errorDescription += `• Páginas adicionadas: ${result.stats.render.pagesAdded}`;
-                                }
-                                
-                                toast({
-                                  title: "❌ Erro ao Gerar PDF",
-                                  description: errorDescription,
-                                  variant: "destructive",
-                                  duration: 10000,
-                                });
-                                
-                                console.error('❌ Falha na geração do PDF');
-                                console.error('Erro:', result.error);
-                                if (result.diagnostics) {
-                                  console.error('Diagnósticos:', result.diagnostics);
-                                }
-                                if (result.stats) {
-                                  console.error('Stats:', result.stats);
-                                }
-                              }
-                            }}
-                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
-                          >
-                            <FileDown className="w-4 h-4 mr-2" />
-                            <span className="font-bold text-sm">Exportar PDF</span>
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  ) : null}
+                  {/* Caso especial: Renderizar botões de ação para Deep Search */}
+                  {!message.isUser && message.content === 'DEEP_SEARCH_ACTION_BUTTONS' && (
+                    <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-purple-50/80 to-pink-50/80 border-2 border-purple-200">
+                      <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        Continue explorando com Mia:
+                      </h3>
+                      
+                      {/* Grid 3x2 de botões */}
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* Linha 1 */}
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_QUIZ', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <FileQuestion className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Criar Quiz</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_FLASHCARDS', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <Layers className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Criar Flashcards</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_LESSON_PLAN', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <BookOpen className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Plano de Aula</span>
+                        </Button>
+                        
+                        {/* Linha 2 */}
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_SLIDES', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <Presentation className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Criar Slides</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_MULTIPLE_CHOICE_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <CheckSquare className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Múltipla Escolha</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_OPEN_ENDED_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                          className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          <span className="font-bold text-sm">Atividade Avaliativa</span>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                            
                           {!message.isUser && message.jobIds?.map((jobId) => {
                             const job = activeJobs.get(jobId);
@@ -1056,10 +907,7 @@ const TeacherAIChatPage = () => {
                             ) : null;
                           })}
                           
-                    {!message.isUser && 
-                     !message.isSystemMessage && 
-                     message.content !== 'DEEP_SEARCH_ACTION_BUTTONS' &&
-                     !deepSearchIndicators.some(ind => message.content.includes(ind)) && (
+                    {!message.isUser && !message.isSystemMessage && (
                       <div className="mt-4">
                         <ActionButtons
                           messageContent={message.content}

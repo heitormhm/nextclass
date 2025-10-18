@@ -1,6 +1,5 @@
 import jsPDF from 'jspdf';
 import { loadUnicodeFont, unicodeFontConfig } from './unicodeFont';
-import { preprocessMarkdownContent } from './markdownPreprocessor';
 
 interface PDFOptions {
   content: string;
@@ -981,29 +980,32 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
           
           console.log(`   [${segIdx}] REF: "${segment.text}" em cinza 9pt`);
         } else {
-          // Normal text - apply splitTextToSize with fixed width
-          const maxWidth = contentWidth - 10; // Safety margin
-          const wrappedLines = doc.splitTextToSize(segment.text, maxWidth);
+          // Texto normal - quebrar se necessário
+          const words = segment.text.split(' ');
           
-          wrappedLines.forEach((line: string) => {
-            checkPageBreak(8);
-            
-            // Use Unicode font if line contains math symbols
-            if (hasMathSymbols(line)) {
-              doc.setFont(unicodeFontConfig.fontName, 'normal');
-            }
-            
-            // Render at fixed left margin position
-            doc.text(line, margin, yPosition);
-            
-            // Restore normal font
-            if (hasMathSymbols(line)) {
-              doc.setFont('helvetica', 'normal');
-            }
-            
-            // Advance yPosition only after rendering the line
-            yPosition += 6;
-          });
+      words.forEach(word => {
+        const wordWidth = doc.getTextWidth(word + ' ');
+        
+        if (currentX + wordWidth > margin + contentWidth) {
+          // Nova linha
+          yPosition += 6;
+          checkPageBreak(8);
+          currentX = margin;
+        }
+        
+        // Usar fonte Unicode se palavra contém símbolos matemáticos
+        if (hasMathSymbols(word)) {
+          doc.setFont(unicodeFontConfig.fontName, 'normal');
+        }
+        
+        doc.text(word + ' ', currentX, yPosition);
+        currentX += wordWidth;
+        
+        // Restaurar fonte normal
+        if (hasMathSymbols(word)) {
+          doc.setFont('helvetica', 'normal');
+        }
+      });
           
           console.log(`   [${segIdx}] TEXT: "${segment.text.substring(0, 30)}..."`);
         }
@@ -1187,46 +1189,13 @@ const cleanFooters = (content: string): string => {
   return content.replace(/Gerado\s+por\s+NextClass\s+AI\s+Página.*?\d{4}/gi, '');
 };
 
-// Preprocessar conteúdo matemático para melhor renderização no PDF
-function preprocessMathContentForPDF(content: string): string {
-  // Primeiro aplica o preprocessamento padrão
-  content = preprocessMarkdownContent(content);
-  
-  // Preservar quebras de linha explícitas
-  content = content.replace(/\n\n+/g, '\n\n');
-  
-  // Converter subscripts Unicode para formato legível
-  const subscriptMap: Record<string, string> = {
-    '₀': '_0', '₁': '_1', '₂': '_2', '₃': '_3', '₄': '_4',
-    '₅': '_5', '₆': '_6', '₇': '_7', '₈': '_8', '₉': '_9'
-  };
-  
-  for (const [unicode, text] of Object.entries(subscriptMap)) {
-    content = content.replace(new RegExp(unicode, 'g'), text);
-  }
-  
-  // Limpar símbolos $ isolados que não são LaTeX válido
-  content = content.replace(/\$(?![^$]*\$)/g, '');
-  
-  // Converter fórmulas LaTeX inline para texto legível
-  content = content.replace(/\$([^$]+)\$/g, (match, formula) => {
-    // Remover underscore de subscritos
-    return formula.replace(/_\{([^}]+)\}/g, '_$1');
-  });
-  
-  return content;
-}
-
 // FASE 6: Função Principal com Auto-Diagnóstico
 export const generateReportPDF = async ({ content, title }: PDFOptions): Promise<PDFGenerationResult> => {
   console.log('🚀 Iniciando geração de PDF com 7 fases de validação...');
   console.log('🔍 FASE 1: Analisando conteúdo...');
   
-  // Preprocessar conteúdo matemático
-  const preprocessedContent = preprocessMathContentForPDF(content);
-  
   // Clean footers before processing
-  const cleanedContent = cleanFooters(preprocessedContent);
+  const cleanedContent = cleanFooters(content);
   const contentAnalysis = analyzeContent(cleanedContent);
   
   console.log('📊 Análise do conteúdo:', contentAnalysis);
