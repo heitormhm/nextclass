@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation, FileDown } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation, FileDown, BookText } from "lucide-react";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
@@ -387,40 +387,27 @@ const TeacherAIChatPage = () => {
         setActiveConversationId(conversationId);
         loadConversations();
         
-        // Gerar título automaticamente
+        // Gerar título automaticamente com IA
         try {
+          console.log('🎯 Iniciando geração de título para:', newConversation.id);
+          
           const { data: titleData, error: titleError } = await supabase.functions.invoke(
             'generate-conversation-title',
-            { body: { conversationId: newConversation.id, firstMessage: inputMessage } }
+            { body: { conversationId: newConversation.id, firstMessage: currentMessage } }
           );
           
           if (titleError) {
-            console.error('Error generating title:', titleError);
+            console.error('❌ Erro ao gerar título:', titleError);
           } else {
-            console.log('✅ Título gerado:', titleData?.title);
-            loadConversations();
+            console.log('✅ Título gerado com sucesso:', titleData?.title);
+            // Esperar 1 segundo antes de recarregar para dar tempo do banco atualizar
+            setTimeout(() => {
+              loadConversations();
+            }, 1000);
           }
         } catch (error) {
-          console.error('Error calling title generation:', error);
+          console.error('❌ Exceção ao chamar geração de título:', error);
         }
-        setTimeout(async () => {
-          try {
-            const { data: titleData } = await supabase.functions.invoke('generate-conversation-title', {
-              body: { 
-                conversationId: conversationId, 
-                firstMessage: currentMessage 
-              }
-            });
-            
-            if (titleData?.title) {
-              console.log('✅ Título gerado:', titleData.title);
-              // Recarregar conversas para atualizar título
-              loadConversations();
-            }
-          } catch (error) {
-            console.error('Error generating title:', error);
-          }
-        }, 2000);
       } catch (error) {
         console.error('Error creating conversation:', error);
         toast({
@@ -611,17 +598,6 @@ const TeacherAIChatPage = () => {
       status: job.status,
       job_type_field: (job as any).job_type
     });
-
-    // ✅ Fechar loader quando DEEP_SEARCH completa
-    if (job.type === 'DEEP_SEARCH' && job.status === 'COMPLETED') {
-      console.log('✅ Deep search completed, closing loader');
-      setIsDeepSearchLoading(false);
-    }
-
-    if (job.type === 'DEEP_SEARCH' && job.status === 'FAILED') {
-      console.log('❌ Deep search failed, closing loader');
-      setIsDeepSearchLoading(false);
-    }
     
     if (job.status === 'COMPLETED' || job.status === 'FAILED') {
       if (!processedJobsRef.current.has(job.id)) {
@@ -653,23 +629,28 @@ const TeacherAIChatPage = () => {
       return;
     }
     
-    // ⏱️ Timer de 15 segundos distribuído entre os steps
-    const totalDuration = 15000; // 15 segundos
+    // ⏱️ Timer de 15 segundos FIXOS distribuído entre os steps
+    const totalDuration = 15000; // 15 segundos completos
     const stepsCount = deepSearchSteps.length;
-    const stepDuration = totalDuration / stepsCount; // ~2.5s por step
+    const stepDuration = totalDuration / (stepsCount + 1); // +1 para buffer no final
     
     let currentStep = 0;
     setDeepSearchProgress(0);
     
     const interval = setInterval(() => {
       currentStep++;
-      if (currentStep < stepsCount) {
-        setDeepSearchProgress(currentStep);
-      } else {
-        // NÃO fechar loader aqui - deixar o backend fazer isso
+      if (currentStep <= stepsCount) {
+        setDeepSearchProgress(currentStep - 1);
+      }
+      
+      // Fechar APENAS quando passar os 15 segundos completos
+      if (currentStep > stepsCount) {
         clearInterval(interval);
         setDeepSearchProgress(stepsCount - 1);
-        // REMOVIDO: setIsDeepSearchLoading(false);
+        // ESTE É O ÚNICO LUGAR que fecha o loader após 15 segundos
+        setTimeout(() => {
+          setIsDeepSearchLoading(false);
+        }, stepDuration);
       }
     }, stepDuration);
     
@@ -857,15 +838,31 @@ const TeacherAIChatPage = () => {
                       <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-purple-50/80 to-pink-50/80 border-2 border-purple-200">
                         <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
                           <Sparkles className="w-4 h-4" />
-                          Continue explorando com Mia:
+                          ✨ Continue explorando sobre <strong>plano de AULA:</strong>
                         </h3>
                         
-                        <div className="grid gap-3 w-full" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(2, minmax(0, 1fr))' }}>
-                          {/* Linha 1 */}
+                        <div 
+                          className="grid gap-3 w-full" 
+                          style={{ 
+                            gridTemplateColumns: 'repeat(3, 1fr)',
+                            gridTemplateRows: 'repeat(2, 1fr)',
+                            minHeight: '180px'
+                          }}
+                        >
+                          {/* LINHA 1 */}
+                          <Button
+                            size="sm"
+                            onClick={() => handleAction('GENERATE_SLIDES', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                            className="w-full h-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
+                          >
+                            <Presentation className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="font-bold text-sm">Criar Apresentação em Slides</span>
+                          </Button>
+                          
                           <Button
                             size="sm"
                             onClick={() => handleAction('GENERATE_QUIZ', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
+                            className="w-full h-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
                           >
                             <FileQuestion className="w-4 h-4 mr-2 shrink-0" />
                             <span className="font-bold text-sm">Criar Quiz</span>
@@ -874,47 +871,38 @@ const TeacherAIChatPage = () => {
                           <Button
                             size="sm"
                             onClick={() => handleAction('GENERATE_FLASHCARDS', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
+                            className="w-full h-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
                           >
                             <Layers className="w-4 h-4 mr-2 shrink-0" />
                             <span className="font-bold text-sm">Criar Flashcards</span>
                           </Button>
                           
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_LESSON_PLAN', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <BookOpen className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Plano de Aula</span>
-                          </Button>
-                          
-                          {/* Linha 2 */}
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_SLIDES', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <Presentation className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Criar Slides</span>
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_MULTIPLE_CHOICE_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <CheckSquare className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Múltipla Escolha</span>
-                          </Button>
-                          
+                          {/* LINHA 2 */}
                           <Button
                             size="sm"
                             onClick={() => handleAction('GENERATE_OPEN_ENDED_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
+                            className="w-full h-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
                           >
                             <Edit className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Atividade Avaliativa</span>
+                            <span className="font-bold text-sm">Criar Atividade Avaliativa</span>
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            onClick={() => handleAction('GENERATE_LESSON_PLAN', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                            className="w-full h-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
+                          >
+                            <BookOpen className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="font-bold text-sm">Criar Plano de Aula</span>
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            onClick={() => handleAction('GENERATE_STUDY_MATERIAL', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
+                            className="w-full h-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg transition-all duration-300 px-3 py-2.5 rounded-xl flex items-center justify-center"
+                          >
+                            <BookText className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="font-bold text-sm">Criar Material de Estudo</span>
                           </Button>
                         </div>
                       </div>
@@ -947,14 +935,20 @@ const TeacherAIChatPage = () => {
                               const content = String(children).replace(/\n$/, '');
                               
                               if (inline) {
-                                // Detectar LaTeX inline
+                                // Detectar LaTeX inline ($...$)
                                 if (content.match(/^\$.+\$$/)) {
-                                  return <span className="mx-1">{content}</span>;
+                                  return <span className="mx-1 font-medium">{content}</span>;
                                 }
                                 
-                                // Detectar variáveis matemáticas simples (1-3 chars, pode ter números/subscritos)
-                                if (content.match(/^[A-Za-z]{1,3}[₀-₉]*$/) || content.match(/^[A-Za-z]{1,3}_[0-9]$/)) {
-                                  return <span className="font-medium">{content}</span>;
+                                // Detectar símbolos matemáticos comuns
+                                const isMathSymbol = content.match(/^[A-Za-zΔΣπθλμ]{1,3}[₀-₉⁰-⁹]*$/);
+                                const hasGreekLetter = /[ΔΣπθλμαβγ]/.test(content);
+                                const hasSubscript = /[₀-₉]/.test(content);
+                                const hasSuperscript = /[⁰-⁹]/.test(content);
+                                
+                                // Se for variável matemática simples, renderizar como texto
+                                if (isMathSymbol || hasGreekLetter || hasSubscript || hasSuperscript) {
+                                  return <span className="font-medium text-foreground">{content}</span>;
                                 }
                                 
                                 // Caso contrário, renderizar como código

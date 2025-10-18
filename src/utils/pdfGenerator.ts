@@ -1191,20 +1191,30 @@ const cleanFooters = (content: string): string => {
 
 // Preprocessar conteúdo matemático para melhor renderização no PDF
 function preprocessMathContent(content: string): string {
+  // Preservar quebras de linha explícitas
+  content = content.replace(/\n\n+/g, '\n\n');
+  
   // Remover backticks de variáveis matemáticas simples (1-3 caracteres)
-  content = content.replace(/`([A-Za-z]{1,3}[₀-₉]*)`/g, '$1');
+  content = content.replace(/`([A-Za-zΔΣπθλμ]{1,3}[₀-₉⁰-⁹]*)`/g, '$1');
   
-  // Converter subscripts Unicode para texto legível
-  content = content.replace(/([A-Za-z]+)([₀-₉]+)/g, '$1_$2');
+  // Converter subscripts Unicode para formato legível
+  const subscriptMap: Record<string, string> = {
+    '₀': '_0', '₁': '_1', '₂': '_2', '₃': '_3', '₄': '_4',
+    '₅': '_5', '₆': '_6', '₇': '_7', '₈': '_8', '₉': '_9'
+  };
   
-  // Remover símbolos $ isolados que não são LaTeX válido
-  content = content.replace(/\$_([a-zA-Z]+)/g, '$1');
+  for (const [unicode, text] of Object.entries(subscriptMap)) {
+    content = content.replace(new RegExp(unicode, 'g'), text);
+  }
   
-  // Converter subscritos LaTeX para texto simples
-  content = content.replace(/\$([^$]+)_\{([^}]+)\}\$/g, '$1_$2');
-  
-  // Limpar símbolos $ restantes que não são LaTeX completo
+  // Limpar símbolos $ isolados que não são LaTeX válido
   content = content.replace(/\$(?![^$]*\$)/g, '');
+  
+  // Converter fórmulas LaTeX inline para texto legível
+  content = content.replace(/\$([^$]+)\$/g, (match, formula) => {
+    // Remover underscore de subscritos
+    return formula.replace(/_\{([^}]+)\}/g, '_$1');
+  });
   
   return content;
 }
