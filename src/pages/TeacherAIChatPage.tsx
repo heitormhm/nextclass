@@ -400,10 +400,9 @@ const TeacherAIChatPage = () => {
             console.error('❌ Erro ao gerar título:', titleError);
           } else {
             console.log('✅ Título gerado com sucesso:', titleData?.title);
-            setTimeout(() => {
-              loadConversations();
-              // Forçar re-render
-              setConversations(prev => [...prev]);
+            setTimeout(async () => {
+              await loadConversations(); // Wait for conversations to load
+              setConversations(prev => [...prev]); // Force re-render after load completes
             }, 2000);
           }
         } catch (error) {
@@ -535,13 +534,16 @@ const TeacherAIChatPage = () => {
     setInputMessage(suggestion);
   };
 
-  // Preprocessar conteúdo markdown para remover backticks de símbolos matemáticos
+  // Preprocess markdown to prevent math symbols from being rendered as code
   const preprocessMarkdownContent = (content: string): string => {
-    // Remover backticks de variáveis matemáticas simples (1-3 chars)
-    content = content.replace(/`([A-Za-zΔΣπθλμαβγ]{1,3}[₀-₉⁰-⁹]*)`/g, '$1');
+    // Remove backticks from math variables (1-5 chars with symbols)
+    content = content.replace(/`([A-Za-zΔΣπθλμαβγΩωΦψÁρ]{1,5}[₀-₉⁰-⁹]*)`/g, '$1');
     
-    // Remover backticks de símbolos matemáticos gregos isolados
-    content = content.replace(/`([ΔΣπθλμαβγΩωΦψ])`/g, '$1');
+    // Remove backticks from simple math formulas (ex: `P = F / A`)
+    content = content.replace(/`([A-Za-zΔΣπθλμαβγΩωΦψÁρ₀-₉⁰-⁹\s=+\-*/()]{3,30})`/g, '$1');
+    
+    // Remove backticks from numbers with subscripts (ex: `P_2`)
+    content = content.replace(/`([A-Za-z]_\d+)`/g, '$1');
     
     return content;
   };
@@ -635,40 +637,40 @@ const TeacherAIChatPage = () => {
     localStorage.setItem('teacher-deep-search-mode', String(isDeepSearch));
   }, [isDeepSearch]);
 
+  // Effect to manage deep search progress animation with absolute 15-second timer
   useEffect(() => {
     if (!isDeepSearchLoading) {
       setDeepSearchProgress(0);
       return;
     }
-    
-    // ⏱️ Timer de 15 segundos FIXOS distribuído entre os steps
-    const totalDuration = 15000; // 15 segundos completos
+
+    const totalDuration = 15000; // 15 seconds total
     const stepsCount = deepSearchSteps.length;
-    const stepDuration = totalDuration / (stepsCount + 1); // +1 para buffer no final
-    
+    const stepDuration = totalDuration / stepsCount;
+
     let currentStep = 0;
     setDeepSearchProgress(0);
-    
+
+    // Step progression interval
     const interval = setInterval(() => {
       currentStep++;
-      if (currentStep <= stepsCount) {
-        setDeepSearchProgress(currentStep - 1);
-      }
-      
-      // Fechar APENAS quando passar os 15 segundos completos
-      if (currentStep > stepsCount) {
-        clearInterval(interval);
+      if (currentStep < stepsCount) {
+        setDeepSearchProgress(currentStep);
+      } else {
         setDeepSearchProgress(stepsCount - 1);
-        // Calcular tempo restante corretamente
-        const timeElapsed = currentStep * stepDuration;
-        const remainingTime = Math.max(totalDuration - timeElapsed, 0);
-        setTimeout(() => {
-          setIsDeepSearchLoading(false);
-        }, remainingTime);
       }
     }, stepDuration);
-    
-    return () => clearInterval(interval);
+
+    // Absolute timer to close loader after exactly 15 seconds
+    const closeTimer = setTimeout(() => {
+      clearInterval(interval);
+      setIsDeepSearchLoading(false);
+    }, totalDuration);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(closeTimer);
+    };
   }, [isDeepSearchLoading, deepSearchSteps.length]);
 
   // Realtime subscription
@@ -748,14 +750,14 @@ const TeacherAIChatPage = () => {
                           : "hover:bg-white/60 dark:hover:bg-gray-800/60 hover:shadow-sm hover:scale-[1.01]"
                       )}
                     >
-                      <div className="flex-1 min-w-0 pr-2 max-w-[180px]">
-                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                          {conv.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(conv.created_at).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
+                  <div className="flex-1 min-w-0 pr-2 max-w-[180px]">
+                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                      {conv.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(conv.created_at).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
                   <button
                     onClick={(e) => handleDeleteConversation(conv.id, e)}
                     className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-all flex items-center justify-center"
@@ -859,8 +861,10 @@ const TeacherAIChatPage = () => {
                           className="grid gap-3 w-full" 
                           style={{ 
                             gridTemplateColumns: 'repeat(3, 1fr)',
+                            gridTemplateRows: 'repeat(2, 1fr)',
                             height: '180px',
-                            gridAutoFlow: 'row'
+                            gridAutoFlow: 'row',
+                            overflow: 'hidden'
                           }}
                         >
                           {/* LINHA 1 */}

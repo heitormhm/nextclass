@@ -980,25 +980,28 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
           
           console.log(`   [${segIdx}] REF: "${segment.text}" em cinza 9pt`);
         } else {
-          // Texto normal - quebrar ANTES de processar
-          const wrappedLines = doc.splitTextToSize(segment.text, contentWidth);
+          // Normal text - apply splitTextToSize with fixed width
+          const maxWidth = contentWidth - 10; // Safety margin
+          const wrappedLines = doc.splitTextToSize(segment.text, maxWidth);
           
           wrappedLines.forEach((line: string) => {
             checkPageBreak(8);
             
-            // Usar fonte Unicode se linha contém símbolos matemáticos
+            // Use Unicode font if line contains math symbols
             if (hasMathSymbols(line)) {
               doc.setFont(unicodeFontConfig.fontName, 'normal');
             }
             
-            doc.text(line, currentX, yPosition);
-            yPosition += 6;
-            currentX = margin;
+            // Render at fixed left margin position
+            doc.text(line, margin, yPosition);
             
-            // Restaurar fonte normal
+            // Restore normal font
             if (hasMathSymbols(line)) {
               doc.setFont('helvetica', 'normal');
             }
+            
+            // Advance yPosition only after rendering the line
+            yPosition += 6;
           });
           
           console.log(`   [${segIdx}] TEXT: "${segment.text.substring(0, 30)}..."`);
@@ -1188,8 +1191,14 @@ function preprocessMathContent(content: string): string {
   // Preservar quebras de linha explícitas
   content = content.replace(/\n\n+/g, '\n\n');
   
-  // Remover backticks de variáveis matemáticas simples (1-3 caracteres)
-  content = content.replace(/`([A-Za-zΔΣπθλμ]{1,3}[₀-₉⁰-⁹]*)`/g, '$1');
+  // Remove backticks from math variables (1-5 chars with symbols)
+  content = content.replace(/`([A-Za-zΔΣπθλμαβγΩωΦψÁρ]{1,5}[₀-₉⁰-⁹]*)`/g, '$1');
+  
+  // Remove backticks from simple math formulas (ex: `P = F / A`)
+  content = content.replace(/`([A-Za-zΔΣπθλμαβγΩωΦψÁρ₀-₉⁰-⁹\s=+\-*/()]{3,30})`/g, '$1');
+  
+  // Remove backticks from numbers with subscripts (ex: `P_2`)
+  content = content.replace(/`([A-Za-z]_\d+)`/g, '$1');
   
   // Converter subscripts Unicode para formato legível
   const subscriptMap: Record<string, string> = {
