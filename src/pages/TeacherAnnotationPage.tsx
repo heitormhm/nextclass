@@ -54,9 +54,6 @@ const TeacherAnnotationPage = () => {
   const [lastAIFormattedContent, setLastAIFormattedContent] = useState<string>('');
   const [showPDFExportButton, setShowPDFExportButton] = useState(false);
   
-  // Content generation type tracking
-  const [contentGenerationType, setContentGenerationType] = useState<'didactic' | 'other'>('other');
-  
   // History state for undo/redo
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -581,82 +578,44 @@ const TeacherAnnotationPage = () => {
     }
 
     try {
-      // CONDICIONAL: PDF Visual APENAS para conteúdo didático
-      if (contentGenerationType === 'didactic') {
-        toast.info('📸 Capturando elementos visuais e gerando PDF otimizado...', { duration: 3000 });
+      toast.info('📸 Capturando elementos visuais e gerando PDF otimizado...', { duration: 3000 });
+      
+      console.log('🎯 Iniciando geração visual de PDF...');
+      console.log('📄 Blocos a processar:', structuredContent.conteudo.length);
+      
+      const result = await generateVisualPDF({
+        structuredData: structuredContent,
+        title: title || structuredContent.titulo_geral || 'Material Didático',
+        logoSvg: '',
+      });
+      
+      if (result.success) {
+        let description = "✅ Material exportado com renderização visual completa!";
         
-        console.log('🎯 Iniciando geração visual de PDF (Material Didático)...');
-        console.log('📄 Blocos a processar:', structuredContent.conteudo.length);
-        
-        const result = await generateVisualPDF({
-          structuredData: structuredContent,
-          title: title || structuredContent.titulo_geral || 'Material Didático',
-          logoSvg: '',
-        });
-        
-        if (result.success) {
-          let description = "✅ Material didático exportado com renderização visual completa!";
-          
-          if (result.stats) {
-            description += `\n\n📊 Estatísticas:\n`;
-            description += `• Elementos capturados como imagem: ${result.stats.imagesCaptured}\n`;
-            description += `• Elementos em texto nativo: ${result.stats.nativeTextBlocks}\n`;
-            description += `• Diagramas Mermaid: ${result.stats.mermaidDiagrams}\n`;
-            description += `• Gráficos: ${result.stats.charts}\n`;
-            description += `• Post-its: ${result.stats.postIts}\n`;
-            description += `• Páginas geradas: ${result.stats.totalPages}\n`;
-            description += `• Tempo de captura: ${(result.stats.captureTime / 1000).toFixed(1)}s`;
-          }
-          
-          if (result.warnings && result.warnings.length > 0) {
-            description += `\n\n⚠️ Avisos:\n${result.warnings.map(w => `• ${w}`).join('\n')}`;
-          }
-          
-          toast.success("✅ PDF Visual Gerado!", {
-            description,
-            duration: 6000
-          });
-        } else {
-          toast.error("❌ Erro ao Gerar PDF Visual", {
-            description: result.error || "Erro desconhecido ao capturar elementos visuais",
-            duration: 8000
-          });
+        if (result.stats) {
+          description += `\n\n📊 Estatísticas:\n`;
+          description += `• Elementos capturados como imagem: ${result.stats.imagesCaptured}\n`;
+          description += `• Elementos em texto nativo: ${result.stats.nativeTextBlocks}\n`;
+          description += `• Diagramas Mermaid: ${result.stats.mermaidDiagrams}\n`;
+          description += `• Gráficos: ${result.stats.charts}\n`;
+          description += `• Post-its: ${result.stats.postIts}\n`;
+          description += `• Páginas geradas: ${result.stats.totalPages}\n`;
+          description += `• Tempo de captura: ${(result.stats.captureTime / 1000).toFixed(1)}s`;
         }
+        
+        if (result.warnings && result.warnings.length > 0) {
+          description += `\n\n⚠️ Avisos:\n${result.warnings.map(w => `• ${w}`).join('\n')}`;
+        }
+        
+        toast.success("✅ PDF Visual Gerado!", {
+          description,
+          duration: 6000
+        });
       } else {
-        // PDF TRADICIONAL para outras formatações
-        toast.info('📄 Gerando PDF...', { duration: 2000 });
-        
-        const markdownContent = structuredContentToMarkdown(structuredContent);
-        
-        const result = await generateReportPDF({
-          content: markdownContent,
-          title: title || structuredContent.titulo_geral || 'Conteúdo Formatado',
-          logoSvg: '',
+        toast.error("❌ Erro ao Gerar PDF Visual", {
+          description: result.error || "Erro desconhecido ao capturar elementos visuais",
+          duration: 8000
         });
-        
-        if (result.success) {
-          let description = "✅ PDF gerado com sucesso!";
-          
-          if (result.fixesApplied && result.fixesApplied.length > 0) {
-            description = "✅ PDF gerado com sucesso após correções automáticas!\n\n";
-            description += `🔧 Correções aplicadas:\n${result.fixesApplied.map(f => `• ${f}`).join('\n')}`;
-          }
-          
-          if (result.stats) {
-            description += `\n\n📊 Estatísticas:\n`;
-            description += `• PDF: ${result.stats.pdf.pageCount} páginas geradas`;
-          }
-          
-          toast.success("✅ PDF Gerado!", {
-            description,
-            duration: 5000
-          });
-        } else {
-          toast.error("❌ Erro ao Gerar PDF", {
-            description: result.error || "Erro desconhecido",
-            duration: 8000
-          });
-        }
       }
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
