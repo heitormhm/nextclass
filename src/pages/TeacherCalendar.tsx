@@ -513,13 +513,13 @@ const TeacherCalendar = () => {
                     {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
                   </p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="min-h-[400px]">
                   {selectedDateEvents.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-4">
+                    <p className="text-sm text-gray-500 text-center py-8">
                       Nenhum evento neste dia
                     </p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
                       {selectedDateEvents.map(event => (
                         <div
                           key={event.id}
@@ -584,27 +584,6 @@ const TeacherCalendar = () => {
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Legend */}
-              <Card className="bg-white/75 backdrop-blur-xl border-blue-100/30">
-                <CardHeader>
-                  <CardTitle className="text-gray-800">Legenda</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {[
-                    { color: 'azul', label: 'Azul' },
-                    { color: 'verde', label: 'Verde' },
-                    { color: 'roxo', label: 'Roxo' },
-                    { color: 'laranja', label: 'Laranja' },
-                    { color: 'vermelho', label: 'Vermelho' },
-                  ].map(item => (
-                    <div key={item.color} className="flex items-center gap-2">
-                      <div className={cn("w-4 h-4 rounded", getEventDotColor(item.color))} />
-                      <span className="text-sm text-gray-600">{item.label}</span>
-                    </div>
-                  ))}
                 </CardContent>
               </Card>
 

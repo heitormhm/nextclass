@@ -219,39 +219,8 @@ export const TeacherCalendarEventModal = ({
         return;
       }
 
-      const selectedClass = classes.find(c => c.id === selectedClassId);
-      if (!selectedClass) {
-        toast.error('Turma não encontrada');
-        setIsSubmitting(false);
-        return;
-      }
-
-      let actualClassId = selectedClassId;
-      
-      const { data: existingClass } = await supabase
-        .from('classes')
-        .select('id')
-        .eq('course', selectedClass.course)
-        .eq('period', selectedClass.period)
-        .maybeSingle();
-      
-      if (!existingClass) {
-        const { data: newClass, error: classError } = await supabase
-          .from('classes')
-          .insert({
-            name: selectedClass.name,
-            course: selectedClass.course,
-            period: selectedClass.period,
-            teacher_id: user.id
-          })
-          .select('id')
-          .single();
-        
-        if (classError) throw classError;
-        actualClassId = newClass.id;
-      } else {
-        actualClassId = existingClass.id;
-      }
+      // Usar diretamente o selectedClassId que já é o ID correto de turmas
+      const actualClassId = selectedClassId;
 
       const finalLocation = eventType === 'presencial' 
         ? (location === 'CUSTOM' ? customLocation.trim() : location)
