@@ -219,15 +219,10 @@ export const TeacherCalendarEventModal = ({
       return;
     }
 
-    // Disciplina obrigatória apenas para turmas específicas
+    // Disciplina obrigatória para turmas específicas, não aplicável para "Todas as Turmas"
     if (selectedClassId !== 'ALL_CLASSES' && !selectedSubjectId) {
-      toast.error('Por favor, selecione ou crie uma disciplina para eventos de turma específica');
+      toast.error('Por favor, selecione ou crie uma disciplina');
       return;
-    }
-
-    // Para "Todas as Turmas", disciplina é opcional
-    if (selectedClassId === 'ALL_CLASSES' && !selectedSubjectId) {
-      console.log('[Modal] Criando aviso geral sem disciplina (permitido)');
     }
 
     if (eventType === 'presencial' && location !== 'CUSTOM' && !location) {
@@ -279,7 +274,7 @@ export const TeacherCalendarEventModal = ({
         const eventsToCreate = classes.map(cls => ({
           title: title.trim(),
           class_id: cls.id,
-          disciplina_id: selectedSubjectId || null,
+          disciplina_id: null, // Avisos gerais não têm disciplina
           event_date: format(date, 'yyyy-MM-dd') + 'T00:00:00.000Z',
           start_time: startTime,
           end_time: endTime,
@@ -518,117 +513,110 @@ export const TeacherCalendarEventModal = ({
             )}
           </div>
 
-          {/* Disciplina */}
-          <div className="space-y-2">
-            <Label htmlFor="subject" className="text-sm font-medium">
-              📖 Disciplina {selectedClassId === 'ALL_CLASSES' 
-                ? <span className="text-gray-400">(opcional para avisos gerais)</span>
-                : <span className="text-red-500">*</span>
-              }
-            </Label>
-            
-            {selectedClassId === 'ALL_CLASSES' && (
-              <p className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded p-2">
-                ℹ️ Para avisos gerais em todas as turmas, a disciplina é opcional.
-              </p>
-            )}
+          {/* Disciplina - Ocultar para "Todas as Turmas" */}
+          {selectedClassId !== 'ALL_CLASSES' && (
+            <div className="space-y-2">
+              <Label htmlFor="subject" className="text-sm font-medium">
+                📖 Disciplina <span className="text-red-500">*</span>
+              </Label>
 
-            {selectedClassId && selectedClassId !== 'ALL_CLASSES' && subjects.length === 0 && (
-              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
-                ⚠️ Nenhuma disciplina encontrada. Crie uma nova para esta turma.
-              </p>
-            )}
-            
-            {!isCreatingNewSubject ? (
-              <Select 
-                value={selectedSubjectId} 
-                onValueChange={(value) => {
-                  if (value === 'CREATE_NEW') {
-                    setIsCreatingNewSubject(true);
-                  } else {
-                    setSelectedSubjectId(value);
-                  }
-                }}
-                disabled={!selectedClassId}
-              >
-                <SelectTrigger 
-                  className={cn(
-                    "bg-white/20 backdrop-blur-xl border-blue-200",
-                    !selectedClassId && "opacity-50 cursor-not-allowed"
-                  )}
+              {subjects.length === 0 && (
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
+                  ⚠️ Nenhuma disciplina encontrada. Crie uma nova para esta turma.
+                </p>
+              )}
+              
+              {!isCreatingNewSubject ? (
+                <Select 
+                  value={selectedSubjectId} 
+                  onValueChange={(value) => {
+                    if (value === 'CREATE_NEW') {
+                      setIsCreatingNewSubject(true);
+                    } else {
+                      setSelectedSubjectId(value);
+                    }
+                  }}
+                  disabled={!selectedClassId}
                 >
-                  <SelectValue placeholder="Selecione uma disciplina" />
-                </SelectTrigger>
-                <SelectContent className="z-[10000]" sideOffset={5}>
-                  {subjects.length === 0 && (
-                    <SelectItem value="CREATE_NEW" className="text-blue-600 font-medium">
-                      ➕ Criar primeira disciplina
-                    </SelectItem>
-                  )}
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.codigo ? `${subject.codigo} - ${subject.nome}` : subject.nome}
-                    </SelectItem>
-                  ))}
-                  {subjects.length > 0 && (
-                    <SelectItem value="CREATE_NEW" className="text-blue-600 font-medium">
-                      ➕ Criar nova disciplina
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                <div className="space-y-2">
-                  <Label htmlFor="newSubjectName" className="text-xs font-medium">
-                    Nome da Disciplina *
-                  </Label>
-                  <Input
-                    id="newSubjectName"
-                    placeholder="Ex: Termodinâmica Aplicada"
-                    value={newSubjectName}
-                    onChange={(e) => setNewSubjectName(e.target.value)}
-                    className="bg-white border-blue-200"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="newSubjectCode" className="text-xs font-medium">
-                    Código (Opcional)
-                  </Label>
-                  <Input
-                    id="newSubjectCode"
-                    placeholder="Ex: ENG301"
-                    value={newSubjectCode}
-                    onChange={(e) => setNewSubjectCode(e.target.value)}
-                    className="bg-white border-blue-200"
-                  />
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={handleCreateSubject}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  <SelectTrigger 
+                    className={cn(
+                      "bg-white/20 backdrop-blur-xl border-blue-200",
+                      !selectedClassId && "opacity-50 cursor-not-allowed"
+                    )}
                   >
-                    Criar Disciplina
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsCreatingNewSubject(false);
-                      setNewSubjectName('');
-                      setNewSubjectCode('');
-                    }}
-                    className="flex-1"
-                  >
-                    Cancelar
-                  </Button>
+                    <SelectValue placeholder="Selecione uma disciplina" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[10000]" sideOffset={5}>
+                    {subjects.length === 0 && (
+                      <SelectItem value="CREATE_NEW" className="text-blue-600 font-medium">
+                        ➕ Criar primeira disciplina
+                      </SelectItem>
+                    )}
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.codigo ? `${subject.codigo} - ${subject.nome}` : subject.nome}
+                      </SelectItem>
+                    ))}
+                    {subjects.length > 0 && (
+                      <SelectItem value="CREATE_NEW" className="text-blue-600 font-medium">
+                        ➕ Criar nova disciplina
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="space-y-2">
+                    <Label htmlFor="newSubjectName" className="text-xs font-medium">
+                      Nome da Disciplina *
+                    </Label>
+                    <Input
+                      id="newSubjectName"
+                      placeholder="Ex: Termodinâmica Aplicada"
+                      value={newSubjectName}
+                      onChange={(e) => setNewSubjectName(e.target.value)}
+                      className="bg-white border-blue-200"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="newSubjectCode" className="text-xs font-medium">
+                      Código (Opcional)
+                    </Label>
+                    <Input
+                      id="newSubjectCode"
+                      placeholder="Ex: ENG301"
+                      value={newSubjectCode}
+                      onChange={(e) => setNewSubjectCode(e.target.value)}
+                      className="bg-white border-blue-200"
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleCreateSubject}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    >
+                      Criar Disciplina
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreatingNewSubject(false);
+                        setNewSubjectName('');
+                        setNewSubjectCode('');
+                      }}
+                      className="flex-1"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Data e Horários */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

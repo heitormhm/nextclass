@@ -149,7 +149,7 @@ export type Database = {
             foreignKeyName: "class_events_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: "classes"
+            referencedRelation: "turmas"
             referencedColumns: ["id"]
           },
           {
