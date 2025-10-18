@@ -593,7 +593,7 @@ const TeacherCalendar = () => {
                       Nenhum evento neste dia
                     </p>
                   ) : (
-                    <div className="space-y-3 max-h-[550px] overflow-y-auto pr-2">
+                    <div className="space-y-3 max-h-[550px] overflow-y-auto overflow-x-hidden pr-2">
                       {selectedDateEvents.map((event) => {
                         const colorClasses = getEventColorClasses(event.color);
                         const isCompleted = event.status === 'completed';
@@ -603,10 +603,12 @@ const TeacherCalendar = () => {
                           <div
                             key={event.id}
                             className={cn(
-                              "group rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer",
+                              "group rounded-xl p-4 border-2 transition-all duration-200 cursor-pointer",
                               "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50",
-                              "hover:shadow-2xl hover:scale-[1.02] hover:border-blue-300",
-                              "hover:from-blue-100 hover:via-purple-100 hover:to-pink-100",
+                              "hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
+                              "hover:border-blue-400",
+                              "hover:bg-gradient-to-br hover:from-white hover:via-blue-50/80 hover:to-purple-50/80",
+                              "hover:-translate-y-1",
                               isCompleted && "opacity-50",
                               isCancelled && "opacity-40 line-through"
                             )}
@@ -627,10 +629,10 @@ const TeacherCalendar = () => {
                                     variant="outline" 
                                     className="text-xs px-2.5 py-1 bg-purple-50 text-purple-700 border-purple-200 font-medium h-6"
                                   >
-                                    {getCategoryLabel(event.category)}
+                                    {getCategoryLabel(event.category).toUpperCase()}
                                   </Badge>
                                 </div>
-                                <h3 className="font-bold text-base text-gray-900 mb-1">{event.title}</h3>
+                                <h3 className="font-bold text-lg text-gray-900 mb-2 drop-shadow-sm leading-tight tracking-tight">{event.title}</h3>
                               </div>
                             </div>
 
@@ -668,7 +670,7 @@ const TeacherCalendar = () => {
                                   setSelectedEventForEdit(event);
                                   setShowEventDetailsDialog(true);
                                 }}
-                                className="flex-1 h-9 bg-white hover:bg-blue-50 hover:scale-105 hover:shadow-md transition-all border-2 border-blue-200"
+                                className="flex-1 h-9 bg-white hover:bg-blue-500 hover:scale-110 hover:shadow-lg transition-all duration-200 border-2 border-blue-300 hover:border-blue-500 group-hover:border-blue-400 [&>svg]:hover:text-white [&>svg]:text-blue-600"
                                 title="Visualizar/Editar evento"
                               >
                                 <Edit className="h-4 w-4" />
@@ -679,7 +681,7 @@ const TeacherCalendar = () => {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleEventUpdate(event.id, 'complete')}
-                                  className="flex-1 h-9 bg-white hover:bg-green-50 hover:scale-105 hover:shadow-md transition-all border-2 border-green-200"
+                                  className="flex-1 h-9 bg-white hover:bg-green-500 hover:scale-110 hover:shadow-lg transition-all duration-200 border-2 border-green-300 hover:border-green-500 group-hover:border-green-400 [&>svg]:hover:text-white [&>svg]:text-green-600"
                                   title="Marcar como concluído"
                                 >
                                   <Check className="h-4 w-4" />
@@ -690,7 +692,7 @@ const TeacherCalendar = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEventDelete(event.id)}
-                                className="flex-1 h-9 bg-white hover:bg-red-50 hover:scale-105 hover:shadow-md transition-all border-2 border-red-200"
+                                className="flex-1 h-9 bg-white hover:bg-red-500 hover:scale-110 hover:shadow-lg transition-all duration-200 border-2 border-red-300 hover:border-red-500 group-hover:border-red-400 [&>svg]:hover:text-white [&>svg]:text-red-600"
                                 title="Deletar evento"
                               >
                                 <X className="h-4 w-4" />
