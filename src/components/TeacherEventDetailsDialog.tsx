@@ -75,6 +75,65 @@ const colorOptions = [
   { value: 'cinza', label: 'Cinza', class: 'bg-gradient-to-br from-gray-500 to-slate-600' },
 ];
 
+const getColorAccents = (color: string = 'azul') => {
+  const accentMap: Record<string, {
+    border: string;
+    buttonBg: string;
+    buttonHover: string;
+    inputFocus: string;
+  }> = {
+    'azul': {
+      border: 'border-blue-300',
+      buttonBg: 'bg-blue-600',
+      buttonHover: 'hover:bg-blue-700',
+      inputFocus: 'focus:border-blue-500 focus:ring-blue-500',
+    },
+    'verde': {
+      border: 'border-green-300',
+      buttonBg: 'bg-green-600',
+      buttonHover: 'hover:bg-green-700',
+      inputFocus: 'focus:border-green-500 focus:ring-green-500',
+    },
+    'roxo': {
+      border: 'border-purple-300',
+      buttonBg: 'bg-purple-600',
+      buttonHover: 'hover:bg-purple-700',
+      inputFocus: 'focus:border-purple-500 focus:ring-purple-500',
+    },
+    'laranja': {
+      border: 'border-orange-300',
+      buttonBg: 'bg-orange-600',
+      buttonHover: 'hover:bg-orange-700',
+      inputFocus: 'focus:border-orange-500 focus:ring-orange-500',
+    },
+    'rosa': {
+      border: 'border-pink-300',
+      buttonBg: 'bg-pink-600',
+      buttonHover: 'hover:bg-pink-700',
+      inputFocus: 'focus:border-pink-500 focus:ring-pink-500',
+    },
+    'vermelho': {
+      border: 'border-red-300',
+      buttonBg: 'bg-red-600',
+      buttonHover: 'hover:bg-red-700',
+      inputFocus: 'focus:border-red-500 focus:ring-red-500',
+    },
+    'amarelo': {
+      border: 'border-yellow-300',
+      buttonBg: 'bg-yellow-600',
+      buttonHover: 'hover:bg-yellow-700',
+      inputFocus: 'focus:border-yellow-500 focus:ring-yellow-500',
+    },
+    'cinza': {
+      border: 'border-gray-300',
+      buttonBg: 'bg-gray-600',
+      buttonHover: 'hover:bg-gray-700',
+      inputFocus: 'focus:border-gray-500 focus:ring-gray-500',
+    },
+  };
+  return accentMap[color] || accentMap['azul'];
+};
+
 export const TeacherEventDetailsDialog = ({
   event,
   open,
@@ -254,10 +313,14 @@ export const TeacherEventDetailsDialog = ({
 
   const colorClasses = colorOptions.find(c => c.value === (isEditMode ? editedColor : event.color))?.class || colorOptions[0].class;
   const categoryLabel = categoryOptions.find(c => c.value === (isEditMode ? editedCategory : event.category))?.label || 'Aula';
+  const colorAccents = getColorAccents(isEditMode ? editedColor : event.color);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar pb-20">
+      <DialogContent className={cn(
+        "max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar",
+        isEditMode ? "pb-28" : "pb-6"
+      )}>
         <Button
           variant="ghost"
           size="icon"
@@ -277,23 +340,26 @@ export const TeacherEventDetailsDialog = ({
             </Badge>
             {!isEditMode && (
               <Button
-                variant="ghost"
-                size="sm"
+                variant="secondary"
+                size="default"
                 onClick={() => setIsEditMode(true)}
-                className="text-white hover:bg-white/20"
+                className="bg-white/30 hover:bg-white/40 text-white font-semibold backdrop-blur-sm border border-white/50 shadow-lg hover:shadow-xl transition-all hover:scale-105"
               >
-                <Edit2 className="h-4 w-4 mr-2" />
+                <Edit2 className="h-5 w-5 mr-2" />
                 Editar
               </Button>
             )}
           </div>
           {isEditMode ? (
-            <Input
-              value={editedTitle}
-              onChange={(e) => setEditedTitle(e.target.value)}
-              className="text-2xl font-bold bg-white/20 border-white/30 text-white placeholder:text-white/70"
-              placeholder="Título do evento"
-            />
+          <Input
+            value={editedTitle}
+            onChange={(e) => setEditedTitle(e.target.value)}
+            className={cn(
+              "text-2xl font-bold bg-white/20 border-white/30 text-white placeholder:text-white/70",
+              colorAccents.inputFocus
+            )}
+            placeholder="Título do evento"
+          />
           ) : (
             <h2 className="text-2xl font-bold">{event.title}</h2>
           )}
@@ -305,52 +371,50 @@ export const TeacherEventDetailsDialog = ({
             <div className="h-24 bg-gray-100 animate-pulse rounded-lg" />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 transition-all duration-300 ease-in-out">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Data com edição */}
-            {isEditMode ? (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-blue-600" />
-                  📅 Data *
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start bg-white/20 backdrop-blur-xl border-blue-200"
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {editedDate ? format(editedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : "Selecione uma data"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={editedDate}
-                      onSelect={setEditedDate}
-                      locale={ptBR}
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+            <div className="rounded-lg p-4 border bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+              <div className="flex items-center gap-2 mb-2 text-blue-700">
+                <Calendar className="h-5 w-5" />
+                <span className="font-semibold text-sm">Data</span>
               </div>
-            ) : (
-              <div className="rounded-lg p-4 border bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
-                <div className="flex items-center gap-2 mb-2 text-blue-700">
-                  <Calendar className="h-5 w-5" />
-                  <span className="font-semibold text-sm">Data</span>
-                </div>
-                <div className="ml-7">
-                  <p className="text-base font-medium text-gray-900">
-                    {format(event.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {format(event.date, "EEEE", { locale: ptBR })}
-                  </p>
-                </div>
+              <div className="ml-7">
+                {isEditMode ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className={cn(
+                          "w-full justify-start bg-white hover:bg-blue-50 border-blue-300",
+                          colorAccents.inputFocus
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {editedDate ? format(editedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : "Selecione uma data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={editedDate}
+                        onSelect={setEditedDate}
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <>
+                    <p className="text-base font-medium text-gray-900">
+                      {format(event.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {format(event.date, "EEEE", { locale: ptBR })}
+                    </p>
+                  </>
+                )}
               </div>
-            )}
+            </div>
 
               <div className="rounded-lg p-4 border bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
                 <div className="flex items-center gap-2 mb-2 text-amber-700">
@@ -364,13 +428,13 @@ export const TeacherEventDetailsDialog = ({
                         type="time"
                         value={editedStartTime}
                         onChange={(e) => setEditedStartTime(e.target.value)}
-                        className="text-sm"
+                        className={cn("text-sm bg-white hover:bg-amber-50 border-amber-300", colorAccents.inputFocus)}
                       />
                       <Input
                         type="time"
                         value={editedEndTime}
                         onChange={(e) => setEditedEndTime(e.target.value)}
-                        className="text-sm"
+                        className={cn("text-sm bg-white hover:bg-amber-50 border-amber-300", colorAccents.inputFocus)}
                       />
                     </>
                   ) : (
@@ -468,7 +532,7 @@ export const TeacherEventDetailsDialog = ({
                       value={editedLocation}
                       onChange={(e) => setEditedLocation(e.target.value)}
                       placeholder="Ex: Sala 201 ou Link da reunião"
-                      className="bg-white"
+                      className={cn("bg-white", colorAccents.inputFocus)}
                     />
                   </div>
 
@@ -479,7 +543,7 @@ export const TeacherEventDetailsDialog = ({
                       onChange={(e) => setEditedDescription(e.target.value)}
                       placeholder="Adicione detalhes sobre o evento..."
                       rows={3}
-                      className="bg-white"
+                      className={cn("bg-white", colorAccents.inputFocus)}
                     />
                   </div>
 
@@ -541,7 +605,7 @@ export const TeacherEventDetailsDialog = ({
 
         {/* Rodapé fixo com botões de ação - Apenas em modo edição */}
         {isEditMode && (
-          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent p-4 border-t shadow-2xl z-50 flex gap-3">
+          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/95 to-transparent p-4 border-t shadow-2xl backdrop-blur-sm z-[70] flex gap-3">
             <Button
               onClick={() => setIsEditMode(false)}
               variant="outline"
@@ -556,8 +620,9 @@ export const TeacherEventDetailsDialog = ({
               onClick={handleSaveChanges}
               size="lg"
               className={cn(
-                "flex-1 h-12 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105",
-                "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                "flex-1 h-12 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 text-white",
+                colorAccents.buttonBg,
+                colorAccents.buttonHover
               )}
               disabled={isSaving}
             >
