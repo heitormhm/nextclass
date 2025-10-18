@@ -50,6 +50,42 @@ export type Database = {
         }
         Relationships: []
       }
+      class_enrollments: {
+        Row: {
+          class_id: string
+          enrolled_at: string | null
+          id: string
+          student_id: string
+        }
+        Insert: {
+          class_id: string
+          enrolled_at?: string | null
+          id?: string
+          student_id: string
+        }
+        Update: {
+          class_id?: string
+          enrolled_at?: string | null
+          id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_enrollments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_events: {
         Row: {
           category: Database["public"]["Enums"]["event_category"] | null
@@ -352,6 +388,73 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grades: {
+        Row: {
+          assessment_date: string
+          assessment_type: string
+          class_id: string
+          created_at: string | null
+          description: string | null
+          grade: number
+          id: string
+          max_grade: number
+          student_id: string
+          subject: string
+          teacher_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          assessment_date?: string
+          assessment_type: string
+          class_id: string
+          created_at?: string | null
+          description?: string | null
+          grade: number
+          id?: string
+          max_grade?: number
+          student_id: string
+          subject: string
+          teacher_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          assessment_date?: string
+          assessment_type?: string
+          class_id?: string
+          created_at?: string | null
+          description?: string | null
+          grade?: number
+          id?: string
+          max_grade?: number
+          student_id?: string
+          subject?: string
+          teacher_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grades_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grades_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grades_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -771,6 +874,7 @@ export type Database = {
           lecture_id: string | null
           max_score: number
           percentage: number | null
+          quiz_source: string | null
           score: number
           topic: string
           user_id: string
@@ -781,6 +885,7 @@ export type Database = {
           lecture_id?: string | null
           max_score: number
           percentage?: number | null
+          quiz_source?: string | null
           score: number
           topic: string
           user_id: string
@@ -791,6 +896,7 @@ export type Database = {
           lecture_id?: string | null
           max_score?: number
           percentage?: number | null
+          quiz_source?: string | null
           score?: number
           topic?: string
           user_id?: string
@@ -837,6 +943,39 @@ export type Database = {
           is_active?: boolean
           priority?: string
           title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      security_logs: {
+        Row: {
+          actual_role: string
+          attempted_role: string
+          attempted_route: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_role: string
+          attempted_role: string
+          attempted_route: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_role?: string
+          attempted_role?: string
+          attempted_route?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []

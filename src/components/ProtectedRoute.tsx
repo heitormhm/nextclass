@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -28,13 +29,27 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }
 
   // If a specific role is required, check if user has the correct role
   if (role && userRole !== role) {
-    // Log unauthorized access attempt
+    // Log unauthorized access attempt to console
     console.warn('[SECURITY] Unauthorized access attempt:', {
       attemptedRoute: window.location.pathname,
       attemptedRole: role,
       actualRole: userRole,
       userId: user?.id,
       timestamp: new Date().toISOString()
+    });
+
+    // Log to database for audit trail (fire and forget)
+    supabase.from('security_logs').insert({
+      user_id: user.id,
+      attempted_route: window.location.pathname,
+      attempted_role: role,
+      actual_role: userRole,
+      user_agent: navigator.userAgent,
+      ip_address: null // IP is not accessible from client-side
+    }).then(({ error }) => {
+      if (error) {
+        console.error('[SECURITY] Failed to log security event:', error);
+      }
     });
 
     // Show user-friendly error toast
