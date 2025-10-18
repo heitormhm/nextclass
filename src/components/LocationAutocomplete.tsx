@@ -132,7 +132,7 @@ export function LocationAutocomplete({
       )}
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[300px] overflow-y-auto">
+        <div className="absolute z-[1100] w-full mt-1 bg-background border rounded-md shadow-lg max-h-[300px] overflow-y-auto">
           {isLoading ? (
             <div className="p-3 text-sm text-muted-foreground">
               Buscando locais...

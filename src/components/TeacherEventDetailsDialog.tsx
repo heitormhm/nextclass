@@ -17,6 +17,7 @@ import { Calendar, Clock, MapPin, User, BookOpen, Users, Edit2, Save, X } from '
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { LocationAutocomplete } from '@/components/LocationAutocomplete';
 
 interface CalendarEvent {
   id: string;
@@ -556,11 +557,10 @@ export const TeacherEventDetailsDialog = ({
                       <MapPin className="h-4 w-4" />
                       📍 Local
                     </Label>
-                    <Input
+                    <LocationAutocomplete
                       value={editedLocation}
-                      onChange={(e) => setEditedLocation(e.target.value)}
-                      placeholder="Ex: Sala 201 ou Link da reunião"
-                      className={cn("bg-white", colorAccents.inputFocus)}
+                      onChange={(name) => setEditedLocation(name)}
+                      placeholder="Digite o local do evento"
                     />
                   </div>
 
