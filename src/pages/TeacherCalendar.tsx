@@ -666,7 +666,7 @@ const TeacherCalendar = () => {
                               setShowEventDetailsDialog(true);
                             }}
                             className={cn(
-                              "group rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer min-w-[320px]",
+                              "group rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer w-full",
                               gradientClasses.bg,
                               gradientClasses.hover,
                               gradientClasses.border,
