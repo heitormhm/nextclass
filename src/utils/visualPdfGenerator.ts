@@ -102,22 +102,57 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     const contentWidth = pageWidth - (2 * margin);
     let currentY = margin;
 
-    // CABEÇALHO PROFISSIONAL
-    pdf.setFontSize(24);
+    // CABEÇALHO COM IDENTIDADE NEXTCLASS
+    const logoY = currentY;
+    
+    // Logo NextClass - círculo rosa
+    pdf.setFillColor(255, 70, 130); // Rosa #FF4682
+    pdf.circle(pageWidth / 2 - 15, logoY, 3, 'F');
+    pdf.setFillColor(255, 113, 160); // Rosa claro #FF71A0
+    pdf.circle(pageWidth / 2 - 13, logoY - 1, 2.5, 'F');
+    
+    // Texto "NEXTCLASS"
+    pdf.setFontSize(16);
     pdf.setFont('DejaVuSans', 'bold');
-    pdf.setTextColor(30, 30, 30);
-    pdf.text(options.title, pageWidth / 2, currentY, { align: 'center' });
+    pdf.setTextColor(63, 45, 175); // Roxo #3F2DAF
+    pdf.text('NEXTCLASS', pageWidth / 2 - 8, logoY + 1);
+    
     currentY += 10;
-
-    // Linha decorativa azul
-    pdf.setLineWidth(0.8);
-    pdf.setDrawColor(59, 130, 246);
-    pdf.line(margin, currentY, pageWidth - margin, currentY);
+    
+    // Título principal
+    pdf.setFontSize(22);
+    pdf.setFont('DejaVuSans', 'bold');
+    pdf.setTextColor(63, 45, 175); // Roxo escuro
+    pdf.text(options.title, pageWidth / 2, currentY, { align: 'center' });
     currentY += 8;
 
-    pdf.setFontSize(10);
+    // Linha decorativa com gradiente rosa→roxo
+    const lineSegments = 20;
+    const lineWidth = pageWidth - (2 * margin);
+    const segmentWidth = lineWidth / lineSegments;
+    
+    for (let i = 0; i < lineSegments; i++) {
+      const ratio = i / lineSegments;
+      const r = Math.round(255 - (255 - 63) * ratio);
+      const g = Math.round(70 - (70 - 45) * ratio);
+      const b = Math.round(130 + (175 - 130) * ratio);
+      
+      pdf.setDrawColor(r, g, b);
+      pdf.setLineWidth(1.5);
+      pdf.line(
+        margin + (i * segmentWidth),
+        currentY,
+        margin + ((i + 1) * segmentWidth),
+        currentY
+      );
+    }
+    
+    currentY += 6;
+
+    // Subtítulo com data em rosa
+    pdf.setFontSize(9);
     pdf.setFont('DejaVuSans', 'normal');
-    pdf.setTextColor(100, 100, 100);
+    pdf.setTextColor(255, 70, 130); // Rosa
     const date = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',
@@ -191,21 +226,38 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       }
     }
 
-    // RODAPÉ EM TODAS AS PÁGINAS
+    // RODAPÉ COM IDENTIDADE NEXTCLASS
     const totalPages = (pdf as any).internal.pages.length - 1;
     
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
       
-      // Linha decorativa no rodapé
-      pdf.setLineWidth(0.3);
-      pdf.setDrawColor(220, 220, 220);
-      pdf.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
+      // Linha decorativa com gradiente rosa→roxo
+      const footerLineY = pageHeight - 18;
+      const lineSegments = 20;
+      const lineWidth = pageWidth - (2 * margin);
+      const segmentWidth = lineWidth / lineSegments;
       
-      // Número da página
+      for (let j = 0; j < lineSegments; j++) {
+        const ratio = j / lineSegments;
+        const r = Math.round(255 - (255 - 63) * ratio);
+        const g = Math.round(70 - (70 - 45) * ratio);
+        const b = Math.round(130 + (175 - 130) * ratio);
+        
+        pdf.setDrawColor(r, g, b);
+        pdf.setLineWidth(0.8);
+        pdf.line(
+          margin + (j * segmentWidth),
+          footerLineY,
+          margin + ((j + 1) * segmentWidth),
+          footerLineY
+        );
+      }
+      
+      // Número da página (centro, roxo)
       pdf.setFontSize(9);
-      pdf.setFont('DejaVuSans', 'normal');
-      pdf.setTextColor(140, 140, 140);
+      pdf.setFont('DejaVuSans', 'bold');
+      pdf.setTextColor(63, 45, 175); // Roxo
       pdf.text(
         `Pagina ${i} de ${totalPages}`,
         pageWidth / 2,
@@ -213,13 +265,16 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         { align: 'center' }
       );
       
-      // Nome do documento (menor, no canto)
+      // Nome do documento (esquerda, rosa)
       pdf.setFontSize(7);
-      pdf.text(
-        options.title.substring(0, 40) + (options.title.length > 40 ? '...' : ''),
-        margin,
-        pageHeight - 10
-      );
+      pdf.setFont('DejaVuSans', 'normal');
+      pdf.setTextColor(255, 70, 130); // Rosa
+      const truncatedTitle = options.title.substring(0, 35) + (options.title.length > 35 ? '...' : '');
+      pdf.text(truncatedTitle, margin, pageHeight - 10);
+      
+      // "NextClass AI" (direita, roxo claro)
+      pdf.setTextColor(145, 127, 251); // Roxo claro
+      pdf.text('NextClass AI', pageWidth - margin, pageHeight - 10, { align: 'right' });
     }
 
     // Download
@@ -452,36 +507,87 @@ const addTextBlockToPDF = (
 
   switch (bloco.tipo) {
     case 'h2':
-      pdf.setFontSize(18);
+      pdf.setFontSize(16);
       pdf.setFont('DejaVuSans', 'bold');
+      pdf.setTextColor(63, 45, 175); // Roxo escuro
       const h2Lines = pdf.splitTextToSize(bloco.texto || '', contentWidth);
       pdf.text(h2Lines, margin, currentY);
-      currentY += h2Lines.length * 8 + 6;
+      
+      const h2Height = h2Lines.length * 7;
+      currentY += h2Height;
+      
+      // Linha rosa decorativa
+      pdf.setDrawColor(255, 70, 130); // Rosa
+      pdf.setLineWidth(0.8);
+      pdf.line(margin, currentY, margin + 60, currentY);
+      currentY += 6;
       break;
 
     case 'h3':
-      pdf.setFontSize(14);
+      pdf.setFontSize(13);
       pdf.setFont('DejaVuSans', 'bold');
+      pdf.setTextColor(145, 127, 251); // Roxo claro
       const h3Lines = pdf.splitTextToSize(bloco.texto || '', contentWidth);
       pdf.text(h3Lines, margin, currentY);
-      currentY += h3Lines.length * 6 + 4;
+      
+      const h3Height = h3Lines.length * 6;
+      currentY += h3Height;
+      
+      // Linha roxa decorativa
+      pdf.setDrawColor(145, 127, 251); // Roxo claro
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, currentY, margin + 40, currentY);
+      currentY += 5;
       break;
 
     case 'h4':
-      pdf.setFontSize(12);
+      pdf.setFontSize(11);
       pdf.setFont('DejaVuSans', 'bold');
+      pdf.setTextColor(255, 113, 160); // Rosa claro
       const h4Lines = pdf.splitTextToSize(bloco.texto || '', contentWidth);
       pdf.text(h4Lines, margin, currentY);
-      currentY += h4Lines.length * 5 + 3;
+      currentY += h4Lines.length * 5 + 4;
       break;
 
     case 'paragrafo':
       pdf.setFontSize(10);
-      pdf.setFont('DejaVuSans', 'normal');
-      const cleanText = bloco.texto?.replace(/<[^>]*>/g, '') || '';
-      const paraLines = pdf.splitTextToSize(cleanText, contentWidth);
-      pdf.text(paraLines, margin, currentY);
-      currentY += paraLines.length * 5 + 4;
+      pdf.setTextColor(40, 40, 40);
+      
+      let cleanText = bloco.texto?.replace(/<[^>]*>/g, '') || '';
+      
+      // Detectar palavras-chave em **negrito** ou MAIÚSCULAS
+      const keywordPattern = /\*\*(.*?)\*\*/g;
+      const segments: Array<{text: string, bold: boolean}> = [];
+      let lastIndex = 0;
+      
+      cleanText.replace(keywordPattern, (match, p1, offset) => {
+        if (offset > lastIndex) {
+          segments.push({ text: cleanText.substring(lastIndex, offset), bold: false });
+        }
+        segments.push({ text: p1, bold: true });
+        lastIndex = offset + match.length;
+        return match;
+      });
+      
+      if (lastIndex < cleanText.length) {
+        segments.push({ text: cleanText.substring(lastIndex), bold: false });
+      }
+      
+      // Se não há segmentos, renderizar texto normal
+      if (segments.length === 0) {
+        segments.push({ text: cleanText, bold: false });
+      }
+      
+      // Renderizar alternando estilos
+      let lineY = currentY;
+      segments.forEach(seg => {
+        const lines = pdf.splitTextToSize(seg.text, contentWidth);
+        pdf.setFont('DejaVuSans', seg.bold ? 'bold' : 'normal');
+        pdf.text(lines, margin, lineY);
+        lineY += lines.length * 5;
+      });
+      
+      currentY = lineY + 4;
       break;
 
     case 'referencias':
@@ -491,36 +597,62 @@ const addTextBlockToPDF = (
         currentY = margin;
       }
       
-      pdf.setFontSize(16);
+      // Título com cor roxa
+      pdf.setFontSize(14);
       pdf.setFont('DejaVuSans', 'bold');
-      pdf.setTextColor(0, 0, 0);
+      pdf.setTextColor(63, 45, 175); // Roxo
       pdf.text('Referencias Bibliograficas', margin, currentY);
       currentY += 8;
       
-      // Linha separadora
-      pdf.setLineWidth(0.5);
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(margin, currentY, pageWidth - margin, currentY);
+      // Linha decorativa com gradiente
+      const refLineSegments = 15;
+      const refLineWidth = contentWidth * 0.5;
+      const refSegmentWidth = refLineWidth / refLineSegments;
+      
+      for (let i = 0; i < refLineSegments; i++) {
+        const ratio = i / refLineSegments;
+        const r = Math.round(255 - (255 - 63) * ratio);
+        const g = Math.round(70 - (70 - 45) * ratio);
+        const b = Math.round(130 + (175 - 130) * ratio);
+        
+        pdf.setDrawColor(r, g, b);
+        pdf.setLineWidth(0.6);
+        pdf.line(
+          margin + (i * refSegmentWidth),
+          currentY,
+          margin + ((i + 1) * refSegmentWidth),
+          currentY
+        );
+      }
+      
       currentY += 6;
       
+      // Lista de referências
       pdf.setFontSize(9);
       pdf.setFont('DejaVuSans', 'normal');
       pdf.setTextColor(60, 60, 60);
       
       bloco.itens?.forEach((ref: string, index: number) => {
-        // Verificar quebra de página para cada referência
         const estimatedHeight = Math.ceil(ref.length / 80) * 4 + 3;
         if (currentY + estimatedHeight > pageHeight - margin - 15) {
           pdf.addPage();
           currentY = margin;
         }
         
-        const refLines = pdf.splitTextToSize(`[${index + 1}] ${ref}`, contentWidth - 8);
-        pdf.text(refLines, margin + 8, currentY);
+        // Número da referência em rosa
+        pdf.setFont('DejaVuSans', 'bold');
+        pdf.setTextColor(255, 70, 130); // Rosa
+        pdf.text(`[${index + 1}]`, margin, currentY);
+        
+        // Texto da referência
+        pdf.setFont('DejaVuSans', 'normal');
+        pdf.setTextColor(60, 60, 60);
+        const refLines = pdf.splitTextToSize(ref, contentWidth - 12);
+        pdf.text(refLines, margin + 12, currentY);
         currentY += refLines.length * 4 + 3;
       });
       
-      currentY += 5; // Espaço extra após referências
+      currentY += 5;
       break;
   }
 
