@@ -617,11 +617,15 @@ const TeacherAnnotationPage = () => {
           duration: 8000
         });
       }
-    } catch (error) {
-      console.error('Erro ao exportar PDF:', error);
-      toast.error('Erro ao exportar PDF', {
-        description: (error as Error).message
-      });
+    } catch (error: any) {
+      console.error('❌ [TeacherAnnotation] Erro ao gerar PDF:', error);
+      
+      toast.error(
+        '❌ Erro ao Gerar PDF Visual',
+        {
+          description: error?.message || 'Erro desconhecido. Tente novamente.'
+        }
+      );
     }
   };
 
