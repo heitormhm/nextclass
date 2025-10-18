@@ -1189,13 +1189,36 @@ const cleanFooters = (content: string): string => {
   return content.replace(/Gerado\s+por\s+NextClass\s+AI\s+Página.*?\d{4}/gi, '');
 };
 
+// Preprocessar conteúdo matemático para melhor renderização no PDF
+function preprocessMathContent(content: string): string {
+  // Remover backticks de variáveis matemáticas simples (1-3 caracteres)
+  content = content.replace(/`([A-Za-z]{1,3}[₀-₉]*)`/g, '$1');
+  
+  // Converter subscripts Unicode para texto legível
+  content = content.replace(/([A-Za-z]+)([₀-₉]+)/g, '$1_$2');
+  
+  // Remover símbolos $ isolados que não são LaTeX válido
+  content = content.replace(/\$_([a-zA-Z]+)/g, '$1');
+  
+  // Converter subscritos LaTeX para texto simples
+  content = content.replace(/\$([^$]+)_\{([^}]+)\}\$/g, '$1_$2');
+  
+  // Limpar símbolos $ restantes que não são LaTeX completo
+  content = content.replace(/\$(?![^$]*\$)/g, '');
+  
+  return content;
+}
+
 // FASE 6: Função Principal com Auto-Diagnóstico
 export const generateReportPDF = async ({ content, title }: PDFOptions): Promise<PDFGenerationResult> => {
   console.log('🚀 Iniciando geração de PDF com 7 fases de validação...');
   console.log('🔍 FASE 1: Analisando conteúdo...');
   
+  // Preprocessar conteúdo matemático
+  const preprocessedContent = preprocessMathContent(content);
+  
   // Clean footers before processing
-  const cleanedContent = cleanFooters(content);
+  const cleanedContent = cleanFooters(preprocessedContent);
   const contentAnalysis = analyzeContent(cleanedContent);
   
   console.log('📊 Análise do conteúdo:', contentAnalysis);
