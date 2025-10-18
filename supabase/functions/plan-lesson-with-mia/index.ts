@@ -53,7 +53,7 @@ serve(async (req) => {
     const updateProgress = async (step: string) => {
       if (!lessonPlanId) return;
       
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js');
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseKey);
@@ -248,7 +248,7 @@ Gere um plano de aula completo seguindo EXATAMENTE a estrutura JSON especificada
       
       // Update lesson plan status to failed
       if (lessonPlanId) {
-        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js');
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseKey);
@@ -364,7 +364,7 @@ ${jsonPlan.referenciasBibliograficas.map((ref: any) =>
 
     // Update lesson plan in database if lessonPlanId is provided
     if (lessonPlanId) {
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js');
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseKey);
@@ -407,7 +407,7 @@ ${jsonPlan.referenciasBibliograficas.map((ref: any) =>
     // Update lesson plan status to failed if we have an ID
     if (lessonPlanId) {
       try {
-        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js');
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseKey);
