@@ -56,27 +56,32 @@ export const EventDetailsDialog = ({ event, open, onOpenChange }: EventDetailsDi
     
     setIsLoading(true);
     try {
-      // Buscar dados da turma e professor
-      const { data: turmaData } = await supabase
+      console.log('🔍 Fetching event details for classId:', event.classId);
+      
+      // BUSCA OTIMIZADA COM JOIN - Buscar turma + professor em uma única query
+      const { data: eventData, error } = await supabase
         .from('turmas')
-        .select('nome_turma, curso, periodo, teacher_id')
+        .select(`
+          nome_turma,
+          curso,
+          periodo,
+          teacher_id,
+          users!turmas_teacher_id_fkey (
+            full_name,
+            email
+          )
+        `)
         .eq('id', event.classId)
         .single();
 
-      let teacherName = 'Professor não identificado';
-      let teacherEmail = '';
-      if (turmaData?.teacher_id) {
-        const { data: teacherData } = await supabase
-          .from('users')
-          .select('full_name, email')
-          .eq('id', turmaData.teacher_id)
-          .single();
-        
-        if (teacherData) {
-          teacherName = teacherData.full_name;
-          teacherEmail = teacherData.email;
-        }
+      if (error) {
+        console.error('❌ Error fetching turma data:', error);
       }
+
+      // Extrair dados do professor com segurança
+      const teacherData = eventData?.users as any;
+      const teacherName = teacherData?.full_name || 'Professor não identificado';
+      const teacherEmail = teacherData?.email || '';
 
       // Buscar nome da disciplina
       let disciplinaName = 'Disciplina não especificada';
@@ -92,16 +97,24 @@ export const EventDetailsDialog = ({ event, open, onOpenChange }: EventDetailsDi
         }
       }
 
+      console.log('✅ Event details fetched successfully:', {
+        teacherName,
+        teacherEmail,
+        disciplinaName,
+        className: eventData?.nome_turma,
+        teacherId: eventData?.teacher_id
+      });
+
       setDetails({
         teacherName,
         teacherEmail,
         disciplinaName,
-        className: turmaData?.nome_turma || '',
-        curso: turmaData?.curso || '',
-        periodo: turmaData?.periodo || '',
+        className: eventData?.nome_turma || '',
+        curso: eventData?.curso || '',
+        periodo: eventData?.periodo || '',
       });
     } catch (error) {
-      console.error('Error fetching event details:', error);
+      console.error('❌ Critical error fetching event details:', error);
     } finally {
       setIsLoading(false);
     }
@@ -146,19 +159,19 @@ export const EventDetailsDialog = ({ event, open, onOpenChange }: EventDetailsDi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto custom-scrollbar animate-in fade-in-0 zoom-in-95 duration-300">
-        {/* Custom Close Button */}
+        {/* Custom Close Button - POSICIONADO ACIMA DO GRADIENTE */}
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-4 top-4 z-50 h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-lg transition-all duration-200 hover:scale-110"
+          className="absolute right-3 top-3 z-[60] h-10 w-10 rounded-full bg-white hover:bg-gray-100 shadow-2xl transition-all duration-200 hover:scale-110 border-2 border-gray-200"
           onClick={() => onOpenChange(false)}
         >
-          <X className="h-4 w-4 text-gray-700" />
+          <X className="h-5 w-5 text-gray-800 font-bold" />
         </Button>
 
         <DialogHeader>
           <div className={cn(
-            "rounded-lg p-4 bg-gradient-to-br mb-4",
+            "rounded-lg p-4 pr-16 bg-gradient-to-br mb-4",
             colorClasses.bg
           )}>
             <DialogTitle className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
@@ -210,10 +223,23 @@ export const EventDetailsDialog = ({ event, open, onOpenChange }: EventDetailsDi
           ) : details ? (
             <>
               {/* Professor */}
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
-                <div className="flex items-center gap-2 text-purple-700 mb-2">
+              <div className={cn(
+                "rounded-lg p-4 border",
+                details.teacherName === 'Professor não identificado'
+                  ? "bg-gradient-to-br from-red-50 to-orange-50 border-red-200"
+                  : "bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200"
+              )}>
+                <div className={cn(
+                  "flex items-center gap-2 mb-2",
+                  details.teacherName === 'Professor não identificado' ? 'text-red-700' : 'text-purple-700'
+                )}>
                   <User className="h-5 w-5" />
                   <span className="font-semibold text-sm">Professor(a)</span>
+                  {details.teacherName === 'Professor não identificado' && (
+                    <Badge variant="destructive" className="ml-2 text-xs">
+                      ⚠️ Não identificado
+                    </Badge>
+                  )}
                 </div>
                 <div className="ml-7">
                   <p className="text-base font-medium text-gray-900">

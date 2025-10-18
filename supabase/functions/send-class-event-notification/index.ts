@@ -58,10 +58,19 @@ serve(async (req) => {
       notifyEmail 
     });
 
-    // Buscar turma para informações
+    // Buscar turma + professor com JOIN otimizado
     const { data: turma, error: turmaError } = await supabase
       .from('turmas')
-      .select('nome_turma, curso, periodo')
+      .select(`
+        nome_turma, 
+        curso, 
+        periodo,
+        teacher_id,
+        users!turmas_teacher_id_fkey (
+          full_name,
+          email
+        )
+      `)
       .eq('id', classId)
       .single();
 
@@ -69,6 +78,23 @@ serve(async (req) => {
       console.error('[send-class-event-notification] Error fetching turma:', turmaError);
       throw turmaError;
     }
+
+    // Validação crítica: verificar se teacher_id existe
+    if (!turma.teacher_id) {
+      console.error('❌ CRÍTICO: Turma sem teacher_id vinculado!', {
+        classId,
+        nome_turma: turma.nome_turma
+      });
+    }
+
+    const teacherData = turma.users as any;
+    const teacherFullName = teacherData?.full_name || teacherName || 'Professor(a)';
+    const teacherEmail = teacherData?.email || '';
+    console.log('✅ Teacher info loaded:', {
+      teacherId: turma.teacher_id,
+      teacherName: teacherFullName,
+      teacherEmail
+    });
 
     // Buscar alunos matriculados na turma
     const { data: enrollments, error: enrollmentsError } = await supabase
@@ -110,7 +136,7 @@ serve(async (req) => {
         const prompt = `Gere uma mensagem de notificação concisa e profissional para alunos sobre um novo evento no calendário acadêmico.
 
 Informações do evento:
-- Professor: ${teacherName}
+- Professor: ${teacherFullName}
 - Disciplina: ${subjectName || 'Não especificada'}
 - Título do evento: ${title}
 - Tipo: ${eventType === 'presencial' ? 'Presencial' : 'Online'}
@@ -160,7 +186,7 @@ A mensagem deve ter no máximo 150 caracteres, ser clara e incluir as informaç�
         month: '2-digit'
       });
       
-      aiGeneratedMessage = `${category} de ${subjectName || title} com ${teacherName} em ${formattedDate} às ${startTime}${eventType === 'presencial' && location ? ` no ${location}` : ' (online)'}.`;
+      aiGeneratedMessage = `${category} de ${subjectName || title} com ${teacherFullName} em ${formattedDate} às ${startTime}${eventType === 'presencial' && location ? ` no ${location}` : ' (online)'}.`;
     }
 
     let platformNotificationsSent = 0;
@@ -237,7 +263,7 @@ A mensagem deve ter no máximo 150 caracteres, ser clara e incluir as informaç�
                           <span class="detail-label">Título:</span> ${title}
                         </div>
                         <div class="detail-row">
-                          <span class="detail-label">Professor:</span> ${teacherName}
+                          <span class="detail-label">Professor:</span> ${teacherFullName}
                         </div>
                         ${subjectName ? `
                         <div class="detail-row">
