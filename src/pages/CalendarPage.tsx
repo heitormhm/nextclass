@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WeekCalendarView } from '@/components/WeekCalendarView';
+import { useLocation } from 'react-router-dom';
 
 interface CalendarEvent {
   id: string;
@@ -42,12 +43,27 @@ const CalendarPage = () => {
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [selectedEventForDetails, setSelectedEventForDetails] = useState<CalendarEvent | null>(null);
   const [showEventDetails, setShowEventDetails] = useState(false);
+  const location = useLocation();
 
   // Fetch events from database
   useEffect(() => {
     fetchEvents();
     fetchUserRole();
   }, [currentDate]);
+
+  // Open event details from notification
+  useEffect(() => {
+    const locationState = location.state as { openEventId?: string } | null;
+    if (locationState?.openEventId && events.length > 0) {
+      const eventToOpen = events.find(e => e.id === locationState.openEventId);
+      if (eventToOpen && !eventToOpen.isPersonalEvent) {
+        setSelectedEventForDetails(eventToOpen);
+        setShowEventDetails(true);
+        // Clear state after opening
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, events]);
 
   const fetchUserRole = async () => {
     const { data: { user } } = await supabase.auth.getUser();

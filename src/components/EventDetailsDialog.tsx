@@ -4,6 +4,7 @@ import { ptBR } from 'date-fns/locale';
 import { Clock, MapPin, User, BookOpen, GraduationCap, FileText, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ interface EventDetailsDialogProps {
 
 interface EventDetails {
   teacherName: string;
+  teacherEmail: string;
   disciplinaName: string;
   className: string;
   curso: string;
@@ -62,15 +64,17 @@ export const EventDetailsDialog = ({ event, open, onOpenChange }: EventDetailsDi
         .single();
 
       let teacherName = 'Professor não identificado';
+      let teacherEmail = '';
       if (turmaData?.teacher_id) {
         const { data: teacherData } = await supabase
           .from('users')
-          .select('full_name')
+          .select('full_name, email')
           .eq('id', turmaData.teacher_id)
           .single();
         
         if (teacherData) {
           teacherName = teacherData.full_name;
+          teacherEmail = teacherData.email;
         }
       }
 
@@ -90,6 +94,7 @@ export const EventDetailsDialog = ({ event, open, onOpenChange }: EventDetailsDi
 
       setDetails({
         teacherName,
+        teacherEmail,
         disciplinaName,
         className: turmaData?.nome_turma || '',
         curso: turmaData?.curso || '',
@@ -140,7 +145,17 @@ export const EventDetailsDialog = ({ event, open, onOpenChange }: EventDetailsDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto custom-scrollbar animate-in fade-in-0 zoom-in-95 duration-300">
+        {/* Custom Close Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-4 top-4 z-50 h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-lg transition-all duration-200 hover:scale-110"
+          onClick={() => onOpenChange(false)}
+        >
+          <X className="h-4 w-4 text-gray-700" />
+        </Button>
+
         <DialogHeader>
           <div className={cn(
             "rounded-lg p-4 bg-gradient-to-br mb-4",
@@ -198,11 +213,18 @@ export const EventDetailsDialog = ({ event, open, onOpenChange }: EventDetailsDi
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
                 <div className="flex items-center gap-2 text-purple-700 mb-2">
                   <User className="h-5 w-5" />
-                  <span className="font-semibold text-sm">Professor</span>
+                  <span className="font-semibold text-sm">Professor(a)</span>
                 </div>
-                <p className="ml-7 text-base font-medium text-gray-900">
-                  {details.teacherName}
-                </p>
+                <div className="ml-7">
+                  <p className="text-base font-medium text-gray-900">
+                    {details.teacherName}
+                  </p>
+                  {details.teacherEmail && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      {details.teacherEmail}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Disciplina */}

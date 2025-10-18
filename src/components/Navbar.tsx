@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useUnreadCalendarEvents } from "@/hooks/useUnreadCalendarEvents";
 
 const studentNavigationItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -42,6 +43,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { signOut, firstName, user } = useAuth();
   const { toast } = useToast();
+  const hasUnreadEvents = useUnreadCalendarEvents();
   
   // Generate user initials from firstName
   const userInitials = firstName ? firstName[0].toUpperCase() : 'U';
@@ -91,19 +93,29 @@ const Navbar = () => {
     if (mobile) {
       return (
         <div className="flex flex-col gap-2">
-          {navigationItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className="flex items-center gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-lg p-3 rounded-lg hover:bg-accent min-h-[48px]"
-              onClick={() => {
-                setIsOpen(false);
-              }}
-            >
-              <item.icon className="h-6 w-6 shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          ))}
+          {navigationItems.map((item) => {
+            const isCalendar = item.href === '/calendar' || item.href === '/teachercalendar';
+            const showBadge = isCalendar && hasUnreadEvents;
+
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className="flex items-center gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-lg p-3 rounded-lg hover:bg-accent min-h-[48px] relative"
+                onClick={() => {
+                  setIsOpen(false);
+                }}
+              >
+                <div className="relative">
+                  <item.icon className="h-6 w-6 shrink-0" />
+                  {showBadge && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  )}
+                </div>
+                <span className="truncate">{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
       );
     }
@@ -128,15 +140,21 @@ const Navbar = () => {
               );
             }
 
+            const isCalendar = item.href === '/calendar' || item.href === '/teachercalendar';
+            const showBadge = isCalendar && hasUnreadEvents;
+
             return (
               <Tooltip key={item.href}>
                 <TooltipTrigger asChild>
                   <Link
                     to={item.href}
-                    className="flex items-center text-foreground-muted hover:text-primary transition-colors"
+                    className="flex items-center text-foreground-muted hover:text-primary transition-colors relative"
                     aria-label={item.label}
                   >
                     <item.icon className="h-4 w-4" />
+                    {showBadge && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    )}
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">

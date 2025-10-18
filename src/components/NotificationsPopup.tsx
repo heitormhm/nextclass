@@ -83,7 +83,7 @@ const NotificationsPopup = ({ mobile = false }: NotificationsPopupProps) => {
 
   const handleNotificationClick = (notification: Notification) => {
     if (notification.event_id) {
-      navigate('/calendar');
+      navigate('/calendar', { state: { openEventId: notification.event_id } });
     }
     markAsRead(notification.id);
   };
