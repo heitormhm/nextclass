@@ -403,8 +403,8 @@ const TeacherCalendar = () => {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="border-0 shadow-sm bg-white/75 backdrop-blur-xl border-blue-100/30">
-                  <CardContent className="p-6">
+                <Card className="border-0 shadow-sm bg-white/75 backdrop-blur-xl border-blue-100/30 flex flex-col max-h-[calc(100vh-12rem)]">
+                  <CardContent className="p-6 flex-1 overflow-y-auto flex flex-col">
                     {/* Navigation bar */}
                     <div className="flex items-center justify-between mb-6">
                       <Button
@@ -462,79 +462,80 @@ const TeacherCalendar = () => {
                       </div>
                     </div>
 
-                    {viewMode === 'month' ? (
-                      <>
-                        <div className="grid grid-cols-7 gap-2">
-                          {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                            <div key={day} className="p-2 text-center text-sm font-medium text-foreground-muted">
-                              {day}
-                            </div>
-                          ))}
-                          
-                          {calendarDays.map((date, index) => {
-                            const dayEvents = getEventsForDate(date);
-                            const isCurrentMonth = isSameMonth(date, currentDate);
-                            const isDayToday = isToday(date);
-                            const isSelected = isSameDay(date, selectedDate);
+                    <div className="flex-1 overflow-y-auto">
+                      {viewMode === 'month' ? (
+                        <>
+                          <div className="grid grid-cols-7 gap-2">
+                            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                              <div key={day} className="p-2 text-center text-sm font-medium text-foreground-muted">
+                                {day}
+                              </div>
+                            ))}
+                            {calendarDays.map((date, index) => {
+                              const dayEvents = getEventsForDate(date);
+                              const isCurrentMonth = isSameMonth(date, currentDate);
+                              const isDayToday = isToday(date);
+                              const isSelected = isSameDay(date, selectedDate);
 
-                            return (
-                              <button
-                                key={index}
-                                onClick={() => handleDateClick(date)}
-                                className={cn(
-                                  "min-h-[80px] p-2 rounded-lg border transition-all relative",
-                                  "hover:shadow-md hover:scale-[1.02]",
-                                  isDayToday && "bg-gradient-to-b from-blue-50 to-purple-50 text-blue-600 font-bold ring-2 ring-blue-500",
-                                  isSelected && !isDayToday && "bg-blue-100 ring-2 ring-blue-400",
-                                  !isCurrentMonth && "opacity-40",
-                                  !isDayToday && !isSelected && "bg-white hover:bg-gray-50"
-                                )}
-                              >
-                                <div className="text-sm mb-1">{format(date, 'd')}</div>
-                                <div className="space-y-1">
-                                  {dayEvents.slice(0, 2).map(event => (
-                                    <div
-                                      key={event.id}
-                                      className={cn(
-                                        "text-xs px-1 py-0.5 rounded truncate",
-                                        getEventColorClasses(event.color).badge,
-                                        getEventColorClasses(event.color).text
-                                      )}
-                                      title={event.title}
-                                    >
-                                      {event.title}
-                                    </div>
-                                  ))}
-                                  {dayEvents.length > 2 && (
-                                    <div className="text-xs text-gray-500">
-                                      +{dayEvents.length - 2} mais
-                                    </div>
+                              return (
+                                <button
+                                  key={index}
+                                  onClick={() => handleDateClick(date)}
+                                  className={cn(
+                                    "min-h-[80px] p-2 rounded-lg border transition-all relative",
+                                    "hover:shadow-md hover:scale-[1.02]",
+                                    isDayToday && "bg-gradient-to-b from-blue-50 to-purple-50 text-blue-600 font-bold ring-2 ring-blue-500",
+                                    isSelected && !isDayToday && "bg-blue-100 ring-2 ring-blue-400",
+                                    !isCurrentMonth && "opacity-40",
+                                    !isDayToday && !isSelected && "bg-white hover:bg-gray-50"
                                   )}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </>
-                    ) : (
-              <WeekCalendarView 
-                events={events}
-                selectedDate={selectedDate}
-                onEventUpdate={handleEventUpdate}
-                onEventClick={(event) => {
-                  setSelectedEventForEdit(event);
-                  setIsEditMode(false);
-                  setShowEventDetailsDialog(true);
-                }}
-              />
-                    )}
+                                >
+                                  <div className="text-sm mb-1">{format(date, 'd')}</div>
+                                  <div className="space-y-1">
+                                    {dayEvents.slice(0, 2).map(event => (
+                                      <div
+                                        key={event.id}
+                                        className={cn(
+                                          "text-xs px-1 py-0.5 rounded truncate",
+                                          getEventColorClasses(event.color).badge,
+                                          getEventColorClasses(event.color).text
+                                        )}
+                                        title={event.title}
+                                      >
+                                        {event.title}
+                                      </div>
+                                    ))}
+                                    {dayEvents.length > 2 && (
+                                      <div className="text-xs text-gray-500">
+                                        +{dayEvents.length - 2} mais
+                                      </div>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        <WeekCalendarView 
+                          events={events}
+                          selectedDate={selectedDate}
+                          onEventUpdate={handleEventUpdate}
+                          onEventClick={(event) => {
+                            setSelectedEventForEdit(event);
+                            setIsEditMode(false);
+                            setShowEventDetailsDialog(true);
+                          }}
+                        />
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               )}
             </div>
 
             {/* Sidebar - 1 column */}
-            <div className="space-y-6">
+            <div className="space-y-6 flex flex-col max-h-[calc(100vh-12rem)]">
               {/* Quick action - PRIORIZADO */}
               <Card className="bg-white/75 backdrop-blur-xl border-blue-100/30 shadow-lg">
                 <CardContent className="pt-6">
