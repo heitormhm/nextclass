@@ -517,12 +517,16 @@ const TeacherCalendar = () => {
                         </div>
                       </>
                     ) : (
-                      <WeekCalendarView 
-                        events={events}
-                        selectedDate={selectedDate}
-                        onEventUpdate={handleEventUpdate}
-                        onEventClick={(event) => console.log('View event', event)}
-                      />
+              <WeekCalendarView 
+                events={events}
+                selectedDate={selectedDate}
+                onEventUpdate={handleEventUpdate}
+                onEventClick={(event) => {
+                  setSelectedEventForEdit(event);
+                  setIsEditMode(false);
+                  setShowEventDetailsDialog(true);
+                }}
+              />
                     )}
                   </CardContent>
                 </Card>
