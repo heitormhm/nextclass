@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
+import { generateVisualPDF } from '@/utils/visualPdfGenerator';
 import { generateReportPDF } from '@/utils/pdfGenerator';
 import { structuredContentToMarkdown } from '@/utils/structuredContentToMarkdown';
 
@@ -577,67 +578,47 @@ const TeacherAnnotationPage = () => {
     }
 
     try {
-      toast.info('Gerando PDF...', { duration: 2000 });
+      toast.info('📸 Capturando elementos visuais e gerando PDF...', { duration: 3000 });
       
-      // Converter JSON estruturado para Markdown
-      const markdownContent = structuredContentToMarkdown(structuredContent);
+      console.log('🎯 Iniciando geração visual de PDF...');
+      console.log('📄 Blocos a processar:', structuredContent.conteudo.length);
       
-      console.log('🎯 Iniciando geração de PDF do material didático...');
-      console.log('📄 Conteúdo convertido:', markdownContent.substring(0, 200) + '...');
-      console.log('📏 Tamanho do conteúdo:', markdownContent.length, 'caracteres');
-      
-      const result = await generateReportPDF({
-        content: markdownContent,
+      const result = await generateVisualPDF({
+        structuredData: structuredContent,
         title: title || structuredContent.titulo_geral || 'Material Didático',
         logoSvg: '',
       });
       
       if (result.success) {
-        let description = "O material didático foi exportado como PDF.";
-        
-        if (result.fixesApplied && result.fixesApplied.length > 0) {
-          description = "✅ PDF gerado com sucesso após correções automáticas!\n\n";
-          description += `🔧 Correções aplicadas:\n${result.fixesApplied.map(f => `• ${f}`).join('\n')}`;
-        }
+        let description = "✅ Material didático exportado com renderização visual completa!";
         
         if (result.stats) {
           description += `\n\n📊 Estatísticas:\n`;
-          description += `• Conteúdo: ${result.stats.content.h1Count + result.stats.content.h2Count + result.stats.content.h3Count} títulos, ${result.stats.content.paragraphCount} parágrafos\n`;
-          if (result.stats.render) {
-            description += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
-          }
-          description += `• PDF: ${result.stats.pdf.pageCount} páginas geradas`;
+          description += `• Elementos capturados como imagem: ${result.stats.imagesCaptured}\n`;
+          description += `• Elementos em texto nativo: ${result.stats.nativeTextBlocks}\n`;
+          description += `• Diagramas Mermaid: ${result.stats.mermaidDiagrams}\n`;
+          description += `• Gráficos: ${result.stats.charts}\n`;
+          description += `• Post-its: ${result.stats.postIts}\n`;
+          description += `• Páginas geradas: ${result.stats.totalPages}\n`;
+          description += `• Tempo de captura: ${(result.stats.captureTime / 1000).toFixed(1)}s`;
         }
         
         if (result.warnings && result.warnings.length > 0) {
           description += `\n\n⚠️ Avisos:\n${result.warnings.map(w => `• ${w}`).join('\n')}`;
         }
         
-        toast.success(
-          result.fixesApplied ? "✅ PDF Gerado (Auto-Corrigido)" : "✅ PDF Gerado com Sucesso",
-          { description, duration: result.fixesApplied ? 8000 : 5000 }
-        );
+        toast.success("✅ PDF Visual Gerado!", {
+          description,
+          duration: 6000
+        });
       } else {
-        let errorDescription = result.error || "Erro desconhecido";
-        
-        if (result.diagnostics && result.diagnostics.length > 0) {
-          errorDescription += `\n\n🔍 Problemas detectados:\n`;
-          errorDescription += result.diagnostics.map(d => `• ${d.issue}\n  Sugestão: ${d.suggestedFix}`).join('\n');
-        }
-        
-        if (result.stats?.render) {
-          errorDescription += `\n\n📊 Debug Info:\n`;
-          errorDescription += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
-          errorDescription += `• Páginas adicionadas: ${result.stats.render.pagesAdded}`;
-        }
-        
-        toast.error("❌ Erro ao Gerar PDF", {
-          description: errorDescription,
-          duration: 10000
+        toast.error("❌ Erro ao Gerar PDF Visual", {
+          description: result.error || "Erro desconhecido ao capturar elementos visuais",
+          duration: 8000
         });
       }
     } catch (error) {
-      console.error('Erro ao exportar PDF:', error);
+      console.error('Erro ao exportar PDF visual:', error);
       toast.error('Erro ao exportar PDF', {
         description: (error as Error).message
       });
