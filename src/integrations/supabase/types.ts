@@ -1115,6 +1115,7 @@ export type Database = {
           id: string
           nome_turma: string
           periodo: string
+          teacher_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1125,6 +1126,7 @@ export type Database = {
           id?: string
           nome_turma: string
           periodo: string
+          teacher_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1135,6 +1137,7 @@ export type Database = {
           id?: string
           nome_turma?: string
           periodo?: string
+          teacher_id?: string | null
           updated_at?: string
         }
         Relationships: []

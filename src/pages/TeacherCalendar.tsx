@@ -76,10 +76,11 @@ const TeacherCalendar = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Buscar turmas automáticas do sistema (criadas pelos alunos)
+      // Buscar apenas turmas do professor logado
       const { data: turmas, error } = await supabase
         .from('turmas')
         .select('*')
+        .eq('teacher_id', user.id)
         .order('periodo', { ascending: true });
 
       if (error) throw error;
