@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -133,6 +134,33 @@ const getColorAccents = (color: string = 'azul') => {
   };
   return accentMap[color] || accentMap['azul'];
 };
+
+// Custom DialogContent with flex layout for proper modal structure
+const FlexDialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <DialogPrimitive.Portal>
+    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]",
+        "flex flex-col",
+        "frost-white shadow-lg duration-200",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "sm:rounded-lg",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </DialogPrimitive.Content>
+  </DialogPrimitive.Portal>
+));
+FlexDialogContent.displayName = "FlexDialogContent";
 
 export const TeacherEventDetailsDialog = ({
   event,
@@ -317,10 +345,7 @@ export const TeacherEventDetailsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn(
-        "max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar",
-        isEditMode ? "pb-28" : "pb-6"
-      )}>
+      <FlexDialogContent className="max-w-3xl max-h-[90vh] p-0 relative">
         <Button
           variant="ghost"
           size="icon"
@@ -330,7 +355,9 @@ export const TeacherEventDetailsDialog = ({
           <X className="h-5 w-5 text-gray-800 font-bold" />
         </Button>
 
-        <div className={cn(
+        {/* Scrollable Content Wrapper */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pt-6 pb-4">
+          <div className={cn(
           "rounded-lg p-4 pr-14 bg-gradient-to-br mb-4 text-white",
           colorClasses
         )}>
@@ -602,10 +629,11 @@ export const TeacherEventDetailsDialog = ({
             )}
           </div>
         )}
+        </div> {/* Close scrollable wrapper */}
 
-        {/* Rodapé fixo com botões de ação - Apenas em modo edição */}
+        {/* Footer - Sticky at Bottom */}
         {isEditMode && (
-          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/95 to-transparent p-4 border-t shadow-2xl backdrop-blur-sm z-[70] flex gap-3">
+          <div className="flex-shrink-0 bg-gradient-to-t from-white via-white/95 to-transparent p-4 border-t shadow-2xl backdrop-blur-sm z-[70] flex gap-3">
             <Button
               onClick={() => setIsEditMode(false)}
               variant="outline"
@@ -640,7 +668,7 @@ export const TeacherEventDetailsDialog = ({
             </Button>
           </div>
         )}
-      </DialogContent>
+      </FlexDialogContent>
     </Dialog>
   );
 };
