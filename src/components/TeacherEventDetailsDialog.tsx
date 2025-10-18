@@ -317,7 +317,7 @@ export const TeacherEventDetailsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col pb-0 relative">
+        <DialogContent className="max-w-3xl max-h-[90vh] !flex !flex-col pb-0 relative">
         <Button
           variant="ghost"
           size="icon"
