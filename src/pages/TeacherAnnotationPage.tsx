@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
+import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 
 const TeacherAnnotationPage = () => {
   const navigate = useNavigate();
@@ -598,10 +599,18 @@ const TeacherAnnotationPage = () => {
   if (isLoadingAnnotation) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Carregando anotação...</p>
+        <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+          <BackgroundRippleEffect className="opacity-30" />
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+            <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+            <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+          </div>
+          <div className="relative z-10 flex items-center justify-center min-h-screen">
+            <div className="text-center bg-white/75 backdrop-blur-xl rounded-xl p-8 shadow-xl">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-purple-600" />
+              <p className="text-gray-700 font-medium">Carregando anotação...</p>
+            </div>
           </div>
         </div>
       </MainLayout>
@@ -610,9 +619,19 @@ const TeacherAnnotationPage = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+        {/* Animated Background with Ripple Effect */}
+        <BackgroundRippleEffect className="opacity-30" />
+        
+        {/* Gradient Blobs for Depth */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        </div>
+
         {/* Fixed Header - Teacher Theme */}
-        <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b shadow-sm">
+        <div className="relative z-20 sticky top-0 bg-white/90 backdrop-blur-xl border-b shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <Button
@@ -664,7 +683,7 @@ const TeacherAnnotationPage = () => {
         </div>
 
         {/* Main Content */}
-        <div className="container mx-auto px-4 py-6">
+        <div className="relative z-10 container mx-auto px-4 py-6">
           <div className="max-w-5xl mx-auto">
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-xl">
               <CardContent className="p-8">
