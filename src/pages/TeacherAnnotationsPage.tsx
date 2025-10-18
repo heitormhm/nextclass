@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 
 interface Annotation {
   id: string;
@@ -139,17 +140,29 @@ const TeacherAnnotationsPage = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Compact Header with Controls */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Minhas Anotações</h1>
-                <p className="text-sm text-muted-foreground">
-                  {annotations.length} {annotations.length === 1 ? 'anotação' : 'anotações'}
-                </p>
-              </div>
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+        {/* Animated Background with Ripple Effect */}
+        <BackgroundRippleEffect className="opacity-30" />
+        
+        {/* Gradient Blobs for Depth */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        </div>
+
+        {/* Main Content */}
+        <div className="relative z-10 container mx-auto px-4 py-8">
+          <div className="max-w-7xl mx-auto">
+            {/* Compact Header with Controls */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-4xl font-bold text-white uppercase mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">Minhas Anotações</h1>
+                  <p className="text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+                    {annotations.length} {annotations.length === 1 ? 'anotação' : 'anotações'}
+                  </p>
+                </div>
               
               {/* Controls: Sort + Search + Type Filter */}
               <div className="flex items-center gap-3">
@@ -232,7 +245,7 @@ const TeacherAnnotationsPage = () => {
               </Button>
               
               {showFilters && (
-                <Card className="mt-3 p-4 animate-in slide-in-from-top-2 duration-200">
+                <Card className="mt-3 p-4 animate-in slide-in-from-top-2 duration-200 bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium">Filtrar por Tags</p>
@@ -269,7 +282,7 @@ const TeacherAnnotationsPage = () => {
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <Card key={i} className="p-4">
+                <Card key={i} className="p-4 bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30">
                   <Skeleton className="h-6 w-3/4 mb-3" />
                   <Skeleton className="h-4 w-full mb-2" />
                   <Skeleton className="h-4 w-full mb-2" />
@@ -286,7 +299,7 @@ const TeacherAnnotationsPage = () => {
               {filteredAnnotations.map((annotation) => (
                 <Card 
                   key={annotation.id} 
-                  className="group p-3 hover:shadow-lg hover:border-primary/30 transition-all duration-200 cursor-pointer relative overflow-hidden"
+                  className="group p-3 hover:shadow-2xl hover:shadow-purple-500/20 hover:border-purple-300/50 transition-all duration-200 cursor-pointer relative overflow-hidden bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30"
                   onClick={() => navigate(`/teacher/annotation/${annotation.id}`)}
                 >
                   {/* Linha decorativa azul/roxa */}
@@ -357,31 +370,34 @@ const TeacherAnnotationsPage = () => {
             </div>
           ) : (
             <div className="text-center py-12">
-              <div className="text-muted-foreground mb-4">
-                <StickyNote className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg">Nenhuma anotação encontrada</p>
-                <p className="text-sm">
-                  {annotations.length === 0 
-                    ? 'Crie sua primeira anotação clicando no botão abaixo' 
-                    : 'Tente ajustar o termo de pesquisa ou os filtros'}
-                </p>
+              <div className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] rounded-xl p-8 max-w-md mx-auto">
+                <div className="text-white mb-4">
+                  <StickyNote className="h-12 w-12 mx-auto mb-4 opacity-90" />
+                  <p className="text-lg font-semibold">Nenhuma anotação encontrada</p>
+                  <p className="text-sm text-white/80">
+                    {annotations.length === 0 
+                      ? 'Crie sua primeira anotação clicando no botão abaixo' 
+                      : 'Tente ajustar o termo de pesquisa ou os filtros'}
+                  </p>
+                </div>
               </div>
             </div>
           )}
-        </div>
-
-        {/* Floating Action Button - Teacher Theme */}
-        <Button
-          onClick={() => navigate('/teacher/annotation/new')}
-          className="fixed bottom-8 right-8 px-6 py-6 rounded-2xl shadow-2xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 z-50 flex items-center gap-3"
-        >
-          <div className="bg-white/20 rounded-full p-2">
-            <Plus className="h-6 w-6 text-white" />
           </div>
-          <span className="text-white font-semibold text-base">
-            Criar Nova Anotação
-          </span>
-        </Button>
+
+          {/* Floating Action Button - Teacher Theme */}
+          <Button
+            onClick={() => navigate('/teacher/annotation/new')}
+            className="fixed bottom-8 right-8 px-6 py-6 rounded-2xl shadow-2xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 z-50 flex items-center gap-3"
+          >
+            <div className="bg-white/20 rounded-full p-2">
+              <Plus className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-white font-semibold text-base">
+              Criar Nova Anotação
+            </span>
+          </Button>
+        </div>
       </div>
     </MainLayout>
   );
