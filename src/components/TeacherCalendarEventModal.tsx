@@ -222,7 +222,28 @@ export const TeacherCalendarEventModal = ({
       // Usar diretamente o selectedClassId que já é o ID correto de turmas
       const actualClassId = selectedClassId;
 
-      const finalLocation = eventType === 'presencial' 
+      // Verificar se o professor tem acesso à turma via teacher_turma_access
+      const { data: accessData, error: accessError } = await (supabase as any)
+        .from('teacher_turma_access')
+        .select('id')
+        .eq('teacher_id', user.id)
+        .eq('turma_id', actualClassId)
+        .maybeSingle();
+
+      if (accessError) {
+        console.error('Erro ao verificar acesso à turma:', accessError);
+        toast.error('Erro ao verificar acesso à turma');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!accessData) {
+        toast.error('Você não tem acesso a esta turma');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const finalLocation = eventType === 'presencial'
         ? (location === 'CUSTOM' ? customLocation.trim() : location)
         : null;
 

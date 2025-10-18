@@ -76,27 +76,26 @@ const TeacherCalendar = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Buscar apenas turmas do professor logado
-      const { data: turmas, error } = await supabase
-        .from('turmas')
-        .select('*')
-        .eq('teacher_id', user.id)
-        .order('periodo', { ascending: true });
+      // Buscar turmas através da tabela de acesso (many-to-many)
+      const { data: accessData, error } = await (supabase as any)
+        .from('teacher_turma_access')
+        .select('turma_id, turmas(*)')
+        .eq('teacher_id', user.id);
 
       if (error) throw error;
 
-      // Transformar formato de 'turmas' para 'classes'
-      const transformedClasses = turmas?.map(turma => ({
-        id: turma.id,
-        name: turma.nome_turma,
-        course: turma.curso,
-        period: turma.periodo,
-        university: turma.faculdade,
-        city: turma.cidade
-      })) || [];
+      const transformedClasses = accessData?.map((access: any) => ({
+        id: access.turmas.id,
+        name: access.turmas.nome_turma,
+        course: access.turmas.curso,
+        period: access.turmas.periodo,
+        university: access.turmas.faculdade,
+        city: access.turmas.cidade
+      }))
+      .sort((a, b) => parseInt(a.period) - parseInt(b.period)) || [];
 
       setClasses(transformedClasses);
-      console.log('[TeacherCalendar] Turmas carregadas do sistema:', transformedClasses);
+      console.log('[TeacherCalendar] Turmas acessíveis:', transformedClasses);
       console.log('[TeacherCalendar] Total de turmas:', transformedClasses.length);
     } catch (error) {
       console.error('Error fetching turmas:', error);
