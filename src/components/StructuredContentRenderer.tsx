@@ -130,6 +130,22 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
           <div key={index} className="bg-muted/50 border-2 border-dashed border-border p-4 rounded-lg my-4">
             <p className="text-muted-foreground">⚛️ Componente React: <strong>{bloco.componente}</strong> (não implementado)</p>
           </div>
+         );
+      
+      case 'referencias':
+        return (
+          <div key={index} className="bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-900/50 dark:to-slate-800/50 border-l-4 border-slate-600 dark:border-slate-500 p-6 rounded-xl shadow-md my-8 mt-12">
+            <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-4 text-xl flex items-center gap-2">
+              📚 {bloco.titulo || 'Referências Bibliográficas'}
+            </h4>
+            <div className="space-y-3">
+              {bloco.itens?.map((ref: string, i: number) => (
+                <p key={i} className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600">
+                  {ref}
+                </p>
+              ))}
+            </div>
+          </div>
         );
       
       default:

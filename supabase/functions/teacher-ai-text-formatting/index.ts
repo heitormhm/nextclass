@@ -390,10 +390,35 @@ Sua resposta deve ser estritamente formatada como um único objeto JSON. Esta es
    - ✅ Use apenas letras, números, espaços, hífens e dois-pontos em labels
    - ✅ Para texto longo em nós, use quebras de linha: A[Linha 1<br/>Linha 2]
    
+   **EXEMPLOS PRÁTICOS - ERRADO vs CORRETO:**
+   
+   ❌ **ERRADOS (causam Syntax Error):**
+   - A[Hidrostática (Fluídos)] → Parênteses
+   - B[Pressão & Volume] → Caractere &
+   - C[Lei de "Bernoulli"] → Aspas
+   - D[Equação: P=ρgh] → Sinal de igual pode causar problemas
+   
+   ✅ **CORRETOS:**
+   - A[Hidrostática - Fluídos]
+   - B[Pressão e Volume]
+   - C[Lei de Bernoulli]
+   - D[Equação de Pressão]
+   
+   **REGRA DE OURO MERMAID:**
+   Se você não tem 100% de certeza de que um caractere funciona no Mermaid,
+   NÃO USE. Prefira texto simples com letras, números, espaços e hífens.
+   
+   **ACENTUAÇÃO:**
+   Acentos portugueses (á, é, í, ó, ú, ã, õ, ç) são PERMITIDOS, mas:
+   - Use com moderação em labels
+   - Evite combinar acentos + caracteres especiais
+   - Exemplo OK: A[Equação de 2º Grau]
+   - Exemplo EVITAR: A[P=ρ×g×h (N/m²)] → muitos símbolos!
+   
    **Validação Mental Obrigatória:**
    Antes de gerar cada definicao_mermaid, revise mentalmente:
    1. Há parênteses dentro de [] ou {}? → Substituir por hífen
-   2. Há acentos ou caracteres especiais problemáticos? → Simplificar
+   2. Há caracteres especiais (&, <, >, ", ')? → Remover ou substituir por texto
    3. O código está sintaticamente correto para Mermaid.js v10+? → Testar mentalmente
 
 3. **Proatividade Pedagógica**: Antecipe as necessidades de aprendizagem do estudante. Se um parágrafo compara três teorias diferentes, proponha proativamente um diagrama ou uma tabela comparativa. Se o texto descreve a estrutura de uma molécula, sugira um diagrama estrutural. Pense sempre: "Qual é a melhor maneira de visualizar ou interagir com esta informação?".
@@ -433,7 +458,26 @@ Sua resposta deve ser estritamente formatada como um único objeto JSON. Esta es
    - Revisar TODOS os labels: há () dentro de []? → Substituir por hífen
    - Exemplo: A[Pressão (atm)] → A[Pressão - atm]
 
-9. **Validação Estrita do JSON**: A saída final DEVE ser um único bloco de código JSON válido, começando com { e terminando com }. Nenhum comentário, introdução, ou qualquer texto explicativo deve estar fora do objeto JSON. A resposta inteira deve ser o JSON.
+9. **Preservação de Referências Bibliográficas**: 
+   Se o [TEXTO_BASE] contiver referências bibliográficas (normalmente ao final), 
+   você DEVE incluí-las no JSON final dentro de um bloco especial:
+   
+   {
+     "tipo": "referencias",
+     "titulo": "📚 Referências Bibliográficas",
+     "itens": [
+       "Autor, A. (Ano). Título. Editora.",
+       "Autor, B. (Ano). Título. Editora."
+     ]
+   }
+   
+   **IMPORTANTE:**
+   - Mantenha a formatação EXATA das referências (ABNT, APA, etc.)
+   - Preserve links, DOIs e URLs
+   - Coloque o bloco de referências como ÚLTIMO elemento do array conteudo
+   - Se não houver referências no texto base, não adicione este bloco
+
+10. **Validação Estrita do JSON**: A saída final DEVE ser um único bloco de código JSON válido, começando com { e terminando com }. Nenhum comentário, introdução, ou qualquer texto explicativo deve estar fora do objeto JSON. A resposta inteira deve ser o JSON.
 
 ## 📤 FORMATO DE RESPOSTA
 

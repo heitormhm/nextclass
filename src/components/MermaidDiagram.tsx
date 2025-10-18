@@ -8,6 +8,45 @@ interface MermaidDiagramProps {
   icon: string;
 }
 
+// Função de sanitização para limpar código Mermaid antes de renderizar
+const sanitizeMermaidCode = (code: string): string => {
+  let sanitized = code;
+  
+  // 1. Remover caracteres problemáticos em labels com colchetes []
+  sanitized = sanitized.replace(/([A-Z]\[)([^\]]+)(\])/g, (match, open, content, close) => {
+    let cleanContent = content
+      // Substituir parênteses por hífen
+      .replace(/\(/g, ' - ')
+      .replace(/\)/g, '')
+      // Remover caracteres especiais perigosos
+      .replace(/[&<>"']/g, '')
+      // Normalizar múltiplos espaços
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    return `${open}${cleanContent}${close}`;
+  });
+  
+  // 2. Limpar labels em chaves {} (para mapas mentais)
+  sanitized = sanitized.replace(/(\{)([^\}]+)(\})/g, (match, open, content, close) => {
+    let cleanContent = content
+      .replace(/\(/g, ' - ')
+      .replace(/\)/g, '')
+      .replace(/[&<>"']/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    return `${open}${cleanContent}${close}`;
+  });
+  
+  // 3. Validar estrutura básica
+  if (!sanitized.includes('graph') && !sanitized.includes('flowchart') && !sanitized.includes('mindmap')) {
+    console.warn('[Mermaid] Código sem tipo de diagrama reconhecido');
+  }
+  
+  return sanitized;
+};
+
 export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagramProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,12 +75,16 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           });
           
           const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          const { svg } = await mermaid.render(uniqueId, code);
+          const sanitizedCode = sanitizeMermaidCode(code);
+          const { svg } = await mermaid.render(uniqueId, sanitizedCode);
           ref.current.innerHTML = svg;
           setError(null);
         } catch (err) {
-          console.error('Erro ao renderizar Mermaid:', err);
-          setError('Erro na sintaxe do diagrama. Verifique o código Mermaid.');
+          console.error('[Mermaid] Erro ao renderizar:', err);
+          console.error('[Mermaid] Código original:', code);
+          const sanitizedCode = sanitizeMermaidCode(code);
+          console.error('[Mermaid] Código sanitizado:', sanitizedCode);
+          setError(`Erro na sintaxe do diagrama. Detalhes: ${(err as Error).message}`);
         }
       }
     };
