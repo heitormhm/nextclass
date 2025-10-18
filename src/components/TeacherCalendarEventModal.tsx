@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Clock, MapPin, Video, X } from 'lucide-react';
@@ -11,6 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -24,6 +25,14 @@ interface Class {
   city?: string;
 }
 
+interface Subject {
+  id: string;
+  nome: string;
+  codigo: string | null;
+  teacher_id: string;
+  turma_id: string;
+}
+
 interface TeacherCalendarEventModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,13 +42,20 @@ interface TeacherCalendarEventModalProps {
 }
 
 const TEACHER_CATEGORIES = [
-  { value: 'aula_presencial', label: 'Aula Presencial', icon: '🏫' },
-  { value: 'aula_online', label: 'Aula Online', icon: '💻' },
+  { value: 'aula', label: 'Aula', icon: '📚' },
   { value: 'prova', label: 'Prova', icon: '📝' },
+  { value: 'atividade_avaliativa', label: 'Atividade Avaliativa', icon: '✅' },
+  { value: 'trabalho_grupo', label: 'Trabalho em Grupo', icon: '👥' },
+  { value: 'estagio', label: 'Estágio', icon: '🏥' },
+  { value: 'atividade_pesquisa', label: 'Atividade de Pesquisa', icon: '🔬' },
   { value: 'seminario', label: 'Seminário', icon: '🎤' },
-  { value: 'prazo', label: 'Prazo de Entrega', icon: '⏰' },
-  { value: 'reuniao', label: 'Reunião', icon: '👥' },
+  { value: 'reuniao', label: 'Reunião', icon: '🤝' },
   { value: 'outro', label: 'Outro', icon: '📌' },
+];
+
+const PREDEFINED_LOCATIONS = [
+  'Centro Universitário Afya Montes Claros',
+  'Campus Cepeage',
 ];
 
 const generateTimeSlots = () => {
@@ -74,16 +90,102 @@ export const TeacherCalendarEventModal = ({
 }: TeacherCalendarEventModalProps) => {
   const [title, setTitle] = useState('');
   const [selectedClassId, setSelectedClassId] = useState('');
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [isCreatingNewSubject, setIsCreatingNewSubject] = useState(false);
+  const [newSubjectName, setNewSubjectName] = useState('');
+  const [newSubjectCode, setNewSubjectCode] = useState('');
   const [date, setDate] = useState<Date>(selectedDate);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [eventType, setEventType] = useState<'online' | 'presencial'>('presencial');
   const [location, setLocation] = useState('');
-  const [category, setCategory] = useState('aula_presencial');
+  const [customLocation, setCustomLocation] = useState('');
+  const [category, setCategory] = useState('aula');
   const [color, setColor] = useState('azul');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
+  const [notifyPlatform, setNotifyPlatform] = useState(true);
+  const [notifyEmail, setNotifyEmail] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch subjects when class changes
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      if (!selectedClassId) {
+        setSubjects([]);
+        setSelectedSubjectId('');
+        return;
+      }
+
+      try {
+        const { data: turmaData } = await supabase
+          .from('turmas')
+          .select('id')
+          .eq('id', selectedClassId)
+          .single();
+
+        if (!turmaData) return;
+
+        const { data, error } = await supabase
+          .from('disciplinas')
+          .select('*')
+          .eq('turma_id', turmaData.id)
+          .order('nome');
+
+        if (error) throw error;
+        setSubjects(data || []);
+      } catch (error) {
+        console.error('Error fetching subjects:', error);
+        toast.error('Erro ao carregar disciplinas');
+      }
+    };
+
+    fetchSubjects();
+  }, [selectedClassId]);
+
+  const handleCreateSubject = async () => {
+    if (!newSubjectName.trim()) {
+      toast.error('Por favor, insira o nome da disciplina');
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: turmaData } = await supabase
+        .from('turmas')
+        .select('id')
+        .eq('id', selectedClassId)
+        .single();
+
+      if (!turmaData) return;
+
+      const { data, error } = await supabase
+        .from('disciplinas')
+        .insert({
+          nome: newSubjectName.trim(),
+          codigo: newSubjectCode.trim() || null,
+          teacher_id: user.id,
+          turma_id: turmaData.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success(`✅ Disciplina "${newSubjectName}" criada com sucesso!`);
+      setSubjects([...subjects, data]);
+      setSelectedSubjectId(data.id);
+      setIsCreatingNewSubject(false);
+      setNewSubjectName('');
+      setNewSubjectCode('');
+    } catch (error) {
+      console.error('Error creating subject:', error);
+      toast.error('Erro ao criar disciplina');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -96,20 +198,17 @@ export const TeacherCalendarEventModal = ({
       return;
     }
 
-    if (eventType === 'presencial' && !location.trim()) {
-      toast.error('Por favor, informe o local do evento presencial');
+    if (eventType === 'presencial' && location !== 'CUSTOM' && !location) {
+      toast.error('Por favor, selecione o local do evento presencial');
+      return;
+    }
+
+    if (eventType === 'presencial' && location === 'CUSTOM' && !customLocation.trim()) {
+      toast.error('Por favor, informe o local personalizado');
       return;
     }
 
     setIsSubmitting(true);
-
-    console.log('[TeacherCalendarEventModal] Submitting event:', {
-      title,
-      selectedClassId,
-      date: format(date, 'yyyy-MM-dd'),
-      eventType,
-      location
-    });
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -120,7 +219,6 @@ export const TeacherCalendarEventModal = ({
         return;
       }
 
-      // Buscar turma selecionada para obter dados
       const selectedClass = classes.find(c => c.id === selectedClassId);
       if (!selectedClass) {
         toast.error('Turma não encontrada');
@@ -128,7 +226,6 @@ export const TeacherCalendarEventModal = ({
         return;
       }
 
-      // Verificar se existe uma 'class' correspondente na tabela classes
       let actualClassId = selectedClassId;
       
       const { data: existingClass } = await supabase
@@ -139,8 +236,6 @@ export const TeacherCalendarEventModal = ({
         .maybeSingle();
       
       if (!existingClass) {
-        console.log('[TeacherCalendarEventModal] Creating class entry for event...');
-        // Criar class temporária para este evento
         const { data: newClass, error: classError } = await supabase
           .from('classes')
           .insert({
@@ -154,51 +249,81 @@ export const TeacherCalendarEventModal = ({
         
         if (classError) throw classError;
         actualClassId = newClass.id;
-        console.log('[TeacherCalendarEventModal] Class created with id:', actualClassId);
       } else {
         actualClassId = existingClass.id;
-        console.log('[TeacherCalendarEventModal] Using existing class id:', actualClassId);
       }
 
-      // Criar o evento com class_id válido
-      const { error } = await supabase
+      const finalLocation = eventType === 'presencial' 
+        ? (location === 'CUSTOM' ? customLocation.trim() : location)
+        : null;
+
+      const { data: insertedEvent, error } = await supabase
         .from('class_events')
         .insert({
           title: title.trim(),
           class_id: actualClassId,
+          disciplina_id: selectedSubjectId || null,
           event_date: format(date, 'yyyy-MM-dd') + 'T00:00:00.000Z',
           start_time: startTime,
           end_time: endTime,
           event_type: eventType,
-          location: eventType === 'presencial' ? location.trim() : null,
+          location: finalLocation,
           category: category as any,
           color: color as any,
           description: description.trim() || null,
           notes: notes.trim() || null,
-          status: 'pending'
-        } as any);
+          status: 'pending',
+          notify_platform: notifyPlatform,
+          notify_email: notifyEmail,
+        } as any)
+        .select('id')
+        .single();
 
       if (error) throw error;
 
+      // Send notifications if enabled
+      if (notifyPlatform || notifyEmail) {
+        try {
+          await supabase.functions.invoke('send-class-event-notification', {
+            body: {
+              eventId: insertedEvent.id,
+              classId: selectedClassId,
+              title: title.trim(),
+              eventDate: format(date, 'yyyy-MM-dd'),
+              startTime,
+              notifyPlatform,
+              notifyEmail,
+            }
+          });
+        } catch (notifyError) {
+          console.error('Error sending notifications:', notifyError);
+          // Don't block event creation if notifications fail
+        }
+      }
+
       toast.success('✓ Evento criado com sucesso!', {
-        description: 'Alunos matriculados serão notificados automaticamente'
+        description: notifyPlatform ? 'Alunos matriculados serão notificados' : undefined
       });
 
       // Reset form
       setTitle('');
       setSelectedClassId('');
+      setSelectedSubjectId('');
+      setSubjects([]);
       setDate(selectedDate);
       setStartTime('09:00');
       setEndTime('10:00');
       setEventType('presencial');
       setLocation('');
-      setCategory('aula_presencial');
+      setCustomLocation('');
+      setCategory('aula');
       setColor('azul');
       setDescription('');
       setNotes('');
+      setNotifyPlatform(true);
+      setNotifyEmail(false);
       
       onOpenChange(false);
-      // Aguardar 100ms para garantir que o modal fechou
       setTimeout(() => {
         onEventCreated?.();
       }, 100);
@@ -277,6 +402,101 @@ export const TeacherCalendarEventModal = ({
               </div>
             )}
           </div>
+
+          {/* Disciplina */}
+          {selectedClassId && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              <Label htmlFor="subject" className="text-sm font-medium">
+                📖 Disciplina
+              </Label>
+              
+              {!isCreatingNewSubject ? (
+                <>
+                  <Select 
+                    value={selectedSubjectId} 
+                    onValueChange={(value) => {
+                      if (value === 'CREATE_NEW') {
+                        setIsCreatingNewSubject(true);
+                      } else {
+                        setSelectedSubjectId(value);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="bg-white/20 backdrop-blur-xl border-blue-200">
+                      <SelectValue placeholder="Selecione uma disciplina" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.length === 0 && (
+                        <SelectItem value="CREATE_NEW" className="text-blue-600 font-medium">
+                          ➕ Criar primeira disciplina
+                        </SelectItem>
+                      )}
+                      {subjects.map((subject) => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.codigo ? `${subject.codigo} - ${subject.nome}` : subject.nome}
+                        </SelectItem>
+                      ))}
+                      {subjects.length > 0 && (
+                        <SelectItem value="CREATE_NEW" className="text-blue-600 font-medium">
+                          ➕ Criar nova disciplina
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </>
+              ) : (
+                <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="space-y-2">
+                    <Label htmlFor="newSubjectName" className="text-xs font-medium">
+                      Nome da Disciplina *
+                    </Label>
+                    <Input
+                      id="newSubjectName"
+                      placeholder="Ex: Termodinâmica Aplicada"
+                      value={newSubjectName}
+                      onChange={(e) => setNewSubjectName(e.target.value)}
+                      className="bg-white border-blue-200"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="newSubjectCode" className="text-xs font-medium">
+                      Código (Opcional)
+                    </Label>
+                    <Input
+                      id="newSubjectCode"
+                      placeholder="Ex: ENG301"
+                      value={newSubjectCode}
+                      onChange={(e) => setNewSubjectCode(e.target.value)}
+                      className="bg-white border-blue-200"
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleCreateSubject}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    >
+                      Criar Disciplina
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreatingNewSubject(false);
+                        setNewSubjectName('');
+                        setNewSubjectCode('');
+                      }}
+                      className="flex-1"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Data e Horários */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -371,13 +591,30 @@ export const TeacherCalendarEventModal = ({
               <Label htmlFor="location" className="text-sm font-medium">
                 📍 Local *
               </Label>
-              <Input
-                id="location"
-                placeholder="Ex: Laboratório 3 - Bloco A"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="bg-white/20 backdrop-blur-xl border-blue-200 focus:border-blue-400"
-              />
+              <Select value={location} onValueChange={setLocation}>
+                <SelectTrigger className="bg-white/20 backdrop-blur-xl border-blue-200">
+                  <SelectValue placeholder="Selecione o local" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PREDEFINED_LOCATIONS.map((loc) => (
+                    <SelectItem key={loc} value={loc}>
+                      {loc}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="CUSTOM" className="text-blue-600 font-medium">
+                    ✏️ Outro local (personalizado)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {location === 'CUSTOM' && (
+                <Input
+                  placeholder="Digite o local personalizado"
+                  value={customLocation}
+                  onChange={(e) => setCustomLocation(e.target.value)}
+                  className="bg-white/20 backdrop-blur-xl border-blue-200 mt-2"
+                />
+              )}
             </div>
           )}
 
@@ -450,6 +687,39 @@ export const TeacherCalendarEventModal = ({
               className="bg-white/20 backdrop-blur-xl border-blue-200 focus:border-blue-400 min-h-[60px] resize-none"
             />
           </div>
+
+          {/* Notificações */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">🔔 Notificações</Label>
+            
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-xl border border-blue-200 rounded-md p-3">
+                <Checkbox
+                  id="notifyPlatform"
+                  checked={notifyPlatform}
+                  onCheckedChange={(checked) => setNotifyPlatform(checked as boolean)}
+                />
+                <label htmlFor="notifyPlatform" className="text-sm cursor-pointer flex-1">
+                  Enviar notificação na plataforma para alunos da turma
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-xl border border-blue-200 rounded-md p-3">
+                <Checkbox
+                  id="notifyEmail"
+                  checked={notifyEmail}
+                  onCheckedChange={(checked) => setNotifyEmail(checked as boolean)}
+                />
+                <label htmlFor="notifyEmail" className="text-sm cursor-pointer flex-1">
+                  Enviar notificação por e-mail para alunos da turma
+                </label>
+              </div>
+            </div>
+            
+            <p className="text-xs text-gray-500">
+              As notificações serão enviadas para todos os alunos matriculados na turma selecionada.
+            </p>
+          </div>
         </div>
 
         {/* Buttons */}
@@ -464,13 +734,20 @@ export const TeacherCalendarEventModal = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-            disabled={isSubmitting || !title.trim() || !selectedClassId || classes.length === 0 || (eventType === 'presencial' && !location.trim())}
+            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            disabled={isSubmitting || !title.trim() || !selectedClassId}
           >
-            {isSubmitting ? 'Criando...' : 'Criar Evento'}
+            {isSubmitting ? (
+              <>
+                <Clock className="mr-2 h-4 w-4 animate-spin" />
+                Criando...
+              </>
+            ) : (
+              '✓ Criar Evento'
+            )}
           </Button>
         </div>
-        </DialogContent>
+      </DialogContent>
     </Dialog>
   );
 };

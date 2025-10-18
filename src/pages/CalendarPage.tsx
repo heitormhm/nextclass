@@ -104,7 +104,7 @@ const CalendarPage = () => {
           description: event.notes || event.description,
           isPersonalEvent: true,
           color: event.color || 'azul',
-          category: event.category,
+          category: (event as any).category || 'outro',
           created_by: event.user_id,
         })),
         ...(classEvents || []).map(event => ({
@@ -119,7 +119,7 @@ const CalendarPage = () => {
           description: event.description || event.notes,
           isPersonalEvent: false,
           color: event.color || 'azul',
-          category: event.category,
+          category: event.category as any,
           created_by: undefined,
         }))
       ];

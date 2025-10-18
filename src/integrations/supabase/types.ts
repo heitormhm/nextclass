@@ -93,12 +93,15 @@ export type Database = {
           color: Database["public"]["Enums"]["event_color"] | null
           created_at: string | null
           description: string | null
+          disciplina_id: string | null
           end_time: string
           event_date: string
           event_type: string
           id: string
           location: string | null
           notes: string | null
+          notify_email: boolean | null
+          notify_platform: boolean | null
           start_time: string
           status: string | null
           title: string
@@ -109,12 +112,15 @@ export type Database = {
           color?: Database["public"]["Enums"]["event_color"] | null
           created_at?: string | null
           description?: string | null
+          disciplina_id?: string | null
           end_time: string
           event_date: string
           event_type: string
           id?: string
           location?: string | null
           notes?: string | null
+          notify_email?: boolean | null
+          notify_platform?: boolean | null
           start_time: string
           status?: string | null
           title: string
@@ -125,12 +131,15 @@ export type Database = {
           color?: Database["public"]["Enums"]["event_color"] | null
           created_at?: string | null
           description?: string | null
+          disciplina_id?: string | null
           end_time?: string
           event_date?: string
           event_type?: string
           id?: string
           location?: string | null
           notes?: string | null
+          notify_email?: boolean | null
+          notify_platform?: boolean | null
           start_time?: string
           status?: string | null
           title?: string
@@ -141,6 +150,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_events_disciplina_id_fkey"
+            columns: ["disciplina_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinas"
             referencedColumns: ["id"]
           },
         ]
@@ -277,6 +293,50 @@ export type Database = {
           user_role?: string
         }
         Relationships: []
+      }
+      disciplinas: {
+        Row: {
+          carga_horaria: number | null
+          codigo: string | null
+          created_at: string
+          ementa: string | null
+          id: string
+          nome: string
+          teacher_id: string
+          turma_id: string
+          updated_at: string
+        }
+        Insert: {
+          carga_horaria?: number | null
+          codigo?: string | null
+          created_at?: string
+          ementa?: string | null
+          id?: string
+          nome: string
+          teacher_id: string
+          turma_id: string
+          updated_at?: string
+        }
+        Update: {
+          carga_horaria?: number | null
+          codigo?: string | null
+          created_at?: string
+          ementa?: string | null
+          id?: string
+          nome?: string
+          teacher_id?: string
+          turma_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disciplinas_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       flashcard_reviews: {
         Row: {
@@ -821,7 +881,6 @@ export type Database = {
       }
       personal_events: {
         Row: {
-          category: Database["public"]["Enums"]["event_category"] | null
           color: Database["public"]["Enums"]["event_color"] | null
           created_at: string | null
           description: string | null
@@ -838,7 +897,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          category?: Database["public"]["Enums"]["event_category"] | null
           color?: Database["public"]["Enums"]["event_color"] | null
           created_at?: string | null
           description?: string | null
@@ -855,7 +913,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          category?: Database["public"]["Enums"]["event_category"] | null
           color?: Database["public"]["Enums"]["event_color"] | null
           created_at?: string | null
           description?: string | null
@@ -1174,15 +1231,14 @@ export type Database = {
     Enums: {
       app_role: "student" | "teacher"
       event_category:
-        | "sessao_estudo"
-        | "revisao_prova"
-        | "remarcacao_aula"
-        | "estagio"
+        | "aula"
+        | "prova"
         | "atividade_avaliativa"
-        | "aula_online"
-        | "aula_presencial"
+        | "trabalho_grupo"
+        | "estagio"
+        | "atividade_pesquisa"
+        | "seminario"
         | "reuniao"
-        | "prazo"
         | "outro"
       event_color:
         | "rosa"
@@ -1322,15 +1378,14 @@ export const Constants = {
     Enums: {
       app_role: ["student", "teacher"],
       event_category: [
-        "sessao_estudo",
-        "revisao_prova",
-        "remarcacao_aula",
-        "estagio",
+        "aula",
+        "prova",
         "atividade_avaliativa",
-        "aula_online",
-        "aula_presencial",
+        "trabalho_grupo",
+        "estagio",
+        "atividade_pesquisa",
+        "seminario",
         "reuniao",
-        "prazo",
         "outro",
       ],
       event_color: [
