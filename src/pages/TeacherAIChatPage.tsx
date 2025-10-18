@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation, FileDown } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation } from "lucide-react";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
@@ -60,20 +60,6 @@ const TeacherAIChatPage = () => {
     { text: "📊 Compilando informações relevantes..." },
     { text: "✨ Gerando relatório personalizado..." },
     { text: "✅ Finalizando análise..." }
-  ];
-
-  const deepSearchIndicators = [
-    'MATERIAL 1: ESTUDO DE CASO',
-    'MATERIAL 2: NOTA TÉCNICA',
-    'MATERIAL 3: LISTA DE RECURSOS',
-    'Referências Bibliográficas',
-    'PROTOCOLO DE FACT-CHECKING',
-    '## 📊 MATERIAL 1:',
-    '## 📝 MATERIAL 2:',
-    '## 🔗 MATERIAL 3:',
-    '## 📚 Referências',
-    'ANÁLISE PROFUNDA SOBRE',
-    'ANÁLISE APROFUNDADA SOBRE'
   ];
 
   const getInitialActionButtons = () => [
@@ -562,16 +548,8 @@ const TeacherAIChatPage = () => {
       return newJobs;
     });
 
-    // 📊 Logging detalhado para debug
-    console.log(`🔍 Job update received:`, { 
-      id: job.id, 
-      type: job.type, 
-      status: job.status,
-      job_type_field: (job as any).job_type
-    });
-
     // 🔥 DESLIGAR LOADER quando DEEP_SEARCH completa
-    if (job.type === 'DEEP_SEARCH' && (job.status === 'COMPLETED' || job.status === 'FAILED')) {
+    if (job.job_type === 'DEEP_SEARCH' && (job.status === 'COMPLETED' || job.status === 'FAILED')) {
       console.log(`🏁 Deep search ${job.status}, closing loader`);
       setIsDeepSearchLoading(false);
       setDeepSearchProgress(deepSearchSteps.length - 1);
@@ -593,7 +571,7 @@ const TeacherAIChatPage = () => {
     }
 
     // 📊 SINCRONIZAR PROGRESSO DO LOADER com STEPS reais do backend
-    if (job.type === 'DEEP_SEARCH' && job.status !== 'COMPLETED' && job.status !== 'FAILED') {
+    if (job.job_type === 'DEEP_SEARCH' && job.status !== 'COMPLETED' && job.status !== 'FAILED') {
       const currentStep = job.intermediate_data?.step;
       
       // Mapear steps do backend para índices do loader
@@ -821,8 +799,32 @@ const TeacherAIChatPage = () => {
                       : "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
                   )}
                 >
+                  <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkMath]}
+                      rehypePlugins={[rehypeKatex]}
+                      components={{
+                        a: ({node, ...props}) => (
+                          <a 
+                            {...props} 
+                            className="break-all text-blue-600 hover:text-blue-800 underline" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                          />
+                        ),
+                        code: ({node, inline, ...props}: any) => (
+                          inline 
+                            ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-sm break-all" />
+                            : <code {...props} className="block bg-gray-100 p-2 rounded my-2 overflow-x-auto text-sm" />
+                        )
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+
                   {/* Caso especial: Renderizar botões de ação para Deep Search */}
-                  {!message.isUser && message.content === 'DEEP_SEARCH_ACTION_BUTTONS' ? (
+                  {!message.isUser && message.content === 'DEEP_SEARCH_ACTION_BUTTONS' && (
                     <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-purple-50/80 to-pink-50/80 border-2 border-purple-200">
                       <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
                         <Sparkles className="w-4 h-4" />
@@ -888,51 +890,6 @@ const TeacherAIChatPage = () => {
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm, remarkMath]}
-                          rehypePlugins={[rehypeKatex]}
-                          components={{
-                            a: ({node, ...props}) => (
-                              <a 
-                                {...props} 
-                                className="break-all text-blue-600 hover:text-blue-800 underline" 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                              />
-                            ),
-                            code: ({node, inline, ...props}: any) => (
-                              inline 
-                                ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-sm break-all" />
-                                : <code {...props} className="block bg-gray-100 p-2 rounded my-2 overflow-x-auto text-sm" />
-                            )
-                          }}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
-                      </div>
-
-                      {/* Botão Exportar PDF para mensagens de Deep Search */}
-                      {!message.isUser && deepSearchIndicators.some(indicator => message.content.includes(indicator)) && (
-                        <div className="mt-4 flex justify-end">
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              toast({
-                                title: "Exportando PDF",
-                                description: "Preparando documento para download...",
-                              });
-                            }}
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2 rounded-xl"
-                          >
-                            <FileDown className="w-4 h-4 mr-2" />
-                            <span className="font-bold text-sm">Exportar PDF</span>
-                          </Button>
-                        </div>
-                      )}
-                    </>
                   )}
                            
                           {!message.isUser && message.jobIds?.map((jobId) => {
@@ -950,10 +907,7 @@ const TeacherAIChatPage = () => {
                             ) : null;
                           })}
                           
-                    {!message.isUser && 
-                     !message.isSystemMessage && 
-                     message.content !== 'DEEP_SEARCH_ACTION_BUTTONS' &&
-                     !deepSearchIndicators.some(ind => message.content.includes(ind)) && (
+                    {!message.isUser && !message.isSystemMessage && (
                       <div className="mt-4">
                         <ActionButtons
                           messageContent={message.content}
