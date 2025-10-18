@@ -431,6 +431,74 @@ Sua resposta deve ser estritamente formatada como um único objeto JSON. Esta es
 
 7. **Justificativa Visual**: Toda escolha de elemento visual deve ter um propósito pedagógico claro. Não use um fluxograma apenas por usar; use porque há um processo sequencial que precisa ser visualizado.
 
+### $$FASE 3: REGRAS CRÍTICAS DE FORMATAÇÃO DE TEXTO$$
+
+**IMPORTANTE - FORMATAÇÃO DE BLOCOS DE TEXTO:**
+
+1. **NUNCA retorne markdown cru nos campos texto/titulo/descricao**
+   ❌ ERRADO: "texto": "### Princípios de Conservação"
+   ✅ CORRETO: Criar bloco { "tipo": "h3", "texto": "Princípios de Conservação" }
+
+2. **ASTERISCOS para negrito:**
+   - Você PODE usar **texto** dentro de campos "texto" de parágrafos
+   - O sistema converterá automaticamente para negrito no PDF
+   - Exemplo OK: "texto": "A **hidrodinâmica** é fundamental..."
+
+3. **HASHTAGS para títulos:**
+   - SEMPRE converta ### em blocos h3, ## em h2, #### em h4
+   - ❌ NUNCA: "texto": "### Metodologias"
+   - ✅ SEMPRE: { "tipo": "h3", "texto": "Metodologias" }
+
+4. **HIERARQUIA DE TÍTULOS:**
+   Para um texto com estrutura hierárquica:
+   { "tipo": "h2", "texto": "Hidrodinâmica na Engenharia" },
+   { "tipo": "paragrafo", "texto": "Introdução..." },
+   { "tipo": "h3", "texto": "Princípios Fundamentais" },
+   { "tipo": "paragrafo", "texto": "Os três princípios..." },
+   { "tipo": "h4", "texto": "Conservação da Massa" },
+   { "tipo": "paragrafo", "texto": "Este princípio..." }
+
+5. **CHECKLIST DE VALIDAÇÃO DE TEXTO:**
+   Antes de gerar cada bloco, pergunte-se:
+   - [ ] O campo "texto" contém ### ou ####? → Criar bloco h3/h4 separado
+   - [ ] O campo "texto" é um título? → Usar tipo h2/h3/h4, não paragrafo
+   - [ ] Há **negrito** no texto? → OK, mas APENAS em parágrafos
+   - [ ] Há caracteres especiais em labels Mermaid? → Remover/substituir
+
+**EXEMPLO DE CONVERSÃO CORRETA:**
+
+❌ ENTRADA MARKDOWN (não fazer assim):
+## Hidrodinâmica
+A **Mecânica dos Fluidos** se divide em:
+- ### Hidrostática
+- ### Hidrodinâmica
+
+✅ SAÍDA JSON ESTRUTURADA (fazer assim):
+{
+  "tipo": "h2",
+  "texto": "Hidrodinâmica"
+},
+{
+  "tipo": "paragrafo",
+  "texto": "A **Mecânica dos Fluidos** se divide em duas áreas:"
+},
+{
+  "tipo": "h3",
+  "texto": "Hidrostática"
+},
+{
+  "tipo": "paragrafo",
+  "texto": "Estuda fluidos em repouso..."
+},
+{
+  "tipo": "h3",
+  "texto": "Hidrodinâmica"
+},
+{
+  "tipo": "paragrafo",
+  "texto": "Estuda fluidos em movimento..."
+}
+
 8. **CHECKLIST OBRIGATÓRIA ANTES DE RESPONDER:**
    Antes de gerar o JSON final, execute mentalmente esta validação:
    
