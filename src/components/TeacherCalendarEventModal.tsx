@@ -112,7 +112,7 @@ export const TeacherCalendarEventModal = ({
   // Fetch subjects when class changes
   useEffect(() => {
     const fetchSubjects = async () => {
-      if (!selectedClassId) {
+      if (!selectedClassId || selectedClassId === 'ALL_CLASSES') {
         setSubjects([]);
         setSelectedSubjectId('');
         return;
@@ -193,8 +193,8 @@ export const TeacherCalendarEventModal = ({
       return;
     }
 
-    if (!selectedClassId) {
-      toast.error('Por favor, selecione uma turma');
+    if (!selectedClassId || selectedClassId === 'ALL_CLASSES') {
+      toast.error('Por favor, selecione uma turma específica');
       return;
     }
 
@@ -402,7 +402,10 @@ export const TeacherCalendarEventModal = ({
               <SelectTrigger className="bg-white/20 backdrop-blur-xl border-blue-200">
                 <SelectValue placeholder="Selecione uma turma" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[10000]" sideOffset={5}>
+                <SelectItem value="ALL_CLASSES" className="font-semibold text-blue-600">
+                  👥 Todas as Turmas
+                </SelectItem>
                 {classes.map((cls) => (
                   <SelectItem key={cls.id} value={cls.id}>
                     {cls.name} - {cls.period}
@@ -421,128 +424,141 @@ export const TeacherCalendarEventModal = ({
           </div>
 
           {/* Disciplina */}
-          {selectedClassId && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              <Label htmlFor="subject" className="text-sm font-medium">
-                📖 Disciplina
-              </Label>
-              
-              {!isCreatingNewSubject ? (
-                <>
-                  <Select 
-                    value={selectedSubjectId} 
-                    onValueChange={(value) => {
-                      if (value === 'CREATE_NEW') {
-                        setIsCreatingNewSubject(true);
-                      } else {
-                        setSelectedSubjectId(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="bg-white/20 backdrop-blur-xl border-blue-200">
-                      <SelectValue placeholder="Selecione uma disciplina" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.length === 0 && (
-                        <SelectItem value="CREATE_NEW" className="text-blue-600 font-medium">
-                          ➕ Criar primeira disciplina
-                        </SelectItem>
-                      )}
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.codigo ? `${subject.codigo} - ${subject.nome}` : subject.nome}
-                        </SelectItem>
-                      ))}
-                      {subjects.length > 0 && (
-                        <SelectItem value="CREATE_NEW" className="text-blue-600 font-medium">
-                          ➕ Criar nova disciplina
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </>
-              ) : (
-                <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                  <div className="space-y-2">
-                    <Label htmlFor="newSubjectName" className="text-xs font-medium">
-                      Nome da Disciplina *
-                    </Label>
-                    <Input
-                      id="newSubjectName"
-                      placeholder="Ex: Termodinâmica Aplicada"
-                      value={newSubjectName}
-                      onChange={(e) => setNewSubjectName(e.target.value)}
-                      className="bg-white border-blue-200"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="newSubjectCode" className="text-xs font-medium">
-                      Código (Opcional)
-                    </Label>
-                    <Input
-                      id="newSubjectCode"
-                      placeholder="Ex: ENG301"
-                      value={newSubjectCode}
-                      onChange={(e) => setNewSubjectCode(e.target.value)}
-                      className="bg-white border-blue-200"
-                    />
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      onClick={handleCreateSubject}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700"
-                    >
-                      Criar Disciplina
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setIsCreatingNewSubject(false);
-                        setNewSubjectName('');
-                        setNewSubjectCode('');
-                      }}
-                      className="flex-1"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
+          <div className="space-y-2">
+            <Label htmlFor="subject" className="text-sm font-medium">
+              📖 Disciplina {selectedClassId && selectedClassId !== 'ALL_CLASSES' && <span className="text-gray-400">(opcional)</span>}
+            </Label>
+            
+            {(!selectedClassId || selectedClassId === 'ALL_CLASSES') && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
+                ⚠️ Selecione uma turma específica para escolher ou criar uma disciplina
+              </p>
+            )}
+            
+            {!isCreatingNewSubject ? (
+              <Select 
+                value={selectedSubjectId} 
+                onValueChange={(value) => {
+                  if (value === 'CREATE_NEW') {
+                    setIsCreatingNewSubject(true);
+                  } else {
+                    setSelectedSubjectId(value);
+                  }
+                }}
+                disabled={!selectedClassId || selectedClassId === 'ALL_CLASSES'}
+              >
+                <SelectTrigger 
+                  className={cn(
+                    "bg-white/20 backdrop-blur-xl border-blue-200",
+                    (!selectedClassId || selectedClassId === 'ALL_CLASSES') && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <SelectValue placeholder="Selecione uma disciplina" />
+                </SelectTrigger>
+                <SelectContent className="z-[10000]" sideOffset={5}>
+                  {subjects.length === 0 && (
+                    <SelectItem value="CREATE_NEW" className="text-blue-600 font-medium">
+                      ➕ Criar primeira disciplina
+                    </SelectItem>
+                  )}
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.codigo ? `${subject.codigo} - ${subject.nome}` : subject.nome}
+                    </SelectItem>
+                  ))}
+                  {subjects.length > 0 && (
+                    <SelectItem value="CREATE_NEW" className="text-blue-600 font-medium">
+                      ➕ Criar nova disciplina
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="space-y-2">
+                  <Label htmlFor="newSubjectName" className="text-xs font-medium">
+                    Nome da Disciplina *
+                  </Label>
+                  <Input
+                    id="newSubjectName"
+                    placeholder="Ex: Termodinâmica Aplicada"
+                    value={newSubjectName}
+                    onChange={(e) => setNewSubjectName(e.target.value)}
+                    className="bg-white border-blue-200"
+                  />
                 </div>
-              )}
-            </div>
-          )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="newSubjectCode" className="text-xs font-medium">
+                    Código (Opcional)
+                  </Label>
+                  <Input
+                    id="newSubjectCode"
+                    placeholder="Ex: ENG301"
+                    value={newSubjectCode}
+                    onChange={(e) => setNewSubjectCode(e.target.value)}
+                    className="bg-white border-blue-200"
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleCreateSubject}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    Criar Disciplina
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsCreatingNewSubject(false);
+                      setNewSubjectName('');
+                      setNewSubjectCode('');
+                    }}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Data e Horários */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">📅 Data *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal bg-white/20 backdrop-blur-xl border-blue-200",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP", { locale: ptBR }) : "Selecione"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(newDate) => newDate && setDate(newDate)}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">📅 Data *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal bg-white/20 backdrop-blur-xl border-blue-200",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP", { locale: ptBR }) : "Selecione"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 z-[10000]" align="start" sideOffset={5}>
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(newDate) => newDate && setDate(newDate)}
+                initialFocus
+                className="pointer-events-auto"
+                numberOfMonths={2}
+                fromDate={new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+          <p className="text-xs text-gray-500">
+            💡 Dica: Você pode selecionar qualquer data futura para agendar eventos
+          </p>
+        </div>
 
             <div className="space-y-2">
               <Label htmlFor="startTime" className="text-sm font-medium">
@@ -552,7 +568,7 @@ export const TeacherCalendarEventModal = ({
                 <SelectTrigger className="bg-white/20 backdrop-blur-xl border-blue-200">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
-                <SelectContent className="max-h-60">
+                <SelectContent className="max-h-60 z-[10000]" sideOffset={5}>
                   {TIME_SLOTS.map((time) => (
                     <SelectItem key={time} value={time}>
                       {time}
@@ -570,7 +586,7 @@ export const TeacherCalendarEventModal = ({
                 <SelectTrigger className="bg-white/20 backdrop-blur-xl border-blue-200">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
-                <SelectContent className="max-h-60">
+                <SelectContent className="max-h-60 z-[10000]" sideOffset={5}>
                   {TIME_SLOTS.map((time) => (
                     <SelectItem key={time} value={time}>
                       {time}
@@ -612,7 +628,7 @@ export const TeacherCalendarEventModal = ({
                 <SelectTrigger className="bg-white/20 backdrop-blur-xl border-blue-200">
                   <SelectValue placeholder="Selecione o local" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[10000]" sideOffset={5}>
                   {PREDEFINED_LOCATIONS.map((loc) => (
                     <SelectItem key={loc} value={loc}>
                       {loc}
@@ -642,7 +658,7 @@ export const TeacherCalendarEventModal = ({
               <SelectTrigger className="bg-white/20 backdrop-blur-xl border-blue-200">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[10000]" sideOffset={5}>
                 {TEACHER_CATEGORIES.map((cat) => (
                   <SelectItem key={cat.value} value={cat.value}>
                     <span className="flex items-center gap-2">
