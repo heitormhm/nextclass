@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -133,6 +134,27 @@ const getColorAccents = (color: string = 'azul') => {
   };
   return accentMap[color] || accentMap['azul'];
 };
+
+// Custom DialogContent com flex layout
+const CustomDialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <DialogPrimitive.Portal>
+    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] flex flex-col shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg bg-background",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </DialogPrimitive.Content>
+  </DialogPrimitive.Portal>
+));
+CustomDialogContent.displayName = "CustomDialogContent";
 
 export const TeacherEventDetailsDialog = ({
   event,
@@ -317,7 +339,7 @@ export const TeacherEventDetailsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] p-0 relative">
+        <CustomDialogContent className="max-w-3xl max-h-[90vh] p-0 relative">
         <Button
           variant="ghost"
           size="icon"
@@ -328,7 +350,7 @@ export const TeacherEventDetailsDialog = ({
         </Button>
 
         {/* Wrapper div para controlar layout flex */}
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col max-h-[90vh]">
           {/* Conteúdo scrollável */}
           <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pt-6">
           <div className={cn(
@@ -643,7 +665,7 @@ export const TeacherEventDetailsDialog = ({
             </div>
           )}
         </div>
-      </DialogContent>
+      </CustomDialogContent>
     </Dialog>
   );
 };
