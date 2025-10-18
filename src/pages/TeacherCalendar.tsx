@@ -666,7 +666,7 @@ const TeacherCalendar = () => {
                               setShowEventDetailsDialog(true);
                             }}
                             className={cn(
-                              "group rounded-xl p-4 border-2 transition-all duration-200 cursor-pointer",
+                              "group rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer min-w-[320px]",
                               gradientClasses.bg,
                               gradientClasses.hover,
                               gradientClasses.border,
@@ -676,9 +676,9 @@ const TeacherCalendar = () => {
                               isCancelled && "opacity-40 line-through"
                             )}
                           >
-                            <div className="flex justify-between items-start mb-3">
+                            <div className="flex justify-between items-start mb-2">
                               <div className="flex-1">
-                                <div className="flex gap-2 mb-2">
+                                <div className="flex gap-2 mb-1.5 flex-wrap">
                                   <Badge 
                                     variant="outline" 
                                     className="text-xs px-2.5 py-1 font-semibold border h-6 bg-slate-100 text-slate-700 border-slate-300"
@@ -695,11 +695,11 @@ const TeacherCalendar = () => {
                                     {getCategoryLabel(event.category).toUpperCase()}
                                   </Badge>
                                 </div>
-                                <h3 className="font-bold text-lg text-gray-900 mb-2 drop-shadow-sm leading-tight tracking-tight">{event.title}</h3>
+                                <h3 className="font-bold text-lg text-gray-900 mb-1.5 drop-shadow-sm leading-tight tracking-tight">{event.title}</h3>
                               </div>
                             </div>
 
-                            <div className="space-y-2.5 mb-4">
+                            <div className="grid grid-cols-1 gap-2 mb-3">
                               <div className="flex items-center gap-2 text-sm">
                                 <Clock className="h-4 w-4 text-gray-500 shrink-0" />
                                 <Badge variant="outline" className="text-xs py-1 px-2.5 bg-gray-100 text-gray-700 border-gray-200 h-6">
@@ -725,7 +725,7 @@ const TeacherCalendar = () => {
                             </div>
 
                             {/* Action buttons com destaque */}
-                            <div className="flex gap-2 pt-3 border-t-2 border-gray-200">
+                            <div className="flex gap-2 pt-2.5 border-t-2 border-gray-200">
                               <Button
                                 size="sm"
                                 variant="outline"
