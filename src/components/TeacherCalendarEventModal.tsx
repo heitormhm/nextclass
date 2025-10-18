@@ -284,6 +284,17 @@ export const TeacherCalendarEventModal = ({
       // Send notifications if enabled
       if (notifyPlatform || notifyEmail) {
         try {
+          // Get teacher and subject info
+          const { data: userData } = await supabase.auth.getUser();
+          const teacherName = userData.user?.user_metadata?.full_name || 'Professor';
+          
+          const selectedSubject = subjects.find(s => s.id === selectedSubjectId);
+          const subjectName = selectedSubject 
+            ? (selectedSubject.codigo ? `${selectedSubject.codigo} - ${selectedSubject.nome}` : selectedSubject.nome)
+            : null;
+
+          const categoryLabel = TEACHER_CATEGORIES.find(c => c.value === category)?.label || category;
+
           await supabase.functions.invoke('send-class-event-notification', {
             body: {
               eventId: insertedEvent.id,
@@ -291,6 +302,12 @@ export const TeacherCalendarEventModal = ({
               title: title.trim(),
               eventDate: format(date, 'yyyy-MM-dd'),
               startTime,
+              endTime,
+              eventType,
+              location: finalLocation,
+              category: categoryLabel,
+              teacherName,
+              subjectName,
               notifyPlatform,
               notifyEmail,
             }

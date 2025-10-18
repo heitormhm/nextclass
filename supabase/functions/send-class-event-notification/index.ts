@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +13,12 @@ interface NotificationPayload {
   title: string;
   eventDate: string;
   startTime: string;
+  endTime: string;
+  eventType: 'online' | 'presencial';
+  location: string | null;
+  category: string;
+  teacherName: string;
+  subjectName: string | null;
   notifyPlatform: boolean;
   notifyEmail: boolean;
 }
@@ -28,7 +35,21 @@ serve(async (req) => {
     );
 
     const payload: NotificationPayload = await req.json();
-    const { eventId, classId, title, eventDate, startTime, notifyPlatform, notifyEmail } = payload;
+    const { 
+      eventId, 
+      classId, 
+      title, 
+      eventDate, 
+      startTime, 
+      endTime,
+      eventType,
+      location,
+      category,
+      teacherName,
+      subjectName,
+      notifyPlatform, 
+      notifyEmail 
+    } = payload;
 
     console.log('[send-class-event-notification] Processing:', { 
       eventId, 
@@ -74,14 +95,83 @@ serve(async (req) => {
       );
     }
 
+    // Generate AI message using Lovable AI
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    let aiGeneratedMessage = '';
+
+    if (LOVABLE_API_KEY) {
+      try {
+        const formattedDate = new Date(eventDate).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+
+        const prompt = `Gere uma mensagem de notificação concisa e profissional para alunos sobre um novo evento no calendário acadêmico.
+
+Informações do evento:
+- Professor: ${teacherName}
+- Disciplina: ${subjectName || 'Não especificada'}
+- Título do evento: ${title}
+- Tipo: ${eventType === 'presencial' ? 'Presencial' : 'Online'}
+${eventType === 'presencial' && location ? `- Local: ${location}` : ''}
+- Data: ${formattedDate}
+- Horário: ${startTime} às ${endTime}
+- Categoria: ${category}
+- Turma: ${turma.nome_turma}
+
+A mensagem deve ter no máximo 150 caracteres, ser clara e incluir as informações mais relevantes. Use tom formal mas acessível. Escreva apenas a mensagem, sem introdução ou conclusão.`;
+
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { 
+                role: 'system', 
+                content: 'Você é um assistente que gera mensagens de notificação acadêmica concisas e profissionais em português do Brasil.' 
+              },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.7,
+          }),
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          aiGeneratedMessage = aiData.choices?.[0]?.message?.content?.trim() || '';
+          console.log('[send-class-event-notification] AI message generated:', aiGeneratedMessage);
+        } else {
+          console.error('[send-class-event-notification] AI API error:', await aiResponse.text());
+        }
+      } catch (aiError) {
+        console.error('[send-class-event-notification] Error generating AI message:', aiError);
+      }
+    }
+
+    // Fallback message if AI fails
+    if (!aiGeneratedMessage) {
+      const formattedDate = new Date(eventDate).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit'
+      });
+      
+      aiGeneratedMessage = `${category} de ${subjectName || title} com ${teacherName} em ${formattedDate} às ${startTime}${eventType === 'presencial' && location ? ` no ${location}` : ' (online)'}.`;
+    }
+
     let platformNotificationsSent = 0;
+    let emailNotificationsSent = 0;
 
     // Enviar notificações na plataforma
     if (notifyPlatform) {
       const notificationsToInsert = students.map((student: any) => ({
         user_id: student.id,
         title: `Novo Evento: ${title}`,
-        message: `Um novo evento foi criado para a turma ${turma.nome_turma}. Data: ${new Date(eventDate).toLocaleDateString('pt-BR')} às ${startTime}`,
+        message: aiGeneratedMessage,
         event_type: 'class_event',
         event_id: eventId,
         is_read: false,
@@ -100,14 +190,122 @@ serve(async (req) => {
       }
     }
 
-    // TODO: Implementar envio de email (requer Resend API)
+    // Enviar notificações por email
     if (notifyEmail) {
-      console.log('[send-class-event-notification] Email notifications requested but not yet implemented');
-      // Aqui você pode integrar com Resend ou outro serviço de email
-      // const emailsToSend = students.filter((s: any) => s.email_notifications && s.email);
-      // for (const student of emailsToSend) {
-      //   await sendEmail(student.email, title, eventDate, startTime);
-      // }
+      const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+      
+      if (!RESEND_API_KEY) {
+        console.error('[send-class-event-notification] RESEND_API_KEY not configured');
+      } else {
+        const resend = new Resend(RESEND_API_KEY);
+        const emailsToSend = students.filter((s: any) => s.email_notifications && s.email);
+        
+        console.log(`[send-class-event-notification] Sending emails to ${emailsToSend.length} students`);
+
+        for (const student of emailsToSend) {
+          try {
+            const emailHtml = `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <meta charset="utf-8">
+                  <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .event-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+                    .detail-row { margin: 10px 0; }
+                    .detail-label { font-weight: bold; color: #667eea; }
+                    .cta-button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+                    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <div class="header">
+                      <h1>📅 Nova Atualização no Calendário</h1>
+                    </div>
+                    <div class="content">
+                      <p>Olá, <strong>${student.full_name}</strong>!</p>
+                      
+                      <p>${aiGeneratedMessage}</p>
+                      
+                      <div class="event-details">
+                        <h2 style="margin-top: 0; color: #667eea;">Detalhes do Evento</h2>
+                        <div class="detail-row">
+                          <span class="detail-label">Título:</span> ${title}
+                        </div>
+                        <div class="detail-row">
+                          <span class="detail-label">Professor:</span> ${teacherName}
+                        </div>
+                        ${subjectName ? `
+                        <div class="detail-row">
+                          <span class="detail-label">Disciplina:</span> ${subjectName}
+                        </div>
+                        ` : ''}
+                        <div class="detail-row">
+                          <span class="detail-label">Categoria:</span> ${category}
+                        </div>
+                        <div class="detail-row">
+                          <span class="detail-label">Tipo:</span> ${eventType === 'presencial' ? '📍 Presencial' : '💻 Online'}
+                        </div>
+                        ${location ? `
+                        <div class="detail-row">
+                          <span class="detail-label">Local:</span> ${location}
+                        </div>
+                        ` : ''}
+                        <div class="detail-row">
+                          <span class="detail-label">Data:</span> ${new Date(eventDate).toLocaleDateString('pt-BR', { 
+                            day: '2-digit', 
+                            month: 'long', 
+                            year: 'numeric' 
+                          })}
+                        </div>
+                        <div class="detail-row">
+                          <span class="detail-label">Horário:</span> ${startTime} às ${endTime}
+                        </div>
+                      </div>
+                      
+                      <center>
+                        <a href="${Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '')}/calendar" class="cta-button">
+                          Ver no Calendário
+                        </a>
+                      </center>
+                      
+                      <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                        Este evento foi adicionado ao calendário da turma <strong>${turma.nome_turma}</strong>.
+                      </p>
+                    </div>
+                    <div class="footer">
+                      <p>Você está recebendo este e-mail porque está matriculado na turma ${turma.nome_turma}.</p>
+                      <p>Para gerenciar suas preferências de notificação, acesse as configurações da sua conta.</p>
+                    </div>
+                  </div>
+                </body>
+              </html>
+            `;
+
+            const { error: emailError } = await resend.emails.send({
+              from: 'NextDoc <onboarding@resend.dev>',
+              to: [student.email],
+              subject: 'Nova Atualização no Calendário',
+              html: emailHtml,
+            });
+
+            if (emailError) {
+              console.error(`[send-class-event-notification] Error sending email to ${student.email}:`, emailError);
+            } else {
+              emailNotificationsSent++;
+              console.log(`[send-class-event-notification] Email sent to ${student.email}`);
+            }
+          } catch (emailError) {
+            console.error(`[send-class-event-notification] Exception sending email to ${student.email}:`, emailError);
+          }
+        }
+
+        console.log(`[send-class-event-notification] Successfully sent ${emailNotificationsSent} emails`);
+      }
     }
 
     return new Response(
@@ -115,7 +313,7 @@ serve(async (req) => {
         success: true, 
         studentsNotified: students.length,
         platformNotificationsSent,
-        emailNotificationsSent: 0 // Will be implemented later
+        emailNotificationsSent
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
