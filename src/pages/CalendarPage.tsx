@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import { CalendarEventModal } from '@/components/CalendarEventModal';
+import { EventDetailsDialog } from '@/components/EventDetailsDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,6 +28,8 @@ interface CalendarEvent {
   color?: string;
   category?: string;
   created_by?: string;
+  disciplinaId?: string;
+  classId?: string;
 }
 
 const CalendarPage = () => {
@@ -37,6 +40,8 @@ const CalendarPage = () => {
   const [showEventModal, setShowEventModal] = useState(false);
   const [userRole, setUserRole] = useState<'student' | 'teacher'>('student');
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+  const [selectedEventForDetails, setSelectedEventForDetails] = useState<CalendarEvent | null>(null);
+  const [showEventDetails, setShowEventDetails] = useState(false);
 
   // Fetch events from database
   useEffect(() => {
@@ -121,6 +126,8 @@ const CalendarPage = () => {
           color: event.color || 'azul',
           category: event.category as any,
           created_by: undefined,
+          disciplinaId: event.disciplina_id,
+          classId: event.class_id,
         }))
       ];
 
@@ -283,6 +290,13 @@ const CalendarPage = () => {
     if (isToday(date) && hasEventsOnThisDate) {
       setViewMode('week');
       setCurrentDate(date);
+    }
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    if (!event.isPersonalEvent) {
+      setSelectedEventForDetails(event);
+      setShowEventDetails(true);
     }
   };
 
@@ -543,6 +557,7 @@ const CalendarPage = () => {
                     selectedDate={selectedDate}
                     onEventUpdate={handleEventUpdate}
                     onEventDelete={handleEventDelete}
+                    onEventClick={handleEventClick}
                   />
                       )}
                     </CardContent>
@@ -592,12 +607,17 @@ const CalendarPage = () => {
                         const colorClasses = getEventColorClasses(event.color);
                         
                         return (
-                          <Card key={event.id} className={cn(
-                            "group relative p-4 bg-white/80 backdrop-blur-xl border-2 transition-all duration-300",
-                            "hover:shadow-xl hover:scale-[1.02] hover:border-pink-300",
-                            colorClasses.border,
-                            isCompleted && "opacity-60"
-                          )}>
+                          <Card 
+                            key={event.id} 
+                            className={cn(
+                              "group relative p-4 bg-white/80 backdrop-blur-xl border-2 transition-all duration-300",
+                              "hover:shadow-xl hover:scale-[1.02] hover:border-pink-300",
+                              colorClasses.border,
+                              isCompleted && "opacity-60",
+                              !event.isPersonalEvent && "cursor-pointer"
+                            )}
+                            onClick={() => handleEventClick(event)}
+                          >
                             <div className="space-y-3">
                               {/* Indicador de cor lateral */}
                               <div className={cn(
@@ -649,30 +669,38 @@ const CalendarPage = () => {
                                 )}
                               </div>
 
-                              {/* Action Buttons */}
-                              <div className="flex gap-2 pt-2 border-t border-gray-100">
-                                {!isCompleted && (
+                              {/* Action Buttons - Apenas para eventos pessoais */}
+                              {event.isPersonalEvent && (
+                                <div className="flex gap-2 pt-2 border-t border-gray-100">
+                                  {!isCompleted && (
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      title="Concluir evento"
+                                      className="w-9 h-9 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-all"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEventUpdate(event.id, 'complete');
+                                      }}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  
                                   <Button
                                     size="icon"
                                     variant="outline"
-                                    title="Concluir evento"
-                                    className="w-9 h-9 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-all"
-                                    onClick={() => handleEventUpdate(event.id, 'complete')}
+                                    title="Cancelar/Deletar evento"
+                                    className="w-9 h-9 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEventUpdate(event.id, 'cancel');
+                                    }}
                                   >
-                                    <Check className="h-4 w-4" />
+                                    <X className="h-4 w-4" />
                                   </Button>
-                                )}
-                                
-                                <Button
-                                  size="icon"
-                                  variant="outline"
-                                  title="Cancelar/Deletar evento"
-                                  className="w-9 h-9 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all"
-                                  onClick={() => handleEventUpdate(event.id, 'cancel')}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
+                                </div>
+                              )}
                             </div>
                           </Card>
                         );
@@ -703,6 +731,13 @@ const CalendarPage = () => {
             selectedDate={selectedDate}
             userRole={userRole}
             onEventCreated={fetchEvents}
+          />
+
+          {/* Event Details Dialog */}
+          <EventDetailsDialog
+            event={selectedEventForDetails}
+            open={showEventDetails}
+            onOpenChange={setShowEventDetails}
           />
         </div>
       </MainLayout>

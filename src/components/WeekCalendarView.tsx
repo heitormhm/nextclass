@@ -233,39 +233,41 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                             )}
                           </div>
 
-                          {/* Action buttons - show on hover */}
-                          <div className={cn(
-                            "flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[60] relative",
-                            height < 60 && "absolute -right-1 -top-1 bg-white rounded-lg shadow-lg p-1"
-                          )}>
-                            {!isCompleted && (
+                          {/* Action buttons - show on hover - Apenas para eventos pessoais */}
+                          {event.isPersonalEvent && (
+                            <div className={cn(
+                              "flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[60] relative",
+                              height < 60 && "absolute -right-1 -top-1 bg-white rounded-lg shadow-lg p-1"
+                            )}>
+                              {!isCompleted && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  title="Concluir evento"
+                                  className="h-6 w-6 bg-white/90 hover:bg-green-100 hover:scale-110 text-green-600 transition-all"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEventUpdate(event.id, 'complete');
+                                  }}
+                                >
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                              )}
+
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                title="Concluir evento"
-                                className="h-6 w-6 bg-white/90 hover:bg-green-100 hover:scale-110 text-green-600 transition-all"
+                                title="Cancelar/Deletar evento"
+                                className="h-6 w-6 bg-white/90 hover:bg-red-100 hover:scale-110 text-red-600 transition-all"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onEventUpdate(event.id, 'complete');
+                                  onEventUpdate(event.id, 'cancel');
                                 }}
                               >
-                                <Check className="h-3 w-3" />
+                                <X className="h-3 w-3" />
                               </Button>
-                            )}
-
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              title="Cancelar/Deletar evento"
-                              className="h-6 w-6 bg-white/90 hover:bg-red-100 hover:scale-110 text-red-600 transition-all"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEventUpdate(event.id, 'cancel');
-                              }}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Category badge - oculta se cancelado */}
