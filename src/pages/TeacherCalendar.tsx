@@ -48,6 +48,15 @@ const TeacherCalendar = () => {
   const [showEventModal, setShowEventModal] = useState(false);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
+  // Debug logs
+  useEffect(() => {
+    console.log('[TeacherCalendar] Modal state changed:', showEventModal);
+  }, [showEventModal]);
+
+  useEffect(() => {
+    console.log('[TeacherCalendar] Classes loaded:', classes);
+  }, [classes]);
+
   // Fetch teacher's classes
   useEffect(() => {
     fetchTeacherClasses();
@@ -560,7 +569,10 @@ const TeacherCalendar = () => {
               <Card className="bg-white/75 backdrop-blur-xl border-blue-100/30">
                 <CardContent className="pt-6">
                   <Button 
-                    onClick={() => setShowEventModal(true)}
+                    onClick={() => {
+                      console.log('[TeacherCalendar] Button clicked, opening modal');
+                      setShowEventModal(true);
+                    }}
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   >
                     <Plus className="h-4 w-4 mr-2" /> Criar Evento

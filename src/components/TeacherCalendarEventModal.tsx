@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Clock, MapPin, Video, X } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -101,6 +101,14 @@ export const TeacherCalendarEventModal = ({
 
     setIsSubmitting(true);
 
+    console.log('[TeacherCalendarEventModal] Submitting event:', {
+      title,
+      selectedClassId,
+      date: format(date, 'yyyy-MM-dd'),
+      eventType,
+      location
+    });
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -145,8 +153,11 @@ export const TeacherCalendarEventModal = ({
       setDescription('');
       setNotes('');
       
-      onEventCreated?.();
       onOpenChange(false);
+      // Aguardar 100ms para garantir que o modal fechou
+      setTimeout(() => {
+        onEventCreated?.();
+      }, 100);
     } catch (error) {
       console.error('Error creating event:', error);
       toast.error('Erro ao criar evento. Tente novamente.');
@@ -157,13 +168,17 @@ export const TeacherCalendarEventModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white border-blue-100/30 shadow-2xl
-        [&::-webkit-scrollbar]:w-2
-        [&::-webkit-scrollbar-track]:bg-gray-100
-        [&::-webkit-scrollbar-track]:rounded-full
-        [&::-webkit-scrollbar-thumb]:bg-gray-300
-        [&::-webkit-scrollbar-thumb]:rounded-full
-        [&::-webkit-scrollbar-thumb:hover]:bg-gray-400">
+      <DialogPortal>
+        <DialogContent 
+          className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white border-blue-100/30 shadow-2xl
+            [&::-webkit-scrollbar]:w-2
+            [&::-webkit-scrollbar-track]:bg-gray-100
+            [&::-webkit-scrollbar-track]:rounded-full
+            [&::-webkit-scrollbar-thumb]:bg-gray-300
+            [&::-webkit-scrollbar-thumb]:rounded-full
+            [&::-webkit-scrollbar-thumb:hover]:bg-gray-400" 
+          style={{ zIndex: 9999 }}
+        >
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl flex items-center justify-center">
@@ -210,6 +225,14 @@ export const TeacherCalendarEventModal = ({
                 ))}
               </SelectContent>
             </Select>
+            {classes.length === 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
+                ⚠️ Você ainda não criou nenhuma turma. 
+                <a href="/teacherconfigurations" className="underline ml-1">
+                  Criar turma agora
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Data e Horários */}
@@ -399,12 +422,13 @@ export const TeacherCalendarEventModal = ({
           <Button
             onClick={handleSubmit}
             className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-            disabled={isSubmitting || !title.trim() || !selectedClassId || (eventType === 'presencial' && !location.trim())}
+            disabled={isSubmitting || !title.trim() || !selectedClassId || classes.length === 0 || (eventType === 'presencial' && !location.trim())}
           >
             {isSubmitting ? 'Criando...' : 'Criar Evento'}
           </Button>
         </div>
-      </DialogContent>
+        </DialogContent>
+      </DialogPortal>
     </Dialog>
   );
 };
