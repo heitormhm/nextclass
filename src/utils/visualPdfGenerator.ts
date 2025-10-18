@@ -103,6 +103,46 @@ const detectAndConvertMarkdown = (bloco: ContentBlock): ContentBlock => {
   return bloco;
 };
 
+// FASE 1: Função para converter SVG para PNG de alta qualidade
+const convertSVGtoPNG = async (svgString: string, width: number, height: number): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    // Criar elemento img temporário
+    const img = new Image();
+    img.onload = () => {
+      // Criar canvas para renderizar em alta resolução (2x para qualidade)
+      const canvas = document.createElement('canvas');
+      const scaleFactor = 2; // Aumentar para maior qualidade
+      canvas.width = width * scaleFactor;
+      canvas.height = height * scaleFactor;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context não disponível'));
+        return;
+      }
+      
+      // Fundo branco (importante para transparência)
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Desenhar SVG no canvas
+      ctx.scale(scaleFactor, scaleFactor);
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Converter para PNG Base64
+      const pngBase64 = canvas.toDataURL('image/png', 1.0); // Qualidade máxima
+      resolve(pngBase64);
+    };
+    
+    img.onerror = () => reject(new Error('Falha ao carregar SVG'));
+    
+    // Converter SVG para Data URL
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    img.src = url;
+  });
+};
+
 export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFResult> => {
   const startTime = Date.now();
   const stats: PDFStats = {
@@ -176,13 +216,23 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 </defs>
 </svg>`;
     
-    // Converter SVG para Base64
-    const logoBase64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(nextclassLogoSVG)));
-    
-    // Inserir logo centralizado (largura 35mm para manter proporção)
-    const logoWidth = 35;
+    // Converter SVG para PNG de alta qualidade
+    const logoWidthPx = 188 * 2; // Dobrar resolução para qualidade
+    const logoHeightPx = 27 * 2;
+    const logoWidth = 35; // mm no PDF
     const logoHeight = logoWidth * (27 / 188); // Manter aspect ratio 188:27
-    pdf.addImage(logoBase64, 'SVG', (pageWidth - logoWidth) / 2, logoY, logoWidth, logoHeight);
+    
+    try {
+      const logoPNG = await convertSVGtoPNG(nextclassLogoSVG, logoWidthPx, logoHeightPx);
+      
+      // Inserir logo PNG no PDF
+      pdf.addImage(logoPNG, 'PNG', (pageWidth - logoWidth) / 2, logoY, logoWidth, logoHeight);
+      
+      console.log('✅ Logo NextClass renderizada como PNG de alta qualidade');
+    } catch (error) {
+      console.warn('⚠️ Falha ao renderizar logo, continuando sem logo:', error);
+      warnings.push('Logo NextClass não foi adicionada ao PDF');
+    }
     
     currentY += logoHeight + 6;
     
