@@ -134,11 +134,11 @@ const TeacherDashboard = () => {
     },
     {
       icon: Calendar,
-      title: 'Agendar Evento',
-      description: 'Crie eventos no calendário',
+      title: 'Calendário',
+      description: 'Ver e criar eventos da turma',
       gradientFrom: 'from-orange-500',
       gradientTo: 'to-orange-600',
-      onClick: () => setIsSchedulingModalOpen(true),
+      onClick: () => navigate('/teachercalendar'),
     },
     {
       icon: Megaphone,
