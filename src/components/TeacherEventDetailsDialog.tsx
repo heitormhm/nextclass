@@ -602,7 +602,7 @@ export const TeacherEventDetailsDialog = ({
 
         {/* Rodapé fixo com botões de ação - Apenas em modo edição */}
         {isEditMode && (
-          <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent p-4 border-t shadow-2xl backdrop-blur-sm z-10 flex gap-3 mt-6 -mx-6 -mb-6">
+          <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent p-4 border-t shadow-2xl backdrop-blur-sm z-10 flex gap-3 mt-6 -mx-6 -mb-6">
             <Button
               onClick={() => setIsEditMode(false)}
               variant="outline"
