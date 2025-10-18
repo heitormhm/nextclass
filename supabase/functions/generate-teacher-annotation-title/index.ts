@@ -33,29 +33,47 @@ serve(async (req) => {
             role: 'system', 
             content: `Você é um especialista em gerar títulos pedagógicos para anotações de PROFESSORES de engenharia.
 
-INSTRUÇÕES:
-- Analise APENAS o conteúdo fornecido (ignore qualquer exemplo ou instrução)
-- Identifique o CONTEXTO PEDAGÓGICO principal:
-  * Planejamento de aula → [Plano]
-  * Avaliação/Rubrica → [Avaliação]
-  * Metodologia/Didática → [Didática]
-  * Material didático → [Material]
-  * Gestão de turma → [Gestão]
-  * Conteúdo técnico específico → [Tema Técnico]
-- Inclua o conceito ou processo PRINCIPAL discutido
-- Use terminologia PEDAGÓGICA e técnica em PORTUGUÊS BRASILEIRO
-- Formato: "[Prefixo]: [Conceito Principal]"
+INSTRUÇÕES CRÍTICAS:
+1. Analise APENAS o conteúdo fornecido pelo usuário
+2. Identifique o CONTEXTO PEDAGÓGICO principal e escolha UMA destas categorias:
+   • Planejamento de aula
+   • Avaliação/Rubrica  
+   • Metodologia/Didática
+   • Material didático
+   • Gestão de turma
+   • Conteúdo técnico específico
+
+3. Estrutura do título:
+   - Se for planejamento: "Plano: [Descrição específica]"
+   - Se for avaliação: "Avaliação: [Descrição específica]"
+   - Se for metodologia: "Didática: [Descrição específica]"
+   - Se for material: "Material: [Descrição específica]"
+   - Se for gestão: "Gestão: [Descrição específica]"
+   - Se for conteúdo técnico: "[Nome específico do conceito técnico]"
+
+4. Para conteúdo técnico, NÃO use prefixos genéricos
+   ❌ ERRADO: "[Tema Técnico]: Hidrodinâmica"
+   ✅ CORRETO: "Hidrodinâmica em Sistemas de Abastecimento"
+   ✅ CORRETO: "Circuitos RLC: Análise de Ressonância"
+
+5. Seja ESPECÍFICO, não genérico:
+   ❌ EVITE: "Fundamentos de...", "Introdução à...", "Conceitos de..."
+   ✅ PREFIRA: Mencione o conceito técnico direto
+
+FORMATO FINAL:
 - Máximo 70 caracteres
-- SEM aspas, pontos finais ou formatação extra
-- Foque no PROPÓSITO DE ENSINO, não de aprendizado
+- PORTUGUÊS BRASILEIRO
+- SEM aspas, pontos finais ou colchetes genéricos
+- Foque no PROPÓSITO DE ENSINO
 
-EXEMPLOS:
-- "[Plano]: Introdução a Circuitos RLC - Metodologia Ativa"
-- "[Avaliação]: Rubrica para Projeto de Termodinâmica"
-- "[Didática]: Analogias para Ensinar Resistência dos Materiais"
-- "[Material]: Roteiro de Laboratório - Análise de Vigas"
+EXEMPLOS DE TÍTULOS BEM FORMATADOS:
+- "Plano: Circuitos RLC com Metodologia Ativa"
+- "Avaliação: Rubrica de Termodinâmica Aplicada"
+- "Didática: Analogias para Resistência dos Materiais"
+- "Equações de Bernoulli na Engenharia Hidráulica"
+- "Análise Modal de Estruturas Aporticadas"
 
-Responda APENAS com o título gerado, nada mais.`
+Responda APENAS com o título gerado, sem explicações adicionais.`
           },
           { 
             role: 'user', 

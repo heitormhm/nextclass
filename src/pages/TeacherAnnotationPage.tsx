@@ -353,14 +353,14 @@ const TeacherAnnotationPage = () => {
 
       if (error) throw error;
       
-      if (data?.formattedContent) {
-        setContent(data.formattedContent);
-        if (editorRef.current) {
-          editorRef.current.innerHTML = data.formattedContent;
+        if (data?.formattedText) {
+          setContent(data.formattedText);
+          if (editorRef.current) {
+            editorRef.current.innerHTML = data.formattedText;
+          }
+          saveToHistory(data.formattedText);
+          toast.success('Texto formatado com sucesso!');
         }
-        saveToHistory(data.formattedContent);
-        toast.success('Texto formatado com sucesso!');
-      }
       
       if (data?.suggestions) {
         toast.info(`Sugestões: ${data.suggestions}`, {
@@ -370,9 +370,20 @@ const TeacherAnnotationPage = () => {
       
       setIsProcessingAI(false);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing with AI:', error);
-      toast.error('Erro ao processar com IA');
+      
+      // Mensagens específicas baseadas no tipo de erro
+      if (error?.message?.includes('formattedText')) {
+        toast.error('Erro ao processar: formato de resposta inválido');
+      } else if (error?.message?.includes('429')) {
+        toast.error('Limite de requisições atingido. Tente novamente em instantes.');
+      } else if (error?.message?.includes('402')) {
+        toast.error('Créditos esgotados. Contate o administrador.');
+      } else {
+        toast.error('Erro ao processar com IA. Tente novamente.');
+      }
+      
       setIsProcessingAI(false);
     }
   };
