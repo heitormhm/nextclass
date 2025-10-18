@@ -1191,13 +1191,19 @@ const cleanFooters = (content: string): string => {
 
 // Preprocessar conteúdo matemático para melhor renderização no PDF
 function preprocessMathContent(content: string): string {
+  // Remover backticks de variáveis matemáticas simples (1-3 caracteres)
+  content = content.replace(/`([A-Za-z]{1,3}[₀-₉]*)`/g, '$1');
+  
+  // Converter subscripts Unicode para texto legível
+  content = content.replace(/([A-Za-z]+)([₀-₉]+)/g, '$1_$2');
+  
   // Remover símbolos $ isolados que não são LaTeX válido
-  content = content.replace(/\$_([a-zA-Z]+)/g, '$1_{subscript}');
+  content = content.replace(/\$_([a-zA-Z]+)/g, '$1');
   
   // Converter subscritos LaTeX para texto simples
-  content = content.replace(/\$([^$]+)_\{([^}]+)\}\$/g, '$1 (subscrito: $2)');
+  content = content.replace(/\$([^$]+)_\{([^}]+)\}\$/g, '$1_$2');
   
-  // Limpar símbolos $ restantes que não são LaTeX
+  // Limpar símbolos $ restantes que não são LaTeX completo
   content = content.replace(/\$(?![^$]*\$)/g, '');
   
   return content;

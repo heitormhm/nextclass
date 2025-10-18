@@ -388,6 +388,21 @@ const TeacherAIChatPage = () => {
         loadConversations();
         
         // Gerar título automaticamente
+        try {
+          const { data: titleData, error: titleError } = await supabase.functions.invoke(
+            'generate-conversation-title',
+            { body: { conversationId: newConversation.id, firstMessage: inputMessage } }
+          );
+          
+          if (titleError) {
+            console.error('Error generating title:', titleError);
+          } else {
+            console.log('✅ Título gerado:', titleData?.title);
+            loadConversations();
+          }
+        } catch (error) {
+          console.error('Error calling title generation:', error);
+        }
         setTimeout(async () => {
           try {
             const { data: titleData } = await supabase.functions.invoke('generate-conversation-title', {
@@ -598,12 +613,12 @@ const TeacherAIChatPage = () => {
     });
 
     // ✅ Fechar loader quando DEEP_SEARCH completa
-    if (job.job_type === 'DEEP_SEARCH' && job.status === 'COMPLETED') {
+    if (job.type === 'DEEP_SEARCH' && job.status === 'COMPLETED') {
       console.log('✅ Deep search completed, closing loader');
       setIsDeepSearchLoading(false);
     }
 
-    if (job.job_type === 'DEEP_SEARCH' && job.status === 'FAILED') {
+    if (job.type === 'DEEP_SEARCH' && job.status === 'FAILED') {
       console.log('❌ Deep search failed, closing loader');
       setIsDeepSearchLoading(false);
     }
@@ -720,7 +735,7 @@ const TeacherAIChatPage = () => {
             <div className="mb-3 px-2">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Conversas Recentes</h3>
             </div>
-            <ScrollArea className="h-full pr-2">
+            <ScrollArea className="h-[calc(100vh-280px)] pr-2">
               {conversations.length === 0 ? (
                 <p className="text-center text-muted-foreground text-sm py-8">
                   Nenhuma conversa ainda
@@ -738,8 +753,8 @@ const TeacherAIChatPage = () => {
                           : "hover:bg-white/60 dark:hover:bg-gray-800/60 hover:shadow-sm hover:scale-[1.01]"
                       )}
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate max-w-[180px]">
                           {conv.title}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -845,7 +860,7 @@ const TeacherAIChatPage = () => {
                           Continue explorando com Mia:
                         </h3>
                         
-                        <div className="grid gap-3 w-full" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                        <div className="grid gap-3 w-full" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(2, minmax(0, 1fr))' }}>
                           {/* Linha 1 */}
                           <Button
                             size="sm"
@@ -931,14 +946,23 @@ const TeacherAIChatPage = () => {
                             code: ({node, inline, className, children, ...props}: any) => {
                               const content = String(children).replace(/\n$/, '');
                               
-                              // Detectar símbolos matemáticos LaTeX inline ($...$)
-                              if (inline && content.match(/^\$.+\$$/)) {
-                                return <span className="mx-1">{content}</span>;
+                              if (inline) {
+                                // Detectar LaTeX inline
+                                if (content.match(/^\$.+\$$/)) {
+                                  return <span className="mx-1">{content}</span>;
+                                }
+                                
+                                // Detectar variáveis matemáticas simples (1-3 chars, pode ter números/subscritos)
+                                if (content.match(/^[A-Za-z]{1,3}[₀-₉]*$/) || content.match(/^[A-Za-z]{1,3}_[0-9]$/)) {
+                                  return <span className="font-medium">{content}</span>;
+                                }
+                                
+                                // Caso contrário, renderizar como código
+                                return <code className="bg-background/50 px-1.5 py-0.5 rounded text-xs font-mono text-primary break-all whitespace-pre-wrap" {...props}>{content}</code>;
                               }
                               
-                              return inline 
-                                ? <code className="bg-background/50 px-1.5 py-0.5 rounded text-xs font-mono text-primary break-all whitespace-pre-wrap" {...props}>{content}</code>
-                                : <code className="block bg-background/50 p-3 rounded text-xs font-mono overflow-x-auto my-2 text-foreground whitespace-pre-wrap" {...props}>{content}</code>;
+                              // Código em bloco
+                              return <code className="block bg-background/50 p-3 rounded text-xs font-mono overflow-x-auto my-2 text-foreground whitespace-pre-wrap" {...props}>{content}</code>;
                             },
                             pre: ({node, ...props}) => <pre className="bg-background/50 p-3 rounded overflow-x-auto my-2" {...props} />,
                             a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer" {...props} />,
