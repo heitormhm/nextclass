@@ -327,7 +327,37 @@ Sua resposta deve ser estritamente formatada como um único objeto JSON. Esta es
 
 ## 📤 FORMATO DE RESPOSTA
 
-Responda EXCLUSIVAMENTE com o objeto JSON válido. Nenhum texto antes ou depois do JSON.`;
+Responda EXCLUSIVAMENTE com o objeto JSON válido. Nenhum texto antes ou depois do JSON.
+
+**CRÍTICO - REGRAS DE OUTPUT:**
+1. NÃO inclua blocos de código markdown (\`\`\`json)
+2. NÃO adicione explicações ou comentários
+3. NÃO quebre o JSON com texto adicional
+4. A primeira linha deve ser exatamente: {
+5. A última linha deve ser exatamente: }
+6. Todo o conteúdo deve ser JSON válido entre essas chaves
+
+**EXEMPLO DE OUTPUT CORRETO:**
+{
+  "titulo_geral": "Título do Material",
+  "conteudo": [...]
+}
+
+**EXEMPLO DE OUTPUT INCORRETO (NÃO FAÇA ASSIM):**
+\`\`\`json
+{
+  "titulo_geral": "..."
+}
+\`\`\`
+
+Ou:
+
+Aqui está o conteúdo estruturado:
+{
+  "titulo_geral": "..."
+}
+
+RESPONDA APENAS COM O JSON PURO!`;
         break;
 
       default:
@@ -359,6 +389,8 @@ Responda EXCLUSIVAMENTE com o objeto JSON válido. Nenhum texto antes ou depois 
     const formattedText = data.choices[0].message.content.trim();
 
     console.log('Texto formatado com sucesso');
+    console.log('[AI Response] Primeiros 500 chars:', formattedText.substring(0, 500));
+    console.log('[AI Response] Último caractere:', formattedText[formattedText.length - 1]);
 
     return new Response(JSON.stringify({ formattedText }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
