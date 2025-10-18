@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -600,42 +600,44 @@ export const TeacherEventDetailsDialog = ({
           </div>
         )}
 
-        {/* Rodapé fixo com botões de ação - Apenas em modo edição */}
+        {/* Rodapé com botões de ação - Apenas em modo edição */}
         {isEditMode && (
-          <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent p-4 border-t shadow-2xl backdrop-blur-sm z-10 flex gap-3 mt-6 -mx-6 -mb-6">
-            <Button
-              onClick={() => setIsEditMode(false)}
-              variant="outline"
-              size="lg"
-              className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-50 hover:scale-105 transition-all"
-              disabled={isSaving}
-            >
-              <X className="h-5 w-5 mr-2" />
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSaveChanges}
-              size="lg"
-              className={cn(
-                "flex-1 h-12 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 text-white",
-                colorAccents.buttonBg,
-                colorAccents.buttonHover
-              )}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Save className="h-5 w-5 mr-2" />
-                  Salvar Alterações
-                </>
-              )}
-            </Button>
-          </div>
+          <DialogFooter className="mt-6 pt-4 border-t bg-gradient-to-t from-gray-50 to-transparent">
+            <div className="flex gap-3 w-full">
+              <Button
+                onClick={() => setIsEditMode(false)}
+                variant="outline"
+                size="lg"
+                className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-50 hover:scale-105 transition-all"
+                disabled={isSaving}
+              >
+                <X className="h-5 w-5 mr-2" />
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSaveChanges}
+                size="lg"
+                className={cn(
+                  "flex-1 h-12 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 text-white",
+                  colorAccents.buttonBg,
+                  colorAccents.buttonHover
+                )}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-5 w-5 mr-2" />
+                    Salvar Alterações
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
         )}
       </DialogContent>
     </Dialog>
