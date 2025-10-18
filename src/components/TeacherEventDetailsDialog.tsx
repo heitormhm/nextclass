@@ -145,8 +145,9 @@ const FlexDialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]",
+        "fixed inset-0 z-50 m-auto",
         "flex flex-col",
+        "w-full max-w-3xl h-fit max-h-[90vh]",
         "frost-white shadow-lg duration-200",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -345,7 +346,7 @@ export const TeacherEventDetailsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <FlexDialogContent className="max-w-3xl h-[90vh] max-h-[90vh] p-0 relative">
+      <FlexDialogContent className="p-0 relative">
         <Button
           variant="ghost"
           size="icon"
