@@ -112,9 +112,30 @@ export const TeacherCalendarEventModal = ({
   // Fetch subjects when class changes
   useEffect(() => {
     const fetchSubjects = async () => {
-      if (!selectedClassId || selectedClassId === 'ALL_CLASSES') {
+      if (!selectedClassId) {
         setSubjects([]);
         setSelectedSubjectId('');
+        return;
+      }
+
+      // Para "Todas as Turmas", buscar todas as disciplinas do professor
+      if (selectedClassId === 'ALL_CLASSES') {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const { data, error } = await supabase
+            .from('disciplinas')
+            .select('*')
+            .eq('teacher_id', user.id)
+            .order('nome');
+
+          if (error) throw error;
+          setSubjects(data || []);
+        } catch (error) {
+          console.error('Error fetching all subjects:', error);
+          toast.error('Erro ao carregar disciplinas');
+        }
         return;
       }
 
@@ -193,9 +214,20 @@ export const TeacherCalendarEventModal = ({
       return;
     }
 
-    if (!selectedClassId || selectedClassId === 'ALL_CLASSES') {
-      toast.error('Por favor, selecione uma turma específica');
+    if (!selectedClassId) {
+      toast.error('Por favor, selecione uma turma');
       return;
+    }
+
+    // Disciplina obrigatória apenas para turmas específicas
+    if (selectedClassId !== 'ALL_CLASSES' && !selectedSubjectId) {
+      toast.error('Por favor, selecione ou crie uma disciplina para eventos de turma específica');
+      return;
+    }
+
+    // Para "Todas as Turmas", disciplina é opcional
+    if (selectedClassId === 'ALL_CLASSES' && !selectedSubjectId) {
+      console.log('[Modal] Criando aviso geral sem disciplina (permitido)');
     }
 
     if (eventType === 'presencial' && location !== 'CUSTOM' && !location) {
@@ -219,39 +251,34 @@ export const TeacherCalendarEventModal = ({
         return;
       }
 
-      // Usar diretamente o selectedClassId que já é o ID correto de turmas
-      const actualClassId = selectedClassId;
-
-      // Verificar se o professor tem acesso à turma via teacher_turma_access
-      const { data: accessData, error: accessError } = await (supabase as any)
-        .from('teacher_turma_access')
-        .select('id')
-        .eq('teacher_id', user.id)
-        .eq('turma_id', actualClassId)
-        .maybeSingle();
-
-      if (accessError) {
-        console.error('Erro ao verificar acesso à turma:', accessError);
-        toast.error('Erro ao verificar acesso à turma');
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!accessData) {
-        toast.error('Você não tem acesso a esta turma');
-        setIsSubmitting(false);
-        return;
-      }
-
       const finalLocation = eventType === 'presencial'
         ? (location === 'CUSTOM' ? customLocation.trim() : location)
         : null;
 
-      const { data: insertedEvent, error } = await supabase
-        .from('class_events')
-        .insert({
+      // Get teacher and subject info
+      const { data: userData } = await supabase.auth.getUser();
+      const teacherName = userData.user?.user_metadata?.full_name || 'Professor';
+      
+      const selectedSubject = subjects.find(s => s.id === selectedSubjectId);
+      const subjectName = selectedSubject 
+        ? (selectedSubject.codigo ? `${selectedSubject.codigo} - ${selectedSubject.nome}` : selectedSubject.nome)
+        : 'Aviso Geral';
+
+      const categoryLabel = TEACHER_CATEGORIES.find(c => c.value === category)?.label || category;
+
+      console.log('[Modal] Criando evento(s):', {
+        selectedClassId,
+        isAllClasses: selectedClassId === 'ALL_CLASSES',
+        numberOfClasses: selectedClassId === 'ALL_CLASSES' ? classes.length : 1,
+        selectedSubjectId,
+        title: title.trim()
+      });
+
+      if (selectedClassId === 'ALL_CLASSES') {
+        // Criar aviso para TODAS as turmas (disciplina opcional)
+        const eventsToCreate = classes.map(cls => ({
           title: title.trim(),
-          class_id: actualClassId,
+          class_id: cls.id,
           disciplina_id: selectedSubjectId || null,
           event_date: format(date, 'yyyy-MM-dd') + 'T00:00:00.000Z',
           start_time: startTime,
@@ -265,52 +292,130 @@ export const TeacherCalendarEventModal = ({
           status: 'pending',
           notify_platform: notifyPlatform,
           notify_email: notifyEmail,
-        } as any)
-        .select('id')
-        .single();
+        }));
 
-      if (error) throw error;
+        const { data: insertedEvents, error } = await supabase
+          .from('class_events')
+          .insert(eventsToCreate)
+          .select('id');
 
-      // Send notifications if enabled
-      if (notifyPlatform || notifyEmail) {
-        try {
-          // Get teacher and subject info
-          const { data: userData } = await supabase.auth.getUser();
-          const teacherName = userData.user?.user_metadata?.full_name || 'Professor';
-          
-          const selectedSubject = subjects.find(s => s.id === selectedSubjectId);
-          const subjectName = selectedSubject 
-            ? (selectedSubject.codigo ? `${selectedSubject.codigo} - ${selectedSubject.nome}` : selectedSubject.nome)
-            : null;
+        if (error) throw error;
 
-          const categoryLabel = TEACHER_CATEGORIES.find(c => c.value === category)?.label || category;
-
-          await supabase.functions.invoke('send-class-event-notification', {
-            body: {
-              eventId: insertedEvent.id,
-              classId: selectedClassId,
-              title: title.trim(),
-              eventDate: format(date, 'yyyy-MM-dd'),
-              startTime,
-              endTime,
-              eventType,
-              location: finalLocation,
-              category: categoryLabel,
-              teacherName,
-              subjectName,
-              notifyPlatform,
-              notifyEmail,
+        // Enviar notificações para todas as turmas
+        if (notifyPlatform || notifyEmail) {
+          try {
+            for (let i = 0; i < classes.length; i++) {
+              const cls = classes[i];
+              const eventForClass = insertedEvents?.[i];
+              if (eventForClass) {
+                await supabase.functions.invoke('send-class-event-notification', {
+                  body: {
+                    eventId: eventForClass.id,
+                    classId: cls.id,
+                    title: title.trim(),
+                    eventDate: format(date, 'yyyy-MM-dd'),
+                    startTime,
+                    endTime,
+                    eventType,
+                    location: finalLocation,
+                    category: categoryLabel,
+                    teacherName,
+                    subjectName,
+                    notifyPlatform,
+                    notifyEmail,
+                  }
+                });
+              }
             }
-          });
-        } catch (notifyError) {
-          console.error('Error sending notifications:', notifyError);
-          // Don't block event creation if notifications fail
+          } catch (notifyError) {
+            console.error('Error sending notifications:', notifyError);
+            // Don't block event creation if notifications fail
+          }
         }
-      }
 
-      toast.success('✓ Evento criado com sucesso!', {
-        description: notifyPlatform ? 'Alunos matriculados serão notificados' : undefined
-      });
+        toast.success(`✓ ${selectedSubjectId ? 'Evento' : 'Aviso'} criado para ${classes.length} turmas!`, {
+          description: notifyPlatform ? 'Todos os alunos serão notificados' : undefined
+        });
+      } else {
+        // Criar evento para UMA turma específica (disciplina OBRIGATÓRIA)
+        const actualClassId = selectedClassId;
+
+        // Verificar se o professor tem acesso à turma via teacher_turma_access
+        const { data: accessData, error: accessError } = await supabase
+          .from('teacher_turma_access')
+          .select('id')
+          .eq('teacher_id', user.id)
+          .eq('turma_id', actualClassId)
+          .maybeSingle();
+
+        if (accessError) {
+          console.error('Erro ao verificar acesso à turma:', accessError);
+          toast.error('Erro ao verificar acesso à turma');
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (!accessData) {
+          toast.error('Você não tem acesso a esta turma');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Inserir evento único (disciplina obrigatória)
+        const { data: insertedEvent, error } = await supabase
+          .from('class_events')
+          .insert({
+            title: title.trim(),
+            class_id: actualClassId,
+            disciplina_id: selectedSubjectId,
+            event_date: format(date, 'yyyy-MM-dd') + 'T00:00:00.000Z',
+            start_time: startTime,
+            end_time: endTime,
+            event_type: eventType,
+            location: finalLocation,
+            category: category as any,
+            color: color as any,
+            description: description.trim() || null,
+            notes: notes.trim() || null,
+            status: 'pending',
+            notify_platform: notifyPlatform,
+            notify_email: notifyEmail,
+          } as any)
+          .select('id')
+          .single();
+
+        if (error) throw error;
+
+        // Enviar notificação
+        if (notifyPlatform || notifyEmail) {
+          try {
+            await supabase.functions.invoke('send-class-event-notification', {
+              body: {
+                eventId: insertedEvent.id,
+                classId: selectedClassId,
+                title: title.trim(),
+                eventDate: format(date, 'yyyy-MM-dd'),
+                startTime,
+                endTime,
+                eventType,
+                location: finalLocation,
+                category: categoryLabel,
+                teacherName,
+                subjectName,
+                notifyPlatform,
+                notifyEmail,
+              }
+            });
+          } catch (notifyError) {
+            console.error('Error sending notifications:', notifyError);
+            // Don't block event creation if notifications fail
+          }
+        }
+
+        toast.success('✓ Evento criado com sucesso!', {
+          description: notifyPlatform ? 'Alunos matriculados serão notificados' : undefined
+        });
+      }
 
       // Reset form
       setTitle('');
@@ -416,12 +521,21 @@ export const TeacherCalendarEventModal = ({
           {/* Disciplina */}
           <div className="space-y-2">
             <Label htmlFor="subject" className="text-sm font-medium">
-              📖 Disciplina {selectedClassId && selectedClassId !== 'ALL_CLASSES' && <span className="text-gray-400">(opcional)</span>}
+              📖 Disciplina {selectedClassId === 'ALL_CLASSES' 
+                ? <span className="text-gray-400">(opcional para avisos gerais)</span>
+                : <span className="text-red-500">*</span>
+              }
             </Label>
             
-            {(!selectedClassId || selectedClassId === 'ALL_CLASSES') && (
+            {selectedClassId === 'ALL_CLASSES' && (
+              <p className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded p-2">
+                ℹ️ Para avisos gerais em todas as turmas, a disciplina é opcional.
+              </p>
+            )}
+
+            {selectedClassId && selectedClassId !== 'ALL_CLASSES' && subjects.length === 0 && (
               <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
-                ⚠️ Selecione uma turma específica para escolher ou criar uma disciplina
+                ⚠️ Nenhuma disciplina encontrada. Crie uma nova para esta turma.
               </p>
             )}
             
@@ -435,12 +549,12 @@ export const TeacherCalendarEventModal = ({
                     setSelectedSubjectId(value);
                   }
                 }}
-                disabled={!selectedClassId || selectedClassId === 'ALL_CLASSES'}
+                disabled={!selectedClassId}
               >
                 <SelectTrigger 
                   className={cn(
                     "bg-white/20 backdrop-blur-xl border-blue-200",
-                    (!selectedClassId || selectedClassId === 'ALL_CLASSES') && "opacity-50 cursor-not-allowed"
+                    !selectedClassId && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <SelectValue placeholder="Selecione uma disciplina" />
