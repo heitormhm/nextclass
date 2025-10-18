@@ -53,6 +53,7 @@ const TeacherCalendar = () => {
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedEventForEdit, setSelectedEventForEdit] = useState<CalendarEvent | null>(null);
   const [showEventDetailsDialog, setShowEventDetailsDialog] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
   // Debug logs
@@ -593,7 +594,7 @@ const TeacherCalendar = () => {
                       Nenhum evento neste dia
                     </p>
                   ) : (
-                    <div className="space-y-3 max-h-[550px] overflow-y-auto overflow-x-hidden pr-2">
+                    <div className="space-y-3 max-h-[550px] overflow-y-auto overflow-x-hidden pr-2 pt-2 pb-4">
                       {selectedDateEvents.map((event) => {
                         const colorClasses = getEventColorClasses(event.color);
                         const isCompleted = event.status === 'completed';
@@ -602,13 +603,19 @@ const TeacherCalendar = () => {
                         return (
                           <div
                             key={event.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedEventForEdit(event);
+                              setIsEditMode(false);
+                              setShowEventDetailsDialog(true);
+                            }}
                             className={cn(
                               "group rounded-xl p-4 border-2 transition-all duration-200 cursor-pointer",
                               "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50",
                               "hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
                               "hover:border-blue-400",
                               "hover:bg-gradient-to-br hover:from-white hover:via-blue-50/80 hover:to-purple-50/80",
-                              "hover:-translate-y-1",
+                              "hover:scale-[1.01]",
                               isCompleted && "opacity-50",
                               isCancelled && "opacity-40 line-through"
                             )}
@@ -618,16 +625,13 @@ const TeacherCalendar = () => {
                                 <div className="flex gap-2 mb-2">
                                   <Badge 
                                     variant="outline" 
-                                    className={cn(
-                                      "text-xs px-2.5 py-1 font-semibold border-2 h-6",
-                                      event.type === 'online' ? "bg-blue-50 text-blue-700 border-blue-300" : "bg-green-50 text-green-700 border-green-300"
-                                    )}
+                                    className="text-xs px-2.5 py-1 font-semibold border h-6 bg-slate-100 text-slate-700 border-slate-300"
                                   >
                                     {event.type === 'online' ? 'ONLINE' : 'PRESENCIAL'}
                                   </Badge>
                                   <Badge 
                                     variant="outline" 
-                                    className="text-xs px-2.5 py-1 bg-purple-50 text-purple-700 border-purple-200 font-medium h-6"
+                                    className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 border-blue-200 font-medium h-6"
                                   >
                                     {getCategoryLabel(event.category).toUpperCase()}
                                   </Badge>
@@ -638,8 +642,8 @@ const TeacherCalendar = () => {
 
                             <div className="space-y-2.5 mb-4">
                               <div className="flex items-center gap-2 text-sm">
-                                <Clock className="h-4 w-4 text-yellow-600 shrink-0" />
-                                <Badge variant="outline" className="text-xs py-1 px-2.5 bg-yellow-50 text-yellow-700 border-yellow-200 h-6">
+                                <Clock className="h-4 w-4 text-gray-500 shrink-0" />
+                                <Badge variant="outline" className="text-xs py-1 px-2.5 bg-gray-100 text-gray-700 border-gray-200 h-6">
                                   {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}
                                 </Badge>
                               </div>
@@ -653,8 +657,8 @@ const TeacherCalendar = () => {
                               
                               {event.location && (
                                 <div className="flex items-center gap-2 text-sm">
-                                  <MapPin className="h-4 w-4 text-green-600 shrink-0" />
-                                  <Badge variant="outline" className="text-xs py-1 px-2.5 bg-green-50 text-green-700 border-green-200 h-6">
+                                  <MapPin className="h-4 w-4 text-gray-500 shrink-0" />
+                                  <Badge variant="outline" className="text-xs py-1 px-2.5 bg-gray-100 text-gray-700 border-gray-200 h-6">
                                     {event.location}
                                   </Badge>
                                 </div>
@@ -666,12 +670,14 @@ const TeacherCalendar = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setSelectedEventForEdit(event);
+                                  setIsEditMode(true);
                                   setShowEventDetailsDialog(true);
                                 }}
                                 className="flex-1 h-9 bg-white hover:bg-blue-500 hover:scale-110 hover:shadow-lg transition-all duration-200 border-2 border-blue-300 hover:border-blue-500 group-hover:border-blue-400 [&>svg]:hover:text-white [&>svg]:text-blue-600"
-                                title="Visualizar/Editar evento"
+                                title="Editar evento"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -726,6 +732,7 @@ const TeacherCalendar = () => {
             fetchClassEvents();
             setSelectedEventForEdit(null);
           }}
+          isEditMode={isEditMode}
         />
       </div>
     </MainLayout>

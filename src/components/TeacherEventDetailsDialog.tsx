@@ -49,6 +49,7 @@ interface TeacherEventDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEventUpdated?: () => void;
+  isEditMode?: boolean;
 }
 
 const categoryOptions = [
@@ -78,9 +79,10 @@ export const TeacherEventDetailsDialog = ({
   event,
   open,
   onOpenChange,
-  onEventUpdated
+  onEventUpdated,
+  isEditMode: initialEditMode = false
 }: TeacherEventDetailsDialogProps) => {
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(initialEditMode);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [details, setDetails] = useState<EventDetails | null>(null);
@@ -107,9 +109,9 @@ export const TeacherEventDetailsDialog = ({
       setEditedCategory(event.category || "aula");
       setEditedColor(event.color || "azul");
       setEditedStatus(event.status || "pending");
-      setIsEditMode(false);
+      setIsEditMode(initialEditMode);
     }
-  }, [event, open]);
+  }, [event, open, initialEditMode]);
 
   const fetchEventDetails = async () => {
     if (!event?.classId) return;
