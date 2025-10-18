@@ -3,8 +3,17 @@ project_id = "kzupylvyamjaaobongvm"
 [functions.generate-conversation-title]
 verify_jwt = true
 
+[functions.generate-teacher-conversation-title]
+verify_jwt = true
+
 [functions.mia-student-chat]
 verify_jwt = true
+
+[functions.mia-teacher-chat]
+verify_jwt = true
+
+[functions.teacher-job-runner]
+verify_jwt = false
 
 [functions.job-runner]
 verify_jwt = false

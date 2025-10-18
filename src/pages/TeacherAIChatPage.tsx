@@ -259,7 +259,7 @@ const TeacherAIChatPage = () => {
 
       const conversationId = activeConversationId || crypto.randomUUID();
       
-      const { data, error } = await supabase.functions.invoke('mia-student-chat', {
+      const { data, error } = await supabase.functions.invoke('mia-teacher-chat', {
         body: {
           action: jobType,
           context: payload,
@@ -387,25 +387,10 @@ const TeacherAIChatPage = () => {
         setActiveConversationId(conversationId);
         loadConversations();
         
-        // Gerar título automaticamente
-        try {
-          const { data: titleData, error: titleError } = await supabase.functions.invoke(
-            'generate-conversation-title',
-            { body: { conversationId: newConversation.id, firstMessage: inputMessage } }
-          );
-          
-          if (titleError) {
-            console.error('Error generating title:', titleError);
-          } else {
-            console.log('✅ Título gerado:', titleData?.title);
-            loadConversations();
-          }
-        } catch (error) {
-          console.error('Error calling title generation:', error);
-        }
+        // Gerar título pedagógico automaticamente
         setTimeout(async () => {
           try {
-            const { data: titleData } = await supabase.functions.invoke('generate-conversation-title', {
+            const { data: titleData } = await supabase.functions.invoke('generate-teacher-conversation-title', {
               body: { 
                 conversationId: conversationId, 
                 firstMessage: currentMessage 
@@ -413,12 +398,11 @@ const TeacherAIChatPage = () => {
             });
             
             if (titleData?.title) {
-              console.log('✅ Título gerado:', titleData.title);
-              // Recarregar conversas para atualizar título
+              console.log('✅ Título pedagógico gerado:', titleData.title);
               loadConversations();
             }
           } catch (error) {
-            console.error('Error generating title:', error);
+            console.error('Error generating teacher title:', error);
           }
         }, 2000);
       } catch (error) {
@@ -451,7 +435,7 @@ const TeacherAIChatPage = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
 
-      const { data: functionData, error: functionError } = await supabase.functions.invoke('mia-student-chat', {
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('mia-teacher-chat', {
         body: {
           message: currentMessage,
           isDeepSearch,
