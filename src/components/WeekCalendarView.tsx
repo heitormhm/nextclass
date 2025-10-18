@@ -57,14 +57,14 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   };
 
   const getEventColorClasses = (color: string = 'azul') => {
-    const colorMap: Record<string, { bg: string; text: string; badge: string; border: string }> = {
-      'azul': { bg: 'from-blue-500 to-blue-600', text: 'text-blue-700', badge: 'bg-blue-50', border: 'border-blue-200' },
-      'vermelho': { bg: 'from-red-500 to-red-600', text: 'text-red-700', badge: 'bg-red-50', border: 'border-red-200' },
-      'verde': { bg: 'from-green-500 to-green-600', text: 'text-green-700', badge: 'bg-green-50', border: 'border-green-200' },
-      'amarelo': { bg: 'from-yellow-500 to-yellow-600', text: 'text-yellow-700', badge: 'bg-yellow-50', border: 'border-yellow-200' },
-      'roxo': { bg: 'from-purple-500 to-purple-600', text: 'text-purple-700', badge: 'bg-purple-50', border: 'border-purple-200' },
-      'rosa': { bg: 'from-pink-500 to-pink-600', text: 'text-pink-700', badge: 'bg-pink-50', border: 'border-pink-200' },
-      'laranja': { bg: 'from-orange-500 to-orange-600', text: 'text-orange-700', badge: 'bg-orange-50', border: 'border-orange-200' },
+    const colorMap: Record<string, { bg: string; text: string; badge: string; border: string; tagBg: string }> = {
+      'azul': { bg: 'from-blue-500 to-blue-600', text: 'text-blue-700', badge: 'bg-blue-50', border: 'border-blue-200', tagBg: 'bg-blue-200/40 border-blue-300/50' },
+      'vermelho': { bg: 'from-red-500 to-red-600', text: 'text-red-700', badge: 'bg-red-50', border: 'border-red-200', tagBg: 'bg-red-200/40 border-red-300/50' },
+      'verde': { bg: 'from-green-500 to-green-600', text: 'text-green-700', badge: 'bg-green-50', border: 'border-green-200', tagBg: 'bg-green-200/40 border-green-300/50' },
+      'amarelo': { bg: 'from-yellow-500 to-yellow-600', text: 'text-yellow-700', badge: 'bg-yellow-50', border: 'border-yellow-200', tagBg: 'bg-yellow-200/40 border-yellow-300/50' },
+      'roxo': { bg: 'from-purple-500 to-purple-600', text: 'text-purple-700', badge: 'bg-purple-50', border: 'border-purple-200', tagBg: 'bg-purple-200/40 border-purple-300/50' },
+      'rosa': { bg: 'from-pink-500 to-pink-600', text: 'text-pink-700', badge: 'bg-pink-50', border: 'border-pink-200', tagBg: 'bg-pink-200/40 border-pink-300/50' },
+      'laranja': { bg: 'from-orange-500 to-orange-600', text: 'text-orange-700', badge: 'bg-orange-50', border: 'border-orange-200', tagBg: 'bg-orange-200/40 border-orange-300/50' },
     };
     return colorMap[color] || colorMap['azul'];
   };
@@ -221,27 +221,24 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                   event.category && "pb-6"
                 )}>
                           <div>
-              <div className="text-xs font-semibold truncate">
+              <div className={cn(
+                "font-semibold truncate",
+                height > 80 ? "text-xs" : "text-[11px]"
+              )}>
                 {event.title}
               </div>
-                            {/* Tags alinhadas na mesma linha */}
-                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {/* Tag de horário */}
+                            <div className="flex items-center gap-1.5 mt-1">
                               <Badge 
                                 variant="outline" 
-                                className="text-[10px] py-0.5 px-1.5 bg-white/20 border-white/30 text-white inline-flex items-center gap-0.5 h-5"
+                                className={cn(
+                                  "text-[10px] py-0.5 px-1.5 text-white inline-flex items-center gap-0.5 h-5 font-medium",
+                                  colorClasses.tagBg
+                                )}
                               >
                                 <Clock className="h-2.5 w-2.5" />
                                 {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}
                               </Badge>
-                              {event.location && height > 50 && (
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-[10px] py-0.5 px-1.5 bg-white/20 border-white/30 text-white inline-flex items-center gap-0.5 h-5"
-                                >
-                                  <MapPin className="h-2.5 w-2.5" />
-                                  {event.location}
-                                </Badge>
-                              )}
                             </div>
                           </div>
 
@@ -282,14 +279,13 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
                           )}
                         </div>
 
-                        {/* Category badge - oculta se cancelado */}
-            {event.category && !isCompleted && (
+                        {/* Category badge - oculta se cancelado ou altura < 60px */}
+            {event.category && !isCompleted && height > 60 && (
               <Badge
                 variant="outline"
                 className={cn(
-                  "absolute left-1 text-[9px] px-1.5 py-0.5 z-[5] pointer-events-none shadow-sm",
+                  "absolute left-1 text-[10px] px-1.5 py-0.5 z-[5] pointer-events-none shadow-sm font-medium h-5",
                   height > 80 ? "bottom-2" : "bottom-1",
-                  height > 60 ? "h-5 text-[10px]" : "h-4 scale-90",
                   `${colorClasses.badge} ${colorClasses.text} ${colorClasses.border} border-2`
                 )}
               >
