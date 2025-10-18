@@ -345,7 +345,7 @@ export const TeacherEventDetailsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <FlexDialogContent className="max-w-3xl max-h-[90vh] p-0 relative">
+      <FlexDialogContent className="max-w-3xl h-[90vh] max-h-[90vh] p-0 relative">
         <Button
           variant="ghost"
           size="icon"
