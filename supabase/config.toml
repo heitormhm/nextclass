@@ -1,5 +1,8 @@
 project_id = "kzupylvyamjaaobongvm"
 
+[functions.generate-conversation-title]
+verify_jwt = true
+
 [functions.mia-student-chat]
 verify_jwt = true
 

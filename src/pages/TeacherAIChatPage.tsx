@@ -130,12 +130,18 @@ const TeacherAIChatPage = () => {
         .from('conversations')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10); // Últimas 10 conversas
 
       if (error) throw error;
       setConversations(data || []);
     } catch (error) {
       console.error('Error loading conversations:', error);
+      toast({
+        title: "Erro ao carregar conversas",
+        description: "Não foi possível carregar o histórico.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -380,6 +386,26 @@ const TeacherAIChatPage = () => {
         conversationId = newConversation.id;
         setActiveConversationId(conversationId);
         loadConversations();
+        
+        // Gerar título automaticamente
+        setTimeout(async () => {
+          try {
+            const { data: titleData } = await supabase.functions.invoke('generate-conversation-title', {
+              body: { 
+                conversationId: conversationId, 
+                firstMessage: currentMessage 
+              }
+            });
+            
+            if (titleData?.title) {
+              console.log('✅ Título gerado:', titleData.title);
+              // Recarregar conversas para atualizar título
+              loadConversations();
+            }
+          } catch (error) {
+            console.error('Error generating title:', error);
+          }
+        }, 2000);
       } catch (error) {
         console.error('Error creating conversation:', error);
         toast({
@@ -571,7 +597,16 @@ const TeacherAIChatPage = () => {
       job_type_field: (job as any).job_type
     });
 
-  // 🔥 DESLIGAR LOADER quando DEEP_SEARCH completa (removido - agora usa timer)
+    // ✅ Fechar loader quando DEEP_SEARCH completa
+    if (job.job_type === 'DEEP_SEARCH' && job.status === 'COMPLETED') {
+      console.log('✅ Deep search completed, closing loader');
+      setIsDeepSearchLoading(false);
+    }
+
+    if (job.job_type === 'DEEP_SEARCH' && job.status === 'FAILED') {
+      console.log('❌ Deep search failed, closing loader');
+      setIsDeepSearchLoading(false);
+    }
     
     if (job.status === 'COMPLETED' || job.status === 'FAILED') {
       if (!processedJobsRef.current.has(job.id)) {
@@ -616,21 +651,10 @@ const TeacherAIChatPage = () => {
       if (currentStep < stepsCount) {
         setDeepSearchProgress(currentStep);
       } else {
-        // Fechar loader após 15 segundos
+        // NÃO fechar loader aqui - deixar o backend fazer isso
         clearInterval(interval);
-        setIsDeepSearchLoading(false);
         setDeepSearchProgress(stepsCount - 1);
-        
-        // 🎯 CRIAR NOVA MENSAGEM COM BOTÕES DE AÇÃO após o timer
-        const actionButtonsMessage: Message = {
-          id: `action-buttons-${Date.now()}`,
-          content: 'DEEP_SEARCH_ACTION_BUTTONS',
-          isUser: false,
-          timestamp: new Date(),
-          isSystemMessage: false,
-        };
-        
-        setMessages(prev => [...prev, actionButtonsMessage]);
+        // REMOVIDO: setIsDeepSearchLoading(false);
       }
     }, stepDuration);
     
@@ -821,7 +845,7 @@ const TeacherAIChatPage = () => {
                           Continue explorando com Mia:
                         </h3>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
+                        <div className="grid gap-3 w-full" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                           {/* Linha 1 */}
                           <Button
                             size="sm"
@@ -888,7 +912,9 @@ const TeacherAIChatPage = () => {
                           components={{
                             h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-4 mb-2 text-foreground" {...props} />,
                             h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-3 mb-2 text-foreground" {...props} />,
-                            p: ({node, ...props}) => <p className="mb-2 text-foreground" {...props} />,
+                            p: ({node, children, ...props}) => {
+                              return <p className="mb-2 text-foreground leading-relaxed" {...props}>{children}</p>;
+                            },
                             strong: ({node, ...props}) => <strong className="font-bold text-foreground" {...props} />,
                             div: ({node, className, ...props}: any) => {
                               if (className === 'math math-display') {
@@ -902,17 +928,26 @@ const TeacherAIChatPage = () => {
                               }
                               return <span className={className} {...props} />;
                             },
-                            code: ({node, inline, ...props}: any) => 
-                              inline 
-                                ? <code className="bg-background/50 px-1.5 py-0.5 rounded text-xs font-mono text-primary" {...props} />
-                                : <code className="block bg-background/50 p-3 rounded text-xs font-mono overflow-x-auto my-2 text-foreground" {...props} />,
+                            code: ({node, inline, className, children, ...props}: any) => {
+                              const content = String(children).replace(/\n$/, '');
+                              
+                              // Detectar símbolos matemáticos LaTeX inline ($...$)
+                              if (inline && content.match(/^\$.+\$$/)) {
+                                return <span className="mx-1">{content}</span>;
+                              }
+                              
+                              return inline 
+                                ? <code className="bg-background/50 px-1.5 py-0.5 rounded text-xs font-mono text-primary break-all whitespace-pre-wrap" {...props}>{content}</code>
+                                : <code className="block bg-background/50 p-3 rounded text-xs font-mono overflow-x-auto my-2 text-foreground whitespace-pre-wrap" {...props}>{content}</code>;
+                            },
                             pre: ({node, ...props}) => <pre className="bg-background/50 p-3 rounded overflow-x-auto my-2" {...props} />,
                             a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer" {...props} />,
                             ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 space-y-1 my-2 text-foreground" {...props} />,
                             ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 space-y-1 my-2 text-foreground" {...props} />,
                             li: ({node, ...props}) => <li className="text-foreground pl-1" {...props} />,
                             blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/50 pl-4 italic my-2 text-foreground/80" {...props} />,
-                            sup: ({node, ...props}) => <sup className="text-primary font-semibold" {...props} />,
+                            sub: ({node, ...props}) => <sub className="text-xs" {...props} />,
+                            sup: ({node, ...props}) => <sup className="text-xs text-pink-600 font-semibold" {...props} />,
                           }}
                         >
                           {message.content}
