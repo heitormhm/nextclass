@@ -138,6 +138,33 @@ export default {
             "background-size": "200% 200%",
             "background-position": "right center"
           }
+        },
+        "loader-pulse": {
+          "0%, 100%": {
+            opacity: "1",
+            transform: "scale(1)"
+          },
+          "50%": {
+            opacity: "0.5",
+            transform: "scale(1.05)"
+          }
+        },
+        "loader-slide": {
+          "0%": {
+            transform: "translateX(-100%)",
+            opacity: "0"
+          },
+          "10%": {
+            transform: "translateX(0)",
+            opacity: "1"
+          },
+          "90%": {
+            opacity: "1"
+          },
+          "100%": {
+            transform: "translateX(0)",
+            opacity: "0.7"
+          }
         }
       },
       animation: {
@@ -147,6 +174,8 @@ export default {
         "draw-line": "draw-line 3s ease-in-out infinite",
         "float": "float 6s ease-in-out infinite",
         "gradient-xy": "gradient-xy 15s ease infinite",
+        "loader-pulse": "loader-pulse 3s ease-in-out infinite",
+        "loader-slide": "loader-slide 2.5s ease-in-out forwards",
       },
     },
   },

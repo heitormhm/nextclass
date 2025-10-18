@@ -653,27 +653,35 @@ const TeacherAIChatPage = () => {
       return;
     }
     
-    // ⏱️ Timer de 15 segundos distribuído entre os steps
-    const totalDuration = 15000; // 15 segundos
+    const startTime = Date.now();
+    const totalDuration = 15000; // ✅ EXATAMENTE 15 segundos
     const stepsCount = deepSearchSteps.length;
     const stepDuration = totalDuration / stepsCount; // ~2.5s por step
     
     let currentStep = 0;
     setDeepSearchProgress(0);
     
+    // Timer para progressão dos steps
     const interval = setInterval(() => {
       currentStep++;
       if (currentStep < stepsCount) {
         setDeepSearchProgress(currentStep);
       } else {
-        // NÃO fechar loader aqui - deixar o backend fazer isso
-        clearInterval(interval);
         setDeepSearchProgress(stepsCount - 1);
-        // REMOVIDO: setIsDeepSearchLoading(false);
       }
     }, stepDuration);
     
-    return () => clearInterval(interval);
+    // ✅ TIMER ABSOLUTO: Fechar após EXATAMENTE 15 segundos
+    const closeTimer = setTimeout(() => {
+      clearInterval(interval);
+      setIsDeepSearchLoading(false);
+      setDeepSearchProgress(0);
+    }, totalDuration);
+    
+    return () => {
+      clearInterval(interval);
+      clearTimeout(closeTimer);
+    };
   }, [isDeepSearchLoading, deepSearchSteps.length]);
 
   // Realtime subscription
@@ -852,73 +860,99 @@ const TeacherAIChatPage = () => {
                       : "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
                   )}
                 >
-                  {/* Caso especial: Renderizar botões de ação para Deep Search */}
-                    {!message.isUser && message.content === 'DEEP_SEARCH_ACTION_BUTTONS' ? (
-                      <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-purple-50/80 to-pink-50/80 border-2 border-purple-200">
-                        <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
-                          <Sparkles className="w-4 h-4" />
-                          Continue explorando com Mia:
-                        </h3>
+                  {/* Renderização condicional: Botões 3x2 OU Conteúdo normal */}
+                  {!message.isUser && message.content.includes('Continue explorando') ? (
+                    <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-purple-50/80 to-pink-50/80 border-2 border-purple-200">
+                      <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        Continue explorando com Mia:
+                      </h3>
+                      
+                      {/* Grid 3x2 de botões */}
+                      <div 
+                        className="grid gap-3 w-full" 
+                        style={{ 
+                          gridTemplateColumns: 'repeat(3, 1fr)',
+                          gridTemplateRows: 'repeat(2, minmax(60px, 1fr))',
+                          height: 'auto'
+                        }}
+                      >
+                        {/* LINHA 1 */}
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_SLIDES', { 
+                            context: messages[messages.length - 2]?.content || '', 
+                            topic: 'este tópico' 
+                          })}
+                          className="h-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
+                        >
+                          <Presentation className="w-5 h-5 shrink-0" />
+                          <span className="font-bold text-xs text-center">Criar apresentação em slides</span>
+                        </Button>
                         
-                        <div className="grid gap-3 w-full" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(2, minmax(0, 1fr))' }}>
-                          {/* Linha 1 */}
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_QUIZ', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <FileQuestion className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Criar Quiz</span>
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_FLASHCARDS', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <Layers className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Criar Flashcards</span>
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_LESSON_PLAN', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <BookOpen className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Plano de Aula</span>
-                          </Button>
-                          
-                          {/* Linha 2 */}
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_SLIDES', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <Presentation className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Criar Slides</span>
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_MULTIPLE_CHOICE_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <CheckSquare className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Múltipla Escolha</span>
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            onClick={() => handleAction('GENERATE_OPEN_ENDED_ACTIVITY', { context: messages[messages.length - 2]?.content || '', topic: 'este tópico' })}
-                            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl flex items-center justify-center"
-                          >
-                            <Edit className="w-4 h-4 mr-2 shrink-0" />
-                            <span className="font-bold text-sm">Atividade Avaliativa</span>
-                          </Button>
-                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_QUIZ', { 
+                            context: messages[messages.length - 2]?.content || '', 
+                            topic: 'este tópico' 
+                          })}
+                          className="h-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
+                        >
+                          <FileQuestion className="w-5 h-5 shrink-0" />
+                          <span className="font-bold text-xs text-center">Criar quiz</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_FLASHCARDS', { 
+                            context: messages[messages.length - 2]?.content || '', 
+                            topic: 'este tópico' 
+                          })}
+                          className="h-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
+                        >
+                          <Layers className="w-5 h-5 shrink-0" />
+                          <span className="font-bold text-xs text-center">Criar flashcards</span>
+                        </Button>
+                        
+                        {/* LINHA 2 */}
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_OPEN_ENDED_ACTIVITY', { 
+                            context: messages[messages.length - 2]?.content || '', 
+                            topic: 'este tópico' 
+                          })}
+                          className="h-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
+                        >
+                          <Edit className="w-5 h-5 shrink-0" />
+                          <span className="font-bold text-xs text-center">Criar atividade avaliativa</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_LESSON_PLAN', { 
+                            context: messages[messages.length - 2]?.content || '', 
+                            topic: 'este tópico' 
+                          })}
+                          className="h-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
+                        >
+                          <BookOpen className="w-5 h-5 shrink-0" />
+                          <span className="font-bold text-xs text-center">Criar Plano de aula</span>
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => handleAction('GENERATE_STUDY_MATERIAL', { 
+                            context: messages[messages.length - 2]?.content || '', 
+                            topic: 'este tópico' 
+                          })}
+                          className="h-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
+                        >
+                          <BookOpen className="w-5 h-5 shrink-0" />
+                          <span className="font-bold text-xs text-center">Criar Material de estudo</span>
+                        </Button>
                       </div>
-                    ) : (
+                    </div>
+                  ) : (
                     <>
                       <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
                         <ReactMarkdown
@@ -928,6 +962,28 @@ const TeacherAIChatPage = () => {
                             h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-4 mb-2 text-foreground" {...props} />,
                             h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-3 mb-2 text-foreground" {...props} />,
                             p: ({node, children, ...props}) => {
+                              // Detectar caixas de destaque
+                              const text = String(children);
+                              if (text.startsWith('> **')) {
+                                const match = text.match(/^> \*\*(.+?):\*\* (.+)$/);
+                                if (match) {
+                                  const [, title, content] = match;
+                                  const bgColors: { [key: string]: string } = {
+                                    'Nota': 'bg-yellow-50 border-yellow-300',
+                                    'Atenção': 'bg-red-50 border-red-300',
+                                    'Dica': 'bg-blue-50 border-blue-300',
+                                    'Exemplo': 'bg-green-50 border-green-300'
+                                  };
+                                  const colorClass = bgColors[title] || 'bg-gray-50 border-gray-300';
+                                  
+                                  return (
+                                    <div className={`my-3 p-3 rounded-lg border-l-4 ${colorClass}`}>
+                                      <span className="font-bold text-sm">{title}:</span>{' '}
+                                      <span className="text-sm">{content}</span>
+                                    </div>
+                                  );
+                                }
+                              }
                               return <p className="mb-2 text-foreground leading-relaxed" {...props}>{children}</p>;
                             },
                             strong: ({node, ...props}) => <strong className="font-bold text-foreground" {...props} />,

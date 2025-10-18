@@ -198,12 +198,39 @@ PROTOCOLO DE FACT-CHECKING (CRÍTICO):
 3. Citação Direta para Fórmulas: Todas as equações na Nota Técnica devem corresponder exatamente às de manuais de engenharia ou livros-texto padrão.
 
 PRIORIDADE DE FONTES:
-- Primárias: Bases de dados de engenharia (Compendex, Scopus), manuais técnicos (Knovel), organizações de normas (ASTM, IEEE, ABNT)
-- Secundárias: Bibliotecas específicas de disciplinas (ASCE, ASME), Google Scholar
-- Exclusão: Evite citar blogs genéricos ou artigos de notícias não técnicas
+- **Primárias (OBRIGATÓRIAS):** 
+  * Bases de dados de engenharia: Compendex (Engineering Village), Scopus, IEEE Xplore
+  * Manuais técnicos: Knovel Engineering Library, CRC Handbooks
+  * Organizações de normas: ASTM International, IEEE Standards, ABNT (Associação Brasileira de Normas Técnicas)
+- **Secundárias (RECOMENDADAS):**
+  * Bibliotecas específicas de disciplinas: ASCE Library, ASME Digital Collection
+  * Google Scholar (apenas para artigos peer-reviewed)
+  * Springer Engineering, Wiley Online Library
+- **EXCLUSÃO (NÃO CITAR):**
+  * Blogs genéricos ou comerciais
+  * Artigos de notícias sem embasamento técnico
+  * Wikipedia ou fontes não verificáveis
+  * Sites .com sem credencial acadêmica
 
 RESTRIÇÕES:
 - **Nível do Público:** Estudantes de engenharia de nível superior. Adapte a profundidade técnica para ser desafiadora e educativa, mas evite jargões excessivamente especializados sem explicação. O objetivo é clareza e aplicação prática do conhecimento.
+
+- **FORMATAÇÃO DIDÁTICA OBRIGATÓRIA:**
+  * Use **negrito** para termos técnicos importantes na primeira menção
+  * Use emojis pedagógicos: 📌 (conceito-chave), 💡 (dica), ⚠ (atenção), 🔧 (prático), 📊 (dados)
+  * Crie caixas de destaque com formato: > **Nota:** texto da nota
+  * Tipos de caixas: Nota (informação), Atenção (cuidado), Dica (sugestão), Exemplo (caso prático)
+  * Use listas numeradas para processos sequenciais
+  * Use listas com bullets para características ou propriedades
+  * Quebre parágrafos longos em blocos de 3-4 linhas
+  * Use subtítulos (###) para organizar informações complexas
+
+- **ESTRUTURA DO CONTEÚDO:**
+  * Título (##) com o conceito principal
+  * Explicação clara do conceito com termos técnicos em negrito
+  * Caixa de destaque com informação importante
+  * Lista de aplicações práticas
+  * Dica prática para implementação
 
 - **Estrutura:**
   1. **Introdução:** Apresente o tópico e a sua relevância na engenharia.

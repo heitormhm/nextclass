@@ -47,12 +47,10 @@ export const MultiStepLoader = ({
               <div
                 key={index}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
-                  index === currentState
-                    ? "bg-pink-500/10 text-pink-500"
-                    : index < currentState
-                    ? "text-muted-foreground"
-                    : "text-muted-foreground/60"
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-500",
+                  index <= currentState
+                    ? "bg-pink-50 text-pink-900 animate-loader-slide"
+                    : "text-gray-400"
                 )}
               >
                 <div

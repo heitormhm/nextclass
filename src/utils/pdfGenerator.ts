@@ -65,6 +65,19 @@ interface RenderStats {
   italicText: number;
 }
 
+// Mapa de emojis para caracteres Unicode seguros para PDF
+const emojiMap: { [key: string]: string } = {
+  '✓': '✓', '✗': '✗', '→': '→', '←': '←', 
+  '⚠': '⚠', '📌': '※', '💡': '★', '🔧': '⚙',
+  '📊': '◆', '🎯': '◎', '📚': '☰', '📝': '✎',
+  '🔗': '⚐', '✨': '✦', '⏱': '⏱', '🧠': '◉',
+  '🔍': '🔍'
+};
+
+const replaceEmojis = (text: string): string => {
+  return text.replace(/[\u{1F300}-\u{1F9FF}]/gu, (emoji) => emojiMap[emoji] || '•');
+};
+
 interface SectionAnchor {
   title: string;
   level: number;
@@ -817,6 +830,44 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
       return;
     }
 
+    // Detectar caixas de destaque: > **Nota:** texto
+    if (trimmedLine.startsWith('> **')) {
+      const boxMatch = trimmedLine.match(/^> \*\*(.+?):\*\* (.+)$/);
+      if (boxMatch) {
+        const [, title, content] = boxMatch;
+        checkPageBreak(20);
+        
+        // Cores por tipo
+        const colors: { [key: string]: [number, number, number] } = {
+          'Nota': [255, 243, 205],      // Amarelo claro
+          'Atenção': [255, 229, 229],   // Vermelho claro
+          'Dica': [229, 243, 255],      // Azul claro
+          'Exemplo': [229, 255, 229]    // Verde claro
+        };
+        
+        const bgColor = colors[title] || [245, 245, 245];
+        
+        doc.setFillColor(...bgColor);
+        doc.rect(margin, yPosition - 3, contentWidth, 18, 'F');
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
+        doc.rect(margin, yPosition - 3, contentWidth, 18);
+        
+        // Título em negrito
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${title}:`, margin + 3, yPosition + 3);
+        
+        // Conteúdo
+        doc.setFont('helvetica', 'normal');
+        const wrappedContent = doc.splitTextToSize(content, contentWidth - 10);
+        doc.text(wrappedContent, margin + 3, yPosition + 9);
+        
+        yPosition += 22;
+        return;
+      }
+    }
+
     // FASE 3 & 5: Equation detection e renderização melhorada
     if (isEquation(trimmedLine)) {
       renderStats.equations++;
@@ -940,8 +991,71 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     
-    // FASE 3 (REFATORADA): Processamento de referências ANTES de quebra de linha
-    const processedLine = trimmedLine; // Usar Unicode nativo
+    // Processar emojis
+    let processedLine = replaceEmojis(trimmedLine);
+    
+    // Detectar texto em negrito: **texto**
+    const boldMatches = Array.from(processedLine.matchAll(/\*\*(.+?)\*\*/g));
+    
+    if (boldMatches.length > 0) {
+      // Tem texto em negrito - processar segmentos
+      const segments: Array<{text: string, bold: boolean}> = [];
+      let lastIndex = 0;
+      
+      for (const match of boldMatches) {
+        if (match.index! > lastIndex) {
+          segments.push({ text: processedLine.slice(lastIndex, match.index), bold: false });
+        }
+        segments.push({ text: match[1], bold: true });
+        lastIndex = match.index! + match[0].length;
+      }
+      if (lastIndex < processedLine.length) {
+        segments.push({ text: processedLine.slice(lastIndex), bold: false });
+      }
+      
+      // Renderizar segmentos com quebra de linha correta
+      let currentLine = '';
+      
+      segments.forEach(segment => {
+        const words = segment.text.split(' ');
+        
+        words.forEach(word => {
+          const testLine = currentLine + (currentLine ? ' ' : '') + word;
+          const lineWidth = doc.getTextWidth(testLine);
+          
+          if (lineWidth > contentWidth) {
+            // Renderizar linha atual
+            if (currentLine) {
+              doc.text(currentLine, margin, yPosition);
+              yPosition += 6;
+              checkPageBreak(8);
+            }
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        });
+        
+        // Aplicar negrito se necessário
+        if (segment.bold && currentLine) {
+          doc.setFont('helvetica', 'bold');
+          doc.text(currentLine, margin, yPosition);
+          doc.setFont('helvetica', 'normal');
+          yPosition += 6;
+          checkPageBreak(8);
+          currentLine = '';
+        }
+      });
+      
+      // Renderizar linha final
+      if (currentLine) {
+        doc.text(currentLine, margin, yPosition);
+        yPosition += 6;
+      }
+      
+      yPosition += 4;
+      return;
+    }
     
     // FASE 3: PRIMEIRO detectar referências
     const { hasRefs, segments } = formatReferences(processedLine);
