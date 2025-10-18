@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
 
 const TeacherAnnotationPage = () => {
   const navigate = useNavigate();
@@ -41,6 +42,10 @@ const TeacherAnnotationPage = () => {
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isLoadingAnnotation, setIsLoadingAnnotation] = useState(false);
+  
+  // Structured content state
+  const [structuredContent, setStructuredContent] = useState<any>(null);
+  const [isStructuredMode, setIsStructuredMode] = useState(false);
   
   // History state for undo/redo
   const [history, setHistory] = useState<string[]>([]);
@@ -75,6 +80,21 @@ const TeacherAnnotationPage = () => {
         if (data) {
           setTitle(data.title || '');
           setTags(data.tags || []);
+          
+          // Detectar se é conteúdo estruturado
+          try {
+            const parsed = JSON.parse(data.content);
+            if (parsed.conteudo && Array.isArray(parsed.conteudo)) {
+              setStructuredContent(parsed);
+              setIsStructuredMode(true);
+              setContent(data.content); // Manter JSON para salvar
+              setHistory([data.content]);
+              setHistoryIndex(0);
+              return;
+            }
+          } catch {
+            // Não é JSON estruturado, continuar com HTML normal
+          }
           
           setTimeout(() => {
             if (editorRef.current && data.content) {
@@ -375,15 +395,14 @@ const TeacherAnnotationPage = () => {
             const parsedContent = JSON.parse(jsonString);
             
             if (parsedContent.conteudo && Array.isArray(parsedContent.conteudo)) {
-              // É um conteúdo estruturado pelo Designer Instrucional
-              const htmlContent = renderStructuredContent(parsedContent);
-              setContent(htmlContent);
-              if (editorRef.current) {
-                editorRef.current.innerHTML = htmlContent;
-              }
-              saveToHistory(htmlContent);
+              // É um conteúdo estruturado pelo Designer Instrucional - modo estruturado
+              setStructuredContent(parsedContent);
+              setIsStructuredMode(true);
+              setContent(JSON.stringify(parsedContent)); // Salvar JSON no banco
+              saveToHistory(JSON.stringify(parsedContent));
+              
               toast.success('Conteúdo pedagógico estruturado gerado!', {
-                description: `${parsedContent.conteudo.length} blocos didáticos criados`,
+                description: `${parsedContent.conteudo.length} blocos didáticos criados com visualização interativa`,
                 duration: 5000,
               });
               setIsProcessingAI(false);
@@ -638,95 +657,6 @@ const TeacherAnnotationPage = () => {
     }
   };
 
-  const renderStructuredContent = (structuredData: any): string => {
-    let html = `<h1 style="font-size: 2em; font-weight: bold; margin: 24px 0 16px 0; color: #1f2937;">${structuredData.titulo_geral}</h1>\n\n`;
-    
-    structuredData.conteudo.forEach((bloco: any, index: number) => {
-      switch (bloco.tipo) {
-        case 'h2':
-          html += `<h2 style="font-size: 1.75em; font-weight: bold; margin: 20px 0 12px 0; color: #374151;">${bloco.texto}</h2>\n`;
-          break;
-          
-        case 'h3':
-          html += `<h3 style="font-size: 1.5em; font-weight: bold; margin: 16px 0 10px 0; color: #4b5563;">${bloco.texto}</h3>\n`;
-          break;
-          
-        case 'h4':
-          html += `<h4 style="font-size: 1.25em; font-weight: bold; margin: 12px 0 8px 0; color: #6b7280;">${bloco.texto}</h4>\n`;
-          break;
-        
-        case 'paragrafo':
-          html += `<p style="margin: 12px 0; line-height: 1.6; color: #1f2937;">${bloco.texto}</p>\n`;
-          break;
-          
-        case 'caixa_de_destaque':
-          html += `
-            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 5px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-              <h4 style="margin: 0 0 12px 0; font-weight: bold; color: #92400e; font-size: 1.1em;">📌 ${bloco.titulo}</h4>
-              <div style="color: #78350f; line-height: 1.6;">${bloco.texto}</div>
-            </div>\n`;
-          break;
-          
-        case 'post_it':
-          html += `
-            <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border: 3px dashed #3b82f6; padding: 16px; margin: 16px 0; border-radius: 10px; box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);">
-              <p style="margin: 0; font-style: italic; color: #1e40af; line-height: 1.5;">💡 ${bloco.texto}</p>
-            </div>\n`;
-          break;
-          
-        case 'fluxograma':
-        case 'mapa_mental':
-        case 'diagrama':
-          const iconMap: any = {
-            'fluxograma': '📊',
-            'mapa_mental': '🧠',
-            'diagrama': '📐'
-          };
-          html += `
-            <div style="background: #f9fafb; padding: 24px; margin: 24px 0; border-radius: 12px; border: 2px solid #e5e7eb;">
-              <h4 style="margin: 0 0 8px 0; font-weight: bold; color: #111827;">${iconMap[bloco.tipo]} ${bloco.titulo}</h4>
-              <p style="margin: 0 0 16px 0; font-style: italic; color: #6b7280; font-size: 0.95em;">${bloco.descricao}</p>
-              <div style="background: #1f2937; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 12px 0;">
-                <pre style="margin: 0; color: #e5e7eb; font-family: 'Courier New', monospace; font-size: 0.9em; white-space: pre-wrap; word-break: break-word;"><code class="language-mermaid">${bloco.definicao_mermaid}</code></pre>
-              </div>
-              <p style="font-size: 0.85em; color: #9ca3af; margin: 8px 0 0 0;">💡 <em>Cole este código em uma ferramenta Mermaid (ex: mermaid.live) para visualizar o diagrama</em></p>
-            </div>\n`;
-          break;
-          
-        case 'grafico':
-          html += `
-            <div style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); padding: 24px; margin: 24px 0; border-radius: 12px; border: 2px solid #d1d5db;">
-              <h4 style="margin: 0 0 8px 0; font-weight: bold; color: #111827;">📈 ${bloco.titulo}</h4>
-              <p style="margin: 0 0 16px 0; font-style: italic; color: #6b7280;">${bloco.descricao}</p>
-              <p style="margin: 12px 0 8px 0; font-weight: 600; color: #374151;">Tipo de Gráfico: <span style="background: #dbeafe; padding: 4px 12px; border-radius: 6px; color: #1e40af;">${bloco.tipo_grafico}</span></p>
-              <ul style="list-style: none; padding: 0; margin: 12px 0;">
-                ${bloco.dados.map((d: any) => `<li style="padding: 8px; margin: 4px 0; background: white; border-radius: 6px; border-left: 4px solid #3b82f6;"><strong>${d.categoria}:</strong> ${d.valor}</li>`).join('')}
-              </ul>
-            </div>\n`;
-          break;
-          
-        case 'componente_react':
-          html += `
-            <div style="background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); padding: 24px; margin: 24px 0; border-radius: 12px; border: 3px solid #8b5cf6; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);">
-              <h4 style="margin: 0 0 8px 0; font-weight: bold; color: #5b21b6;">⚛️ ${bloco.titulo}</h4>
-              <p style="margin: 0 0 12px 0; font-style: italic; color: #6b21a8;">${bloco.descricao}</p>
-              <p style="margin: 12px 0 8px 0; color: #7c3aed;"><strong>Componente:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px; font-family: monospace;">${bloco.componente}</code> (${bloco.biblioteca})</p>
-              <details style="margin-top: 12px;">
-                <summary style="cursor: pointer; font-weight: bold; color: #6b21a8; padding: 8px; background: white; border-radius: 6px; user-select: none;">👁️ Ver Propriedades (Props)</summary>
-                <pre style="background: #1f2937; color: #e5e7eb; padding: 16px; border-radius: 8px; margin-top: 12px; overflow-x: auto; font-size: 0.9em;"><code>${JSON.stringify(bloco.props, null, 2)}</code></pre>
-              </details>
-            </div>\n`;
-          break;
-          
-        default:
-          console.warn(`[renderStructuredContent] Tipo de bloco desconhecido: "${bloco.tipo}" no índice ${index}`);
-          html += `<div style="background: #fee2e2; border: 2px dashed #dc2626; padding: 12px; margin: 12px 0; border-radius: 6px; color: #991b1b;"><strong>⚠️ Tipo de bloco não suportado:</strong> "${bloco.tipo}"</div>\n`;
-      }
-    });
-    
-    return html;
-  };
-
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
@@ -829,25 +759,57 @@ const TeacherAnnotationPage = () => {
           <div className="max-w-5xl mx-auto">
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-xl">
               <CardContent className="p-8">
-                <div
-                  ref={editorRef}
-                  contentEditable
-                  suppressContentEditableWarning={true}
-                  onInput={handleInput}
-                  className={cn(
-                    'min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg',
-                    'focus:outline-none focus:ring-2 focus:ring-primary/20',
-                    'prose prose-lg max-w-none',
-                    '[&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-800 [&_h2]:mb-4',
-                    '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2',
-                    '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2',
-                    '[&_li]:text-gray-700',
-                    '[&_p]:text-gray-700 [&_p]:leading-relaxed',
-                    !content && 'empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text'
-                  )}
-                  data-placeholder="Comece a escrever sua anotação..."
-                  style={{ lineHeight: '1.8', fontSize: '17px' }}
-                />
+                {isStructuredMode && structuredContent ? (
+                  <div className="structured-content-wrapper">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="h-5 w-5 text-purple-600" />
+                        <span className="text-sm font-semibold text-purple-900">Modo de Visualização Pedagógica</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsStructuredMode(false);
+                          setStructuredContent(null);
+                          // Converter de volta para editor editável (limpar)
+                          setContent('');
+                          if (editorRef.current) {
+                            editorRef.current.innerHTML = '';
+                          }
+                          toast.info('Voltou ao editor de texto. O conteúdo estruturado foi preservado.');
+                        }}
+                        className="hover:bg-purple-100 hover:text-purple-700"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Voltar ao Editor
+                      </Button>
+                    </div>
+                    <div className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg bg-gradient-to-br from-purple-50/50 to-blue-50/50">
+                      <StructuredContentRenderer structuredData={structuredContent} />
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    ref={editorRef}
+                    contentEditable
+                    suppressContentEditableWarning={true}
+                    onInput={handleInput}
+                    className={cn(
+                      'min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg',
+                      'focus:outline-none focus:ring-2 focus:ring-primary/20',
+                      'prose prose-lg max-w-none',
+                      '[&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-800 [&_h2]:mb-4',
+                      '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2',
+                      '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2',
+                      '[&_li]:text-gray-700',
+                      '[&_p]:text-gray-700 [&_p]:leading-relaxed',
+                      !content && 'empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text'
+                    )}
+                    data-placeholder="Comece a escrever sua anotação..."
+                    style={{ lineHeight: '1.8', fontSize: '17px' }}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
