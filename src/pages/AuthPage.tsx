@@ -38,7 +38,7 @@ const AuthPage = () => {
   const [step, setStep] = useState(1);
   const totalSteps = 3;
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   
   const loginForm = useForm<LoginFormData>();
   const signupForm = useForm<SignupFormData>({
@@ -113,9 +113,7 @@ const AuthPage = () => {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
-      const { role } = useAuth();
-      
+    if (user && role) {
       // Redirecionar baseado no role real do usuário
       if (role === 'admin') {
         navigate('/admindashboard', { replace: true });
@@ -125,7 +123,7 @@ const AuthPage = () => {
         navigate('/dashboard', { replace: true });
       }
     }
-  }, [user, navigate]);
+  }, [user, role, navigate]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
