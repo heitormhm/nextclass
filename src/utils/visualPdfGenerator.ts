@@ -234,7 +234,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     const contentWidth = pageWidth - (2 * margin);
     let currentY = margin;
 
-    // FASE 1: CABEÇALHO COM LOGO SVG NEXTCLASS REAL
+    // FASE 1: CABEÇALHO COM LOGO SVG NEXTCLASS CENTRALIZADA
     const logoY = currentY;
     
     // Logo SVG completo da NextClass
@@ -272,37 +272,20 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 </defs>
 </svg>`;
     
-    // FASE 4: Converter SVG para PNG de ALTÍSSIMA qualidade (4x resolução)
+    // FASE 1: Converter SVG para PNG de ALTA qualidade (4x resolução)
     const logoWidthPx = 188 * 4; // 752px para qualidade 4K
     const logoHeightPx = 27 * 4;  // 108px
-    const logoWidth = 70; // mm no PDF (2x maior)
-    const logoHeight = logoWidth * (27 / 188); // ~10mm altura
+    const logoWidth = 40; // FASE 1: Logo reduzida (ANTES: 70mm, AGORA: 40mm = -43%)
+    const logoHeight = logoWidth * (27 / 188); // ~5.7mm altura
     
   try {
     const logoPNG = await convertSVGtoPNG(nextclassLogoSVG, logoWidthPx, logoHeightPx);
     
-    // POSICIONAR LOGO NO CANTO SUPERIOR ESQUERDO
-    const logoX = margin;
+    // FASE 1: LOGO CENTRALIZADA NO TOPO
+    const logoX = (pageWidth - logoWidth) / 2;
     pdf.addImage(logoPNG, 'PNG', logoX, logoY, logoWidth, logoHeight);
     
-    // ADICIONAR COLUNA DEGRADÊ ROXA AO LADO DA LOGO
-    const gradientX = logoX + logoWidth + 3;
-    const gradientWidth = 5;
-    const gradientHeight = logoHeight;
-    const gradientSteps = 20;
-    const stepHeight = gradientHeight / gradientSteps;
-    
-    for (let i = 0; i < gradientSteps; i++) {
-      const ratio = i / gradientSteps;
-      const r = Math.round(145 - (145 - 63) * ratio);
-      const g = Math.round(127 - (127 - 45) * ratio);
-      const b = Math.round(251 - (251 - 175) * ratio);
-      
-      pdf.setFillColor(r, g, b);
-      pdf.rect(gradientX, logoY + (i * stepHeight), gradientWidth, stepHeight, 'F');
-    }
-    
-    console.log('✅ Logo NextClass 2x maior renderizada no canto esquerdo com coluna degradê');
+    console.log('✅ Logo NextClass centralizada (40mm) no topo da página');
     
   } catch (error) {
     console.error('❌ Erro ao renderizar logo:', error);
@@ -312,19 +295,16 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     console.log('⚠️ Continuando geração do PDF sem logo...');
   }
     
-    currentY = logoY + logoHeight + 8; // Espaço maior após logo
+    currentY = logoY + logoHeight + 10; // FASE 1: Espaço maior após logo
     
-    // TÍTULO AGORA À DIREITA DA COLUNA DEGRADÊ
-    const titleX = margin + logoWidth + 3 + 5 + 5; // Após logo + espaço + coluna + 5mm espaço
-    const titleMaxWidth = pageWidth - titleX - margin;
-    
-    pdf.setFontSize(22);
+    // FASE 1: TÍTULO CENTRALIZADO ABAIXO DA LOGO
+    pdf.setFontSize(18); // FASE 1: Reduzido de 22pt para 18pt
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(63, 45, 175); // Roxo escuro
-    const titleLines = pdf.splitTextToSize(options.title, titleMaxWidth);
-    pdf.text(titleLines, titleX, logoY + (logoHeight / 2), { align: 'left', baseline: 'middle' });
+    const titleLines = pdf.splitTextToSize(options.title, contentWidth);
+    pdf.text(titleLines, pageWidth / 2, currentY, { align: 'center' });
     
-    currentY = Math.max(currentY, logoY + logoHeight + 8);
+    currentY += titleLines.length * 8; // Espaço proporcional ao número de linhas
 
     // Linha decorativa com gradiente rosa→roxo
     const lineSegments = 20;
@@ -349,8 +329,8 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     
     currentY += 6;
 
-    // Subtítulo com data em rosa
-    pdf.setFontSize(9);
+    // FASE 1: Subtítulo com data em rosa (fonte maior)
+    pdf.setFontSize(10); // FASE 1: Aumentado de 9pt para 10pt (+11%)
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(255, 70, 130); // Rosa
     const date = new Date().toLocaleDateString('pt-BR', {
@@ -373,29 +353,26 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         const imageData = await captureBlockAsImage(bloco, contentWidth);
         
         if (imageData) {
-          // Calcular dimensões da imagem
-          let imageHeight = (imageData.height / imageData.width) * contentWidth;
-          let imageWidth = contentWidth;
-          let xPosition = margin;
+          // FASE 2: Calcular dimensões otimizadas baseadas em aspectRatio
+          const aspectRatio = imageData.height / imageData.width;
+          let imageWidth: number;
+          
+          // FASE 2: Tamanho variável baseado em tipo de imagem
+          if (aspectRatio < 0.7) {
+            // Imagens horizontais (diagramas, gráficos)
+            imageWidth = contentWidth * 0.85;
+          } else if (aspectRatio > 1.3) {
+            // Imagens verticais (fluxogramas)
+            imageWidth = contentWidth * 0.60;
+          } else {
+            // Imagens quadradas (post-its, caixas)
+            imageWidth = contentWidth * 0.70;
+          }
+          
+          let imageHeight = (imageData.height / imageData.width) * imageWidth;
+          let xPosition = margin + (contentWidth - imageWidth) / 2; // FASE 2: Sempre centralizar
 
-          // FASE 3: Adicionar margem de segurança do rodapé
           const FOOTER_SAFE_ZONE = 20; // 15mm rodapé + 5mm buffer
-          
-          // Garantir que imagens estejam contidas nos limites
-          if (imageWidth > contentWidth) {
-            const scaleFactor = contentWidth / imageWidth;
-            imageWidth = contentWidth;
-            imageHeight = imageHeight * scaleFactor;
-          }
-          
-          // Se imagem é pequena (< 70% da largura), centralizar
-          if (imageHeight < 100 && imageData.width < imageData.height) {
-            imageWidth = contentWidth * 0.7;
-            xPosition = margin + (contentWidth - imageWidth) / 2;
-          } else if (imageWidth < contentWidth * 0.8) {
-            // Centralizar imagens pequenas
-            xPosition = margin + (contentWidth - imageWidth) / 2;
-          }
           
           // Limitar altura máxima de imagens grandes
           const maxImageHeight = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
@@ -424,7 +401,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
             imageHeight
           );
 
-          currentY += imageHeight + 8;
+          currentY += imageHeight + 10; // FASE 5: Aumentado de 8mm para 10mm (+25%)
           stats.imagesCaptured++;
 
           // Estatísticas específicas
@@ -478,8 +455,8 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         );
       }
       
-      // Número da página (centro, roxo)
-      pdf.setFontSize(9);
+      // FASE 3: Número da página (centro, roxo) - Fonte maior
+      pdf.setFontSize(10); // FASE 3: Aumentado de 9pt para 10pt (+11%)
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(63, 45, 175); // Roxo
       pdf.text(
@@ -489,14 +466,15 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         { align: 'center' }
       );
       
-      // Nome do documento (esquerda, rosa)
-      pdf.setFontSize(7);
+      // FASE 3: Nome do documento (esquerda, rosa) - Fonte maior
+      pdf.setFontSize(9); // FASE 3: Aumentado de 7pt para 9pt (+29%)
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(255, 70, 130); // Rosa
-      const truncatedTitle = options.title.substring(0, 35) + (options.title.length > 35 ? '...' : '');
+      const truncatedTitle = options.title.substring(0, 40) + (options.title.length > 40 ? '...' : '');
       pdf.text(truncatedTitle, margin, pageHeight - 10);
       
-      // "NextClass AI" (direita, roxo claro)
+      // FASE 3: "NextClass AI" (direita, roxo claro) - Fonte maior
+      pdf.setFontSize(9); // FASE 3: Aumentado de 7pt para 9pt (+29%)
       pdf.setTextColor(145, 127, 251); // Roxo claro
       pdf.text('NextClass AI', pageWidth - margin, pageHeight - 10, { align: 'right' });
     }
@@ -579,12 +557,17 @@ const captureBlockAsImage = async (bloco: ContentBlock, maxWidth: number): Promi
       allowTaint: true
     });
 
-    // Redimensionar canvas se muito grande (máximo 1200px de largura)
-    const resizedCanvas = resizeCanvas(canvas, 1200);
+    // FASE 2: Resolução adaptativa (10 pixels por mm)
+    const targetPxWidth = Math.round(maxWidth * 10); // 10px por mm para alta qualidade
+    const resizedCanvas = resizeCanvas(canvas, targetPxWidth);
     
-    // Comprimir imagem baseado no tipo
+    // FASE 2: PNG para diagramas (preserva texto), JPEG para fotos
+    const isDiagram = bloco.tipo.includes('diagrama') || bloco.tipo.includes('fluxograma') || 
+                      bloco.tipo.includes('mapa_mental') || bloco.tipo === 'grafico';
     const hasTransparency = bloco.tipo === 'post_it' || bloco.tipo === 'componente_react';
-    const base64 = compressImage(resizedCanvas, hasTransparency);
+    const base64 = isDiagram || hasTransparency ? 
+                   resizedCanvas.toDataURL('image/png', 0.92) : 
+                   compressImage(resizedCanvas, false);
 
     // Limpar
     document.body.removeChild(container);
@@ -748,7 +731,7 @@ const addTextBlockToPDF = (
       pdf.setLineWidth(1.2); // ANTES: 0.8, AGORA: 1.2mm (50% mais espesso)
       const underlineLength = Math.min(pdf.getTextWidth(processedBloco.texto || '') + 5, 80);
       pdf.line(margin, currentY, margin + underlineLength, currentY); // Linha proporcional ao texto
-      currentY += 7; // ANTES: 6mm
+      currentY += 8; // FASE 4: Aumentado de 6mm para 8mm (dobro do espaço)
       break;
 
     case 'h3':
@@ -775,11 +758,11 @@ const addTextBlockToPDF = (
       pdf.setTextColor(255, 113, 160); // Rosa claro
       const h4Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h4Lines, margin, currentY);
-      currentY += h4Lines.length * 5 + 4;
+      currentY += h4Lines.length * 5 + 5; // FASE 4: Aumentado de 4mm para 5mm
       break;
 
     case 'paragrafo':
-      pdf.setFontSize(10);
+      pdf.setFontSize(11); // FASE 4: Aumentado de 10pt para 11pt (+10% acessibilidade)
       pdf.setTextColor(40, 40, 40);
       
       // FASE 2: Sanitizar markdown antes de processar
