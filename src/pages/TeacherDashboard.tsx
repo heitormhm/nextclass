@@ -372,14 +372,6 @@ const TeacherDashboard = () => {
       gradientTo: 'to-orange-600',
       onClick: () => navigate('/teachercalendar'),
     },
-    {
-      icon: Megaphone,
-      title: 'Enviar Anúncio',
-      description: 'Comunique-se com a turma',
-      gradientFrom: 'from-pink-500',
-      gradientTo: 'to-pink-600',
-      onClick: () => setIsAnnouncementModalOpen(true),
-    },
   ];
 
 
