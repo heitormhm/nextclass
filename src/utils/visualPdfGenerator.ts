@@ -401,15 +401,33 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       const totalSpaceWidth = maxWidth - totalTextWidth;
       const spaceWidth = totalSpaceWidth / (words.length - 1);
       
-      // FASE 3: Se espaço entre palavras > 8mm, usar alinhamento à esquerda
-      if (spaceWidth > 8) {
+      // CORREÇÃO 3: Aumentar limite de 8mm para 12mm e adicionar fallback gradual
+      if (spaceWidth > 12) {
+        // Tentar comprimir linha levemente
+        const compressionFactor = 0.95;
+        const compressedWidth = maxWidth * compressionFactor;
+        
+        if (totalTextWidth < compressedWidth) {
+          // Renderizar com compressão leve
+          const adjustedSpaceWidth = (compressedWidth - totalTextWidth) / (words.length - 1);
+          
+          let xPos = x;
+          words.forEach((word) => {
+            pdf.text(word, xPos, y);
+            xPos += pdf.getTextWidth(word) + adjustedSpaceWidth;
+          });
+          console.log('🔧 Linha comprimida para melhorar justificação');
+          return;
+        }
+        
+        // Se não funcionar, alinhar à esquerda
         console.log('⚠️ Espaçamento excessivo detectado, usando alinhamento à esquerda');
         pdf.text(text, x, y);
         return;
       }
       
       let currentX = x;
-      words.forEach((word, index) => {
+      words.forEach((word) => {
         pdf.text(word, currentX, y);
         currentX += pdf.getTextWidth(word) + spaceWidth;
       });
@@ -669,9 +687,29 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               margin
             );
             
-            // FASE 1: Marcar que último bloco foi full-page e forçar nova página para próximo bloco
+            // CORREÇÃO 2: Calcular espaço disponível real após full-page
+            const imageBottom = (pageHeight - ((imageData.height / imageData.width) * (contentWidth * 0.85))) / 2 
+                              + ((imageData.height / imageData.width) * (contentWidth * 0.85)) + 15;
+            currentY = Math.min(imageBottom, pageHeight - margin - 80);
+            
+            // Verificar se próximo bloco cabe no espaço disponível
+            const nextBlockIndex = i + 1;
+            if (nextBlockIndex < options.structuredData.conteudo.length) {
+              const nextBlock = options.structuredData.conteudo[nextBlockIndex];
+              const estimatedNextHeight = nextBlock.tipo === 'paragrafo' ? 30 : 50;
+              
+              if (currentY + estimatedNextHeight > pageHeight - margin - 20) {
+                // Não cabe: adicionar nova página
+                pdf.addPage();
+                stats.totalPages++;
+                currentY = margin;
+                console.log('📄 Nova página após full-page (espaço insuficiente)');
+              } else {
+                console.log('✅ Aproveitando espaço após full-page');
+              }
+            }
+            
             lastBlockWasFullPage = true;
-            currentY = pageHeight - margin - 20; // Forçar próxima verificação criar nova página
             console.log('📊 Estatística: Imagem renderizada em Full-Page Mode');
             
           } else {
@@ -1112,51 +1150,75 @@ const addTextBlockToPDF = (
       const { cleanText: sanitizedText, hasBold: hasMarkdown } = sanitizeMarkdown(processedBloco.texto || '');
       
       if (hasMarkdown) {
-        // Processar **negrito** (manter comportamento atual - sem justificação)
+        // CORREÇÃO 1: Renderização inline palavra por palavra para evitar isolamento
+        const words: Array<{text: string, bold: boolean}> = [];
+        
+        // Parser palavra por palavra mantendo negrito
         const keywordPattern = /\*\*(.*?)\*\*/g;
-        const segments: Array<{text: string, bold: boolean}> = [];
-        let lastIndex = 0;
+        const parts = sanitizedText.split(keywordPattern);
         
-        // FASE 2: Extrair todas as palavras em negrito para proteção
-        const boldWords: string[] = [];
-        sanitizedText.replace(keywordPattern, (match, p1) => {
-          boldWords.push(p1);
-          return match;
-        });
-        
-        sanitizedText.replace(keywordPattern, (match, p1, offset) => {
-          if (offset > lastIndex) {
-            segments.push({ text: sanitizedText.substring(lastIndex, offset), bold: false });
-          }
-          segments.push({ text: p1, bold: true });
-          lastIndex = offset + match.length;
-          return match;
-        });
-        
-        if (lastIndex < sanitizedText.length) {
-          segments.push({ text: sanitizedText.substring(lastIndex), bold: false });
-        }
-        
-        // Renderizar com estilos alternados
-        let lineY = currentY;
-        segments.forEach(seg => {
-          // FASE 2: Passar palavras protegidas se for segmento em negrito
-          const protectedBoldWords = seg.bold ? [seg.text] : [];
-          const lines = smartTextSplit(pdf, seg.text, contentWidth, protectedBoldWords);
-          pdf.setFont('helvetica', seg.bold ? 'bold' : 'normal');
-          lines.forEach(line => {
-            pdf.text(line, margin, lineY);
-            lineY += 6.5;
+        parts.forEach((part, index) => {
+          if (!part) return;
+          
+          // Índices ímpares são conteúdo entre **
+          const isBold = index % 2 === 1;
+          
+          part.split(' ').filter(w => w.trim()).forEach(word => {
+            words.push({ text: word, bold: isBold });
           });
         });
         
-        currentY = lineY + 5;
+        // Renderizar palavra por palavra com quebra de linha inteligente
+        let lineY = currentY;
+        let lineX = margin;
+        let currentLineWords: typeof words = [];
+        let currentLineWidth = 0;
+        
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i];
+          pdf.setFont('helvetica', word.bold ? 'bold' : 'normal');
+          const wordWidth = pdf.getTextWidth(word.text);
+          const spaceWidth = pdf.getTextWidth(' ');
+          
+          const nextWidth = currentLineWidth + wordWidth + (currentLineWords.length > 0 ? spaceWidth : 0);
+          
+          if (nextWidth > contentWidth && currentLineWords.length > 0) {
+            // Quebra de linha: renderizar linha atual
+            let x = margin;
+            currentLineWords.forEach((w) => {
+              pdf.setFont('helvetica', w.bold ? 'bold' : 'normal');
+              pdf.text(w.text, x, lineY);
+              x += pdf.getTextWidth(w.text) + spaceWidth;
+            });
+            
+            // Nova linha
+            lineY += 6.5;
+            currentLineWords = [word];
+            currentLineWidth = wordWidth;
+          } else {
+            currentLineWords.push(word);
+            currentLineWidth = nextWidth;
+          }
+        }
+        
+        // Renderizar última linha
+        if (currentLineWords.length > 0) {
+          let x = margin;
+          currentLineWords.forEach(w => {
+            pdf.setFont('helvetica', w.bold ? 'bold' : 'normal');
+            pdf.text(w.text, x, lineY);
+            x += pdf.getTextWidth(w.text) + pdf.getTextWidth(' ');
+          });
+        }
+        
+        currentY = lineY + 11; // Espaço após parágrafo
+        console.log('✅ Parágrafo com negrito renderizado inline');
       } else {
         // FASE 2 + FASE 3: Usar smartTextSplit + justificação para parágrafos sem negrito
         pdf.setFont('helvetica', 'normal');
-        // FASE 3: Permitir 2% de expansão para texto justificado
-        const lines = smartTextSplit(pdf, sanitizedText, contentWidth * 1.02);
-        console.log('📏 Linha expandida para justificação (+2%)');
+        // CORREÇÃO 3: Aumentar tolerância de 2% para 5% para melhor justificação
+        const lines = smartTextSplit(pdf, sanitizedText, contentWidth * 1.05);
+        console.log('📏 Linha expandida para justificação (+5%)');
         
         lines.forEach((line, index) => {
           const isLastLine = index === lines.length - 1;
