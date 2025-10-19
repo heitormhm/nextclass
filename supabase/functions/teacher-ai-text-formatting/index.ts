@@ -319,13 +319,66 @@ Analisar o [TEXTO BASE] fornecido, realizar uma desconstrução conceitual para 
 - **Post-its com Dicas Pedagógicas**: Crie 3 dicas usando blockquotes (> **📌 Dica:**).
 - **Tabela de Competências Avaliadas**: Associe cada questão a uma competência (ex: Q1 → Análise Crítica).
 
+### DIRETRIZES DE CONTEXTUALIZAÇÃO OBRIGATÓRIA (CRITICAL)
+
+Todas as questões devem seguir a estrutura CESP (Contexto → Situação → Problema):
+
+**CONTEXTO (1-2 frases):** 
+- Estabeleça um cenário profissional real da engenharia brasileira
+- Use dados quantitativos específicos (custos, dimensões, prazos, capacidades)
+- Mencione empresas fictícias ou projetos reais (ex: Rodovia dos Bandeirantes, Usina de Itaipu, Porto de Santos)
+- Especifique localização geográfica quando relevante
+
+**SITUAÇÃO (2-3 frases):**
+- Descreva uma situação técnica específica enfrentada por um engenheiro
+- Inclua valores numéricos, condições de operação, restrições de projeto
+- Mencione stakeholders (cliente, equipe, gerente de projeto)
+
+**PROBLEMA (1 frase):**
+- Apresente o desafio técnico ou decisão que precisa ser tomada
+- Formule a pergunta conectando teoria ao problema apresentado
+
+**EXEMPLOS DE BOA CONTEXTUALIZAÇÃO:**
+
+✅ **Questão Objetiva Contextualizada:**
+"A Construtora Estrutura Brasil foi contratada para construir uma ponte de 120 metros sobre o Rio Tietê, conectando os municípios de Salto e Itu. O engenheiro responsável, ao analisar o projeto estrutural, identificou que a viga principal estará submetida a uma carga distribuída de 8 kN/m e precisará suportar tráfego pesado de até 45 toneladas. Considerando as normas da ABNT NBR 7187:2021 e as propriedades do concreto armado especificado (fck = 30 MPa), qual é o dimensionamento mais adequado para garantir a segurança estrutural com o menor custo de execução?"
+
+✅ **Questão Aberta Contextualizada:**
+"A startup de mobilidade urbana MoveSmart, sediada em Florianópolis, está escalando rapidamente após receber um investimento de R$ 5 milhões. O sistema atual, desenvolvido em Django com PostgreSQL, atende 2.000 pedidos/dia com 50 ms de latência média. A empresa projeta crescimento para 20.000 pedidos/dia nos próximos 6 meses e quer implementar um sistema de recomendação baseado em machine learning que analisará comportamento de navegação de 100.000 usuários ativos. O CTO está avaliando migrar o catálogo de produtos (80.000 itens com dados semi-estruturados) para MongoDB, mantendo transações financeiras em PostgreSQL. O time de desenvolvimento tem 3 engenheiros sêniores experientes em SQL mas sem experiência prévia com NoSQL. Custos mensais de infraestrutura atual: R$ 8.000 (AWS RDS PostgreSQL). Projeção com MongoDB Atlas: R$ 15.000. Como consultor técnico contratado, analise os trade-offs técnicos, econômicos e humanos desta decisão. Sua resposta deve cobrir: (1) adequação de cada tecnologia aos requisitos específicos, (2) estratégia de migração gradual vs Big Bang, (3) impacto no time e necessidade de capacitação, (4) custos ocultos não considerados pelo CTO."
+
+❌ **Questão Pobremente Contextualizada:**
+"Qual é o tipo de carga que atua em uma viga?"
+"Explique o conceito de arquitetura de software."
+
 ### ETAPA 3: Geração das Questões e Gabarito Detalhado
 
-**Criação de 10 Questões de Múltipla Escolha (Avaliação Conceitual):**
+**Criação de 10 Questões de Múltipla Escolha (Avaliação Conceitual Aplicada):**
 
-- Elabore 10 questões variadas sobre os conceitos. Varie o formato (ex: "Qual afirmação é FALSA?").
-- Cada questão: 4 alternativas (A, B, C, D).
-- Distratores plausíveis baseados em erros conceituais comuns.
+- Elabore 10 questões que **OBRIGATORIAMENTE** sigam a estrutura CESP (Contexto → Situação → Problema)
+- **COMPRIMENTO MÍNIMO DO ENUNCIADO:** 80-120 palavras (3-5 frases completas)
+- Cada enunciado deve:
+  * Descrever um cenário profissional específico da engenharia brasileira
+  * Incluir 3-5 valores numéricos realistas (custos, medidas, prazos, capacidades)
+  * Mencionar normas técnicas brasileiras quando aplicável (ABNT, ISO, NBR)
+  * Especificar localização geográfica (cidades, obras ou empresas fictícias)
+  * Apresentar um dilema técnico ou decisão de engenharia
+
+- Cada questão: 4 alternativas (A, B, C, D)
+- Varie o formato (ex: "Qual afirmação é FALSA?", "Qual é a melhor decisão considerando...?")
+- Distratores plausíveis baseados em:
+  * Erros de cálculo comuns
+  * Más interpretações de normas técnicas
+  * Simplificações excessivas da teoria
+  * Aplicações incorretas de fórmulas
+
+**EXEMPLOS DE CENÁRIOS PARA ENUNCIADOS:**
+- Projeto de infraestrutura (rodovias, pontes, barragens)
+- Sistemas industriais (processos químicos, linhas de produção)
+- Projetos de software (sistemas web, aplicativos móveis, IoT)
+- Instalações elétricas/hidráulicas em edifícios comerciais
+- Manutenção preventiva de equipamentos
+- Análise de viabilidade técnico-econômica
+- Diagnóstico de falhas estruturais ou operacionais
 
 **Formato de Resposta (OBRIGATÓRIO):**
 
@@ -340,10 +393,35 @@ Analisar o [TEXTO BASE] fornecido, realizar uma desconstrução conceitual para 
 - **Alternativa D:** [Justificativa do erro]
 \`\`\`
 
-**Criação de 10 Questões Abertas (Avaliação Aplicada e PBL):**
+**Criação de 10 Questões Abertas (Avaliação PBL Profunda):**
 
-- Elabore 10 questões exigindo pensamento crítico, análise e síntese.
-- Incorpore cenários realistas de engenharia (problemas, projetos, otimização).
+- Elabore 10 questões que simulem **desafios reais da prática profissional**
+- **COMPRIMENTO MÍNIMO DO ENUNCIADO:** 120-180 palavras (5-8 frases completas)
+- Cada enunciado deve:
+  * Apresentar um estudo de caso completo com múltiplas variáveis
+  * Incluir 5-8 dados quantitativos específicos (orçamentos, cronogramas, métricas técnicas)
+  * Descrever stakeholders e suas demandas conflitantes
+  * Mencionar restrições de projeto (tempo, custo, regulamentações)
+  * Apresentar um trade-off realista que exija análise crítica
+
+- A pergunta deve exigir que o aluno:
+  * **Analise** múltiplos fatores técnicos e econômicos
+  * **Compare** alternativas viáveis com prós e contras
+  * **Proponha** uma solução justificada tecnicamente
+  * **Defenda** sua escolha com argumentação baseada em teoria e boas práticas
+
+**ESTRUTURA RECOMENDADA PARA QUESTÕES ABERTAS:**
+
+1. **Contextualização (30-40% do enunciado):** Empresa/projeto, localização, objetivos
+2. **Situação Técnica (30-40%):** Dados, especificações, condições de operação
+3. **Problema e Trade-offs (20-30%):** Desafio, alternativas possíveis, restrições
+4. **Pergunta Final (10%):** "Você foi contratado como [cargo]. Analise/Proponha/Justifique..."
+
+**EXEMPLOS DE PROBLEMAS ABERTOS:**
+- "Selecionar tecnologia para sistema crítico considerando custo, performance e manutenibilidade"
+- "Propor solução para falha estrutural identificada durante inspeção, considerando segurança e impacto financeiro"
+- "Otimizar processo industrial para reduzir desperdício mantendo qualidade e atendendo prazos"
+- "Avaliar viabilidade de retrofit em edificação histórica respeitando patrimônio e normativas"
 
 **Formato de Resposta (OBRIGATÓRIO COM RUBRICA):**
 
@@ -398,29 +476,34 @@ Retorne a atividade em **JSON estruturado** seguindo este schema:
       "texto": "📌 Dica: Contextualize com exemplos locais"
     },
     {
+      "tipo": "post_it",
+      "subtipo": "alerta",
+      "texto": "⚠️ **ATENÇÃO PARA O PROFESSOR:** Todas as questões desta atividade foram contextualizadas com cenários profissionais reais da engenharia brasileira. Os valores numéricos e situações foram baseados em dados de mercado de 2024-2025. Incentive os alunos a pesquisarem sobre as empresas, normas e projetos mencionados para aprofundar o aprendizado!"
+    },
+    {
       "tipo": "h2",
       "texto": "Parte 1: Questões de Múltipla Escolha"
     },
     {
       "tipo": "questao_multipla_escolha",
       "numero": 1,
-      "enunciado": "Texto da questão...",
+      "enunciado": "A TechFlow Sistemas foi contratada pela Prefeitura de Campinas para desenvolver um portal de transparência que integrará dados de 12 secretarias municipais, processando em média 50.000 acessos diários. O sistema precisará armazenar histórico de 5 anos de dados financeiros (aproximadamente 2TB) e gerar relatórios consolidados em tempo real. O engenheiro de software João Silva está avaliando a arquitetura de banco de dados. A equipe de TI da prefeitura possui experiência consolidada com SQL Server, mas o orçamento para licenciamento é limitado (R$ 80.000 anuais). Considerando escalabilidade, custo total de propriedade (TCO) e requisitos de compliance com a LGPD, qual alternativa apresenta a melhor decisão técnica para este cenário?",
       "alternativas": {
-        "A": "Texto alternativa A",
-        "B": "Texto alternativa B",
-        "C": "Texto alternativa C",
-        "D": "Texto alternativa D"
+        "A": "PostgreSQL em servidores on-premise com backup diário em nuvem (AWS S3), permitindo zero custo de licenciamento e flexibilidade para expansão futura",
+        "B": "SQL Server Enterprise com licenciamento perpétuo e infraestrutura local completa, garantindo suporte oficial da Microsoft e compatibilidade com sistemas legados",
+        "C": "MongoDB Atlas na nuvem com tier dedicado, priorizando performance em consultas complexas mas aumentando custos operacionais mensais",
+        "D": "MySQL Community Edition com replicação master-slave, reduzindo custos mas limitando recursos avançados de auditoria necessários para compliance"
       },
       "gabarito": {
-        "resposta_correta": "B",
-        "justificativa": "Explicação detalhada...",
+        "resposta_correta": "A",
+        "justificativa": "PostgreSQL oferece o melhor custo-benefício para este cenário: é open-source (elimina R$ 80k anuais de licenciamento), possui recursos enterprise robustos (particionamento, replicação, JSONB para dados semi-estruturados), atende compliance LGPD com log de auditoria detalhado, e a equipe pode realocar o budget de licenças para treinamento. O backup em S3 garante disaster recovery com baixo custo (aproximadamente R$ 800/mês para 2TB). A migração de SQL Server para PostgreSQL é viável com ferramentas como AWS DMS, e a comunidade brasileira é ativa.",
         "analise_incorretas": {
-          "A": "Erro: ...",
-          "C": "Erro: ...",
-          "D": "Erro: ..."
+          "B": "SQL Server Enterprise tem custo proibitivo (R$ 80k/ano apenas licenciamento + infraestrutura), contradizendo a restrição orçamentária. Embora ofereça suporte oficial, o ROI é negativo neste cenário de prefeitura com budget limitado.",
+          "C": "MongoDB é NoSQL orientado a documentos, inadequado para dados financeiros altamente relacionais. Custos operacionais na nuvem (tier dedicado) ultrapassariam R$ 15.000/mês, inviabilizando o projeto. Falta de ACID completo pode comprometer auditoria.",
+          "D": "MySQL Community carece de recursos críticos de auditoria e compliance necessários para dados públicos sensíveis. Replicação master-slave básica não atende requisitos de alta disponibilidade para 50k acessos/dia. Log de auditoria limitado dificulta conformidade com LGPD."
         }
       },
-      "competencia": "Análise Crítica"
+      "competencia": "Tomada de Decisão Arquitetural"
     },
     {
       "tipo": "h2",
