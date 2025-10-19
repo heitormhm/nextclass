@@ -41,7 +41,7 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
   const [creatingDisciplina, setCreatingDisciplina] = useState(false);
   const [newDisciplinaNome, setNewDisciplinaNome] = useState('');
   const [newDisciplinaCodigo, setNewDisciplinaCodigo] = useState('');
-  const [newDisciplinaCargaHoraria, setNewDisciplinaCargaHoraria] = useState('');
+  
   const [isDragging, setIsDragging] = useState(false);
   const [lessonPlanAnalysis, setLessonPlanAnalysis] = useState<any | null>(null);
   const [analyzingPlan, setAnalyzingPlan] = useState(false);
@@ -73,6 +73,35 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
       });
     });
   }, [onTranscriptionReceived, toast]);
+
+  // Auto-generate disciplina code based on name
+  useEffect(() => {
+    if (newDisciplinaNome && showCreateDisciplina) {
+      const existingCodes = disciplinas.map(d => d.codigo || '');
+      const generatedCode = generateDisciplinaCode(newDisciplinaNome, existingCodes);
+      setNewDisciplinaCodigo(generatedCode);
+    }
+  }, [newDisciplinaNome, disciplinas, showCreateDisciplina]);
+
+  // Helper function to generate disciplina code
+  const generateDisciplinaCode = (nome: string, existingCodes: string[]): string => {
+    const prefix = nome
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z]/g, '')
+      .substring(0, 3)
+      .padEnd(3, 'X');
+    
+    let number = 1;
+    let code = `${prefix}${String(number).padStart(3, '0')}`;
+    
+    while (existingCodes.includes(code)) {
+      number++;
+      code = `${prefix}${String(number).padStart(3, '0')}`;
+    }
+    
+    return code;
+  };
 
   const loadTurmas = async () => {
     setLoadingTurmas(true);
@@ -275,7 +304,6 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
         .insert({
           nome: newDisciplinaNome,
           codigo: newDisciplinaCodigo || null,
-          carga_horaria: newDisciplinaCargaHoraria ? parseInt(newDisciplinaCargaHoraria) : null,
           teacher_id: user.id,
           turma_id: selectedTurma,
         })
@@ -290,7 +318,6 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
       
       setNewDisciplinaNome('');
       setNewDisciplinaCodigo('');
-      setNewDisciplinaCargaHoraria('');
       
       toast({
         title: 'Disciplina criada!',
@@ -626,7 +653,6 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                           setShowCreateDisciplina(false);
                           setNewDisciplinaNome('');
                           setNewDisciplinaCodigo('');
-                          setNewDisciplinaCargaHoraria('');
                         }}
                       >
                         <X className="h-4 w-4" />
@@ -640,20 +666,13 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                       disabled={creatingDisciplina}
                     />
                     
-                    <Input 
-                      placeholder="Código (ex: ENG101)" 
-                      value={newDisciplinaCodigo}
-                      onChange={(e) => setNewDisciplinaCodigo(e.target.value)}
-                      disabled={creatingDisciplina}
-                    />
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Código (gerado automaticamente)</Label>
+                      <div className="px-3 py-2 bg-muted/50 border border-border rounded-md text-sm font-mono text-foreground/80">
+                        {newDisciplinaCodigo || 'XXX000'}
+                      </div>
+                    </div>
                     
-                    <Input 
-                      type="number"
-                      placeholder="Carga horária (horas)" 
-                      value={newDisciplinaCargaHoraria}
-                      onChange={(e) => setNewDisciplinaCargaHoraria(e.target.value)}
-                      disabled={creatingDisciplina}
-                    />
                     
                     <Button 
                       onClick={handleCreateDisciplina} 
@@ -793,38 +812,38 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
 
         {/* Sticky Footer with Action Buttons */}
         {step === 'input' && (
-          <div className="sticky bottom-0 left-0 right-0 mt-4 pt-6 border-t border-border/50 bg-gradient-to-t from-white/95 via-white/90 to-white/80 backdrop-blur-md shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)] -mx-6 -mb-6 px-6 pb-6">
+          <div className="sticky bottom-0 left-0 right-0 mt-4 pt-6 border-t border-border/50 bg-gradient-to-t from-white/95 via-white/90 to-white/80 dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/80 backdrop-blur-md shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)] rounded-b-2xl">
+            <div className="px-6 pb-6">
             <div className="flex flex-col-reverse sm:flex-row gap-3 items-stretch sm:items-center sm:justify-end">
-              {/* Cancelar - Outline, left on desktop */}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (theme || selectedTurma || selectedDisciplina) {
-                    if (!confirm('Descartar alterações e sair?')) return;
-                  }
-                  onOpenChange(false);
-                }}
-                className="sm:mr-auto border-2 border-border/50 hover:border-border hover:bg-muted/50 transition-all duration-200 px-6 py-3 flex items-center gap-2"
-              >
-                <X className="h-4 w-4" />
-                Cancelar
-              </Button>
+                {/* Cancelar - Ghost with solid background */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    if (theme || selectedTurma || selectedDisciplina) {
+                      if (!confirm('Descartar alterações e sair?')) return;
+                    }
+                    onOpenChange(false);
+                  }}
+                  className="sm:mr-auto bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm hover:shadow transition-all duration-200 px-6 py-3 flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Cancelar
+                </Button>
               
-              {/* Iniciar Gravação - Hero Button with shimmer effect */}
-              <Button
-                onClick={handleStartRecording}
-                disabled={!isFormValid || generatingTags || tags.length === 0}
-                className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 hover:from-purple-700 hover:via-pink-700 hover:to-red-600 text-white font-bold py-5 px-10 rounded-xl shadow-2xl hover:shadow-[0_20px_50px_-15px_rgba(168,85,247,0.5)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-2xl group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 skew-x-12"></div>
-                <div className="relative flex items-center gap-3">
-                  <div className="p-1.5 rounded-full bg-white/20">
-                    <Mic className="h-5 w-5" />
+                {/* Iniciar Gravação - Optimized Hero Button */}
+                <Button
+                  onClick={handleStartRecording}
+                  disabled={!isFormValid || generatingTags || tags.length === 0}
+                  className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 hover:from-purple-700 hover:via-pink-700 hover:to-red-600 text-white font-bold py-4 px-8 rounded-xl shadow-2xl hover:shadow-[0_20px_50px_-15px_rgba(168,85,247,0.5)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-2xl group"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 skew-x-12"></div>
+                  <div className="relative flex items-center gap-2">
+                    <Mic className="h-4 w-4" />
+                    <span className="text-base font-semibold">Iniciar Gravação</span>
                   </div>
-                  <span className="text-lg">Iniciar Gravação</span>
-                </div>
-              </Button>
+                </Button>
+              </div>
             </div>
           </div>
         )}
