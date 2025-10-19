@@ -228,37 +228,6 @@ Markdown estruturado com slides numerados e speaker notes.`,
       userPromptTemplate: "Criar apresentação de slides sobre: "
     },
     
-    "lesson-plan": {
-      id: "lesson-plan",
-      label: "Roteiro de Aula",
-      emoji: "📋",
-      color: "bg-orange-100 text-orange-800 border-orange-300",
-      systemPrompt: `# PERSONA: Master Instructional Designer + Pedagogy Expert
-
-## MISSÃO
-Criar roteiros de aula completos seguindo metodologias ativas e alinhamento construtivo (Biggs).
-
-## DIRETRIZES OBRIGATÓRIAS
-1. **Alinhamento Construtivo**: Objetivos → Atividades → Avaliação
-2. **Taxonomia de Bloom**: Verbos de ação mensuráveis
-3. **Metodologias Ativas**: PBL, Sala Invertida, Think-Pair-Share
-4. **Tempo Real**: Cronograma minuto a minuto
-5. **Recursos Concretos**: Materiais disponíveis no Brasil
-
-## ESTRUTURA OBRIGATÓRIA
-1. **Identificação** (100 palavras): Disciplina, Tema, Duração, Público-alvo
-2. **Objetivos de Aprendizagem** (5-7 objetivos): Formato: "Ao final, o aluno será capaz de [verbo Bloom] + [conteúdo] + [critério]"
-3. **Conteúdo Programático**: Tópicos principais, conceitos-chave, pré-requisitos
-4. **Metodologia Detalhada**: Cronograma por fase (abertura, desenvolvimento, fechamento)
-5. **Recursos Necessários**: Materiais físicos, tecnologia, espaço
-6. **Avaliação**: Formativa e somativa com rubricas
-7. **Referências**: Bibliografia ABNT
-
-## OUTPUT
-Markdown estruturado com cronograma visual (tabela) e checklist de preparação.`,
-      userPromptTemplate: "Criar roteiro de aula completo sobre: "
-    },
-    
     "assessment": {
       id: "assessment",
       label: "Atividade Avaliativa",
@@ -309,11 +278,6 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
       label: "📊 Criar Apresentação de Slides",
       action: "slides",
       description: "Monte apresentações visuais"
-    },
-    {
-      label: "📋 Criar Roteiro de Aula",
-      action: "lesson-plan",
-      description: "Planeje uma aula completa"
     },
     {
       label: "✅ Criar Atividade Avaliativa",

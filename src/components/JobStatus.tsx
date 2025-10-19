@@ -42,9 +42,6 @@ export const JobStatus = ({ job, conversationTitle, onOpenQuiz, onOpenFlashcards
         case 'GENERATE_SUGGESTIONS':
           processingMessage = `Gerando sugestões de aprofundamento...`;
           break;
-        case 'GENERATE_LESSON_PLAN':
-          processingMessage = `Gerando plano de aula sobre "${displayTitle}"... Estruturando conteúdo pedagógico.`;
-          break;
         case 'GENERATE_MULTIPLE_CHOICE_ACTIVITY':
           processingMessage = `Criando atividade de múltipla escolha sobre "${displayTitle}"... Elaborando questões.`;
           break;
@@ -170,37 +167,6 @@ export const JobStatus = ({ job, conversationTitle, onOpenQuiz, onOpenFlashcards
         );
       }
       
-      if (job.type === 'GENERATE_LESSON_PLAN' && job.result) {
-        try {
-          const resultData = JSON.parse(job.result);
-          const { lessonPlanId, title } = resultData;
-          
-          return (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg my-2">
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <p className="text-green-800 font-medium text-sm">
-                  ✅ Plano de Aula criado com sucesso!
-                </p>
-              </div>
-              <p className="text-sm text-gray-700 mb-3">
-                <strong>{title}</strong> está pronto para uso.
-              </p>
-              <Button
-                onClick={() => window.open(`/teacher/lesson-plans/${lessonPlanId}`, '_blank')}
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-                size="sm"
-              >
-                <BookOpen className="w-4 h-4 mr-2" />
-                Abrir Plano de Aula
-              </Button>
-            </div>
-          );
-        } catch (error) {
-          console.error('Error parsing lesson plan result:', error);
-        }
-      }
-      
       if (job.type === 'GENERATE_MULTIPLE_CHOICE_ACTIVITY' && job.result) {
         try {
           const resultData = JSON.parse(job.result);
@@ -269,7 +235,6 @@ export const JobStatus = ({ job, conversationTitle, onOpenQuiz, onOpenFlashcards
       const failureMessages: Record<string, string> = {
         'GENERATE_QUIZ': 'Falha ao criar quiz. Tente novamente com um contexto diferente.',
         'GENERATE_FLASHCARDS': 'Falha ao criar flashcards. Tente novamente com um contexto diferente.',
-        'GENERATE_LESSON_PLAN': 'Falha ao gerar plano de aula. Revise o contexto fornecido.',
         'GENERATE_MULTIPLE_CHOICE_ACTIVITY': 'Falha ao criar atividade. Tente um tópico mais específico.',
         'GENERATE_OPEN_ENDED_ACTIVITY': 'Falha ao elaborar atividade dissertativa. Reformule sua solicitação.',
       };

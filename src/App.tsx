@@ -33,8 +33,6 @@ import LectureTranscription from "./pages/LectureTranscription";
 import TeacherCalendar from "./pages/TeacherCalendar";
 import TeacherProfileSettings from "./pages/TeacherProfileSettings";
 import TeacherConfigurations from "./pages/TeacherConfigurations";
-import TeacherLessonPlans from "./pages/TeacherLessonPlans";
-import TeacherLessonPlanEditor from "./pages/TeacherLessonPlanEditor";
 import LectureTranscriptionPage from "./pages/LectureTranscriptionPage";
 import TeacherAnnotationsPage from "./pages/TeacherAnnotationsPage";
 import TeacherAnnotationPage from "./pages/TeacherAnnotationPage";
@@ -78,8 +76,6 @@ const App = () => (
           {/* Teacher-only routes */}
           <Route path="/teacherdashboard" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/teacher-aichat" element={<ProtectedRoute role="teacher"><TeacherAIChatPage /></ProtectedRoute>} />
-          <Route path="/teacher/lesson-plans" element={<ProtectedRoute role="teacher"><TeacherLessonPlans /></ProtectedRoute>} />
-          <Route path="/teacher/lesson-plans/:id" element={<ProtectedRoute role="teacher"><TeacherLessonPlanEditor /></ProtectedRoute>} />
           <Route path="/livelecture" element={<ProtectedRoute role="teacher"><LiveLecture /></ProtectedRoute>} />
           <Route path="/lecturetranscription" element={<ProtectedRoute role="teacher"><LectureTranscription /></ProtectedRoute>} />
           <Route path="/lecturetranscription/:id" element={<ProtectedRoute role="teacher"><LectureTranscriptionPage /></ProtectedRoute>} />
