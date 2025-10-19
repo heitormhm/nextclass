@@ -13,8 +13,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, fileData, fileType, fileName, isDeepSearch, conversationId, action, context, systemPrompt } = await req.json();
-    console.log('[TEACHER] Received request:', { message, fileType, fileName, isDeepSearch, conversationId, action });
+    const { message, fileData, fileType, fileName, isDeepSearch, conversationId, action, context, systemPrompt, useAdvancedModel } = await req.json();
+    console.log('[TEACHER] Received request:', { message, fileType, fileName, isDeepSearch, conversationId, action, useAdvancedModel });
 
     // Get authenticated user
     const authHeader = req.headers.get('Authorization');
@@ -307,10 +307,15 @@ ${teacherContext}`;
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('[TEACHER] Calling Lovable AI Gateway...');
+    // Selecionar modelo baseado no tipo de busca
+    const selectedModel = useAdvancedModel 
+      ? 'google/gemini-2.5-pro'   // Busca Profunda - mais poderoso
+      : 'google/gemini-2.5-flash'; // Busca Padrão - mais rápido
+
+    console.log(`[TEACHER] Calling Lovable AI Gateway with model: ${selectedModel} (Deep Search: ${useAdvancedModel})`);
     
     const requestBody: any = {
-      model: 'google/gemini-2.5-flash',
+      model: selectedModel,
       messages: [
         {
           role: 'system',
@@ -322,7 +327,7 @@ ${teacherContext}`;
         }
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: useAdvancedModel ? 4000 : 2000, // Pro tem mais tokens
     };
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

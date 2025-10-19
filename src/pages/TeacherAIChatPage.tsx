@@ -587,9 +587,9 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
       systemPromptToSend = activeTag.systemPrompt;
     }
     
-    // Limpar tag após preparar mensagem
+    // Manter tag ativa para permitir múltiplas mensagens no mesmo contexto
     const tagWasActive = !!activeTag;
-    setActiveTag(null);
+    // Tag só é removida quando usuário clica no X ou seleciona outra tag
     
     if (!conversationId) {
       try {
@@ -669,6 +669,7 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
           conversationId,
           systemPrompt: systemPromptToSend || undefined,
           autoDetectSearch: !tagWasActive,
+          useAdvancedModel: isDeepSearch, // Usar Gemini Pro para busca profunda
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -1093,10 +1094,10 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
                       >
                 <div
                   className={cn(
-                    "max-w-[80%] rounded-2xl px-6 py-4 shadow-xl backdrop-blur-xl transition-all hover:shadow-2xl break-words",
+                    "max-w-[85%] rounded-2xl px-6 py-5 shadow-lg backdrop-blur-xl transition-all hover:shadow-xl break-words",
                     message.isUser
-                      ? "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
-                      : "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
+                      ? "bg-gradient-to-br from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 text-gray-900 dark:text-gray-100 border-2 border-pink-200 dark:border-pink-800 shadow-pink-200/50 dark:shadow-pink-900/30"
+                      : "bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 text-gray-900 dark:text-gray-100 border-2 border-purple-200 dark:border-purple-800 shadow-purple-200/50 dark:shadow-purple-900/30"
                   )}
                 >
                   <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
@@ -1104,8 +1105,12 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
                           remarkPlugins={[remarkGfm, remarkMath]}
                           rehypePlugins={[rehypeKatex]}
                           components={{
-                            h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-4 mb-2 text-foreground" {...props} />,
-                            h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-3 mb-2 text-foreground" {...props} />,
+                            h2: ({node, ...props}) => (
+                              <h2 className="text-xl font-bold mt-6 mb-3 text-gray-900 dark:text-white pb-2 border-b-2 border-purple-200 dark:border-purple-800" {...props} />
+                            ),
+                            h3: ({node, ...props}) => (
+                              <h3 className="text-lg font-semibold mt-4 mb-2 text-gray-800 dark:text-gray-100 flex items-center gap-2" {...props} />
+                            ),
                             p: ({node, children, ...props}) => {
                               // Detectar caixas de destaque
                               const text = String(children);
@@ -1153,24 +1158,65 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
                                   return <span className="mx-1">{content}</span>;
                                 }
                                 
-                                // Detectar variáveis matemáticas simples (1-3 chars, pode ter números/subscritos)
-                                if (content.match(/^[A-Za-z]{1,3}[₀-₉]*$/) || content.match(/^[A-Za-z]{1,3}_[0-9]$/)) {
-                                  return <span className="font-medium">{content}</span>;
+                                // Detectar JSON inline
+                                if (content.trim().startsWith('{') && content.trim().endsWith('}')) {
+                                  try {
+                                    const jsonObj = JSON.parse(content);
+                                    return (
+                                      <div className="my-3 p-4 rounded-lg bg-gray-900 dark:bg-gray-950 text-white overflow-x-auto">
+                                        <div className="flex items-center gap-2 mb-2 text-xs text-gray-400">
+                                          <Layers className="w-3 h-3" />
+                                          <span>Estrutura de Dados</span>
+                                        </div>
+                                        <pre className="text-sm font-mono whitespace-pre-wrap">
+                                          {JSON.stringify(jsonObj, null, 2)}
+                                        </pre>
+                                      </div>
+                                    );
+                                  } catch {
+                                    return <code className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs font-mono text-pink-600 dark:text-pink-400 border border-gray-200 dark:border-gray-700" {...props}>{content}</code>;
+                                  }
                                 }
                                 
-                                // Caso contrário, renderizar como código
-                                return <code className="bg-background/50 px-1.5 py-0.5 rounded text-xs font-mono text-primary break-all whitespace-pre-wrap" {...props}>{content}</code>;
+                                // Detectar variáveis matemáticas simples (1-3 chars, pode ter números/subscritos)
+                                if (content.match(/^[A-Za-z]{1,3}[₀-₉]*$/) || content.match(/^[A-Za-z]{1,3}_[0-9]$/)) {
+                                  return <span className="font-medium text-purple-600 dark:text-purple-400">{content}</span>;
+                                }
+                                
+                                // Código inline normal
+                                return (
+                                  <code 
+                                    className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs font-mono text-pink-600 dark:text-pink-400 border border-gray-200 dark:border-gray-700 break-all whitespace-pre-wrap" 
+                                    {...props}
+                                  >
+                                    {content}
+                                  </code>
+                                );
                               }
                               
                               // Código em bloco
-                              return <code className="block bg-background/50 p-3 rounded text-xs font-mono overflow-x-auto my-2 text-foreground whitespace-pre-wrap" {...props}>{content}</code>;
+                              return (
+                                <div className="my-3 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                                  <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 font-medium">
+                                    Código
+                                  </div>
+                                  <code 
+                                    className="block bg-gray-50 dark:bg-gray-900 p-4 text-sm font-mono overflow-x-auto text-gray-800 dark:text-gray-200 whitespace-pre-wrap" 
+                                    {...props}
+                                  >
+                                    {content}
+                                  </code>
+                                </div>
+                              );
                             },
                             pre: ({node, ...props}) => <pre className="bg-background/50 p-3 rounded overflow-x-auto my-2" {...props} />,
                             a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer" {...props} />,
-                            ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 space-y-1 my-2 text-foreground" {...props} />,
-                            ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 space-y-1 my-2 text-foreground" {...props} />,
-                            li: ({node, ...props}) => <li className="text-foreground pl-1" {...props} />,
-                            blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/50 pl-4 italic my-2 text-foreground/80" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 space-y-2 my-3 text-gray-800 dark:text-gray-200" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 space-y-2 my-3 text-gray-800 dark:text-gray-200" {...props} />,
+                            li: ({node, ...props}) => <li className="text-gray-800 dark:text-gray-200 pl-1 leading-relaxed" {...props} />,
+                            blockquote: ({node, ...props}) => (
+                              <blockquote className="border-l-4 border-purple-500 pl-4 py-2 italic my-3 bg-purple-50 dark:bg-purple-900/20 rounded-r-lg text-gray-700 dark:text-gray-300" {...props} />
+                            ),
                             sub: ({node, ...props}) => <sub className="text-xs" {...props} />,
                             sup: ({node, ...props}) => <sup className="text-xs text-pink-600 font-semibold" {...props} />,
                           }}
@@ -1444,12 +1490,18 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
                               <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" />
                               <div className="absolute inset-1 bg-white rounded-full" />
                             </div>
-                            <span>Busca Aprofundada</span>
+                            <div className="flex flex-col items-start">
+                              <span className="text-sm font-medium">Busca Profunda</span>
+                              <span className="text-xs opacity-75">Gemini Pro</span>
+                            </div>
                           </>
                         ) : (
                           <>
                             <Sparkles className="w-4 h-4" />
-                            <span>Busca Padrão</span>
+                            <div className="flex flex-col items-start">
+                              <span className="text-sm font-medium">Busca Padrão</span>
+                              <span className="text-xs opacity-75">Gemini Flash</span>
+                            </div>
                           </>
                         )}
                       </div>
