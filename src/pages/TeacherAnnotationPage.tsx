@@ -1181,16 +1181,24 @@ const TeacherAnnotationPage = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              className="fixed bottom-6 right-6 rounded-full w-16 h-16 shadow-2xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 z-40"
+              className="fixed bottom-6 right-6 rounded-full w-16 h-16 z-40 
+                         bg-white/20 backdrop-blur-xl border border-white/40
+                         shadow-[0_8px_32px_rgba(219,39,119,0.3)]
+                         hover:shadow-[0_12px_48px_rgba(219,39,119,0.5)]
+                         hover:scale-110 transition-all duration-300
+                         p-0 flex items-center justify-center"
               size="icon"
               title="Assistente IA Mia"
               disabled={isProcessingAI}
             >
-              {isProcessingAI ? (
-                <Loader2 className="h-7 w-7 text-white animate-spin" />
-              ) : (
-                <Sparkles className="h-7 w-7 text-white" />
-              )}
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 
+                              flex items-center justify-center shadow-inner">
+                {isProcessingAI ? (
+                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                ) : (
+                  <Sparkles className="h-6 w-6 text-white" />
+                )}
+              </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="left" align="end" className="w-80 p-2 max-h-[80vh] overflow-y-auto">
