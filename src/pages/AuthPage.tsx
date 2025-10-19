@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -49,8 +49,8 @@ const AuthPage = () => {
     }
   });
 
-  // Fetch turmas on component mount
-  useEffect(() => {
+  // Fetch turmas on component mount - usando useLayoutEffect para evitar race conditions
+  useLayoutEffect(() => {
     const fetchTurmas = async () => {
       setIsLoadingTurmas(true);
       try {
@@ -67,24 +67,18 @@ const AuthPage = () => {
         
         setTurmas(data || []);
         
-        // Pré-selecionar faculdade e cidade
+        // Pré-selecionar faculdade e cidade com shouldValidate
         if (data && data.length > 0) {
-          const afyaMC = data.find(t => t.faculdade === 'Centro Universitário Afya Montes Claros');
+          const afyaMC = data.find(t => t.faculdade === 'Centro Universitario Afya Montes Claros');
           
           if (afyaMC) {
-            signupForm.setValue('university', afyaMC.faculdade);
-            signupForm.setValue('city', afyaMC.cidade);
+            signupForm.setValue('university', afyaMC.faculdade, { shouldValidate: true });
+            signupForm.setValue('city', afyaMC.cidade, { shouldValidate: true });
             
-            // Toast de confirmação com delay para não aparecer muito rápido
-            setTimeout(() => {
-              toast.success('🎓 Instituição pré-selecionada: Centro Universitário Afya Montes Claros', {
-                duration: 3000,
-              });
-            }, 800);
-          } else {
-            // Fallback: primeira faculdade disponível
-            signupForm.setValue('university', data[0].faculdade);
-            signupForm.setValue('city', data[0].cidade);
+            // Toast após render completo
+            requestAnimationFrame(() => {
+              toast.success('🎓 Instituição pré-selecionada', { duration: 2000 });
+            });
           }
         }
       } catch (err) {
@@ -191,6 +185,7 @@ const AuthPage = () => {
       return;
     }
 
+    // Validate university
     if (!data.university) {
       signupForm.setError('university', { 
         message: 'Por favor, confirme sua instituição de ensino' 
@@ -200,6 +195,7 @@ const AuthPage = () => {
       return;
     }
     
+    // Validate period for students
     if (selectedRole === 'student' && !data.period) {
       signupForm.setError('period', { 
         message: 'Selecione o período que você está cursando' 
@@ -525,7 +521,7 @@ const AuthPage = () => {
                       </div>
                     )}
 
-                    {/* Step 2: Dados Acadêmicos */}
+                    {/* Step 2: Dados Acadêmicos - Solução Premium */}
                     {step === 2 && (
                       <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                         {/* Contextual Description */}
@@ -536,150 +532,182 @@ const AuthPage = () => {
                               : 'Confirme sua instituição e selecione seu período atual'}
                           </p>
                           {selectedRole === 'student' && (
-                            <p className="text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full inline-block">
+                            <p className="text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full inline-block animate-in fade-in slide-in-from-bottom-2">
                               💡 Você será automaticamente matriculado na turma do seu período
                             </p>
                           )}
                         </div>
 
-                        {/* Loading State */}
-                        {isLoadingTurmas && (
-                          <div className="flex items-center justify-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg animate-pulse">
-                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-sm text-blue-700 font-medium">
-                              Carregando informações da instituição...
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="space-y-2">
-                          <Label htmlFor="signup-university" className="text-sm font-medium">
-                            {selectedRole === 'teacher' ? '🏫 Instituição de Ensino' : '🎓 Sua Instituição'}
-                          </Label>
-                          
-                          {/* Badge de Pré-selecionado */}
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1">
-                              ✓ Pré-selecionado
-                            </span>
-                          </div>
-                          
-                          <Select
-                            defaultValue="Centro Universitário Afya Montes Claros"
-                            value={signupForm.watch('university') || 'Centro Universitário Afya Montes Claros'}
-                            onValueChange={(value) => {
-                              signupForm.setValue('university', value);
-                              const selectedTurma = turmas.find(t => t.faculdade === value);
-                              if (selectedTurma) {
-                                signupForm.setValue('city', selectedTurma.cidade);
-                              }
-                            }}
-                            disabled={isLoadingTurmas}
-                          >
-                            <SelectTrigger className="w-full transition-all duration-200 border-green-300 bg-green-50/50 hover:bg-green-50 hover:border-green-400 focus:ring-green-500">
-                              <SelectValue placeholder={isLoadingTurmas ? "⏳ Carregando..." : "Centro Universitário Afya Montes Claros"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {uniqueFaculdades.map((faculdade) => (
-                                <SelectItem key={faculdade} value={faculdade}>
-                                  {faculdade}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {signupForm.formState.errors.university && (
-                            <p className="text-sm text-destructive animate-in slide-in-from-left-1 flex items-center gap-1">
-                              ⚠️ {signupForm.formState.errors.university.message}
-                            </p>
-                          )}
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Você pode alterar se necessário
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="signup-city" className="text-sm font-medium">
-                            📍 Localização do Campus
-                          </Label>
-                          <Input
-                            id="signup-city"
-                            type="text"
-                            {...signupForm.register('city')}
-                            disabled
-                            placeholder="Será preenchido automaticamente"
-                            className="transition-all duration-200 bg-slate-50/80 text-slate-700 border-slate-200"
-                          />
-                          <p className="text-xs text-slate-500 flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Preenchido automaticamente ao selecionar a faculdade
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="signup-course" className="text-sm font-medium">🎯 Curso</Label>
-                          <Input
-                            id="signup-course"
-                            type="text"
-                            value="Engenharia"
-                            disabled
-                            {...signupForm.register('course')}
-                            className="transition-all duration-200 bg-muted"
-                          />
-                          <p className="text-xs text-foreground-muted">Apenas Engenharia disponível no MVP</p>
-                        </div>
-
-                        {selectedRole === 'student' && (
-                          <div className="space-y-2">
-                            <Label htmlFor="signup-period" className="text-sm font-medium">
-                              📚 Período/Semestre Atual
-                            </Label>
-                            <Select
-                              onValueChange={(value) => signupForm.setValue('period', value)}
-                              disabled={isLoadingTurmas}
-                            >
-                              <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/50 focus:ring-primary">
-                                <SelectValue placeholder={isLoadingTurmas ? "⏳ Carregando períodos..." : "Selecione seu período (1º a 10º)"} />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-64">
-                                {uniquePeriodos.map((periodo) => (
-                                  <SelectItem 
-                                    key={periodo} 
-                                    value={periodo.toString()}
-                                    className="flex items-center justify-between"
-                                  >
-                                    <span className="flex items-center gap-2">
-                                      <span className="font-semibold text-primary">{periodo}º</span>
-                                      <span className="text-muted-foreground">Período</span>
-                                    </span>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {signupForm.formState.errors.period && (
-                              <p className="text-sm text-destructive animate-in slide-in-from-left-1 flex items-center gap-1">
-                                ⚠️ {signupForm.formState.errors.period.message}
+                        {/* Loading State Expandido - Premium */}
+                        {isLoadingTurmas ? (
+                          <div className="flex flex-col items-center justify-center gap-3 p-12 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-dashed border-blue-200 rounded-xl">
+                            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <div className="text-center space-y-1">
+                              <p className="text-base text-blue-700 font-semibold">
+                                Carregando informações da instituição...
                               </p>
-                            )}
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              Seu período será usado para personalizar seus conteúdos e turma
-                            </p>
+                              <p className="text-sm text-blue-600">
+                                Aguarde enquanto buscamos os dados das turmas
+                              </p>
+                            </div>
                           </div>
+                        ) : (
+                          <>
+                            {/* Campo de Instituição */}
+                            <div className="space-y-2">
+                              <Label htmlFor="signup-university" className="text-sm font-medium flex items-center gap-2">
+                                {selectedRole === 'teacher' ? '🏫 Instituição de Ensino' : '🎓 Sua Instituição'}
+                              </Label>
+                              
+                              {/* Badge de Pré-selecionado - Condicional */}
+                              {signupForm.watch('university') && (
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1 animate-in fade-in slide-in-from-left-2">
+                                    ✓ Pré-selecionado
+                                  </span>
+                                </div>
+                              )}
+                              
+                              <Select
+                                key={turmas.length > 0 ? 'loaded' : 'loading'}
+                                value={signupForm.watch('university')}
+                                onValueChange={(value) => {
+                                  signupForm.setValue('university', value);
+                                  const selectedTurma = turmas.find(t => t.faculdade === value);
+                                  if (selectedTurma) {
+                                    signupForm.setValue('city', selectedTurma.cidade);
+                                  }
+                                }}
+                                disabled={isLoadingTurmas}
+                              >
+                                <SelectTrigger className="w-full transition-all duration-200 border-green-300 bg-green-50/50 focus:ring-green-500">
+                                  <SelectValue placeholder={
+                                    isLoadingTurmas 
+                                      ? "⏳ Carregando..." 
+                                      : signupForm.watch('university') || "Selecione sua instituição"
+                                  } />
+                                </SelectTrigger>
+                                <SelectContent className="z-[9999] bg-white shadow-xl border-2">
+                                  {uniqueFaculdades.map((faculdade) => (
+                                    <SelectItem key={faculdade} value={faculdade}>
+                                      {faculdade}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              
+                              {signupForm.formState.errors.university && (
+                                <p className="text-sm text-destructive animate-in slide-in-from-left-1 flex items-center gap-1">
+                                  ⚠️ {signupForm.formState.errors.university.message}
+                                </p>
+                              )}
+                              
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Você pode alterar se necessário
+                              </p>
+                            </div>
+
+                            {/* Campo de Localização */}
+                            <div className="space-y-2">
+                              <Label htmlFor="signup-city" className="text-sm font-medium">
+                                📍 Localização do Campus
+                              </Label>
+                              <Input
+                                id="signup-city"
+                                type="text"
+                                {...signupForm.register('city')}
+                                disabled
+                                placeholder="Será preenchido automaticamente"
+                                className="transition-all duration-200 bg-slate-50/80 text-slate-700 border-slate-200"
+                              />
+                              <p className="text-xs text-slate-500 flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Preenchido automaticamente ao selecionar a faculdade
+                              </p>
+                            </div>
+
+                            {/* Campo de Curso */}
+                            <div className="space-y-2">
+                              <Label htmlFor="signup-course" className="text-sm font-medium">🎯 Curso</Label>
+                              <Input
+                                id="signup-course"
+                                type="text"
+                                value="Engenharia"
+                                disabled
+                                {...signupForm.register('course')}
+                                className="transition-all duration-200 bg-muted"
+                              />
+                              <p className="text-xs text-foreground-muted">Apenas Engenharia disponível no MVP</p>
+                            </div>
+
+                            {/* Campo de Período - APENAS PARA ESTUDANTES */}
+                            {selectedRole === 'student' && (
+                              <div className="space-y-2">
+                                <Label htmlFor="signup-period" className="text-sm font-medium">
+                                  📚 Período/Semestre Atual
+                                </Label>
+                                
+                                <Select
+                                  key={turmas.length > 0 ? 'loaded' : 'loading'}
+                                  value={signupForm.watch('period')}
+                                  onValueChange={(value) => signupForm.setValue('period', value)}
+                                  disabled={isLoadingTurmas}
+                                >
+                                  <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/50 focus:ring-primary">
+                                    <SelectValue placeholder={
+                                      isLoadingTurmas 
+                                        ? "⏳ Carregando períodos..." 
+                                        : signupForm.watch('period') 
+                                          ? `${signupForm.watch('period')}º Período` 
+                                          : "Selecione seu período (1º a 10º)"
+                                    } />
+                                  </SelectTrigger>
+                                  <SelectContent className="max-h-64 z-[9999] bg-white shadow-xl border-2">
+                                    {uniquePeriodos.map((periodo) => (
+                                      <SelectItem 
+                                        key={periodo} 
+                                        value={periodo.toString()}
+                                        className="hover:bg-blue-50 cursor-pointer"
+                                      >
+                                        <span className="flex items-center gap-2">
+                                          <span className="font-semibold text-primary">{periodo}º</span>
+                                          <span className="text-muted-foreground">Período</span>
+                                        </span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                
+                                {signupForm.formState.errors.period && (
+                                  <p className="text-sm text-destructive animate-in slide-in-from-left-1 flex items-center gap-1">
+                                    ⚠️ {signupForm.formState.errors.period.message}
+                                  </p>
+                                )}
+                                
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Seu período será usado para personalizar seus conteúdos e turma
+                                </p>
+                              </div>
+                            )}
+                          </>
                         )}
 
-                        <div className="flex gap-2">
+                        {/* Botões de navegação */}
+                        <div className="flex gap-3 pt-4">
                           <Button 
                             type="button" 
                             variant="outline"
                             onClick={() => setStep(1)}
-                            className="w-1/3"
+                            className="flex-1"
+                            disabled={isLoadingTurmas}
                           >
                             ← Voltar
                           </Button>
@@ -687,12 +715,13 @@ const AuthPage = () => {
                             type="button" 
                             onClick={async () => {
                               const fields = selectedRole === 'student' 
-                                ? (['university', 'city', 'course', 'period'] as const)
-                                : (['university', 'city', 'course'] as const);
+                                ? ['university', 'city', 'course', 'period'] as const
+                                : ['university', 'city', 'course'] as const;
                               const isValid = await signupForm.trigger(fields as any);
                               if (isValid) setStep(3);
                             }}
-                            className="w-2/3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                            disabled={isLoadingTurmas}
                           >
                             Próximo →
                           </Button>
