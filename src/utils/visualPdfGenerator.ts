@@ -655,6 +655,42 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
         div.innerHTML = accordionHTML;
       }
       break;
+
+    case 'h2':
+      div.style.cssText = 'font-family: Manrope, sans-serif; padding: 16px 0;';
+      div.innerHTML = `<h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0; line-height: 1.3;">${bloco.texto || ''}</h2>`;
+      break;
+
+    case 'h3':
+      div.style.cssText = 'font-family: Manrope, sans-serif; padding: 12px 0;';
+      div.innerHTML = `<h3 style="font-size: 20px; font-weight: bold; color: #374151; margin: 0; line-height: 1.3;">${bloco.texto || ''}</h3>`;
+      break;
+
+    case 'h4':
+      div.style.cssText = 'font-family: Manrope, sans-serif; padding: 8px 0;';
+      div.innerHTML = `<h4 style="font-size: 18px; font-weight: bold; color: #4b5563; margin: 0; line-height: 1.3;">${bloco.texto || ''}</h4>`;
+      break;
+
+    case 'paragrafo':
+      div.style.cssText = 'font-family: Manrope, sans-serif; padding: 8px 0;';
+      div.innerHTML = `<p style="font-size: 14px; line-height: 1.6; color: #1f2937; margin: 0;">${bloco.texto || ''}</p>`;
+      break;
+
+    case 'referencias':
+      div.style.cssText = 'background: linear-gradient(to bottom right, #f1f5f9, #e2e8f0); border-left: 4px solid #64748b; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: Manrope, sans-serif;';
+      div.innerHTML = `
+        <h4 style="font-weight: bold; color: #334155; margin-bottom: 12px; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+          📚 ${bloco.titulo || 'Referências Bibliográficas'}
+        </h4>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          ${bloco.itens?.map((ref: string) => `
+            <p style="color: #475569; font-size: 13px; line-height: 1.6; padding-left: 16px; border-left: 2px solid #94a3b8; margin: 0;">
+              ${ref}
+            </p>
+          `).join('') || ''}
+        </div>
+      `;
+      break;
   }
 
   return div;
