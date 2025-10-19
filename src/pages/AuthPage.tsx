@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,8 @@ const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [selectedRole, setSelectedRole] = useState<'student' | 'teacher'>('student');
   const [isLoading, setIsLoading] = useState(false);
+  const [turmas, setTurmas] = useState<any[]>([]);
+  const [isLoadingTurmas, setIsLoadingTurmas] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
   
@@ -40,10 +42,52 @@ const AuthPage = () => {
   const signupForm = useForm<SignupFormData>({
     defaultValues: {
       course: 'Engenharia',
-      university: 'Unifip-Moc',
-      city: 'Montes Claros - MG'
+      university: '',
+      city: ''
     }
   });
+
+  // Fetch turmas on component mount
+  useEffect(() => {
+    const fetchTurmas = async () => {
+      setIsLoadingTurmas(true);
+      try {
+        const { data, error } = await supabase
+          .from('turmas')
+          .select('faculdade, cidade, periodo, curso')
+          .order('periodo', { ascending: true });
+        
+        if (error) {
+          console.error('Error fetching turmas:', error);
+          toast.error('Erro ao carregar dados das turmas');
+          return;
+        }
+        
+        setTurmas(data || []);
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setIsLoadingTurmas(false);
+      }
+    };
+    
+    fetchTurmas();
+  }, []);
+
+  // Get unique values for dropdowns
+  const uniqueFaculdades = useMemo(() => {
+    return Array.from(new Set(turmas.map(t => t.faculdade))).filter(Boolean);
+  }, [turmas]);
+
+  const uniquePeriodos = useMemo(() => {
+    return Array.from(new Set(turmas.map(t => t.periodo)))
+      .filter(Boolean)
+      .sort((a, b) => parseInt(a) - parseInt(b));
+  }, [turmas]);
+
+  const uniqueCidades = useMemo(() => {
+    return Array.from(new Set(turmas.map(t => t.cidade))).filter(Boolean);
+  }, [turmas]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -123,9 +167,14 @@ const AuthPage = () => {
       signupForm.setError('confirmPassword', { message: 'Senhas não coincidem' });
       return;
     }
+
+    if (!data.university) {
+      signupForm.setError('university', { message: 'Selecione sua faculdade' });
+      return;
+    }
     
     if (selectedRole === 'student' && !data.period) {
-      signupForm.setError('period', { message: 'Período é obrigatório para alunos' });
+      signupForm.setError('period', { message: 'Selecione seu período atual' });
       return;
     }
     
@@ -343,87 +392,122 @@ const AuthPage = () => {
                   /* Signup Form */
                   <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="signup-name">Nome Completo</Label>
+                      <Label htmlFor="signup-name" className="text-sm font-medium">
+                        Nome Completo
+                      </Label>
                       <Input
                         id="signup-name"
                         type="text"
-                        placeholder="Seu nome completo"
+                        placeholder={selectedRole === 'teacher' ? "Prof. João Silva" : "Maria Santos"}
                         {...signupForm.register('fullName', {
                           required: 'Nome completo é obrigatório',
                           minLength: { value: 2, message: 'Nome deve ter pelo menos 2 caracteres' }
                         })}
-                        className="transition-all duration-200 focus:ring-primary focus:border-primary"
+                        className="transition-all duration-200 focus:ring-primary focus:border-primary hover:border-primary/30"
                       />
                       {signupForm.formState.errors.fullName && (
-                        <p className="text-sm text-destructive">
+                        <p className="text-sm text-destructive animate-in slide-in-from-left-1">
                           {signupForm.formState.errors.fullName.message}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
+                      <Label htmlFor="signup-email" className="text-sm font-medium">
+                        Email {selectedRole === 'teacher' ? 'Institucional' : 'Acadêmico'}
+                      </Label>
                       <Input
                         id="signup-email"
                         type="email"
-                        placeholder="seu@email.com"
+                        placeholder={selectedRole === 'teacher' ? "professor@afya.edu.br" : "aluno@estudante.afya.edu.br"}
                         {...signupForm.register('email', {
                           required: 'Email é obrigatório',
                           validate: validateEmail
                         })}
-                        className="transition-all duration-200 focus:ring-primary focus:border-primary"
+                        className="transition-all duration-200 focus:ring-primary focus:border-primary hover:border-primary/30"
                       />
                       {signupForm.formState.errors.email && (
-                        <p className="text-sm text-destructive">
+                        <p className="text-sm text-destructive animate-in slide-in-from-left-1">
                           {signupForm.formState.errors.email.message}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="signup-phone">Telefone</Label>
+                      <Label htmlFor="signup-phone" className="text-sm font-medium">
+                        Telefone de Contato
+                      </Label>
                       <Input
                         id="signup-phone"
                         type="tel"
-                        placeholder="(00) 00000-0000"
+                        placeholder="(38) 99999-9999"
                         {...signupForm.register('phone', {
                           required: 'Telefone é obrigatório',
                           pattern: {
                             value: /^[\d\s\-\(\)]+$/,
-                            message: 'Telefone inválido'
+                            message: 'Formato inválido. Use: (38) 99999-9999'
                           }
                         })}
-                        className="transition-all duration-200 focus:ring-primary focus:border-primary"
+                        className="transition-all duration-200 focus:ring-primary focus:border-primary hover:border-primary/30"
                       />
                       {signupForm.formState.errors.phone && (
-                        <p className="text-sm text-destructive">
+                        <p className="text-sm text-destructive animate-in slide-in-from-left-1">
                           {signupForm.formState.errors.phone.message}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="signup-university">Qual faculdade você faz parte?</Label>
-                      <Input
-                        id="signup-university"
-                        type="text"
-                        value="Unifip-Moc"
-                        disabled
-                        {...signupForm.register('university')}
-                        className="transition-all duration-200 bg-muted"
-                      />
+                      <Label htmlFor="signup-university" className="text-sm font-medium">
+                        {selectedRole === 'teacher' ? 'Instituição de Ensino' : 'Sua Faculdade'}
+                      </Label>
+                      <Select
+                        onValueChange={(value) => {
+                          signupForm.setValue('university', value);
+                          // Auto-preencher cidade baseado na faculdade
+                          const selectedTurma = turmas.find(t => t.faculdade === value);
+                          if (selectedTurma) {
+                            signupForm.setValue('city', selectedTurma.cidade);
+                          }
+                        }}
+                        disabled={isLoadingTurmas}
+                      >
+                        <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/50 focus:ring-primary">
+                          <SelectValue placeholder={isLoadingTurmas ? "Carregando..." : "Selecione sua faculdade"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {uniqueFaculdades.map((faculdade) => (
+                            <SelectItem key={faculdade} value={faculdade}>
+                              {faculdade}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {signupForm.formState.errors.university && (
+                        <p className="text-sm text-destructive animate-in slide-in-from-left-1">
+                          {signupForm.formState.errors.university.message}
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="signup-city">Cidade da faculdade</Label>
+                      <Label htmlFor="signup-city" className="text-sm font-medium">
+                        Localização do Campus
+                      </Label>
                       <Input
                         id="signup-city"
                         type="text"
-                        value="Montes Claros - MG"
-                        disabled
                         {...signupForm.register('city')}
-                        className="transition-all duration-200 bg-muted"
+                        disabled
+                        placeholder="Será preenchido automaticamente"
+                        className="transition-all duration-200 bg-slate-50/80 text-slate-700 border-slate-200"
                       />
+                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Preenchido automaticamente ao selecionar a faculdade
+                      </p>
                     </div>
 
                     <div className="space-y-2">
@@ -441,26 +525,32 @@ const AuthPage = () => {
 
                     {selectedRole === 'student' && (
                       <div className="space-y-2">
-                        <Label htmlFor="signup-period">Período que está cursando</Label>
+                        <Label htmlFor="signup-period" className="text-sm font-medium">
+                          Período/Semestre Atual
+                        </Label>
                         <Select
                           onValueChange={(value) => signupForm.setValue('period', value)}
+                          disabled={isLoadingTurmas}
                         >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Selecione o período" />
+                          <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/50 focus:ring-primary">
+                            <SelectValue placeholder={isLoadingTurmas ? "Carregando..." : "Ex: 3º Período"} />
                           </SelectTrigger>
                           <SelectContent>
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((period) => (
-                              <SelectItem key={period} value={period.toString()}>
-                                {period}º Período
+                            {uniquePeriodos.map((periodo) => (
+                              <SelectItem key={periodo} value={periodo.toString()}>
+                                {periodo}º Período
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         {signupForm.formState.errors.period && (
-                          <p className="text-sm text-destructive">
+                          <p className="text-sm text-destructive animate-in slide-in-from-left-1">
                             {signupForm.formState.errors.period.message}
                           </p>
                         )}
+                        <p className="text-xs text-slate-500">
+                          Seu período será usado para personalizar seus conteúdos
+                        </p>
                       </div>
                     )}
 
