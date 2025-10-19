@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation, FileDown } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation, FileDown, X } from "lucide-react";
 
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
@@ -35,6 +35,15 @@ interface Conversation {
   created_at: string;
 }
 
+interface ActionTag {
+  id: string;
+  label: string;
+  emoji: string;
+  color: string;
+  systemPrompt: string;
+  userPromptTemplate: string;
+}
+
 const TeacherAIChatPage = () => {
   const { toast } = useToast();
   const recognitionRef = useRef<any>(null);
@@ -53,6 +62,8 @@ const TeacherAIChatPage = () => {
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isDeepSearchLoading, setIsDeepSearchLoading] = useState(false);
   const [deepSearchProgress, setDeepSearchProgress] = useState(0);
+  const [activeTag, setActiveTag] = useState<ActionTag | null>(null);
+  const [userInput, setUserInput] = useState("");
 
   const deepSearchSteps = [
     { text: "🔍 Iniciando pesquisa profunda..." },
@@ -76,6 +87,207 @@ const TeacherAIChatPage = () => {
     'ANÁLISE PROFUNDA SOBRE',
     'ANÁLISE APROFUNDADA SOBRE'
   ];
+
+  const ACTION_TAGS: Record<string, ActionTag> = {
+    "study-material": {
+      id: "study-material",
+      label: "Material de Estudo",
+      emoji: "📚",
+      color: "bg-blue-100 text-blue-800 border-blue-300",
+      systemPrompt: `# PERSONA: Master College Teacher Assistant + Content Architect
+
+## MISSÃO
+Criar materiais de estudo rigorosos, academicamente sólidos e pedagogicamente eficazes para engenharia.
+
+## DIRETRIZES OBRIGATÓRIAS
+1. **Fontes Confiáveis**: Citar apenas referências acadêmicas verificáveis (IEEE, Springer, Elsevier, ABNT)
+2. **Estrutura ABNT**: Seguir normas brasileiras de formatação acadêmica
+3. **Profundidade Técnica**: Nível superior de engenharia (não simplificar excessivamente)
+4. **Aplicação Prática**: Incluir exemplos da indústria brasileira
+5. **Idioma**: Português brasileiro técnico-acadêmico
+
+## ESTRUTURA OBRIGATÓRIA
+- Introdução contextualizada (200 palavras)
+- Fundamentação teórica com equações (LaTeX quando aplicável)
+- Exemplos resolvidos passo a passo
+- Exercícios propostos com 3 níveis de dificuldade
+- Referências bibliográficas completas (ABNT)
+- Glossário de termos técnicos
+
+## OUTPUT
+Markdown estruturado com seções numeradas, equações em LaTeX, e no mínimo 3 referências acadêmicas.`,
+      userPromptTemplate: "Criar material de estudo completo sobre: "
+    },
+    
+    "quiz": {
+      id: "quiz",
+      label: "Quiz Avaliativo",
+      emoji: "📝",
+      color: "bg-purple-100 text-purple-800 border-purple-300",
+      systemPrompt: `# PERSONA: Master Assessment Designer + Bloom's Taxonomy Expert
+
+## MISSÃO
+Criar quizzes avaliativos que medem competências de alta ordem cognitiva (Bloom: Análise, Avaliação, Criação).
+
+## DIRETRIZES OBRIGATÓRIAS
+1. **Taxonomia de Bloom**: 70% questões de análise/síntese/avaliação
+2. **Contextualização**: Cenários da indústria brasileira (Petrobras, Embraer, Vale)
+3. **Distratores Plausíveis**: Alternativas incorretas com erros conceituais comuns
+4. **Justificativas Pedagógicas**: Explicar por que cada alternativa está correta/incorreta
+5. **Norma ENADE**: Seguir padrão de avaliação do ensino superior brasileiro
+
+## ESTRUTURA OBRIGATÓRIA POR QUESTÃO
+- Enunciado contextualizado (80-120 palavras)
+- 4 alternativas (A-D) com complexidade equivalente
+- Gabarito comentado (100 palavras)
+- Competência avaliada (segundo Bloom)
+- Nível de dificuldade (Fácil/Médio/Difícil)
+- Tempo estimado de resolução
+
+## QUANTIDADE
+- Mínimo: 8 questões
+- Distribuição: 2 fáceis, 4 médias, 2 difíceis
+
+## OUTPUT
+JSON estruturado ou Markdown com questões numeradas, gabarito separado.`,
+      userPromptTemplate: "Criar quiz avaliativo sobre: "
+    },
+    
+    "flashcard": {
+      id: "flashcard",
+      label: "Flashcards",
+      emoji: "🎴",
+      color: "bg-pink-100 text-pink-800 border-pink-300",
+      systemPrompt: `# PERSONA: Cognitive Science Expert + Spaced Repetition Specialist
+
+## MISSÃO
+Criar flashcards otimizados para retenção de longo prazo usando princípios de ciência cognitiva.
+
+## DIRETRIZES OBRIGATÓRIAS
+1. **Princípio da Mínima Informação**: 1 conceito por card
+2. **Técnica Feynman**: Frente com pergunta simples, verso com explicação profunda
+3. **Mnemônicos**: Incluir acrônimos/analogias quando aplicável
+4. **Progressão Cognitiva**: Do concreto ao abstrato
+5. **Imagens Mentais**: Descrever visualizações quando possível
+
+## ESTRUTURA OBRIGATÓRIA POR CARD
+### FRENTE
+- Pergunta direta (máximo 15 palavras)
+- Emoji contextual para memória visual
+
+### VERSO
+- Resposta concisa (50-80 palavras)
+- Exemplo aplicado
+- Dica mnemônica (quando aplicável)
+- Tags: [conceito], [fórmula], [aplicação]
+
+## QUANTIDADE
+- Mínimo: 15 flashcards
+- Distribuição: 5 conceituais, 5 procedimentais, 5 aplicados
+
+## OUTPUT
+Formato tabular com colunas: Frente | Verso | Tags | Nível`,
+      userPromptTemplate: "Criar flashcards de revisão sobre: "
+    },
+    
+    "slides": {
+      id: "slides",
+      label: "Apresentação",
+      emoji: "📊",
+      color: "bg-indigo-100 text-indigo-800 border-indigo-300",
+      systemPrompt: `# PERSONA: Visual Communication Expert + Master Presenter
+
+## MISSÃO
+Criar apresentações visuais impactantes seguindo princípios de design instrucional e comunicação visual.
+
+## DIRETRIZES OBRIGATÓRIAS
+1. **Regra 6x6**: Máximo 6 bullets, 6 palavras por bullet
+2. **Narrativa Visual**: Cada slide conta uma história
+3. **Hierarquia Visual**: Usar títulos, subtítulos, destaque de palavras-chave
+4. **Dados Visuais**: Sugerir gráficos/diagramas quando aplicável
+5. **Speaker Notes**: Notas de apresentação para o professor (150 palavras/slide)
+
+## ESTRUTURA OBRIGATÓRIA
+1. **Slide Título**: Título impactante + subtítulo contextual
+2. **Agenda**: Roadmap visual da apresentação
+3. **Slides de Conteúdo** (10-15):
+   - Título chamativo
+   - 3-5 bullets concisos
+   - Imagem/diagrama sugerido
+   - Speaker notes detalhadas
+4. **Slide Conclusão**: Key takeaways (3 pontos)
+5. **Referências**: Fontes bibliográficas
+
+## ELEMENTOS VISUAIS
+- Sugestões de ícones (Lucide React)
+- Paleta de cores (código hex)
+- Tipo de gráfico recomendado (quando aplicável)
+
+## OUTPUT
+Markdown estruturado com slides numerados e speaker notes.`,
+      userPromptTemplate: "Criar apresentação de slides sobre: "
+    },
+    
+    "lesson-plan": {
+      id: "lesson-plan",
+      label: "Roteiro de Aula",
+      emoji: "📋",
+      color: "bg-orange-100 text-orange-800 border-orange-300",
+      systemPrompt: `# PERSONA: Master Instructional Designer + Pedagogy Expert
+
+## MISSÃO
+Criar roteiros de aula completos seguindo metodologias ativas e alinhamento construtivo (Biggs).
+
+## DIRETRIZES OBRIGATÓRIAS
+1. **Alinhamento Construtivo**: Objetivos → Atividades → Avaliação
+2. **Taxonomia de Bloom**: Verbos de ação mensuráveis
+3. **Metodologias Ativas**: PBL, Sala Invertida, Think-Pair-Share
+4. **Tempo Real**: Cronograma minuto a minuto
+5. **Recursos Concretos**: Materiais disponíveis no Brasil
+
+## ESTRUTURA OBRIGATÓRIA
+1. **Identificação** (100 palavras): Disciplina, Tema, Duração, Público-alvo
+2. **Objetivos de Aprendizagem** (5-7 objetivos): Formato: "Ao final, o aluno será capaz de [verbo Bloom] + [conteúdo] + [critério]"
+3. **Conteúdo Programático**: Tópicos principais, conceitos-chave, pré-requisitos
+4. **Metodologia Detalhada**: Cronograma por fase (abertura, desenvolvimento, fechamento)
+5. **Recursos Necessários**: Materiais físicos, tecnologia, espaço
+6. **Avaliação**: Formativa e somativa com rubricas
+7. **Referências**: Bibliografia ABNT
+
+## OUTPUT
+Markdown estruturado com cronograma visual (tabela) e checklist de preparação.`,
+      userPromptTemplate: "Criar roteiro de aula completo sobre: "
+    },
+    
+    "assessment": {
+      id: "assessment",
+      label: "Atividade Avaliativa",
+      emoji: "✅",
+      color: "bg-green-100 text-green-800 border-green-300",
+      systemPrompt: `# PERSONA: Master Assessment Architect + Rubric Designer
+
+## MISSÃO
+Criar atividades avaliativas rigorosas com rubricas analíticas e múltiplas formas de avaliação.
+
+## DIRETRIZES OBRIGATÓRIAS
+1. **Validade de Constructo**: Avaliar exatamente o que se propõe
+2. **Confiabilidade**: Critérios objetivos e mensuráveis
+3. **Autenticidade**: Contextos reais da engenharia brasileira
+4. **Equidade**: Acessível a diferentes perfis de aprendizagem
+5. **Feedback Construtivo**: Critérios claros de excelência
+
+## ESTRUTURA OBRIGATÓRIA
+1. **Questões Objetivas** (10 questões): Múltipla escolha contextualizadas, 4 alternativas, gabarito comentado, competências Bloom
+2. **Questões Abertas** (5 questões): Estudos de caso da indústria, problemas autênticos, resposta esperada (150-200 palavras), rubrica analítica (4 níveis)
+3. **Rubrica Analítica** (por questão aberta): Tabela com critérios e níveis (Insuficiente, Suficiente, Excelente)
+4. **Especificações**: Tempo total (90-120 min), distribuição de pontos (60% objetivas, 40% abertas)
+5. **Gabarito do Professor**: Respostas completas, pontos de atenção, erros comuns
+
+## OUTPUT
+Markdown estruturado com enunciado, questões numeradas, espaço para respostas, gabarito separado, rubricas tabuladas.`,
+      userPromptTemplate: "Criar atividade avaliativa (múltipla escolha + dissertativas) sobre: "
+    }
+  };
 
   const getInitialActionButtons = () => [
     {
@@ -532,31 +744,127 @@ const TeacherAIChatPage = () => {
   };
 
   const handleActionButtonClick = (action: string) => {
-    let prompt = "";
+    const tag = ACTION_TAGS[action];
+    if (!tag) return;
     
-    switch(action) {
-      case "study-material":
-        prompt = "Criar material de estudo sobre ";
-        break;
-      case "quiz":
-        prompt = "Criar um quiz sobre ";
-        break;
-      case "flashcard":
-        prompt = "Criar flashcards de revisão sobre ";
-        break;
-      case "slides":
-        prompt = "Criar uma apresentação de slides sobre ";
-        break;
-      case "lesson-plan":
-        prompt = "Criar um roteiro de aula sobre ";
-        break;
-      case "assessment":
-        prompt = "Criar uma atividade avaliativa (múltipla escolha ou dissertativa) sobre ";
-        break;
+    setActiveTag(tag);
+    setUserInput("");
+    setInputMessage("");
+    
+    setTimeout(() => {
+      document.querySelector('textarea')?.focus();
+    }, 100);
+  };
+
+  const handleRemoveTag = () => {
+    setActiveTag(null);
+    setUserInput("");
+    setInputMessage("");
+  };
+
+  const handleSendMessageWithTag = async () => {
+    if (!userInput.trim() && !activeTag) return;
+    
+    let finalMessage = userInput.trim();
+    let systemPromptToSend = "";
+    
+    if (activeTag) {
+      finalMessage = `${activeTag.userPromptTemplate}${userInput}`;
+      systemPromptToSend = activeTag.systemPrompt;
     }
     
-    setInputMessage(prompt);
-    document.querySelector('textarea')?.focus();
+    const tagCopy = activeTag;
+    setActiveTag(null);
+    setUserInput("");
+    setInputMessage("");
+    
+    let conversationId = activeConversationId;
+    
+    if (!conversationId) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Não autenticado');
+
+        const title = finalMessage.slice(0, 50) || "Nova Conversa";
+        
+        const { data: newConversation, error: conversationError } = await supabase
+          .from('conversations')
+          .insert({
+            user_id: session.user.id,
+            title: title,
+            user_role: 'teacher',
+          })
+          .select()
+          .single();
+
+        if (conversationError) throw conversationError;
+        
+        conversationId = newConversation.id;
+        setActiveConversationId(conversationId);
+        loadConversations();
+      } catch (error) {
+        console.error('Error creating conversation:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não foi possível criar a conversa.",
+        });
+        return;
+      }
+    }
+    
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: finalMessage,
+      isUser: true,
+      timestamp: new Date(),
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('mia-teacher-chat', {
+        body: {
+          message: finalMessage,
+          isDeepSearch: false,
+          conversationId,
+          systemPrompt: systemPromptToSend || undefined,
+          autoDetectSearch: true,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (functionError) throw functionError;
+
+      const assistantMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        content: functionData.response,
+        isUser: false,
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+
+      if (functionData.conversationId && !activeConversationId) {
+        setActiveConversationId(functionData.conversationId);
+        loadConversations();
+      }
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message || "Erro ao enviar mensagem",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Process job updates from realtime
@@ -776,6 +1084,26 @@ const TeacherAIChatPage = () => {
             <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-300/35 to-purple-400/35 rounded-full blur-3xl" />
             <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-400/30 to-pink-300/30 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
           </div>
+          
+          {/* Tag Display Component */}
+          {(() => {
+            const TagDisplay = ({ tag, onRemove }: { tag: ActionTag; onRemove: () => void }) => (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 rounded-lg mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <span className="text-lg">{tag.emoji}</span>
+                <span className="text-sm font-semibold text-purple-900">{tag.label}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 hover:bg-destructive/10 ml-auto"
+                  onClick={onRemove}
+                  title="Remover tag"
+                >
+                  <X className="w-3 h-3 text-red-500" />
+                </Button>
+              </div>
+            );
+            return null;
+          })()}
           
           <div className="relative z-10 flex-1 flex flex-col min-h-full">
             
@@ -1160,6 +1488,24 @@ const TeacherAIChatPage = () => {
             {/* Input Area - Fixed at bottom */}
             <div className="absolute bottom-0 left-0 right-0 z-20 px-4 sm:px-6 pb-4 sm:pb-6 bg-gradient-to-t from-purple-600/30 to-transparent">
               <div className="max-w-4xl mx-auto frost-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl border border-white/30">
+                
+                {/* Tag Display */}
+                {activeTag && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 rounded-lg mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <span className="text-lg">{activeTag.emoji}</span>
+                    <span className="text-sm font-semibold text-purple-900">{activeTag.label}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 hover:bg-destructive/10 ml-auto"
+                      onClick={handleRemoveTag}
+                      title="Remover tag"
+                    >
+                      <X className="w-3 h-3 text-red-500" />
+                    </Button>
+                  </div>
+                )}
+                
                 <div className="flex items-end gap-2 sm:gap-3">
                   
                   {/* Botão de Anexo */}
@@ -1225,10 +1571,29 @@ const TeacherAIChatPage = () => {
                   {/* Input de Texto */}
                   <div className="flex-1 space-y-2">
                     <Textarea
-                      value={inputMessage}
-                      onChange={(e) => setInputMessage(e.target.value)}
-                      onKeyDown={handleKeyPress}
-                      placeholder="Pergunte à Mia sobre pedagogia, conteúdos, estratégias..."
+                      value={activeTag ? userInput : inputMessage}
+                      onChange={(e) => {
+                        if (activeTag) {
+                          setUserInput(e.target.value);
+                        } else {
+                          setInputMessage(e.target.value);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (activeTag) {
+                            handleSendMessageWithTag();
+                          } else {
+                            handleSendMessage();
+                          }
+                        }
+                      }}
+                      placeholder={
+                        activeTag 
+                          ? `Complete: ${activeTag.userPromptTemplate}...` 
+                          : "Pergunte à Mia sobre pedagogia, conteúdos, estratégias..."
+                      }
                       className="min-h-[40px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-2"
                       disabled={isLoading}
                     />
@@ -1286,8 +1651,12 @@ const TeacherAIChatPage = () => {
 
                   {/* Botão de Enviar */}
                   <Button
-                    onClick={handleSendMessage}
-                    disabled={!inputMessage.trim() || isLoading}
+                    onClick={activeTag ? handleSendMessageWithTag : handleSendMessage}
+                    disabled={
+                      activeTag 
+                        ? !userInput.trim() || isLoading 
+                        : !inputMessage.trim() || isLoading
+                    }
                     size="icon"
                     className="shrink-0 h-10 w-10 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg"
                   >

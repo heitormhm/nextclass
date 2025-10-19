@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, fileData, fileType, fileName, isDeepSearch, conversationId, action, context } = await req.json();
+    const { message, fileData, fileType, fileName, isDeepSearch, conversationId, action, context, systemPrompt } = await req.json();
     console.log('[TEACHER] Received request:', { message, fileType, fileName, isDeepSearch, conversationId, action });
 
     // Get authenticated user
@@ -230,7 +230,7 @@ serve(async (req) => {
     }
 
     // TEACHER-SPECIFIC System Prompt
-    let systemPrompt = `IDIOMA OBRIGATÓRIO: Todas as respostas, sugestões e materiais gerados devem estar em PORTUGUÊS BRASILEIRO (pt-BR).
+    let finalSystemPrompt = systemPrompt || `IDIOMA OBRIGATÓRIO: Todas as respostas, sugestões e materiais gerados devem estar em PORTUGUÊS BRASILEIRO (pt-BR).
 
 Você é 'Mia', uma assistente de IA especializada em design instrucional e pedagogia para cursos de engenharia. Você atende PROFESSORES de engenharia na plataforma Next Class.
 
@@ -314,7 +314,7 @@ ${teacherContext}`;
       messages: [
         {
           role: 'system',
-          content: systemPrompt
+          content: finalSystemPrompt
         },
         {
           role: 'user',
