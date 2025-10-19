@@ -289,6 +289,38 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
     }
   };
 
+  const getInitialActionButtons = () => [
+    {
+      label: "📚 Criar Material de Estudo",
+      action: "study-material",
+      description: "Gere materiais de apoio educacionais"
+    },
+    {
+      label: "📝 Criar Quiz",
+      action: "quiz",
+      description: "Crie questionários avaliativos"
+    },
+    {
+      label: "🎴 Criar Flashcard",
+      action: "flashcard",
+      description: "Desenvolva flashcards de revisão"
+    },
+    {
+      label: "📊 Criar Apresentação de Slides",
+      action: "slides",
+      description: "Monte apresentações visuais"
+    },
+    {
+      label: "📋 Criar Roteiro de Aula",
+      action: "lesson-plan",
+      description: "Planeje uma aula completa"
+    },
+    {
+      label: "✅ Criar Atividade Avaliativa",
+      action: "assessment",
+      description: "Gere atividades de múltipla escolha ou dissertativas"
+    }
+  ];
 
   const hasExistingJob = (jobType: string, context: string): boolean => {
     for (const [jobId, job] of activeJobs.entries()) {
@@ -1098,14 +1130,29 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
               </h3>
             </div>
             
-            {/* Subtítulo expandido com orientação */}
-            <p className="text-white/90 text-lg mb-3 max-w-2xl font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+            {/* Subtítulo compacto */}
+            <p className="text-white/90 text-base mb-5 max-w-md font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
               Como posso ajudá-lo hoje?
             </p>
-            
-            <p className="text-white/80 text-sm max-w-xl font-normal drop-shadow-[0_1px_3px_rgba(0,0,0,0.15)]">
-              Use os botões no topo da tela para criar materiais educacionais especializados, ou digite sua pergunta no campo abaixo.
-            </p>
+                    
+            {/* Grid 3x2 otimizado */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-5xl">
+              {getInitialActionButtons().map((btn, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleActionButtonClick(btn.action)}
+                  aria-label={`${btn.label} - ${btn.description}`}
+                  className="group p-3 min-h-[90px] backdrop-blur-lg bg-white/20 border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 text-left shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-purple-600"
+                >
+                  <div className="text-white text-sm font-semibold mb-1.5 leading-tight">
+                    {btn.label}
+                  </div>
+                  <div className="text-white/75 text-xs leading-snug">
+                    {btn.description}
+                  </div>
+                </button>
+              ))}
+            </div>
                   </div>
                 ) : (
                   <>
