@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { EditWithAIModal } from '@/components/EditWithAIModal';
+import { PublishLectureModal } from '@/components/PublishLectureModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -74,11 +75,21 @@ const LectureTranscriptionPage = () => {
   // Student access state
   const [students, setStudents] = useState<Student[]>([]);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  
+  // Publish modal state
+  const [openPublishModal, setOpenPublishModal] = useState(false);
+  
+  // AI Generation state
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
+  const [hasQuiz, setHasQuiz] = useState(false);
+  const [hasFlashcards, setHasFlashcards] = useState(false);
 
   useEffect(() => {
     if (id) {
       loadLectureData();
       loadClasses();
+      checkExistingMaterials();
     }
   }, [id]);
 
@@ -295,6 +306,96 @@ const LectureTranscriptionPage = () => {
     setOpenPublishModal(true);
   };
 
+  const handleGenerateQuiz = async () => {
+    if (!structuredContent) return;
+    
+    try {
+      setIsGeneratingQuiz(true);
+      toast({
+        title: 'Gerando quiz...',
+        description: 'A IA está criando questões baseadas no conteúdo',
+      });
+
+      const { data, error } = await supabase.functions.invoke('generate-teacher-quiz', {
+        body: {
+          lectureId: id,
+          content: structuredContent,
+          title: lectureTitle,
+        },
+      });
+
+      if (error) throw error;
+
+      setHasQuiz(true);
+      toast({
+        title: 'Quiz gerado!',
+        description: '10 questões foram criadas com sucesso',
+      });
+    } catch (error) {
+      console.error('Error generating quiz:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar quiz',
+        description: 'Não foi possível gerar o quiz',
+      });
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
+  };
+
+  const handleGenerateFlashcards = async () => {
+    if (!structuredContent) return;
+    
+    try {
+      setIsGeneratingFlashcards(true);
+      toast({
+        title: 'Gerando flashcards...',
+        description: 'A IA está criando cartões de estudo',
+      });
+
+      const { data, error } = await supabase.functions.invoke('generate-teacher-flashcards', {
+        body: {
+          lectureId: id,
+          content: structuredContent,
+          title: lectureTitle,
+        },
+      });
+
+      if (error) throw error;
+
+      setHasFlashcards(true);
+      toast({
+        title: 'Flashcards gerados!',
+        description: 'Cartões de estudo criados com sucesso',
+      });
+    } catch (error) {
+      console.error('Error generating flashcards:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar flashcards',
+        description: 'Não foi possível gerar os flashcards',
+      });
+    } finally {
+      setIsGeneratingFlashcards(false);
+    }
+  };
+
+  const checkExistingMaterials = async () => {
+    if (!id) return;
+
+    try {
+      const [quizResult, flashcardsResult] = await Promise.all([
+        supabase.from('teacher_quizzes').select('id').eq('lecture_id', id).single(),
+        supabase.from('teacher_flashcards').select('id').eq('lecture_id', id).single(),
+      ]);
+
+      setHasQuiz(!!quizResult.data);
+      setHasFlashcards(!!flashcardsResult.data);
+    } catch (error) {
+      console.error('Error checking materials:', error);
+    }
+  };
+
   const handlePublishConfirmed = async () => {
     if (!selectedClassId) {
       toast({
@@ -453,6 +554,72 @@ const LectureTranscriptionPage = () => {
                       className="bg-slate-900/50 border-slate-600 text-white"
                       placeholder="Digite o título da aula"
                     />
+                  </CardContent>
+                </Card>
+
+                {/* AI Generation Actions */}
+                <Card className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-500/30">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-purple-400" />
+                      Materiais Complementares com IA
+                    </CardTitle>
+                    <CardDescription className="text-slate-300">
+                      Gere quizzes e flashcards baseados no conteúdo da aula
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button
+                        onClick={handleGenerateQuiz}
+                        disabled={isGeneratingQuiz || hasQuiz}
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 h-auto py-4 flex-col items-start gap-2"
+                      >
+                        {isGeneratingQuiz ? (
+                          <>
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <span className="text-sm">Gerando Quiz...</span>
+                          </>
+                        ) : hasQuiz ? (
+                          <>
+                            <Check className="h-5 w-5" />
+                            <span className="text-sm font-semibold">Quiz Gerado</span>
+                            <span className="text-xs opacity-80">10 questões criadas</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckSquare className="h-5 w-5" />
+                            <span className="text-sm font-semibold">Gerar Quiz</span>
+                            <span className="text-xs opacity-80">10 questões com Bloom</span>
+                          </>
+                        )}
+                      </Button>
+
+                      <Button
+                        onClick={handleGenerateFlashcards}
+                        disabled={isGeneratingFlashcards || hasFlashcards}
+                        className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 h-auto py-4 flex-col items-start gap-2"
+                      >
+                        {isGeneratingFlashcards ? (
+                          <>
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <span className="text-sm">Gerando Flashcards...</span>
+                          </>
+                        ) : hasFlashcards ? (
+                          <>
+                            <Check className="h-5 w-5" />
+                            <span className="text-sm font-semibold">Flashcards Gerados</span>
+                            <span className="text-xs opacity-80">15-20 cartões criados</span>
+                          </>
+                        ) : (
+                          <>
+                            <BookOpen className="h-5 w-5" />
+                            <span className="text-sm font-semibold">Gerar Flashcards</span>
+                            <span className="text-xs opacity-80">15-20 cartões técnicos</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -929,6 +1096,16 @@ const LectureTranscriptionPage = () => {
           currentContent={editingSectionContent}
           onUpdate={handleContentUpdate}
           lectureId={id || ''}
+        />
+
+        {/* Publish Lecture Modal */}
+        <PublishLectureModal
+          open={openPublishModal}
+          onOpenChange={setOpenPublishModal}
+          lectureId={id || ''}
+          initialTitle={lectureTitle}
+          initialTurmaId={selectedClassId}
+          initialDisciplinaId={lecture?.disciplina_id || ''}
         />
       </div>
     </MainLayout>

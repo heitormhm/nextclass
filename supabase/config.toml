@@ -180,3 +180,12 @@ verify_jwt = true
 
 [functions.generate-teacher-codes]
 verify_jwt = true
+
+[functions.generate-lecture-tags]
+verify_jwt = true
+
+[functions.generate-teacher-quiz]
+verify_jwt = true
+
+[functions.generate-teacher-flashcards]
+verify_jwt = true
