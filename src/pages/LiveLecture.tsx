@@ -5,11 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import MainLayout from '@/components/MainLayout';
 import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { LiveTranscriptViewer } from '@/components/LiveTranscriptViewer';
+
+interface Word {
+  text: string;
+  confidence: number;
+  start: number;
+  end: number;
+}
+
+interface TranscriptSegment {
+  speaker: 'Professor' | 'Aluno';
+  text: string;
+  words: Word[];
+  timestamp: Date;
+}
 
 const LiveLecture = () => {
   const navigate = useNavigate();
@@ -18,13 +32,17 @@ const LiveLecture = () => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
   const [selectedMicrophone, setSelectedMicrophone] = useState('default');
-  const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
+  // New states for live transcription
+  const [fullAudioChunks, setFullAudioChunks] = useState<Blob[]>([]);
+  const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
+  const [currentWords, setCurrentWords] = useState<Word[]>([]);
+  const [contextHistory, setContextHistory] = useState<string[]>([]);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Simulate recording timer
@@ -51,10 +69,6 @@ const LiveLecture = () => {
     return () => clearInterval(interval);
   }, [isRecording, isPaused]);
 
-  // Auto-scroll to bottom of transcript
-  useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [transcript]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -67,7 +81,7 @@ const LiveLecture = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           channelCount: 1,
-          sampleRate: 16000,
+          sampleRate: 24000,
           echoCancellation: true,
           noiseSuppression: true,
         } 
@@ -75,20 +89,28 @@ const LiveLecture = () => {
       
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm',
+        audioBitsPerSecond: 128000,
       });
       
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      setFullAudioChunks([]);
+      setTranscriptSegments([]);
+      setCurrentWords([]);
+      setContextHistory([]);
       
-      // Collect audio chunks every 5 seconds for transcription
+      // Collect audio chunks for both live transcription and full recording
       let chunkCount = 0;
       mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
+          // Store ALL chunks for final audio
+          setFullAudioChunks(prev => [...prev, event.data]);
+          
           audioChunksRef.current.push(event.data);
           chunkCount++;
           
-          // Process every 5 seconds of audio
-          if (chunkCount >= 5) {
+          // Process every 10 seconds for live transcription
+          if (chunkCount >= 10) {
             await processAudioChunks();
             chunkCount = 0;
           }
@@ -107,7 +129,6 @@ const LiveLecture = () => {
       mediaRecorder.start(1000);
       setIsRecording(true);
       setIsPaused(false);
-      setTranscript('');
       
       toast({
         title: "Gravação iniciada",
@@ -137,22 +158,97 @@ const LiveLecture = () => {
       reader.onloadend = async () => {
         const base64Audio = (reader.result as string).split(',')[1];
         
-        const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-          body: { audio: base64Audio }
+        // Call new edge function with context
+        const { data, error } = await supabase.functions.invoke('transcribe-lecture-live', {
+          body: { 
+            audio: base64Audio,
+            previousContext: contextHistory.slice(-3).join(' ')
+          }
         });
         
         if (error) throw error;
         
         if (data?.text) {
-          setTranscript(prev => prev + ' ' + data.text);
+          // Add segment with speaker
+          const newSegment: TranscriptSegment = {
+            speaker: data.speaker || 'Professor',
+            text: data.text,
+            words: data.words || [],
+            timestamp: new Date()
+          };
+          
+          setTranscriptSegments(prev => [...prev, newSegment]);
+          setContextHistory(prev => [...prev, data.text].slice(-5));
+          
+          // Show words live (fade in)
+          if (data.words && data.words.length > 0) {
+            for (let i = 0; i < data.words.length; i++) {
+              setTimeout(() => {
+                setCurrentWords(data.words.slice(0, i + 1));
+              }, i * 100);
+            }
+            
+            // Clear after showing all
+            setTimeout(() => {
+              setCurrentWords([]);
+            }, data.words.length * 100 + 500);
+          }
         }
       };
       
       reader.readAsDataURL(audioBlob);
     } catch (error) {
       console.error('Error processing audio:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao processar áudio",
+        description: "Continuando gravação...",
+      });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const uploadFullAudio = async (): Promise<string | null> => {
+    if (fullAudioChunks.length === 0) return null;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      // Create final audio file
+      const fullAudioBlob = new Blob(fullAudioChunks, { type: 'audio/webm' });
+      const fileName = `${user.id}/${Date.now()}.webm`;
+      
+      console.log('Uploading full audio:', {
+        size: (fullAudioBlob.size / 1024 / 1024).toFixed(2) + ' MB',
+        duration: recordingTime
+      });
+      
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('lecture-audio')
+        .upload(fileName, fullAudioBlob, {
+          contentType: 'audio/webm',
+          cacheControl: '3600',
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get signed URL (1 year)
+      const { data: urlData } = await supabase.storage
+        .from('lecture-audio')
+        .createSignedUrl(fileName, 31536000);
+      
+      return urlData?.signedUrl || null;
+    } catch (error) {
+      console.error('Error uploading full audio:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao salvar áudio",
+        description: "A transcrição foi salva, mas o áudio falhou.",
+      });
+      return null;
     }
   };
 
@@ -174,18 +270,29 @@ const LiveLecture = () => {
     setIsRecording(false);
     setIsPaused(false);
     
-    // Save lecture and redirect
     try {
       setIsSaving(true);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data: lectureData, error: lectureError } = await (supabase as any)
+      // Combine all segments into full transcript
+      const fullTranscript = transcriptSegments
+        .map(seg => `[${seg.speaker}] ${seg.text}`)
+        .join('\n\n');
+
+      // Wait a bit for ondataavailable to finish
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Upload full audio
+      const audioUrl = await uploadFullAudio();
+
+      const { data: lectureData, error: lectureError } = await supabase
         .from('lectures')
         .insert({
           teacher_id: user.id,
-          raw_transcript: transcript,
+          raw_transcript: fullTranscript,
+          audio_url: audioUrl,
           duration: recordingTime,
           status: 'processing'
         })
@@ -195,11 +302,10 @@ const LiveLecture = () => {
       if (lectureError) throw lectureError;
 
       toast({
-        title: "Gravação finalizada",
-        description: "Redirecionando para publicação...",
+        title: "Gravação finalizada com sucesso",
+        description: `Áudio de ${formatTime(recordingTime)} salvo e processado.`,
       });
 
-      // Redirect to transcription page
       setTimeout(() => {
         navigate(`/lecturetranscription/${lectureData.id}`);
       }, 1000);
@@ -209,9 +315,8 @@ const LiveLecture = () => {
       toast({
         variant: 'destructive',
         title: 'Erro ao salvar',
-        description: 'Não foi possível salvar a gravação',
+        description: error instanceof Error ? error.message : 'Não foi possível salvar a gravação',
       });
-      setRecordingTime(0);
     } finally {
       setIsSaving(false);
     }
@@ -246,7 +351,7 @@ const LiveLecture = () => {
             className={`rounded-t transition-all duration-100 ease-out w-1 ${
               isRecording && !isPaused 
                 ? 'bg-gradient-to-t from-purple-500 to-pink-500' 
-                : 'bg-slate-600'
+                : 'bg-gray-400'
             }`}
             style={{
               height: `${bar.height}px`,
@@ -263,34 +368,31 @@ const LiveLecture = () => {
 
   return (
     <MainLayout>
-      <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-        {/* Background effect with absolute positioning */}
-        <div className="absolute inset-0 z-0">
-          <BackgroundRippleEffect className="opacity-30" />
-        </div>
+      <div className="relative min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <BackgroundRippleEffect className="fixed inset-0 -z-10" />
         
         <div className="relative z-10 w-full max-w-5xl">
           {/* Header with status indicator */}
           <div className="text-center mb-4 space-y-2">
             <div className="flex items-center justify-center gap-3">
-              <Radio className="h-6 w-6 text-purple-400" />
-              <h1 className="text-2xl md:text-3xl font-bold text-white">
+              <Radio className="h-6 w-6 text-purple-600" />
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                 Gravação de Aula ao Vivo
               </h1>
             </div>
             
             {isRecording && (
-              <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-500/30 rounded-full px-4 py-1 backdrop-blur-sm">
+              <div className="inline-flex items-center gap-2 bg-red-50 border border-red-200 rounded-full px-4 py-1">
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                <span className="text-red-400 font-mono font-semibold">
+                <span className="text-red-600 font-mono font-semibold">
                   {formatTime(recordingTime)}
                 </span>
               </div>
             )}
           </div>
 
-          {/* Main Control Panel - Optimized height */}
-          <div className="bg-slate-800/50 backdrop-blur-xl rounded-lg border border-slate-700 shadow-2xl p-6 md:p-8 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
+          {/* Main Control Panel */}
+          <div className="bg-white shadow-lg rounded-lg border border-gray-200 p-6 md:p-8 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
             
             {/* Central Microphone Orb - Reduced size */}
             <div className="flex flex-col items-center space-y-4">
@@ -308,7 +410,7 @@ const LiveLecture = () => {
                 <div className={`relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-500 ${
                   isRecording && !isPaused
                     ? 'bg-gradient-to-br from-purple-600 via-pink-500 to-red-500 shadow-2xl shadow-purple-500/50'
-                    : 'bg-gradient-to-br from-slate-700 to-slate-600 shadow-lg'
+                    : 'bg-gradient-to-br from-gray-200 to-gray-300 shadow-lg'
                 }`}>
                   {/* Glow effect when recording */}
                   {isRecording && !isPaused && (
@@ -324,7 +426,7 @@ const LiveLecture = () => {
                     {isRecording && !isPaused ? (
                       <Mic className="h-12 w-12 text-white animate-pulse" />
                     ) : (
-                      <MicOff className="h-12 w-12 text-slate-300" />
+                      <MicOff className="h-12 w-12 text-gray-500" />
                     )}
                   </div>
                 </div>
@@ -332,13 +434,13 @@ const LiveLecture = () => {
               
               {/* Status text */}
               <div className="text-center">
-                <h2 className="text-xl font-bold text-white mb-1">
+                <h2 className="text-xl font-bold text-gray-900 mb-1">
                   {isRecording 
                     ? (isPaused ? 'Gravação Pausada' : 'Gravando Agora')
                     : 'Pronto para Gravar'
                   }
                 </h2>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-gray-600">
                   {isRecording && !isPaused 
                     ? 'Sistema capturando áudio em tempo real' 
                     : isPaused 
@@ -350,31 +452,23 @@ const LiveLecture = () => {
             </div>
 
             {/* Audio Waveform Visualization */}
-            <div className="bg-slate-900/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <AudioWaveform />
               <div className="flex items-center justify-center gap-2 mt-3">
-                <div className={`w-2 h-2 rounded-full ${isRecording && !isPaused ? 'bg-green-500 animate-pulse' : 'bg-slate-600'}`}></div>
-                <p className="text-xs text-slate-400">
+                <div className={`w-2 h-2 rounded-full ${isRecording && !isPaused ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                <p className="text-xs text-gray-600">
                   {isRecording && !isPaused ? 'Monitorando entrada de áudio' : 'Aguardando entrada de áudio'}
                 </p>
               </div>
             </div>
 
-            {/* Transcription Area */}
+            {/* Live Transcription */}
             {isRecording && (
-              <div className="bg-slate-900/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
-                <h3 className="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2">
-                  <Radio className="h-4 w-4 animate-pulse" />
-                  Transcrição ao Vivo
-                  {isProcessing && <span className="text-xs text-slate-500">(processando...)</span>}
-                </h3>
-                <ScrollArea className="h-32 w-full">
-                  <div className="text-sm text-slate-300 whitespace-pre-wrap pr-4">
-                    {transcript || 'Aguardando fala...'}
-                    <div ref={transcriptEndRef} />
-                  </div>
-                </ScrollArea>
-              </div>
+              <LiveTranscriptViewer
+                segments={transcriptSegments}
+                currentWords={currentWords}
+                isProcessing={isProcessing}
+              />
             )}
 
             {/* Control Buttons */}
@@ -393,7 +487,7 @@ const LiveLecture = () => {
                   <Button
                     onClick={handlePauseRecording}
                     variant="outline"
-                    className="px-6 py-4 text-base bg-slate-700/50 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500 shadow-lg transition-all duration-300 hover:scale-105"
+                    className="px-6 py-4 text-base bg-white border-gray-300 text-gray-700 hover:bg-gray-50 shadow-lg transition-all duration-300 hover:scale-105"
                   >
                     {isPaused ? (
                       <>
@@ -425,23 +519,23 @@ const LiveLecture = () => {
                   <Button 
                     variant="outline" 
                     size="icon"
-                    className="bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500 shadow-lg h-10 w-10 transition-all duration-300 hover:scale-105"
+                    className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 shadow-lg h-10 w-10 transition-all duration-300 hover:scale-105"
                   >
                     <Settings className="h-5 w-5" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-slate-800 border-slate-700 text-white">
+                <DialogContent className="bg-white border-gray-200">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Configurações de Áudio</DialogTitle>
-                    <DialogDescription className="text-slate-400">
+                    <DialogTitle className="text-gray-900">Configurações de Áudio</DialogTitle>
+                    <DialogDescription className="text-gray-600">
                       Selecione o dispositivo de entrada de áudio
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="microphone" className="text-white">Microfone</Label>
+                      <Label htmlFor="microphone" className="text-gray-900">Microfone</Label>
                       <Select value={selectedMicrophone} onValueChange={setSelectedMicrophone}>
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                           <SelectValue placeholder="Selecione o microfone" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-700">
