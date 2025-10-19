@@ -486,6 +486,33 @@ const TeacherAnnotationPage = () => {
     
     setIsProcessingAI(true);
     
+    // Toast de progresso para atividades avaliativas
+    let progressToastId: string | number | undefined;
+    if (actionType === 'generate_activity') {
+      progressToastId = toast.loading('Gerando atividade avaliativa...', {
+        description: 'Etapa 1/3: Analisando conteúdo e criando questões contextualizadas',
+        duration: Infinity,
+      });
+      
+      setTimeout(() => {
+        if (progressToastId) {
+          toast.loading('Gerando atividade avaliativa...', {
+            id: progressToastId,
+            description: 'Etapa 2/3: Criando gabaritos e rubricas de avaliação',
+          });
+        }
+      }, 20000);
+      
+      setTimeout(() => {
+        if (progressToastId) {
+          toast.loading('Gerando atividade avaliativa...', {
+            id: progressToastId,
+            description: 'Etapa 3/3: Finalizando e validando estrutura',
+          });
+        }
+      }, 40000);
+    }
+    
     try {
       // Lógica especial para "Gerar Plano de Aula"
     if (actionType === 'format_lesson_plan') {
@@ -564,13 +591,30 @@ const TeacherAnnotationPage = () => {
       return;
     }
       
-      // Para outras ações, usar a edge function padrão
-      const { data, error } = await supabase.functions.invoke('teacher-ai-text-formatting', {
-        body: { 
-          content, 
-          action: actionType 
+      // Para outras ações, usar a edge function padrão com timeout de segurança
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
+      
+      let data, error;
+      try {
+        const response = await supabase.functions.invoke('teacher-ai-text-formatting', {
+          body: { 
+            content, 
+            action: actionType 
+          },
+          // @ts-ignore - AbortSignal is supported but not in types
+          signal: controller.signal
+        });
+        data = response.data;
+        error = response.error;
+        clearTimeout(timeoutId);
+      } catch (invokeError: any) {
+        clearTimeout(timeoutId);
+        if (invokeError.name === 'AbortError') {
+          throw new Error('Timeout: A geração demorou mais de 2 minutos. Tente com um texto menor ou mais conciso.');
         }
-      });
+        throw invokeError;
+      }
 
       if (error) throw error;
       
@@ -635,6 +679,11 @@ const TeacherAnnotationPage = () => {
             }
             
             saveToHistory(jsonContent);
+            
+            // Limpar toast de progresso se existir
+            if (progressToastId) {
+              toast.dismiss(progressToastId);
+            }
             
             // Toast específico para cada tipo
             if (actionType === 'generate_activity') {

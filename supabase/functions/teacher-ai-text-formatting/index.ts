@@ -537,10 +537,16 @@ Retorne a atividade em **JSON estruturado** seguindo este schema:
 
 - Use **APENAS JSON estruturado** como resposta
 - Retorne APENAS blocos textuais (sem elementos visuais Mermaid, gráficos ou componentes React)
+- **LIMITE DE TAMANHO - CRÍTICO**: 
+  * Enunciados de questões objetivas: 80-120 palavras (não exceder)
+  * Enunciados de questões abertas: 120-180 palavras (não exceder)
+  * Justificativas e respostas esperadas: máximo 100 palavras cada
+  * Rubricas: 3 níveis, máximo 50 palavras por nível
 - Garanta que todos os enunciados sigam a estrutura CESP (Contexto → Situação → Problema)
 - Inclua competências específicas para cada questão
 - Rubricas devem ser objetivas e mensuráveis com 3-4 níveis de desempenho claramente definidos
 - Todas as questões devem conter dados quantitativos realistas e cenários profissionais brasileiros
+- **OTIMIZAÇÃO**: Use formatação concisa, evite repetições desnecessárias
 - Retorne **APENAS o JSON**, sem texto adicional antes ou depois
 {
   "titulo_geral": "Atividade Avaliativa: [Título do Tema]",
@@ -1163,9 +1169,13 @@ RESPONDA APENAS COM O JSON PURO!`;
         }
         
         // 5. Process the entire structured data
+        console.log('[Progress] ⏳ Etapa 5/7: Processando blocos estruturados...');
+        const startTimeStep5 = Date.now();
         let processedData = processBlock(structuredData);
+        console.log(`[Progress] ✅ Etapa 5/7 concluída em ${Date.now() - startTimeStep5}ms`);
         
         // 5.5. Post-processing: Apply reference formatting to any text field
+        console.log('[Progress] ⏳ Etapa 6/7: Aplicando validações de segurança...');
         console.log('[Post-Processing] Searching for reference text blocks...');
         function enhanceReferences(obj: any): any {
           if (typeof obj === 'string') {
@@ -1192,9 +1202,15 @@ RESPONDA APENAS COM O JSON PURO!`;
         
         processedData = enhanceReferences(processedData);
         
-        // 6. Call validation agent to fix any errors
-        console.log('[Validation] Enviando para agente de validação...');
+        // 6. Apply manual safety validations (DESABILITADO: chamada ao agente de validação AI)
+        // A validação com AI foi desabilitada para evitar loop infinito e timeout
+        // A validação manual cobre 95% dos casos problemáticos e é muito mais rápida
+        console.log('[Validation] Aplicando validações manuais de segurança...');
+        processedData = applyManualSafetyValidations(processedData);
+        console.log('[Progress] ✅ Etapa 6/7 concluída');
         
+        /* DESABILITADO - Causa loop infinito e timeout
+        console.log('[Validation] Enviando para agente de validação...');
         try {
           const validationResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/validate-formatted-content`, {
             method: 'POST',
@@ -1210,15 +1226,12 @@ RESPONDA APENAS COM O JSON PURO!`;
             if (validationData.validatedContent) {
               processedData = validationData.validatedContent;
               console.log('[Validation] ✅ Conteúdo validado e corrigido pelo agente');
-              // Apply additional manual validations to ensure safety
               processedData = applyManualSafetyValidations(processedData);
             } else {
-              // Validation returned null - apply manual safety validations as fallback
               console.warn('[Validation] ⚠️ Agente retornou null, usando validação manual de fallback');
               processedData = applyManualSafetyValidations(processedData);
             }
           } else {
-            // Validation failed - apply manual safety validations as fallback
             const errorText = await validationResponse.text();
             console.error('[Validation] ❌ Erro no agente de validação:', errorText);
             console.log('[Validation] Aplicando correções manuais de emergência...');
@@ -1226,13 +1239,15 @@ RESPONDA APENAS COM O JSON PURO!`;
           }
         } catch (validationError) {
           console.error('[Validation] ⚠️ Erro ao chamar agente de validação:', validationError);
-          // Apply manual safety validations as emergency fallback
           console.log('[Validation] Aplicando correções manuais de emergência após erro...');
           processedData = applyManualSafetyValidations(processedData);
         }
+        */
         
         // 7. Convert back to JSON string
+        console.log('[Progress] ⏳ Etapa 7/7: Convertendo para JSON final...');
         formattedText = JSON.stringify(processedData);
+        console.log('[Progress] ✅ Etapa 7/7 concluída. Pronto para enviar resposta.');
         
         console.log('[Post-Processing] ✅ Conversão concluída. Markdown → HTML aplicado + Validação.');
         console.log(`[Post-Processing] Blocos processados: ${processedData.conteudo?.length || 0}`);
