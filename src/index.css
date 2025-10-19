@@ -152,11 +152,11 @@ All colors MUST be HSL. Design tokens for consistent theming.
   @keyframes wave {
     0%, 100% { 
       transform: translateX(-100%); 
-      opacity: 0.3; 
+      opacity: 0.2; 
     }
     50% { 
       transform: translateX(100%); 
-      opacity: 0.6; 
+      opacity: 0.4; 
     }
   }
 
@@ -164,25 +164,25 @@ All colors MUST be HSL. Design tokens for consistent theming.
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(239, 68, 68, 0.1),
+      rgba(239, 68, 68, 0.05),
       transparent
     );
     height: 100%;
-    animation: wave 2s infinite;
+    animation: wave 3s ease-in-out infinite;
   }
 
-  /* Pulse Border Animation */
-  @keyframes pulse-border {
+  /* Pulse Border Animation - Subtle */
+  @keyframes pulse-border-subtle {
     0%, 100% { 
-      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); 
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); 
     }
     50% { 
-      box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); 
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0); 
     }
   }
 
-  .animate-pulse-border {
-    animation: pulse-border 1.5s infinite;
+  .animate-pulse-border-subtle {
+    animation: pulse-border-subtle 2s ease-in-out infinite;
   }
   
   /* Mobile-first responsive typography system */

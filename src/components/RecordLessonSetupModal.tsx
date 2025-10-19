@@ -269,7 +269,7 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
       });
 
       // Navigate to LiveLecture with lectureId
-      navigate(`/live-lecture?lectureId=${lecture.id}`);
+      navigate(`/livelecture?lectureId=${lecture.id}`);
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating lecture:', error);
@@ -314,7 +314,7 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                     onChange={(e) => setTheme(e.target.value.slice(0, 200))}
                     className={cn(
                       "min-h-[120px] text-base resize-none pr-20 transition-all duration-300",
-                      isRecording && "border-red-500 border-2 animate-pulse-border"
+                      isRecording && "ring-2 ring-red-500/30 animate-pulse-border-subtle"
                     )}
                     maxLength={200}
                   />
@@ -370,10 +370,10 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                 className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {generatingTags ? (
-                  <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    Gerando Tags e Título...
-                  </>
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="animate-pulse">Gerando Tags e Título...</span>
+                  </div>
                 ) : (
                   <>
                     <Sparkles className="h-5 w-5 mr-2" />
@@ -513,11 +513,6 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                           👉 Selecione uma turma primeiro
                         </p>
                       )}
-                      {!selectedDisciplina && selectedTurma && !showCreateDisciplina && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                          ⚠️ Disciplina obrigatória para organizar a aula
-                        </p>
-                      )}
                     </>
                   )}
                   </div>
@@ -638,8 +633,8 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
         {/* Sticky Footer with Action Buttons */}
         {step === 'input' && (
           <div className="sticky bottom-0 left-0 right-0 mt-4 pt-6 border-t backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 -mx-6 -mb-6 px-6 pb-6">
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-              {/* Cancelar - Subtle */}
+            <div className="flex flex-col-reverse sm:flex-row gap-3 items-stretch sm:items-center sm:justify-end">
+              {/* Cancelar - Subtle, pushed left on desktop */}
               <Button
                 type="button"
                 variant="ghost"
@@ -649,38 +644,21 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                   }
                   onOpenChange(false);
                 }}
-                className="order-2 sm:order-1 text-muted-foreground hover:text-foreground"
+                className="sm:mr-auto text-muted-foreground hover:text-foreground"
               >
                 Cancelar
               </Button>
               
-              {/* Spacer */}
-              <div className="flex-1 hidden sm:block" />
-              
-              {/* Iniciar Gravação - Hero Button */}
+              {/* Iniciar Gravação - Hero Button, right side on desktop, top on mobile */}
               <Button
                 onClick={handleStartRecording}
                 disabled={!isFormValid || generatingTags || tags.length === 0}
-                className="order-1 sm:order-2 bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 hover:from-purple-700 hover:via-pink-700 hover:to-red-600 text-white font-bold py-4 px-8 rounded-xl shadow-2xl hover:shadow-3xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 hover:from-purple-700 hover:via-pink-700 hover:to-red-600 text-white font-bold py-4 px-8 rounded-xl shadow-2xl hover:shadow-3xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Mic className="h-6 w-6 group-hover:scale-110 transition-transform" />
-                    {!isFormValid && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
-                    )}
-                  </div>
-                  <span className="text-lg">Iniciar Gravação</span>
-                </div>
+                <Mic className="h-6 w-6 mr-3" />
+                <span className="text-lg">Iniciar Gravação</span>
               </Button>
             </div>
-            
-            {/* Validation message */}
-            {(!isFormValid || tags.length === 0) && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 text-center sm:text-right">
-                ⚠️ {tags.length === 0 ? 'Gere tags antes de iniciar' : 'Preencha todos os campos obrigatórios'}
-              </p>
-            )}
           </div>
         )}
 
