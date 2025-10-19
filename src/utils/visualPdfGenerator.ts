@@ -50,21 +50,7 @@ interface PDFResult {
   stats?: PDFStats;
 }
 
-// Estratégias de renderização por tipo de bloco
-const RENDER_STRATEGIES: Record<string, RenderStrategy> = {
-  'h2': { renderAsImage: false },
-  'h3': { renderAsImage: false },
-  'h4': { renderAsImage: false },
-  'paragrafo': { renderAsImage: false },
-  'post_it': { renderAsImage: true },
-  'caixa_de_destaque': { renderAsImage: true },
-  'fluxograma': { renderAsImage: true },
-  'mapa_mental': { renderAsImage: true },
-  'diagrama': { renderAsImage: true },
-  'grafico': { renderAsImage: true },
-  'componente_react': { renderAsImage: true, expandAccordions: true },
-  'referencias': { renderAsImage: false }
-};
+// Image-only pipeline: All content blocks are captured as images
 
 // FASE 2: Função para sanitizar markdown
 const sanitizeMarkdown = (text: string): { cleanText: string; hasBold: boolean } => {
@@ -186,9 +172,6 @@ const convertSVGtoPNG = async (svgString: string, width: number, height: number)
 };
 
 export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFResult> => {
-  // FASE 6: Contador de órfãos evitados
-  let orphansAvoided = 0;
-  
   const startTime = Date.now();
   const stats: PDFStats = {
     imagesCaptured: 0,
@@ -199,10 +182,6 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     totalPages: 1,
     captureTime: 0
   };
-  let fullPageImagesCount = 0; // FASE 4: Rastrear imagens em full-page
-  let pageBreaksPreventedForText = 0; // FASE 6: Quebras de página evitadas
-  let lastBlockWasFullPage = false; // FASE 1: Controlar páginas após full-page images
-  let lastImageBottom = 0; // FASE 3: Tracking de posição de imagens
   const warnings: string[] = [];
 
   try {
@@ -241,294 +220,13 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     const contentWidth = pageWidth - (2 * margin);
     let currentY = margin;
 
-    // FASE 1: Função para detectar se imagem merece página dedicada (OTIMIZADA)
-    const shouldUseDedicatedPage = (
-      imageHeight: number,
-      aspectRatio: number,
-      currentY: number,
-      bloco: ContentBlock,
-      availableSpace: number
-    ): boolean => {
-      
-      const isLargeImage = imageHeight > 160;        // AUMENTADO: 120 → 160mm
-      const isMediumImage = imageHeight > 120;       // AUMENTADO: 80 → 120mm
-      const isVerticalImage = aspectRatio > 1.5;     // AUMENTADO: 1.3 → 1.5
-      const isComplexDiagram = [
-        'fluxograma',
-        'mapa_mental',
-        'diagrama'
-        // REMOVIDO: 'grafico' - gráficos podem ser inline
-      ].includes(bloco.tipo) || !!bloco.definicao_mermaid;
-      
-      // Calcular ocupação percentual
-      const imageOccupancy = imageHeight / availableSpace;
-      const isHighOccupancy = imageOccupancy > 0.70; // AUMENTADO: 0.65 → 0.70 (>70%)
-      
-      // FASE 4: Detectar caixas amarelas e tratá-las como post-its
-      const isYellowBox = bloco.tipo === 'caixa_de_destaque' && bloco.estilo?.includes('amarelo');
-      
-      // Verificar se próximo bloco é diagrama
-      const nextBloco = options.structuredData.conteudo[options.structuredData.conteudo.indexOf(bloco) + 1];
-      const nextIsDiagram = nextBloco && (
-        nextBloco.tipo === 'fluxograma' || 
-        nextBloco.tipo === 'diagrama' || 
-        nextBloco.tipo === 'mapa_mental' ||
-        nextBloco.tipo === 'grafico' ||
-        (nextBloco.tipo === 'componente_react' && nextBloco.texto?.includes('mermaid'))
-      );
-      
-      // DECISÃO MAIS RESTRITIVA
-      const decision: boolean = (
-        // Critério 1: Imagem MUITO grande (>160mm)
-        (isLargeImage) ||
-        
-        // Critério 2: Imagem média + diagrama complexo + MUITO pouco espaço (FIX 4: 100→130)
-        (isMediumImage && isComplexDiagram && availableSpace < 130) ||
-        
-        // Critério 3: Imagem muito vertical
-        (isVerticalImage) ||
-        
-        // Critério 4: Alta ocupação (>70%) E já estamos MUITO no final
-        (isHighOccupancy && currentY > 140) ||
-        
-        // FASE 4: Critério 5: Caixa amarela ANTES de diagrama (forçar full-page se >70mm)
-        (isYellowBox && nextIsDiagram && imageHeight > 70)
-      );
-      
-      console.log('🔍 Análise OTIMIZADA de imagem:', {
-        tipo: bloco.tipo,
-        alturaImagem: `${imageHeight.toFixed(1)}mm`,
-        espacoDisponivel: `${availableSpace.toFixed(1)}mm`,
-        ocupacao: `${(imageOccupancy * 100).toFixed(1)}%`,
-        posicaoAtual: `${currentY.toFixed(1)}mm`,
-        aspectRatio: aspectRatio.toFixed(2),
-        criterios: {
-          isLargeImage,
-          isMediumImage,
-          isComplexDiagram,
-          isVerticalImage,
-          isHighOccupancy,
-          currentYPosition: currentY > 120
-        },
-        decisao: decision ? '📄 FULL-PAGE' : '📝 INLINE'
-      });
-      
-      return decision;
-    };
+    // Image-only pipeline: No complex decision logic needed
 
-    // FASE 1: Função para pré-calcular altura de texto
-    const estimateTextBlockHeight = (
-      pdf: jsPDF,
-      bloco: ContentBlock,
-      contentWidth: number
-    ): number => {
-      const processedBloco = detectAndConvertMarkdown(bloco);
-      
-      switch (processedBloco.tipo) {
-        case 'h2':
-          pdf.setFontSize(16);
-          const h2Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
-          return h2Lines.length * 7 + 8; // Altura + linha decorativa + espaço
-          
-        case 'h3':
-          pdf.setFontSize(13);
-          const h3Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
-          return h3Lines.length * 6 + 6; // Altura + linha decorativa
-          
-        case 'h4':
-          pdf.setFontSize(11);
-          const h4Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
-          return h4Lines.length * 5 + 5;
-          
-        case 'paragrafo':
-          pdf.setFontSize(11);
-          const { cleanText } = sanitizeMarkdown(processedBloco.texto || '');
-          const lines = pdf.splitTextToSize(cleanText, contentWidth);
-          return lines.length * 6.5 + 5;
-          
-        case 'referencias':
-          let refHeight = 20; // Título + linha decorativa
-          bloco.itens?.forEach((ref: string) => {
-            const estimatedLines = Math.ceil(ref.length / 80);
-            refHeight += estimatedLines * 4 + 3;
-          });
-          return refHeight;
-          
-        default:
-          return 15; // Fallback
-      }
-    };
+    // Image-only pipeline: No text height estimation needed
 
-    // FASE 2: Algoritmo inteligente de quebra de linha (anti-órfão) + proteção de palavras em negrito
-    const smartTextSplit = (
-      pdf: jsPDF,
-      text: string,
-      maxWidth: number,
-      preserveWords?: string[] // FASE 2: Palavras que não devem ser quebradas (negrito)
-    ): string[] => {
-      const protectedWords = preserveWords || [];
-      const words = text.split(' ');
-      const lines: string[] = [];
-      let currentLine = '';
-      
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i];
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const testWidth = pdf.getTextWidth(testLine);
-        
-        if (testWidth > maxWidth && currentLine) {
-          // FASE 2: Verificar se palavra é protegida (negrito)
-          const isProtectedWord = protectedWords.some(pw => word.includes(pw));
-          
-          if (isProtectedWord && pdf.getTextWidth(word) < maxWidth * 0.9) {
-            // Palavra protegida não cabe na linha atual, mover linha inteira
-            lines.push(currentLine);
-            currentLine = word;
-            console.log('🛡️ Palavra em negrito protegida:', word);
-            continue;
-          }
-          
-          // Verificar se próxima palavra é curta (< 10 letras) e é a última
-          const nextWord = words[i + 1];
-          const isLastWord = i === words.length - 1;
-          const nextIsOrphan = nextWord && nextWord.length < 10 && i === words.length - 2;
-          
-          if (nextIsOrphan) {
-            // Forçar quebra anterior para evitar órfão
-            const wordsInLine = currentLine.split(' ');
-            if (wordsInLine.length > 2) {
-              // Mover última palavra da linha atual para próxima linha
-              const lastWordInLine = wordsInLine.pop();
-              lines.push(wordsInLine.join(' '));
-              currentLine = `${lastWordInLine} ${word}`;
-              orphansAvoided++;
-              console.log('🔧 Órfão evitado:', nextWord);
-              continue;
-            }
-          }
-          
-          lines.push(currentLine);
-          currentLine = word;
-        } else {
-          currentLine = testLine;
-        }
-      }
-      
-      if (currentLine) {
-        lines.push(currentLine);
-      }
-      
-      return lines;
-    };
+    // Image-only pipeline: No complex text functions needed
 
-    // FASE 3: Renderizar linha justificada com verificação de espaçamento excessivo
-    const renderJustifiedLine = (
-      pdf: jsPDF,
-      text: string,
-      x: number,
-      y: number,
-      maxWidth: number,
-      isLastLine: boolean = false
-    ): void => {
-      if (isLastLine || text.trim().split(' ').length === 1) {
-        // Última linha ou palavra única: alinhar à esquerda
-        pdf.text(text, x, y);
-        return;
-      }
-      
-      const words = text.trim().split(' ');
-      const totalTextWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
-      const totalSpaceWidth = maxWidth - totalTextWidth;
-      const spaceWidth = totalSpaceWidth / (words.length - 1);
-      
-      // CORREÇÃO 3: Aumentar limite de 8mm para 12mm e adicionar fallback gradual
-      if (spaceWidth > 12) {
-        // Tentar comprimir linha levemente
-        const compressionFactor = 0.95;
-        const compressedWidth = maxWidth * compressionFactor;
-        
-        if (totalTextWidth < compressedWidth) {
-          // Renderizar com compressão leve
-          const adjustedSpaceWidth = (compressedWidth - totalTextWidth) / (words.length - 1);
-          
-          let xPos = x;
-          words.forEach((word) => {
-            pdf.text(word, xPos, y);
-            xPos += pdf.getTextWidth(word) + adjustedSpaceWidth;
-          });
-          console.log('🔧 Linha comprimida para melhorar justificação');
-          return;
-        }
-        
-        // Se não funcionar, alinhar à esquerda
-        console.log('⚠️ Espaçamento excessivo detectado, usando alinhamento à esquerda');
-        pdf.text(text, x, y);
-        return;
-      }
-      
-      let currentX = x;
-      words.forEach((word) => {
-        pdf.text(word, currentX, y);
-        currentX += pdf.getTextWidth(word) + spaceWidth;
-      });
-    };
-
-    // FASE 2: Função para renderizar imagem em página dedicada (Full-Page Mode)
-    const renderImageFullPage = (
-      pdf: jsPDF,
-      imageData: { base64: string; width: number; height: number },
-      pageWidth: number,
-      pageHeight: number,
-      margin: number
-    ): void => {
-      // Criar nova página dedicada
-      pdf.addPage();
-      stats.totalPages++;
-      fullPageImagesCount++;
-      console.log('📄 Página dedicada criada para imagem grande (Full-Page Mode)');
-      
-      // Calcular dimensões máximas disponíveis
-      const maxWidth = (pageWidth - 2 * margin) * 0.90; // 90% da largura (respiro visual)
-      const maxHeight = (pageHeight - 2 * margin) * 0.85; // 85% da altura (sem invadir rodapé)
-      
-      let finalWidth = imageData.width;
-      let finalHeight = imageData.height;
-      
-      // Escalar proporcionalmente para caber
-      const widthRatio = maxWidth / imageData.width;
-      const heightRatio = maxHeight / imageData.height;
-      const scaleFactor = Math.min(widthRatio, heightRatio);
-      
-      finalWidth = imageData.width * scaleFactor;
-      finalHeight = imageData.height * scaleFactor;
-      
-      // Centralizar vertical E horizontal
-      const xPosition = (pageWidth - finalWidth) / 2;
-      const yPosition = (pageHeight - finalHeight) / 2;
-      
-      // Renderizar imagem
-      pdf.addImage(
-        imageData.base64,
-        imageData.base64.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG',
-        xPosition,
-        yPosition,
-        finalWidth,
-        finalHeight
-      );
-      
-      // FASE 5: Legenda discreta (opcional)
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'italic');
-      pdf.setTextColor(145, 127, 251); // Roxo claro
-      pdf.text(
-        'Imagem otimizada para visualização completa',
-        pageWidth / 2,
-        yPosition + finalHeight + 8,
-        { align: 'center' }
-      );
-      
-      console.log(`✅ Imagem full-page: ${finalWidth.toFixed(1)}mm x ${finalHeight.toFixed(1)}mm (centralizada)`);
-    };
+    // Image-only pipeline: No text justification needed
 
     // FASE 1: CABEÇALHO COM LOGO SVG NEXTCLASS CENTRALIZADA
     const logoY = currentY;
@@ -637,459 +335,120 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     pdf.text(`Gerado por NextClass AI  •  ${date}`, pageWidth / 2, currentY, { align: 'center' });
     currentY += 15;
 
-    // PROCESSAR CADA BLOCO
-    let lastBlockWasImage = false; // CORREÇÃO 4: Rastrear blocos de imagem para ajustar espaçamento
+    // ============================================
+    // IMAGE-ONLY PIPELINE: Process all content blocks as images
+    // ============================================
+    console.log('\n━━━━━━ PROCESSANDO CONTEÚDO (IMAGE-ONLY) ━━━━━━');
+    
+    const FIXED_SPACING = 15; // 15mm spacing between all blocks
+    const FOOTER_MARGIN = 30; // Reserve space for footer
     
     for (let i = 0; i < options.structuredData.conteudo.length; i++) {
       const bloco = options.structuredData.conteudo[i];
-      const strategy = RENDER_STRATEGIES[bloco.tipo] || { renderAsImage: false };
-
-      // FASE 5: LOGGING DETALHADO
-      console.log(`\n━━━ BLOCO ${i + 1}/${options.structuredData.conteudo.length} ━━━`);
-      console.log(`Tipo: ${bloco.tipo}`);
-      console.log(`currentY: ${currentY.toFixed(1)}mm`);
-      console.log(`Espaço disponível: ${(pageHeight - margin - currentY).toFixed(1)}mm`);
-      if (bloco.imagem_base64 || bloco.url_imagem) {
-        console.log(`Imagem detectada`);
-      }
-
-      // FASE 2: Aproveitar espaço após full-page images (OTIMIZADO)
-      if (lastBlockWasFullPage) {
-        const usableSpace = pageHeight - margin - currentY;
-        
-        // NOVO: Verificar se PRÓXIMO bloco REALMENTE cabe
-        const nextBloco = options.structuredData.conteudo[i + 1];
-        let nextBlockEstimatedHeight = 0;
-        
-        if (nextBloco) {
-          if (nextBloco.tipo === 'paragrafo' || ['h2', 'h3', 'h4'].includes(nextBloco.tipo)) {
-            nextBlockEstimatedHeight = estimateTextBlockHeight(pdf, nextBloco, contentWidth);
-          } else if (nextBloco.imagem_base64 || nextBloco.url_imagem || RENDER_STRATEGIES[nextBloco.tipo]?.renderAsImage) {
-            // FASE 2: NOVO - Estimar altura baseada no tipo de bloco
-            if (nextBloco.tipo === 'post_it' || nextBloco.tipo === 'caixa_de_destaque') {
-              nextBlockEstimatedHeight = 70; // Post-its e caixas: ~70mm
-            } else if (nextBloco.tipo === 'grafico') {
-              nextBlockEstimatedHeight = 90; // Gráficos: ~90mm
-            } else if (['fluxograma', 'diagrama', 'mapa_mental'].includes(nextBloco.tipo)) {
-              nextBlockEstimatedHeight = 130; // Diagramas complexos: ~130mm
-            } else {
-              nextBlockEstimatedHeight = 80; // Fallback genérico
-            }
-            console.log(`📏 Altura estimada da próxima imagem (${nextBloco.tipo}): ${nextBlockEstimatedHeight.toFixed(1)}mm`);
-          } else {
-            // Fallback para blocos sem imagem
-            nextBlockEstimatedHeight = 40;
-          }
-        }
-        
-        // Adicionar página apenas se:
-        // 1. Espaço < 80mm OU
-        // 2. Próximo bloco NÃO cabe (nextBlockHeight + 30mm buffer > usableSpace)
-        const nextBlockFits = nextBlockEstimatedHeight + 30 <= usableSpace;
-        
-        if (usableSpace < 80 || !nextBlockFits) {
-          pdf.addPage();
-          stats.totalPages++;
-          currentY = margin;
-          console.log(`📄 Nova página: espaço ${usableSpace.toFixed(1)}mm insuficiente para próximo bloco (precisa ${nextBlockEstimatedHeight}mm)`);
-        } else {
-          console.log(`✅ Aproveitando ${usableSpace.toFixed(1)}mm após full-page (próximo bloco cabe)`);
-        }
-        
-        lastBlockWasFullPage = false;
-      }
-
-      // FASE 3: Keep-Together para Títulos + Parágrafos (OTIMIZADO)
-      if (!strategy.renderAsImage && ['h2', 'h3', 'h4'].includes(bloco.tipo)) {
-        // Lookahead: verificar se próximo bloco é parágrafo
-        const nextBloco = options.structuredData.conteudo[i + 1];
-        if (nextBloco && nextBloco.tipo === 'paragrafo') {
-          const titleHeight = estimateTextBlockHeight(pdf, bloco, contentWidth);
-          const paragraphHeight = estimateTextBlockHeight(pdf, nextBloco, contentWidth);
-          const combinedHeight = titleHeight + paragraphHeight;
-          const availableSpace = pageHeight - margin - currentY - 20;
-          
-          // FASE 4: Apenas forçar nova página se:
-          // 1. Não cabe DE VERDADE (espaço < combinedHeight)
-          // 2. E espaço disponível é MUITO pequeno (<35mm = "órfão real")
-          if (combinedHeight > availableSpace && availableSpace < 35) {
-            pdf.addPage();
-            stats.totalPages++;
-            currentY = margin;
-            pageBreaksPreventedForText++;
-            console.log(`📄 Keep-Together: Nova página para título + parágrafo (espaço: ${availableSpace.toFixed(1)}mm)`);
-          } else if (combinedHeight > availableSpace) {
-            // Se não cabe mas há espaço razoável, renderizar título e quebrar parágrafo
-            console.log(`📝 Keep-Together: Título renderizado, parágrafo quebrado (espaço: ${availableSpace.toFixed(1)}mm)`);
-          }
-        }
-      }
-
-      // FASE 1: Pré-calcular altura de texto ANTES de renderizar
-      if (!strategy.renderAsImage) {
-        const estimatedHeight = estimateTextBlockHeight(pdf, bloco, contentWidth);
-        const availableSpace = pageHeight - margin - currentY - 20;
-        
-        if (estimatedHeight > availableSpace && currentY > margin + 50) {
-          // Criar nova página ANTES de renderizar texto
-          pdf.addPage();
-          stats.totalPages++;
-          currentY = margin;
-          pageBreaksPreventedForText++;
-          console.log('📄 Nova página criada ANTES de renderizar texto');
-        }
-      }
-
-      if (strategy.renderAsImage) {
-        // CRITICAL FIX 1: Detect and apply buffer BEFORE any calculations
-        const prevBloco = i > 0 ? options.structuredData.conteudo[i - 1] : null;
-        const isPrevPostIt = prevBloco && (
-          prevBloco.tipo === 'post_it' ||
-          (prevBloco.tipo === 'caixa_de_destaque' && prevBloco.estilo?.includes('amarelo'))
-        );
-        const isCurrentDiagram = ['fluxograma', 'diagrama', 'mapa_mental', 'grafico'].includes(bloco.tipo) ||
-                                 (bloco.tipo === 'componente_react' && bloco.texto?.includes('mermaid'));
-        
-        // Apply buffer BEFORE any image processing
-        if (isCurrentDiagram && isPrevPostIt) {
-          currentY += 45; // 45mm buffer for post-it → diagram transitions
-          console.log('🛡️ CRITICAL FIX 1: +45mm buffer applied BEFORE diagram processing');
-        }
-        
-        // NOW proceed with image capture
-        const imageData = await captureBlockAsImage(bloco, contentWidth);
-        
-        if (imageData) {
-          const estimatedImageHeight = (imageData.height / imageData.width) * contentWidth * 0.7;
-          const spaceAvailable = pageHeight - margin - currentY;
-          
-          // FASE 4: PROTEÇÃO DE EMERGÊNCIA INTELIGENTE (baseada no tamanho da imagem)
-          let MINIMUM_SPACE_REQUIRED = 15; // Base: 15mm
-          
-          if (estimatedImageHeight < 30) {
-            MINIMUM_SPACE_REQUIRED = 15; // Imagens pequenas (post-its): 15mm
-          } else if (estimatedImageHeight < 60) {
-            MINIMUM_SPACE_REQUIRED = 20; // Imagens médias: 20mm
-          } else {
-            MINIMUM_SPACE_REQUIRED = 25; // Imagens grandes: 25mm
-          }
-          
-          // Se não há espaço mínimo, FORÇAR nova página
-          if (spaceAvailable < MINIMUM_SPACE_REQUIRED) {
-            pdf.addPage();
-            stats.totalPages++;
-            currentY = margin;
-            console.log(`🚨 EMERGÊNCIA: Nova página forçada (${spaceAvailable.toFixed(1)}mm < ${MINIMUM_SPACE_REQUIRED}mm necessários)`);
-          }
-          
-          // FIX 2 & 3: Removed duplicate shouldUseDedicatedPage call and redundant pre-protection logic
-          // Decision logic moved to line 882 after accurate height calculation
-          
-          // Temporary flag for full-page decision (actual decision at line 882)
-          const useFullPageTemp = false; // Will be evaluated properly later
-          if (useFullPageTemp) {
-            // Sempre começar full-page em página nova
-            if (currentY > margin + 10) { // Se já há conteúdo na página
-              pdf.addPage();
-              stats.totalPages++;
-              currentY = margin;
-              console.log('📄 Nova página para Full-Page Mode');
-            }
-          } else {
-            // INLINE: Verificar se REALMENTE cabe
-            const FOOTER_SAFE_ZONE = 30; // FASE 5: AUMENTADO: 25mm → 30mm
-            const actualSpace = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
-            
-            if (estimatedImageHeight > actualSpace && actualSpace < 80) {
-              // Não cabe de forma legível: nova página
-              pdf.addPage();
-              stats.totalPages++;
-              currentY = margin;
-              console.log(`📄 Nova página: imagem inline não cabe (precisa ${estimatedImageHeight.toFixed(1)}mm, tem ${actualSpace.toFixed(1)}mm)`);
-            }
-          }
-          
-          // FASE 3: Prevenir órfão visual (texto isolado antes de imagem grande)
-          
-          if (i > 0 && estimatedImageHeight > 80) {
-            const previousBlock = options.structuredData.conteudo[i - 1];
-            const linesOnCurrentPage = (currentY - margin) / 6.5;
-            
-            // CORREÇÃO 1: Incluir títulos na verificação de órfão visual
-            if ((previousBlock.tipo === 'paragrafo' || 
-                 previousBlock.tipo === 'h2' || 
-                 previousBlock.tipo === 'h3' || 
-                 previousBlock.tipo === 'h4') && 
-                linesOnCurrentPage < 3 && linesOnCurrentPage > 0.5) {
-              // Criar nova página e re-renderizar parágrafo
-              pdf.addPage();
-              stats.totalPages++;
-              const oldY = currentY;
-              currentY = margin;
-              
-              // Re-renderizar parágrafo anterior
-              currentY = addTextBlockToPDF(
-                pdf, previousBlock, currentY, margin, contentWidth, 
-                pageWidth, pageHeight, smartTextSplit, renderJustifiedLine
-              );
-              
-              console.log(`🛡️ Órfão visual evitado: ${linesOnCurrentPage.toFixed(1)} linhas movidas para nova página`);
-            }
-          }
-          // FASE 2: Calcular dimensões otimizadas baseadas em aspectRatio
-          const aspectRatio = imageData.height / imageData.width;
-          let imageWidth: number;
-          
-          // FASE 2: Tamanho variável baseado em tipo de imagem
-          if (aspectRatio < 0.7) {
-            // Imagens horizontais (diagramas, gráficos)
-            imageWidth = contentWidth * 0.85;
-          } else if (aspectRatio > 1.3) {
-            // Imagens verticais (fluxogramas)
-            imageWidth = contentWidth * 0.60;
-          } else {
-            // Imagens quadradas (post-its, caixas)
-            imageWidth = contentWidth * 0.70;
-          }
-          
-          let imageHeight = (imageData.height / imageData.width) * imageWidth;
-          let xPosition = margin + (contentWidth - imageWidth) / 2; // FASE 2: Sempre centralizar
-
-          const FOOTER_SAFE_ZONE = 20; // 15mm rodapé + 5mm buffer
-          const availableSpace = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
-          
-          // FASE 3: DECISÃO INTELIGENTE - Full-Page vs Normal
-          if (shouldUseDedicatedPage(imageHeight, aspectRatio, currentY, bloco, availableSpace)) {
-            // MODO FULL-PAGE: Página dedicada para legibilidade máxima
-            renderImageFullPage(
-              pdf,
-              imageData,
-              pageWidth,
-              pageHeight,
-              margin
-            );
-            
-            // Marcar que último bloco foi full-page (nova página será adicionada no próximo loop)
-            lastBlockWasFullPage = true;
-            
-            console.log('✅ Full-page finalizado, próximo bloco iniciará nova página');
-            console.log('📊 Estatística: Imagem renderizada em Full-Page Mode');
-            
-          } else {
-            // MODO NORMAL: Renderizar na página atual
-            
-            // FASE 5: FOOTER_SAFE_ZONE aumentado para 30mm
-            const FOOTER_SAFE_ZONE_INLINE = 30; // AUMENTADO: 20mm → 30mm
-            const maxImageHeight = pageHeight - margin - currentY - FOOTER_SAFE_ZONE_INLINE;
-            const needsNewPage = availableSpace < (imageHeight * 0.5); // < 50% da altura original
-            
-            if (needsNewPage && currentY > margin + 30) {
-              // Criar nova página se espaço < 50% da altura original
-              pdf.addPage();
-              stats.totalPages++;
-              currentY = margin;
-              console.log('📄 Nova página para imagem (espaço insuficiente)');
-            } else if (imageHeight > maxImageHeight && maxImageHeight > 80) {
-              // Redimensionar APENAS se ainda couber de forma legível (min 80mm)
-              const scaleFactor = maxImageHeight / imageHeight;
-              imageHeight = maxImageHeight;
-              imageWidth = imageWidth * scaleFactor;
-              xPosition = margin + (contentWidth - imageWidth) / 2; // Re-centralizar
-              console.log('📐 Imagem ajustada para caber na página (Modo Normal)');
-            }
-            
-            // Verificar quebra de página final
-            if (currentY + imageHeight > pageHeight - margin - FOOTER_SAFE_ZONE_INLINE) {
-              pdf.addPage();
-              stats.totalPages++;
-              currentY = margin;
-              console.log('📄 Nova página criada (Modo Normal)');
-            }
-            
-            // Renderizar imagem
-            // FASE 5: LOG APÓS RENDERIZAÇÃO
-            console.log(`✅ Imagem renderizada em Y=${currentY.toFixed(1)}mm (altura: ${imageHeight.toFixed(1)}mm)`);
-            
-            pdf.addImage(
-              imageData.base64,
-              imageData.base64.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG',
-              xPosition,
-              currentY,
-              imageWidth,
-              imageHeight
-            );
-            
-            // FASE 3: DETECÇÃO DE CAIXAS AMARELAS - Tratar como post-its
-            const isCurrentPostIt = bloco.tipo === 'post_it' || 
-                                    (bloco.tipo === 'caixa_de_destaque' && bloco.estilo?.includes('amarelo'));
-            
-            // FIX 5: AGGRESSIVE SPACING - Increased all values
-            let imageSpacing = 20; // Base: 15mm → 20mm
-            
-            if (isCurrentPostIt) {
-              imageSpacing = 30; // Post-its always get 30mm spacing
-              console.log('📌 Post-it spacing: 30mm');
-            } else if (imageHeight > 100) {
-              imageSpacing = 35; // Imagens grandes: 25mm → 35mm
-            } else if (imageHeight > 60) {
-              imageSpacing = 25; // Imagens médias: 20mm → 25mm
-            }
-            
-            // Redimensionamento
-            const originalHeight = (imageData.height / imageData.width) * imageWidth;
-            const wasResized = Math.abs(imageHeight - originalHeight) > 5;
-            if (wasResized) {
-              imageSpacing += 8;
-              console.log('🔧 Espaçamento extra: imagem redimensionada (+8mm)');
-            }
-            
-            currentY += imageHeight + imageSpacing;
-            lastImageBottom = currentY;
-            lastBlockWasImage = true;
-            lastBlockWasImage = true;
-            
-            // FASE 5: LOG APÓS SPACING
-            console.log(`📍 currentY atualizado: ${currentY.toFixed(1)}mm (espaçamento: ${imageSpacing}mm)`);
-            console.log(`✅ Imagem inline: ${imageWidth.toFixed(1)}mm x ${imageHeight.toFixed(1)}mm`);
-            console.log(`📍 Última imagem: ${lastImageBottom.toFixed(1)}mm`);
-          }
-
-          stats.imagesCaptured++;
-
-          // Estatísticas específicas
-          if (bloco.tipo.includes('mermaid') || bloco.tipo === 'fluxograma' || bloco.tipo === 'mapa_mental' || bloco.tipo === 'diagrama') {
-            stats.mermaidDiagrams++;
-          }
-          if (bloco.tipo === 'grafico') stats.charts++;
-          if (bloco.tipo === 'post_it') stats.postIts++;
-        } else {
-          warnings.push(`Falha ao capturar imagem do bloco ${i + 1} (${bloco.tipo})`);
-        }
-      } else {
-        // RENDERIZAR COMO TEXTO NATIVO
-        
-        // FASE 4: DETECÇÃO PROATIVA de colisão ANTES de renderizar texto
-        const MINIMUM_DISTANCE_FROM_IMAGE = 25; // 25mm de buffer de segurança
-        
-        // Apenas verificar colisão se última imagem foi INLINE (não full-page)
-        if (lastBlockWasImage && !lastBlockWasFullPage && lastImageBottom > 0) {
-          const distanceFromImage = currentY - lastImageBottom;
-          
-          // Verificar se distância é POSITIVA e menor que mínimo
-          if (distanceFromImage >= 0 && distanceFromImage < MINIMUM_DISTANCE_FROM_IMAGE) {
-            pdf.addPage();
-            stats.totalPages++;
-            currentY = margin;
-            lastImageBottom = 0; // Reset após nova página
-            console.log(`🚨 COLISÃO EVITADA: Texto estava a ${distanceFromImage.toFixed(1)}mm da imagem (mínimo: ${MINIMUM_DISTANCE_FROM_IMAGE}mm)`);
-          }
-        }
-        
-        // CORREÇÃO 4: Passar flag lastBlockWasImage para ajustar espaçamento
-        (bloco as any).__lastBlockWasImage = lastBlockWasImage;
-        
-        currentY = addTextBlockToPDF(
-          pdf, 
-          bloco, 
-          currentY, 
-          margin, 
-          contentWidth, 
-          pageWidth, 
-          pageHeight,
-          smartTextSplit,
-          renderJustifiedLine
-        );
-        stats.nativeTextBlocks++;
-        
-        // Reset flag após renderizar texto
-        lastBlockWasImage = false;
-
-        // Verificar quebra de página após texto
-        if (currentY > pageHeight - margin) {
-          pdf.addPage();
-          stats.totalPages++;
-          currentY = margin;
-        }
-      }
-    }
-
-    // RODAPÉ COM IDENTIDADE NEXTCLASS
-    const totalPages = (pdf as any).internal.pages.length - 1;
-    
-    for (let i = 1; i <= totalPages; i++) {
-      pdf.setPage(i);
+      const availableSpace = pageHeight - currentY - margin - FOOTER_MARGIN;
       
-      // Linha decorativa com gradiente rosa→roxo
-      const footerLineY = pageHeight - 18;
-      const lineSegments = 20;
-      const lineWidth = pageWidth - (2 * margin);
-      const segmentWidth = lineWidth / lineSegments;
+      console.log(`\n📦 Bloco ${i + 1}/${options.structuredData.conteudo.length}: ${bloco.tipo}`);
+      console.log(`   currentY: ${currentY.toFixed(1)}mm | Espaço disponível: ${availableSpace.toFixed(1)}mm`);
       
-      for (let j = 0; j < lineSegments; j++) {
-        const ratio = j / lineSegments;
-        const r = Math.round(255 - (255 - 63) * ratio);
-        const g = Math.round(70 - (70 - 45) * ratio);
-        const b = Math.round(130 + (175 - 130) * ratio);
-        
-        pdf.setDrawColor(r, g, b);
-        pdf.setLineWidth(0.8);
-        pdf.line(
-          margin + (j * segmentWidth),
-          footerLineY,
-          margin + ((j + 1) * segmentWidth),
-          footerLineY
-        );
+      // Track block types for stats
+      if (bloco.tipo === 'post_it') stats.postIts++;
+      if (['fluxograma', 'mapa_mental', 'diagrama'].includes(bloco.tipo) || bloco.definicao_mermaid) stats.mermaidDiagrams++;
+      if (bloco.tipo === 'grafico') stats.charts++;
+      
+      // ALWAYS capture block as image
+      const imageData = await captureBlockAsImage(bloco, contentWidth);
+      
+      if (!imageData) {
+        console.warn(`⚠️ Falha ao capturar bloco ${i + 1}, pulando...`);
+        continue;
       }
       
-      // FASE 3: Número da página (centro, roxo) - Fonte maior
-      pdf.setFontSize(10); // FASE 3: Aumentado de 9pt para 10pt (+11%)
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(63, 45, 175); // Roxo
-      pdf.text(
-        `Pagina ${i} de ${totalPages}`,
-        pageWidth / 2,
-        pageHeight - 10,
-        { align: 'center' }
+      stats.imagesCaptured++;
+      
+      // Calculate image dimensions in mm
+      const imageWidthMM = contentWidth * 0.9; // 90% of content width
+      const imageHeightMM = (imageData.height / imageData.width) * imageWidthMM;
+      
+      console.log(`   Imagem capturada: ${imageWidthMM.toFixed(1)}mm x ${imageHeightMM.toFixed(1)}mm`);
+      
+      // Simple page break logic: if image takes more than 70% of available space, move to new page
+      if (imageHeightMM > availableSpace * 0.7 && currentY > margin + 20) {
+        console.log(`   🔄 Nova página (imagem ocupa >${(imageHeightMM/availableSpace*100).toFixed(0)}% do espaço disponível)`);
+        pdf.addPage();
+        stats.totalPages++;
+        currentY = margin;
+      }
+      
+      // Add image to PDF
+      const xPosition = margin + ((contentWidth - imageWidthMM) / 2); // Center horizontally
+      pdf.addImage(
+        imageData.base64,
+        imageData.base64.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG',
+        xPosition,
+        currentY,
+        imageWidthMM,
+        imageHeightMM
       );
       
-      // FASE 3: Nome do documento (esquerda, rosa) - Fonte maior
-      pdf.setFontSize(9); // FASE 3: Aumentado de 7pt para 9pt (+29%)
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(255, 70, 130); // Rosa
-      const truncatedTitle = options.title.substring(0, 40) + (options.title.length > 40 ? '...' : '');
-      pdf.text(truncatedTitle, margin, pageHeight - 10);
+      console.log(`   ✅ Imagem adicionada em Y=${currentY.toFixed(1)}mm`);
       
-      // FASE 3: "NextClass AI" (direita, roxo claro) - Fonte maior
-      pdf.setFontSize(9); // FASE 3: Aumentado de 7pt para 9pt (+29%)
-      pdf.setTextColor(145, 127, 251); // Roxo claro
-      pdf.text('NextClass AI', pageWidth - margin, pageHeight - 10, { align: 'right' });
+      // Update position with fixed spacing
+      currentY += imageHeightMM + FIXED_SPACING;
+      
+      console.log(`   📍 Novo currentY: ${currentY.toFixed(1)}mm (espaçamento: ${FIXED_SPACING}mm)`);
+      
+      // Check if we need a new page for next iteration
+      if (currentY > pageHeight - margin - FOOTER_MARGIN) {
+        console.log(`   📄 Página cheia, próximo bloco começará em nova página`);
+        pdf.addPage();
+        stats.totalPages++;
+        currentY = margin;
+      }
     }
+
+    // ADICIONAR RODAPÉ EM TODAS AS PÁGINAS
+    const finalPageCount = stats.totalPages;
+    for (let pageNum = 1; pageNum <= finalPageCount; pageNum++) {
+      pdf.setPage(pageNum);
+      
+      // Rodapé
+      const footerY = pageHeight - 10;
+      pdf.setFontSize(9);
+      pdf.setTextColor(150, 150, 150);
+      
+      // Esquerda: Título do documento (rosa)
+      applyFont('footer');
+      pdf.setTextColor(255, 70, 130); // Rosa
+      pdf.text(options.title, margin, footerY);
+      
+      // Centro: Numeração de páginas
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`${pageNum} / ${finalPageCount}`, pageWidth / 2, footerY, { align: 'center' });
+      
+      // Direita: "NextClass AI" (roxo)
+      pdf.setTextColor(168, 85, 247); // Roxo
+      pdf.text('NextClass AI', pageWidth - margin, footerY, { align: 'right' });
+    }
+
+    // Salvar PDF
+    console.log(`\n✨ Gerando PDF (IMAGE-ONLY PIPELINE)...`);
+    console.log(`📊 Estatísticas finais:`);
+    console.log(`   - Total de páginas: ${stats.totalPages}`);
+    console.log(`   - Imagens capturadas: ${stats.imagesCaptured}`);
+    console.log(`   - Diagramas Mermaid: ${stats.mermaidDiagrams}`);
+    console.log(`   - Gráficos: ${stats.charts}`);
+    console.log(`   - Post-its: ${stats.postIts}`);
+    console.log(`   - Tempo total: ${((Date.now() - startTime) / 1000).toFixed(2)}s`);
 
     // Download
     const fileName = `${options.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.pdf`;
     pdf.save(fileName);
 
     stats.captureTime = Date.now() - startTime;
-    console.log('✅ [VisualPDF] Geração concluída em', stats.captureTime, 'ms');
-    if (fullPageImagesCount > 0) {
-      console.log(`🖼️ Imagens em Full-Page Mode: ${fullPageImagesCount}`);
-    }
-    // FASE 6: Estatísticas de qualidade
-    if (pageBreaksPreventedForText > 0) {
-      console.log(`📄 Quebras de página evitadas: ${pageBreaksPreventedForText}`);
-    }
-    if (orphansAvoided > 0) {
-      console.log(`🔧 Órfãos corrigidos: ${orphansAvoided}`);
-    }
 
     return {
       success: true,
-      stats: {
-        ...stats,
-        fullPageImages: fullPageImagesCount,
-        pageBreaksPreventedForText,
-        orphansAvoided
-      } as any,
+      stats,
       warnings: warnings.length > 0 ? warnings : undefined
     };
   } catch (error) {
@@ -1202,7 +561,7 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
   // Renderizar conteúdo específico
   switch (bloco.tipo) {
     case 'post_it':
-      const icon = getPostItIcon(bloco.texto || '');
+      const icon = '💡'; // Default icon for post-its
       div.innerHTML = `<p style="font-size: 14px; line-height: 1.6; color: #000;">${icon} ${bloco.texto || ''}</p>`;
       break;
 
@@ -1299,328 +658,4 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
   }
 
   return div;
-};
-
-// FUNÇÃO: Adicionar texto nativo ao PDF
-const addTextBlockToPDF = (
-  pdf: jsPDF,
-  bloco: ContentBlock,
-  currentY: number,
-  margin: number,
-  contentWidth: number,
-  pageWidth: number,
-  pageHeight: number,
-  smartTextSplit: (pdf: jsPDF, text: string, maxWidth: number, preserveWords?: string[]) => string[],
-  renderJustifiedLine: (pdf: jsPDF, text: string, x: number, y: number, maxWidth: number, isLastLine?: boolean) => void
-): number => {
-  pdf.setTextColor(0, 0, 0);
-
-  // FASE 4: Aplicar conversão automática de markdown residual
-  const processedBloco = detectAndConvertMarkdown(bloco);
-  
-  // CORREÇÃO 4: Receber flag lastBlockWasImage como parâmetro
-  const isAfterImage = (bloco as any).__lastBlockWasImage || false;
-
-  switch (processedBloco.tipo) {
-    case 'h2':
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(63, 45, 175); // Roxo escuro
-      
-      // CORREÇÃO 4: Espaçamento adaptativo antes de H2 (maior após imagens)
-      const h2Spacing = isAfterImage ? 15 : 10; // +5mm após imagem
-      currentY += h2Spacing;
-      if (isAfterImage) {
-        console.log('📐 Espaçamento aumentado: H2 após imagem (+5mm)');
-      }
-      
-      const h2Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
-      pdf.text(h2Lines, margin, currentY);
-      
-      const h2Height = h2Lines.length * 7;
-      currentY += h2Height;
-      
-      // FASE 5: Linha rosa decorativa mais espessa
-      pdf.setDrawColor(255, 70, 130); // Rosa
-      pdf.setLineWidth(1.2); // ANTES: 0.8, AGORA: 1.2mm (50% mais espesso)
-      const underlineLength = Math.min(pdf.getTextWidth(processedBloco.texto || '') + 5, 80);
-      pdf.line(margin, currentY, margin + underlineLength, currentY); // Linha proporcional ao texto
-      currentY += 8; // FASE 4: Aumentado de 6mm para 8mm (dobro do espaço)
-      break;
-
-    case 'h3':
-      pdf.setFontSize(13);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(145, 127, 251); // Roxo claro
-      
-      // CORREÇÃO 4: Espaçamento adaptativo antes de H3 (maior após imagens)
-      const h3SpacingBefore = isAfterImage ? 12 : 8; // +4mm após imagem
-      currentY += h3SpacingBefore;
-      if (isAfterImage) {
-        console.log('📐 Espaçamento aumentado: H3 após imagem (+4mm)');
-      }
-      
-      const h3Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
-      pdf.text(h3Lines, margin, currentY);
-      
-      const h3Height = h3Lines.length * 6;
-      currentY += h3Height;
-      
-      // FASE 5: Linha roxa decorativa mais visível
-      pdf.setDrawColor(145, 127, 251); // Roxo claro
-      pdf.setLineWidth(0.8); // ANTES: 0.5, AGORA: 0.8mm
-      const h3UnderlineLength = Math.min(pdf.getTextWidth(processedBloco.texto || '') + 3, 60);
-      pdf.line(margin, currentY, margin + h3UnderlineLength, currentY);
-      currentY += 6;
-      break;
-
-    case 'h4':
-      pdf.setFontSize(11);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(255, 113, 160); // Rosa claro
-      const h4Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
-      pdf.text(h4Lines, margin, currentY);
-      currentY += h4Lines.length * 5 + 5; // FASE 4: Aumentado de 4mm para 5mm
-      break;
-
-    case 'paragrafo':
-      pdf.setFontSize(11);
-      pdf.setTextColor(40, 40, 40);
-      
-      // FASE 2: Sanitizar markdown antes de processar
-      const { cleanText: sanitizedText, hasBold: hasMarkdown } = sanitizeMarkdown(processedBloco.texto || '');
-      
-      // FASE 1: Estimativa PRECISA de altura para parágrafos com negrito (simulação dry-run)
-      let estimatedLines: number;
-      
-      if (hasMarkdown) {
-        // NOVO: Simulação precisa de quebra de linhas considerando largura de negrito
-        const words: Array<{text: string, bold: boolean}> = [];
-        const keywordPattern = /\*\*(.*?)\*\*/g;
-        const parts = sanitizedText.split(keywordPattern);
-        
-        parts.forEach((part, index) => {
-          if (!part) return;
-          const isBold = index % 2 === 1;
-          part.split(' ').filter(w => w.trim()).forEach(word => {
-            words.push({ text: word, bold: isBold });
-          });
-        });
-        
-        // Simular quebra de linhas (dry-run)
-        pdf.setFontSize(11);
-        let simulatedLines = 1;
-        let currentLineWidth = 0;
-        const spaceWidth = pdf.getTextWidth(' ');
-        
-        words.forEach(word => {
-          pdf.setFont('helvetica', word.bold ? 'bold' : 'normal');
-          const wordWidth = pdf.getTextWidth(word.text);
-          const nextWidth = currentLineWidth + wordWidth + (currentLineWidth > 0 ? spaceWidth : 0);
-          
-          if (nextWidth > contentWidth) {
-            simulatedLines++;
-            currentLineWidth = wordWidth;
-          } else {
-            currentLineWidth = nextWidth;
-          }
-        });
-        
-        estimatedLines = simulatedLines;
-        console.log(`📏 Estimativa precisa: ${estimatedLines} linhas (texto com negrito)`);
-      } else {
-        estimatedLines = smartTextSplit(pdf, sanitizedText, contentWidth * 1.05).length;
-      }
-      
-      const totalParagraphHeight = estimatedLines * 6.5 + 11; // linhas + espaço pós-parágrafo
-      
-      // Se parágrafo NÃO CABE completamente, criar nova página ANTES
-      if (currentY + totalParagraphHeight + 20 > pageHeight - margin) {
-        pdf.addPage();
-        currentY = margin;
-        console.log('📄 Nova página: parágrafo completo protegido do rodapé');
-      }
-      
-      if (hasMarkdown) {
-        // CORREÇÃO 1: Renderização inline palavra por palavra para evitar isolamento
-        const words: Array<{text: string, bold: boolean}> = [];
-        
-        // Parser palavra por palavra mantendo negrito
-        const keywordPattern = /\*\*(.*?)\*\*/g;
-        const parts = sanitizedText.split(keywordPattern);
-        
-        parts.forEach((part, index) => {
-          if (!part) return;
-          
-          // Índices ímpares são conteúdo entre **
-          const isBold = index % 2 === 1;
-          
-          part.split(' ').filter(w => w.trim()).forEach(word => {
-            words.push({ text: word, bold: isBold });
-          });
-        });
-        
-        // Renderizar palavra por palavra com quebra de linha inteligente
-        let lineY = currentY;
-        let lineX = margin;
-        let currentLineWords: typeof words = [];
-        let currentLineWidth = 0;
-        
-        for (let i = 0; i < words.length; i++) {
-          const word = words[i];
-          pdf.setFont('helvetica', word.bold ? 'bold' : 'normal');
-          const wordWidth = pdf.getTextWidth(word.text);
-          const spaceWidth = pdf.getTextWidth(' ');
-          
-          const nextWidth = currentLineWidth + wordWidth + (currentLineWords.length > 0 ? spaceWidth : 0);
-          
-          if (nextWidth > contentWidth && currentLineWords.length > 0) {
-            // FASE 1: Verificação de rodapé ANTES de renderizar linha
-            const lineHeight = 6.5;
-            if (lineY + lineHeight + 20 > pageHeight - margin) {
-              pdf.addPage();
-              lineY = margin;
-              console.log('📄 Nova página: texto próximo ao rodapé (renderização inline)');
-            }
-            
-            // Quebra de linha: renderizar linha atual
-            let x = margin;
-            currentLineWords.forEach((w) => {
-              pdf.setFont('helvetica', w.bold ? 'bold' : 'normal');
-              pdf.text(w.text, x, lineY);
-              x += pdf.getTextWidth(w.text) + spaceWidth;
-            });
-            
-            // Nova linha
-            lineY += lineHeight;
-            currentLineWords = [word];
-            currentLineWidth = wordWidth;
-          } else {
-            currentLineWords.push(word);
-            currentLineWidth = nextWidth;
-          }
-        }
-        
-        // Renderizar última linha
-        if (currentLineWords.length > 0) {
-          // FASE 1: Verificação de rodapé para última linha
-          const lineHeight = 6.5;
-          if (lineY + lineHeight + 20 > pageHeight - margin) {
-            pdf.addPage();
-            lineY = margin;
-            console.log('📄 Nova página: última linha próxima ao rodapé');
-          }
-          
-          let x = margin;
-          currentLineWords.forEach(w => {
-            pdf.setFont('helvetica', w.bold ? 'bold' : 'normal');
-            pdf.text(w.text, x, lineY);
-            x += pdf.getTextWidth(w.text) + pdf.getTextWidth(' ');
-          });
-        }
-        
-        currentY = lineY + 11; // Espaço após parágrafo
-        console.log('✅ Parágrafo com negrito renderizado inline');
-      } else {
-        // FASE 2 + FASE 3: Usar smartTextSplit + justificação para parágrafos sem negrito
-        pdf.setFont('helvetica', 'normal');
-        // CORREÇÃO 3: Aumentar tolerância de 2% para 5% para melhor justificação
-        const lines = smartTextSplit(pdf, sanitizedText, contentWidth * 1.05);
-        console.log('📏 Linha expandida para justificação (+5%)');
-        
-        lines.forEach((line, index) => {
-          // FASE 1: Verificação de rodapé ANTES de cada linha
-          const lineHeight = 6.5;
-          if (currentY + lineHeight + 20 > pageHeight - margin) {
-            pdf.addPage();
-            currentY = margin;
-            console.log('📄 Nova página: texto próximo ao rodapé (justificado)');
-          }
-          
-          const isLastLine = index === lines.length - 1;
-          renderJustifiedLine(pdf, line, margin, currentY, contentWidth, isLastLine);
-          currentY += lineHeight;
-        });
-        
-        currentY += 5;
-      }
-      break;
-
-    case 'referencias':
-      // Adicionar espaço antes das referências
-      if (currentY + 20 > pageHeight - margin) {
-        pdf.addPage();
-        currentY = margin;
-      }
-      
-      // Título com cor roxa
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(63, 45, 175); // Roxo
-      pdf.text('Referencias Bibliograficas', margin, currentY);
-      currentY += 8;
-      
-      // Linha decorativa com gradiente
-      const refLineSegments = 15;
-      const refLineWidth = contentWidth * 0.5;
-      const refSegmentWidth = refLineWidth / refLineSegments;
-      
-      for (let i = 0; i < refLineSegments; i++) {
-        const ratio = i / refLineSegments;
-        const r = Math.round(255 - (255 - 63) * ratio);
-        const g = Math.round(70 - (70 - 45) * ratio);
-        const b = Math.round(130 + (175 - 130) * ratio);
-        
-        pdf.setDrawColor(r, g, b);
-        pdf.setLineWidth(0.6);
-        pdf.line(
-          margin + (i * refSegmentWidth),
-          currentY,
-          margin + ((i + 1) * refSegmentWidth),
-          currentY
-        );
-      }
-      
-      currentY += 6;
-      
-      // Lista de referências
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(60, 60, 60);
-      
-      bloco.itens?.forEach((ref: string, index: number) => {
-        const estimatedHeight = Math.ceil(ref.length / 80) * 4 + 3;
-        if (currentY + estimatedHeight > pageHeight - margin - 15) {
-          pdf.addPage();
-          currentY = margin;
-        }
-        
-        // Número da referência em rosa
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(255, 70, 130); // Rosa
-        pdf.text(`[${index + 1}]`, margin, currentY);
-        
-        // Texto da referência
-        pdf.setFont('helvetica', 'normal');
-        pdf.setTextColor(60, 60, 60);
-        const refLines = pdf.splitTextToSize(ref, contentWidth - 12);
-        pdf.text(refLines, margin + 12, currentY);
-        currentY += refLines.length * 4 + 3;
-      });
-      
-      currentY += 5;
-      break;
-  }
-
-  return currentY;
-};
-
-// FUNÇÃO: Detectar ícone de post-it
-const getPostItIcon = (texto: string): string => {
-  const lower = texto.toLowerCase();
-  if (lower.includes('atenção') || lower.includes('cuidado')) return '⚠️';
-  if (lower.includes('dica')) return '💡';
-  if (lower.includes('pense') || lower.includes('reflexão')) return '🤔';
-  if (lower.includes('aplicação') || lower.includes('prática')) return '🌍';
-  return '💡';
 };
