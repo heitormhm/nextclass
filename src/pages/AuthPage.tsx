@@ -35,6 +35,8 @@ const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [turmas, setTurmas] = useState<any[]>([]);
   const [isLoadingTurmas, setIsLoadingTurmas] = useState(true);
+  const [step, setStep] = useState(1);
+  const totalSteps = 3;
   const navigate = useNavigate();
   const { user } = useAuth();
   
@@ -42,8 +44,8 @@ const AuthPage = () => {
   const signupForm = useForm<SignupFormData>({
     defaultValues: {
       course: 'Engenharia',
-      university: '',
-      city: ''
+      university: 'Centro Universitário Afya Montes Claros',
+      city: 'Montes Claros - MG'
     }
   });
 
@@ -64,6 +66,20 @@ const AuthPage = () => {
         }
         
         setTurmas(data || []);
+        
+        // Pré-selecionar faculdade e cidade
+        if (data && data.length > 0) {
+          const afyaMC = data.find(t => t.faculdade === 'Centro Universitário Afya Montes Claros');
+          
+          if (afyaMC) {
+            signupForm.setValue('university', afyaMC.faculdade);
+            signupForm.setValue('city', afyaMC.cidade);
+          } else {
+            // Fallback: primeira faculdade disponível
+            signupForm.setValue('university', data[0].faculdade);
+            signupForm.setValue('city', data[0].cidade);
+          }
+        }
       } catch (err) {
         console.error('Unexpected error:', err);
       } finally {
@@ -72,7 +88,7 @@ const AuthPage = () => {
     };
     
     fetchTurmas();
-  }, []);
+  }, [signupForm]);
 
   // Get unique values for dropdowns
   const uniqueFaculdades = useMemo(() => {
@@ -389,215 +405,311 @@ const AuthPage = () => {
                     </Button>
                   </form>
                 ) : (
-                  /* Signup Form */
+                  /* Signup Form - Multi-Step */
                   <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name" className="text-sm font-medium">
-                        Nome Completo
-                      </Label>
-                      <Input
-                        id="signup-name"
-                        type="text"
-                        placeholder={selectedRole === 'teacher' ? "Prof. João Silva" : "Maria Santos"}
-                        {...signupForm.register('fullName', {
-                          required: 'Nome completo é obrigatório',
-                          minLength: { value: 2, message: 'Nome deve ter pelo menos 2 caracteres' }
-                        })}
-                        className="transition-all duration-200 focus:ring-primary focus:border-primary hover:border-primary/30"
-                      />
-                      {signupForm.formState.errors.fullName && (
-                        <p className="text-sm text-destructive animate-in slide-in-from-left-1">
-                          {signupForm.formState.errors.fullName.message}
-                        </p>
-                      )}
+                    {/* Progress Bar */}
+                    <div className="mb-6">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-medium text-foreground">Etapa {step} de {totalSteps}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {step === 1 && 'Dados Pessoais'}
+                          {step === 2 && 'Dados Acadêmicos'}
+                          {step === 3 && 'Segurança'}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-secondary/30 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary transition-all duration-500 ease-out"
+                          style={{ width: `${(step / totalSteps) * 100}%` }}
+                        ></div>
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email" className="text-sm font-medium">
-                        Email {selectedRole === 'teacher' ? 'Institucional' : 'Acadêmico'}
-                      </Label>
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder={selectedRole === 'teacher' ? "professor@afya.edu.br" : "aluno@estudante.afya.edu.br"}
-                        {...signupForm.register('email', {
-                          required: 'Email é obrigatório',
-                          validate: validateEmail
-                        })}
-                        className="transition-all duration-200 focus:ring-primary focus:border-primary hover:border-primary/30"
-                      />
-                      {signupForm.formState.errors.email && (
-                        <p className="text-sm text-destructive animate-in slide-in-from-left-1">
-                          {signupForm.formState.errors.email.message}
-                        </p>
-                      )}
-                    </div>
+                    {/* Step 1: Dados Pessoais */}
+                    {step === 1 && (
+                      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-name" className="text-sm font-medium">
+                            Nome Completo
+                          </Label>
+                          <Input
+                            id="signup-name"
+                            type="text"
+                            placeholder={selectedRole === 'teacher' ? "Prof. João Silva" : "Maria Santos"}
+                            {...signupForm.register('fullName', {
+                              required: 'Nome completo é obrigatório',
+                              minLength: { value: 2, message: 'Nome deve ter pelo menos 2 caracteres' }
+                            })}
+                            className="transition-all duration-200 focus:ring-primary focus:border-primary hover:border-primary/30"
+                          />
+                          {signupForm.formState.errors.fullName && (
+                            <p className="text-sm text-destructive animate-in slide-in-from-left-1">
+                              {signupForm.formState.errors.fullName.message}
+                            </p>
+                          )}
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-phone" className="text-sm font-medium">
-                        Telefone de Contato
-                      </Label>
-                      <Input
-                        id="signup-phone"
-                        type="tel"
-                        placeholder="(38) 99999-9999"
-                        {...signupForm.register('phone', {
-                          required: 'Telefone é obrigatório',
-                          pattern: {
-                            value: /^[\d\s\-\(\)]+$/,
-                            message: 'Formato inválido. Use: (38) 99999-9999'
-                          }
-                        })}
-                        className="transition-all duration-200 focus:ring-primary focus:border-primary hover:border-primary/30"
-                      />
-                      {signupForm.formState.errors.phone && (
-                        <p className="text-sm text-destructive animate-in slide-in-from-left-1">
-                          {signupForm.formState.errors.phone.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-university" className="text-sm font-medium">
-                        {selectedRole === 'teacher' ? 'Instituição de Ensino' : 'Sua Faculdade'}
-                      </Label>
-                      <Select
-                        onValueChange={(value) => {
-                          signupForm.setValue('university', value);
-                          // Auto-preencher cidade baseado na faculdade
-                          const selectedTurma = turmas.find(t => t.faculdade === value);
-                          if (selectedTurma) {
-                            signupForm.setValue('city', selectedTurma.cidade);
-                          }
-                        }}
-                        disabled={isLoadingTurmas}
-                      >
-                        <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/50 focus:ring-primary">
-                          <SelectValue placeholder={isLoadingTurmas ? "Carregando..." : "Selecione sua faculdade"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {uniqueFaculdades.map((faculdade) => (
-                            <SelectItem key={faculdade} value={faculdade}>
-                              {faculdade}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {signupForm.formState.errors.university && (
-                        <p className="text-sm text-destructive animate-in slide-in-from-left-1">
-                          {signupForm.formState.errors.university.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-city" className="text-sm font-medium">
-                        Localização do Campus
-                      </Label>
-                      <Input
-                        id="signup-city"
-                        type="text"
-                        {...signupForm.register('city')}
-                        disabled
-                        placeholder="Será preenchido automaticamente"
-                        className="transition-all duration-200 bg-slate-50/80 text-slate-700 border-slate-200"
-                      />
-                      <p className="text-xs text-slate-500 flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Preenchido automaticamente ao selecionar a faculdade
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-course">Curso</Label>
-                      <Input
-                        id="signup-course"
-                        type="text"
-                        value="Engenharia"
-                        disabled
-                        {...signupForm.register('course')}
-                        className="transition-all duration-200 bg-muted"
-                      />
-                      <p className="text-xs text-foreground-muted">Apenas Engenharia disponível no MVP</p>
-                    </div>
-
-                    {selectedRole === 'student' && (
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-period" className="text-sm font-medium">
-                          Período/Semestre Atual
-                        </Label>
-                        <Select
-                          onValueChange={(value) => signupForm.setValue('period', value)}
-                          disabled={isLoadingTurmas}
-                        >
-                          <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/50 focus:ring-primary">
-                            <SelectValue placeholder={isLoadingTurmas ? "Carregando..." : "Ex: 3º Período"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {uniquePeriodos.map((periodo) => (
-                              <SelectItem key={periodo} value={periodo.toString()}>
-                                {periodo}º Período
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {signupForm.formState.errors.period && (
-                          <p className="text-sm text-destructive animate-in slide-in-from-left-1">
-                            {signupForm.formState.errors.period.message}
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-email" className="text-sm font-medium">
+                            Email
+                          </Label>
+                          <Input
+                            id="signup-email"
+                            type="email"
+                            placeholder="seu@email.com"
+                            {...signupForm.register('email', {
+                              required: 'Email é obrigatório',
+                              validate: validateEmail
+                            })}
+                            className="transition-all duration-200 focus:ring-primary focus:border-primary hover:border-primary/30"
+                          />
+                          {signupForm.formState.errors.email && (
+                            <p className="text-sm text-destructive animate-in slide-in-from-left-1">
+                              {signupForm.formState.errors.email.message}
+                            </p>
+                          )}
+                          <p className="text-xs text-slate-500">
+                            Use qualquer email válido para criar sua conta
                           </p>
-                        )}
-                        <p className="text-xs text-slate-500">
-                          Seu período será usado para personalizar seus conteúdos
-                        </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-phone" className="text-sm font-medium">
+                            Telefone de Contato
+                          </Label>
+                          <Input
+                            id="signup-phone"
+                            type="tel"
+                            placeholder="(38) 99999-9999"
+                            {...signupForm.register('phone', {
+                              required: 'Telefone é obrigatório',
+                              pattern: {
+                                value: /^[\d\s\-\(\)]+$/,
+                                message: 'Formato inválido. Use: (38) 99999-9999'
+                              }
+                            })}
+                            className="transition-all duration-200 focus:ring-primary focus:border-primary hover:border-primary/30"
+                          />
+                          {signupForm.formState.errors.phone && (
+                            <p className="text-sm text-destructive animate-in slide-in-from-left-1">
+                              {signupForm.formState.errors.phone.message}
+                            </p>
+                          )}
+                        </div>
+
+                        <Button 
+                          type="button" 
+                          onClick={async () => {
+                            const isValid = await signupForm.trigger(['fullName', 'email', 'phone']);
+                            if (isValid) setStep(2);
+                          }}
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2.5 transition-all duration-200"
+                        >
+                          Próximo →
+                        </Button>
                       </div>
                     )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Senha</Label>
-                      <Input
-                        id="signup-password"
-                        type="password"
-                        placeholder="Mínimo 8 caracteres"
-                        {...signupForm.register('password', {
-                          required: 'Senha é obrigatória',
-                          validate: validatePassword
-                        })}
-                        className="transition-all duration-200 focus:ring-primary focus:border-primary"
-                      />
-                      {signupForm.formState.errors.password && (
-                        <p className="text-sm text-destructive">
-                          {signupForm.formState.errors.password.message}
-                        </p>
-                      )}
-                    </div>
+                    {/* Step 2: Dados Acadêmicos */}
+                    {step === 2 && (
+                      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-university" className="text-sm font-medium">
+                            {selectedRole === 'teacher' ? 'Instituição de Ensino' : 'Sua Faculdade'}
+                          </Label>
+                          <Select
+                            defaultValue="Centro Universitário Afya Montes Claros"
+                            value={signupForm.watch('university') || 'Centro Universitário Afya Montes Claros'}
+                            onValueChange={(value) => {
+                              signupForm.setValue('university', value);
+                              const selectedTurma = turmas.find(t => t.faculdade === value);
+                              if (selectedTurma) {
+                                signupForm.setValue('city', selectedTurma.cidade);
+                              }
+                            }}
+                            disabled={isLoadingTurmas}
+                          >
+                            <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/50 focus:ring-primary">
+                              <SelectValue placeholder={isLoadingTurmas ? "Carregando..." : "Centro Universitário Afya Montes Claros"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {uniqueFaculdades.map((faculdade) => (
+                                <SelectItem key={faculdade} value={faculdade}>
+                                  {faculdade}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {signupForm.formState.errors.university && (
+                            <p className="text-sm text-destructive animate-in slide-in-from-left-1">
+                              {signupForm.formState.errors.university.message}
+                            </p>
+                          )}
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
-                      <Input
-                        id="signup-confirm-password"
-                        type="password"
-                        placeholder="Confirme sua senha"
-                        {...signupForm.register('confirmPassword', {
-                          required: 'Confirmação de senha é obrigatória'
-                        })}
-                        className="transition-all duration-200 focus:ring-primary focus:border-primary"
-                      />
-                      {signupForm.formState.errors.confirmPassword && (
-                        <p className="text-sm text-destructive">
-                          {signupForm.formState.errors.confirmPassword.message}
-                        </p>
-                      )}
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-city" className="text-sm font-medium">
+                            Localização do Campus
+                          </Label>
+                          <Input
+                            id="signup-city"
+                            type="text"
+                            {...signupForm.register('city')}
+                            disabled
+                            placeholder="Será preenchido automaticamente"
+                            className="transition-all duration-200 bg-slate-50/80 text-slate-700 border-slate-200"
+                          />
+                          <p className="text-xs text-slate-500 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Preenchido automaticamente ao selecionar a faculdade
+                          </p>
+                        </div>
 
-                    <Button 
-                      type="submit" 
-                      disabled={isLoading}
-                      className="w-full bg-primary hover:bg-primary-light text-primary-foreground font-medium py-2.5 transition-all duration-200"
-                    >
-                      {isLoading ? 'Cadastrando...' : 'Cadastrar'}
-                    </Button>
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-course">Curso</Label>
+                          <Input
+                            id="signup-course"
+                            type="text"
+                            value="Engenharia"
+                            disabled
+                            {...signupForm.register('course')}
+                            className="transition-all duration-200 bg-muted"
+                          />
+                          <p className="text-xs text-foreground-muted">Apenas Engenharia disponível no MVP</p>
+                        </div>
+
+                        {selectedRole === 'student' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="signup-period" className="text-sm font-medium">
+                              Período/Semestre Atual
+                            </Label>
+                            <Select
+                              onValueChange={(value) => signupForm.setValue('period', value)}
+                              disabled={isLoadingTurmas}
+                            >
+                              <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/50 focus:ring-primary">
+                                <SelectValue placeholder={isLoadingTurmas ? "Carregando..." : "Ex: 3º Período"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {uniquePeriodos.map((periodo) => (
+                                  <SelectItem key={periodo} value={periodo.toString()}>
+                                    {periodo}º Período
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {signupForm.formState.errors.period && (
+                              <p className="text-sm text-destructive animate-in slide-in-from-left-1">
+                                {signupForm.formState.errors.period.message}
+                              </p>
+                            )}
+                            <p className="text-xs text-slate-500">
+                              Seu período será usado para personalizar seus conteúdos
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button 
+                            type="button" 
+                            variant="outline"
+                            onClick={() => setStep(1)}
+                            className="w-1/3"
+                          >
+                            ← Voltar
+                          </Button>
+                          <Button 
+                            type="button" 
+                            onClick={async () => {
+                              const fields = selectedRole === 'student' 
+                                ? (['university', 'city', 'course', 'period'] as const)
+                                : (['university', 'city', 'course'] as const);
+                              const isValid = await signupForm.trigger(fields as any);
+                              if (isValid) setStep(3);
+                            }}
+                            className="w-2/3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                          >
+                            Próximo →
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 3: Segurança */}
+                    {step === 3 && (
+                      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-password">Senha</Label>
+                          <Input
+                            id="signup-password"
+                            type="password"
+                            placeholder="Mínimo 8 caracteres"
+                            {...signupForm.register('password', {
+                              required: 'Senha é obrigatória',
+                              validate: validatePassword
+                            })}
+                            className="transition-all duration-200 focus:ring-primary focus:border-primary"
+                          />
+                          {signupForm.formState.errors.password && (
+                            <p className="text-sm text-destructive">
+                              {signupForm.formState.errors.password.message}
+                            </p>
+                          )}
+                          <ul className="text-xs text-slate-500 space-y-1 mt-2">
+                            <li className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Mínimo 8 caracteres
+                            </li>
+                            <li className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              1 número, 1 caractere especial
+                            </li>
+                          </ul>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
+                          <Input
+                            id="signup-confirm-password"
+                            type="password"
+                            placeholder="Confirme sua senha"
+                            {...signupForm.register('confirmPassword', {
+                              required: 'Confirmação de senha é obrigatória'
+                            })}
+                            className="transition-all duration-200 focus:ring-primary focus:border-primary"
+                          />
+                          {signupForm.formState.errors.confirmPassword && (
+                            <p className="text-sm text-destructive">
+                              {signupForm.formState.errors.confirmPassword.message}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button 
+                            type="button" 
+                            variant="outline"
+                            onClick={() => setStep(2)}
+                            className="w-1/3"
+                          >
+                            ← Voltar
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            disabled={isLoading}
+                            className="w-2/3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2.5 transition-all duration-200"
+                          >
+                            {isLoading ? 'Cadastrando...' : '🚀 Cadastrar'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </form>
                 )}
 
