@@ -205,11 +205,11 @@ const AuthPage = () => {
           {/* Content */}
           <div className="relative z-10 flex flex-col justify-center items-start p-12 text-slate-800 animate-fade-in">
             <div className="max-w-md">
-              <div className="mb-6 drop-shadow-lg">
+              <div className="mb-6 drop-shadow-md group cursor-pointer">
                 <img 
                   src="/src/assets/nextclass-logo.svg" 
                   alt="NEXTCLASS" 
-                  className="h-16 w-auto"
+                  className="h-16 w-auto transition-all duration-300 ease-out group-hover:scale-110 group-hover:drop-shadow-xl"
                 />
               </div>
               <p className="text-2xl font-medium mb-4 text-slate-800">

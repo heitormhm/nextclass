@@ -20,13 +20,13 @@ export const AuthBackgroundRipple: React.FC<AuthBackgroundRippleProps> = ({ clas
       className={className}
       colorPalette={AUTH_COLORS}
       cellSize={60}           // Larger cells for ultra-smooth effect
-      numCells={6}            // Fewer cells (half) for imperceptible changes
-      maxOpacity={0.15}       // Much lower opacity
-      minOpacity={0.03}       // Almost invisible minimum
-      gridOpacity={0.08}      // Ultra-soft grid
-      appearDuration={8000}   // 8 seconds to appear (mega slow)
-      activeDuration={12000}  // 12 seconds stable (ultra long)
-      fadeDuration={8000}     // 8 seconds to fade (mega slow)
+      numCells={18}           // More cells for continuous subtle activity
+      maxOpacity={0.12}       // Reduced opacity for ultra-subtle transitions
+      minOpacity={0.02}       // Almost invisible minimum
+      gridOpacity={0.18}      // Grid visible but subtle
+      appearDuration={80000}  // 80 seconds to appear (100x slower)
+      activeDuration={120000} // 120 seconds stable (100x slower)
+      fadeDuration={80000}    // 80 seconds to fade (100x slower)
     />
   );
 };
