@@ -26,14 +26,10 @@ import { structuredContentToMarkdown } from '@/utils/structuredContentToMarkdown
 import { MultiStepLoader } from '@/components/ui/multi-step-loader';
 
 const lessonPlanLoadingStates = [
-  { text: "📚 A analisar conteúdo académico..." },
-  { text: "🎯 A identificar objetivos de aprendizagem..." },
-  { text: "🧩 A estruturar momentos pedagógicos..." },
-  { text: "🔍 A pesquisar recursos complementares..." },
-  { text: "✏️ A criar atividades práticas (PBL)..." },
-  { text: "📊 A gerar elementos visuais e gráficos..." },
-  { text: "✅ A validar estrutura pedagógica..." },
-  { text: "🎓 A finalizar plano de aula completo..." }
+  { text: "📚 A analisar conteúdo e objetivos de aprendizagem..." },
+  { text: "🧩 A estruturar momentos pedagógicos e atividades..." },
+  { text: "📊 A criar recursos visuais e complementares..." },
+  { text: "✅ A validar e finalizar plano de aula completo..." }
 ];
 
 const TeacherAnnotationPage = () => {
@@ -65,6 +61,7 @@ const TeacherAnnotationPage = () => {
   const [showLessonPlanLoader, setShowLessonPlanLoader] = useState(false);
   const [lessonPlanLoadingStep, setLessonPlanLoadingStep] = useState(0);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
@@ -521,30 +518,36 @@ const TeacherAnnotationPage = () => {
           const jobId = jobData.jobId;
           console.log(`[Plano de Aula] Job iniciado: ${jobId}`);
           
-          // 2. Simular progresso visual
-          progressIntervalRef.current = setInterval(() => {
-            setLessonPlanLoadingStep((prev) => 
-              prev < lessonPlanLoadingStates.length - 1 ? prev + 1 : prev
-            );
-          }, 15000); // Avançar a cada 15 segundos
-          
-          // 3. Polling para verificar conclusão
-          const pollInterval = setInterval(async () => {
-            try {
-              const { data: jobStatus, error: pollError } = await supabase
-                .from('lesson_plan_jobs')
-                .select('*')
-                .eq('job_id', jobId)
-                .single();
+            // 2. Simular progresso visual (4 etapas × 40s = 160s ≈ 2min 40s)
+            progressIntervalRef.current = setInterval(() => {
+              setLessonPlanLoadingStep((prev) => 
+                prev < lessonPlanLoadingStates.length - 1 ? prev + 1 : prev
+              );
+            }, 40000);
+            
+            // 3. Polling para verificar conclusão
+            pollIntervalRef.current = setInterval(async () => {
+              try {
+                const { data: jobStatus, error: pollError } = await supabase
+                  .from('lesson_plan_jobs')
+                  .select('*')
+                  .eq('job_id', jobId)
+                  .single();
+                
+                // Se não encontrou job ainda, continuar esperando
+                if (pollError && pollError.code === 'PGRST116') {
+                  console.log('[Polling] Job ainda não processado, aguardando...');
+                  return;
+                }
+                
+                if (pollError) {
+                  console.error('[Polling] Erro:', pollError);
+                  return;
+                }
               
-              if (pollError) {
-                console.error('[Polling] Erro:', pollError);
-                return;
-              }
-              
-              if (jobStatus.status === 'completed') {
-                clearInterval(pollInterval);
-                if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+                if (jobStatus.status === 'completed') {
+                  if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+                  if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
                 
                 console.log('[Plano de Aula] ✅ Concluído! Aplicando resultado...');
                 
@@ -570,7 +573,7 @@ const TeacherAnnotationPage = () => {
                 });
                 setIsProcessingAI(false);
               } else if (jobStatus.status === 'failed') {
-                clearInterval(pollInterval);
+                if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
                 if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
                 setShowLessonPlanLoader(false);
                 toast.error(`Erro ao gerar plano de aula: ${jobStatus.error_message || 'Erro desconhecido'}`);
@@ -581,14 +584,15 @@ const TeacherAnnotationPage = () => {
             }
           }, 5000); // Verificar a cada 5 segundos
           
-        } catch (error) {
-          if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-          setShowLessonPlanLoader(false);
-          console.error('[Plano de Aula] Erro:', error);
-          toast.error('Erro ao iniciar geração do plano de aula');
-          setIsProcessingAI(false);
-          throw error;
-        }
+          } catch (error) {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            setShowLessonPlanLoader(false);
+            console.error('[Plano de Aula] Erro:', error);
+            toast.error('Erro ao iniciar geração do plano de aula');
+            setIsProcessingAI(false);
+            throw error;
+          }
         return; // Não continuar para as outras ações
       }
       
@@ -1509,12 +1513,14 @@ const TeacherAnnotationPage = () => {
             loadingStates={lessonPlanLoadingStates}
             loading={showLessonPlanLoader}
             currentState={lessonPlanLoadingStep}
-            onClose={() => {
-              setShowLessonPlanLoader(false);
-              toast.info('✅ Processamento continua em background. Aguarde a notificação de conclusão.', {
-                duration: 6000
-              });
-            }}
+          onClose={() => {
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+            setShowLessonPlanLoader(false);
+            toast.info('✅ Processamento continua em background. Aguarde a notificação de conclusão.', {
+              duration: 6000
+            });
+          }}
           />
         )}
       </div>
