@@ -171,6 +171,13 @@ const TeacherAnnotationPage = () => {
   const saveToHistory = (newContent: string) => {
     if (isUndoRedoAction) return;
     
+    // Special case: if this is the first save and history is empty, initialize with empty string
+    if (history.length === 0) {
+      setHistory(['', newContent]); // Store both: empty initial state + first edit
+      setHistoryIndex(1); // Point to the content, not empty
+      return;
+    }
+    
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(newContent);
     

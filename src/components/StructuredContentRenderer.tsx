@@ -37,7 +37,12 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
         return <h4 key={index} className="text-xl font-bold mt-4 mb-2 text-foreground/80 scroll-mt-20">{bloco.texto}</h4>;
       
       case 'paragrafo':
-        return <p key={index} className="my-3 leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: bloco.texto || '' }} />;
+        // Handle escaped <br> tags that might be coming from the edge function
+        const htmlContent = (bloco.texto || '')
+          .replace(/&lt;br&gt;/gi, '<br>')
+          .replace(/&lt;br \/&gt;/gi, '<br>')
+          .replace(/&lt;br\/&gt;/gi, '<br>');
+        return <p key={index} className="my-3 leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
       
       case 'caixa_de_destaque':
         return (
@@ -160,13 +165,20 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
             </div>
             <ScrollArea className="h-[400px] px-6 pb-6">
               <div className="space-y-3 pr-4">
-                {bloco.itens?.map((ref: string, i: number) => (
-                  <p 
-                    key={i} 
-                    className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600 break-words whitespace-pre-wrap"
-                    dangerouslySetInnerHTML={{ __html: ref }}
-                  />
-                ))}
+                {bloco.itens?.map((ref: string, i: number) => {
+                  // Handle escaped <br> tags in references
+                  const refHtml = ref
+                    .replace(/&lt;br&gt;/gi, '<br>')
+                    .replace(/&lt;br \/&gt;/gi, '<br>')
+                    .replace(/&lt;br\/&gt;/gi, '<br>');
+                  return (
+                    <p 
+                      key={i} 
+                      className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600 break-words whitespace-pre-wrap"
+                      dangerouslySetInnerHTML={{ __html: refHtml }}
+                    />
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>

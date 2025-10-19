@@ -14,15 +14,28 @@ const sanitizeMermaidCode = (code: string): string => {
   
   // 1. Remover caracteres problemáticos em labels com colchetes []
   sanitized = sanitized.replace(/([A-Z]\[)([^\]]+)(\])/g, (match, open, content, close) => {
-    let cleanContent = content
-      // Substituir parênteses por hífen
-      .replace(/\(/g, ' - ')
-      .replace(/\)/g, '')
-      // Remover caracteres especiais perigosos
-      .replace(/[&<>"']/g, '')
-      // Normalizar múltiplos espaços
-      .replace(/\s+/g, ' ')
-      .trim();
+    let cleanContent = content;
+    
+    // Only replace problematic parentheses, not all of them
+    // Keep parentheses if they're balanced and contain commas (likely a list)
+    const hasBalancedParens = (content.match(/\(/g) || []).length === (content.match(/\)/g) || []).length;
+    const hasCommaInsideParens = /\([^)]*,[^)]*\)/.test(content);
+    
+    if (hasBalancedParens && hasCommaInsideParens) {
+      // Keep parentheses but remove special chars
+      cleanContent = content
+        .replace(/[&<>"']/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    } else {
+      // Original sanitization for problematic cases
+      cleanContent = content
+        .replace(/\(/g, ' - ')
+        .replace(/\)/g, '')
+        .replace(/[&<>"']/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
     
     return `${open}${cleanContent}${close}`;
   });
