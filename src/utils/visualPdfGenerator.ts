@@ -1,12 +1,7 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { loadUnicodeFont } from './unicodeFont';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// FASE 1: Importar fontes Inter + STIXTwoMath
-import interFontNormal from '@/assets/fonts/Inter-Regular.ttf';
-import interFontBold from '@/assets/fonts/Inter-Bold.ttf';
-import stixMathFont from '@/assets/fonts/STIXTwoMath-Regular.ttf';
 
 interface VisualPDFOptions {
   structuredData: StructuredData;
@@ -204,7 +199,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
   const warnings: string[] = [];
 
   try {
-    console.log('🎨 [VisualPDF] Iniciando geração...');
+    console.log('🎨 [VisualPDF] Iniciando geração com fontes nativas jsPDF...');
     
     // Criar PDF
     const pdf = new jsPDF({
@@ -213,72 +208,24 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       format: 'a4'
     });
 
-    // FASE 1: Configurar sistema de fontes com fallback gracioso
-    let fontsLoaded = false;
-    let useCustomFonts = false;
+    // Sistema de fontes nativas (100% compatíveis)
+    const fonts = {
+      title: { family: 'helvetica', weight: 'bold' as const },
+      heading: { family: 'helvetica', weight: 'bold' as const },
+      body: { family: 'helvetica', weight: 'normal' as const },
+      bodyBold: { family: 'helvetica', weight: 'bold' as const },
+      footer: { family: 'times', weight: 'italic' as const }
+    };
 
-    try {
-      console.log('📝 Tentando carregar fontes customizadas Inter...');
-      
-      // Tentar carregar Inter como fonte principal
-      const interNormalResponse = await fetch(interFontNormal);
-      const interNormalBlob = await interNormalResponse.blob();
-      const interNormalBase64 = await blobToBase64(interNormalBlob);
-      
-      const interBoldResponse = await fetch(interFontBold);
-      const interBoldBlob = await interBoldResponse.blob();
-      const interBoldBase64 = await blobToBase64(interBoldBlob);
-      
-      // Validar se Base64 foi gerado corretamente
-      if (!interNormalBase64 || interNormalBase64.length < 1000) {
-        throw new Error('Base64 da fonte Inter-Regular inválido');
-      }
-      
-      if (!interBoldBase64 || interBoldBase64.length < 1000) {
-        throw new Error('Base64 da fonte Inter-Bold inválido');
-      }
-      
-      // Adicionar fontes ao jsPDF com try-catch individual
-      try {
-        pdf.addFileToVFS('Inter-Regular.ttf', interNormalBase64);
-        pdf.addFont('Inter-Regular.ttf', 'Inter', 'normal');
-        
-        pdf.addFileToVFS('Inter-Bold.ttf', interBoldBase64);
-        pdf.addFont('Inter-Bold.ttf', 'Inter', 'bold');
-        
-        pdf.setFont('Inter', 'normal');
-        useCustomFonts = true;
-        fontsLoaded = true;
-        
-        console.log('✅ Fontes Inter carregadas com sucesso');
-      } catch (fontError) {
-        console.warn('⚠️ Erro ao registrar fontes Inter no jsPDF:', fontError);
-        throw fontError; // Forçar fallback
-      }
-      
-    } catch (error) {
-      console.warn('⚠️ Fontes customizadas falharam, usando fontes padrão do sistema');
-      console.error('Detalhes do erro:', error);
-      
-      // FALLBACK: Usar fontes nativas do jsPDF (100% compatíveis)
-      pdf.setFont('helvetica', 'normal');
-      useCustomFonts = false;
-      
-      warnings.push('Fontes personalizadas não foram carregadas - usando fontes do sistema');
-    }
-
-    // Helper para aplicar fonte correta em todo o código
-    const setFont = (weight: 'normal' | 'bold' = 'normal') => {
-      if (useCustomFonts) {
-        pdf.setFont('Inter', weight);
-      } else {
-        pdf.setFont('helvetica', weight); // Fallback: Helvetica (similar ao Inter)
-      }
+    // Helper global para aplicar fontes
+    const applyFont = (type: 'title' | 'heading' | 'body' | 'bodyBold' | 'footer') => {
+      const font = fonts[type];
+      pdf.setFont(font.family, font.weight);
     };
 
     console.log('📊 Configuração de fontes:');
-    console.log('  - Fontes customizadas:', useCustomFonts ? '✅ Ativas' : '❌ Desativadas');
-    console.log('  - Fonte principal:', useCustomFonts ? 'Inter' : 'Helvetica');
+    console.log('  - Sistema: Fontes nativas jsPDF (Helvetica, Times)');
+    console.log('  - Estabilidade: 100%');
     
     // Dimensões da página
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -372,7 +319,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     const titleMaxWidth = pageWidth - titleX - margin;
     
     pdf.setFontSize(22);
-    pdf.setFont('Inter', 'bold');
+    pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(63, 45, 175); // Roxo escuro
     const titleLines = pdf.splitTextToSize(options.title, titleMaxWidth);
     pdf.text(titleLines, titleX, logoY + (logoHeight / 2), { align: 'left', baseline: 'middle' });
@@ -404,7 +351,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 
     // Subtítulo com data em rosa
     pdf.setFontSize(9);
-    pdf.setFont('Inter', 'normal');
+    pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(255, 70, 130); // Rosa
     const date = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -533,7 +480,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       
       // Número da página (centro, roxo)
       pdf.setFontSize(9);
-      pdf.setFont('Inter', 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(63, 45, 175); // Roxo
       pdf.text(
         `Pagina ${i} de ${totalPages}`,
@@ -544,7 +491,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       
       // Nome do documento (esquerda, rosa)
       pdf.setFontSize(7);
-      pdf.setFont('Inter', 'normal');
+      pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(255, 70, 130); // Rosa
       const truncatedTitle = options.title.substring(0, 35) + (options.title.length > 35 ? '...' : '');
       pdf.text(truncatedTitle, margin, pageHeight - 10);
@@ -788,7 +735,7 @@ const addTextBlockToPDF = (
   switch (processedBloco.tipo) {
     case 'h2':
       pdf.setFontSize(16);
-      pdf.setFont('Inter', 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(63, 45, 175); // Roxo escuro
       const h2Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h2Lines, margin, currentY);
@@ -806,7 +753,7 @@ const addTextBlockToPDF = (
 
     case 'h3':
       pdf.setFontSize(13);
-      pdf.setFont('Inter', 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(145, 127, 251); // Roxo claro
       const h3Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h3Lines, margin, currentY);
@@ -824,7 +771,7 @@ const addTextBlockToPDF = (
 
     case 'h4':
       pdf.setFontSize(11);
-      pdf.setFont('Inter', 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(255, 113, 160); // Rosa claro
       const h4Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h4Lines, margin, currentY);
@@ -861,14 +808,14 @@ const addTextBlockToPDF = (
         let lineY = currentY;
         segments.forEach(seg => {
           const lines = pdf.splitTextToSize(seg.text, contentWidth);
-          setFont(seg.bold ? 'bold' : 'normal');
+          pdf.setFont('helvetica', seg.bold ? 'bold' : 'normal');
           pdf.text(lines, margin, lineY);
           lineY += lines.length * 6.5; // FASE 2: ANTES: 5, AGORA: 6.5mm
         });
         
         currentY = lineY + 5; // FASE 2: ANTES: 4, AGORA: 5mm
       } else {
-        setFont('normal');
+        pdf.setFont('helvetica', 'normal');
         const lines = pdf.splitTextToSize(sanitizedText, contentWidth);
         pdf.text(lines, margin, currentY);
         currentY += lines.length * 6.5 + 5; // FASE 2: ANTES: 5 + 4, AGORA: 6.5 + 5mm
@@ -884,7 +831,7 @@ const addTextBlockToPDF = (
       
       // Título com cor roxa
       pdf.setFontSize(14);
-      pdf.setFont('Inter', 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(63, 45, 175); // Roxo
       pdf.text('Referencias Bibliograficas', margin, currentY);
       currentY += 8;
@@ -914,7 +861,7 @@ const addTextBlockToPDF = (
       
       // Lista de referências
       pdf.setFontSize(9);
-      setFont('normal');
+      pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(60, 60, 60);
       
       bloco.itens?.forEach((ref: string, index: number) => {
@@ -925,12 +872,12 @@ const addTextBlockToPDF = (
         }
         
         // Número da referência em rosa
-        pdf.setFont('Inter', 'bold');
+        pdf.setFont('helvetica', 'bold');
         pdf.setTextColor(255, 70, 130); // Rosa
         pdf.text(`[${index + 1}]`, margin, currentY);
         
         // Texto da referência
-        pdf.setFont('Inter', 'normal');
+        pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(60, 60, 60);
         const refLines = pdf.splitTextToSize(ref, contentWidth - 12);
         pdf.text(refLines, margin + 12, currentY);

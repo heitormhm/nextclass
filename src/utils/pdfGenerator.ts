@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import { loadUnicodeFont, unicodeFontConfig } from './unicodeFont';
 
 interface PDFOptions {
   content: string;
@@ -456,23 +455,9 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
     format: 'a4',
   });
 
-  // ✅ FASE 7: Adicionar fonte Unicode para suportar símbolos matemáticos
-  try {
-    const fontBase64 = await loadUnicodeFont();
-    // Registrar fonte Unicode, mas NÃO definir como padrão
-    doc.addFileToVFS(unicodeFontConfig.fontFileName, fontBase64);
-    doc.addFont(
-      unicodeFontConfig.fontFileName, 
-      unicodeFontConfig.fontName, 
-      unicodeFontConfig.fontStyle
-    );
-    // Usar Helvetica como padrão para texto normal
-    doc.setFont('helvetica');
-    console.log('✅ Fonte Unicode carregada: símbolos matemáticos (Δ, π, θ, ω, etc.) serão renderizados nativamente');
-  } catch (error) {
-    console.warn('⚠️ Erro ao carregar fonte Unicode, usando fonte padrão:', error);
-    doc.setFont('helvetica');
-  }
+  // ✅ Usar fonte nativa Helvetica (suporta Unicode básico)
+  doc.setFont('helvetica');
+  console.log('✅ Usando fonte nativa Helvetica para renderização');
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -873,9 +858,9 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
       renderStats.equations++;
       checkPageBreak(15);
       
-      // Configurar estilo de equação com fonte Unicode
+      // Configurar estilo de equação
       doc.setFontSize(11);
-      doc.setFont(unicodeFontConfig.fontName, 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
       
       // FASE 1: Usar símbolos Unicode nativos (não normalizar mais)
@@ -888,7 +873,7 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
       console.log('📐 Renderizando equação:');
       console.log(`   Texto: "${normalizedEquation}"`);
       console.log(`   Largura: ${equationWidth.toFixed(2)}mm (max: ${maxWidth.toFixed(2)}mm)`);
-      console.log(`   Fonte: ${unicodeFontConfig.fontName}`);
+      console.log(`   Fonte: helvetica`);
       
       // Detectar símbolos Unicode
       const symbols = normalizedEquation.match(/[ΔπθωΩΣ∫αβγμλΦΨ±≠≤≥√∞∂∇]/g);
@@ -1107,18 +1092,9 @@ const generatePDFDocument = async (content: string, title: string): Promise<{
           currentX = margin;
         }
         
-        // Usar fonte Unicode se palavra contém símbolos matemáticos
-        if (hasMathSymbols(word)) {
-          doc.setFont(unicodeFontConfig.fontName, 'normal');
-        }
-        
+        // Renderizar palavra
         doc.text(word + ' ', currentX, yPosition);
         currentX += wordWidth;
-        
-        // Restaurar fonte normal
-        if (hasMathSymbols(word)) {
-          doc.setFont('helvetica', 'normal');
-        }
       });
           
           console.log(`   [${segIdx}] TEXT: "${segment.text.substring(0, 30)}..."`);
