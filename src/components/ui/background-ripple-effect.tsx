@@ -13,13 +13,20 @@ interface AnimatedCell {
 
 interface BackgroundRippleEffectProps {
   className?: string;
-  colorPalette: string[];
+  colorPalette?: string[];
   gridOpacity?: number;
   cellSize?: number;
   numCells?: number;
   maxOpacity?: number;
   minOpacity?: number;
 }
+
+const DEFAULT_COLOR_PALETTE = [
+  '168, 85, 247',   // purple-500
+  '147, 51, 234',   // purple-600
+  '236, 72, 153',   // pink-500
+  '219, 39, 119',   // pink-600
+];
 
 const CONFIG = {
   CELL_SIZE: 40,
@@ -42,7 +49,7 @@ const easeInOutCubic = (t: number): number => {
 
 const DivGrid: React.FC<BackgroundRippleEffectProps> = ({ 
   className,
-  colorPalette,
+  colorPalette = DEFAULT_COLOR_PALETTE,
   gridOpacity = CONFIG.GRID_OPACITY,
   cellSize = CONFIG.CELL_SIZE,
   numCells = CONFIG.NUM_ANIMATED_CELLS,
@@ -71,6 +78,7 @@ const DivGrid: React.FC<BackgroundRippleEffectProps> = ({
   // Initialize animated cells
   useEffect(() => {
     if (dimensions.width === 0 || dimensions.height === 0) return;
+    if (!colorPalette || colorPalette.length === 0) return;
 
     const cols = Math.ceil(dimensions.width / cellSize);
     const rows = Math.ceil(dimensions.height / cellSize);
