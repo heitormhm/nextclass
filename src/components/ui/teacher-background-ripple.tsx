@@ -19,7 +19,14 @@ export const TeacherBackgroundRipple: React.FC<TeacherBackgroundRippleProps> = (
     <BackgroundRippleEffect 
       className={className}
       colorPalette={TEACHER_COLORS}
-      gridOpacity={0.15} // More visible grid for professionalism
+      cellSize={50}              // Células maiores para suavidade (+25%)
+      numCells={20}              // Mais células para atividade contínua (+33%)
+      maxOpacity={0.18}          // Opacidade sutil e elegante (-60%)
+      minOpacity={0.03}          // Quase invisível no mínimo
+      gridOpacity={0.25}         // Grid mais visível para profissionalismo (+67%)
+      appearDuration={12000}     // 12s fade in - animação zen ultra-suave
+      activeDuration={18000}     // 18s estável - tempo prolongado de presença
+      fadeDuration={12000}       // 12s fade out - saída orgânica e imperceptível
     />
   );
 };

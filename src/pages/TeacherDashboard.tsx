@@ -383,7 +383,7 @@ const TeacherDashboard = () => {
       <MainLayout>
         <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
           {/* Animated Background with Ripple Effect */}
-          <TeacherBackgroundRipple className="opacity-30" />
+          <TeacherBackgroundRipple />
           
           {/* Gradient Blobs for Depth */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -462,7 +462,7 @@ const TeacherDashboard = () => {
     <MainLayout>
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background with Ripple Effect */}
-        <TeacherBackgroundRipple className="opacity-30" />
+        <TeacherBackgroundRipple />
         
         {/* Gradient Blobs for Depth */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
