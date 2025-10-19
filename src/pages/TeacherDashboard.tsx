@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap, MessageCircle, StickyNote, Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap, MessageCircle, StickyNote, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { parseISO, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,11 @@ import { MiniStatCard } from '@/components/dashboard/MiniStatCard';
 import { UploadMaterialModal } from '@/components/UploadMaterialModal';
 import { LessonPlanFloatingIndicator } from '@/components/LessonPlanFloatingIndicator';
 import AnnouncementModal from '@/components/AnnouncementModal';
+import { TeacherAccessCodeModal } from '@/components/TeacherAccessCodeModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { toast as sonnerToast } from 'sonner';
 
 interface Class {
   id: string;
@@ -44,6 +46,9 @@ const TeacherDashboard = () => {
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [needsValidation, setNeedsValidation] = useState(false);
+  const [isCheckingValidation, setIsCheckingValidation] = useState(true);
+  const [teacherName, setTeacherName] = useState('');
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -66,6 +71,35 @@ const TeacherDashboard = () => {
     pendingReviews: 0,
     isLoading: true,
   });
+
+  // Verificar validação do professor ao montar
+  useEffect(() => {
+    const checkTeacherValidation = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: roleData, error } = await supabase
+          .from('user_roles')
+          .select('is_validated, role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (roleData?.role === 'teacher' && !roleData?.is_validated) {
+          setNeedsValidation(true);
+          setTeacherName(user.user_metadata?.full_name || 'Professor');
+        }
+      } catch (error) {
+        console.error('Error checking validation:', error);
+      } finally {
+        setIsCheckingValidation(false);
+      }
+    };
+
+    checkTeacherValidation();
+  }, []);
 
   // Fetch turmas
   useEffect(() => {
@@ -310,6 +344,38 @@ const TeacherDashboard = () => {
     const urgentCategories = ['prova', 'avaliacao', 'entrega'];
     return urgentCategories.some(cat => category.toLowerCase().includes(cat)) ? 'urgent' : 'normal';
   };
+
+  const handleValidationSuccess = () => {
+    setNeedsValidation(false);
+    sonnerToast.success('Acesso liberado! Redirecionando...');
+    
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  };
+
+  // Mostrar loading durante verificação
+  if (isCheckingValidation) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-white mx-auto mb-4" />
+          <p className="text-white text-lg">Verificando acesso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizar modal de validação (bloqueia tudo)
+  if (needsValidation) {
+    return (
+      <TeacherAccessCodeModal
+        isOpen={needsValidation}
+        onValidationSuccess={handleValidationSuccess}
+        teacherName={teacherName}
+      />
+    );
+  }
 
   // Empty state for no classes
   if (classes.length === 0 && !dashboardStats.isLoading) {

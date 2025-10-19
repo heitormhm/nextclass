@@ -174,3 +174,9 @@ verify_jwt = false
 
 [functions.send-class-event-date-change-notification]
 verify_jwt = false
+
+[functions.validate-teacher-code]
+verify_jwt = true
+
+[functions.generate-teacher-codes]
+verify_jwt = true

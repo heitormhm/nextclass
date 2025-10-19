@@ -1073,6 +1073,45 @@ export type Database = {
         }
         Relationships: []
       }
+      teacher_access_codes: {
+        Row: {
+          batch_id: string | null
+          code: string
+          created_at: string | null
+          created_by_admin_id: string
+          expires_at: string | null
+          id: string
+          is_used: boolean | null
+          notes: string | null
+          used_at: string | null
+          used_by_teacher_id: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          code: string
+          created_at?: string | null
+          created_by_admin_id: string
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          notes?: string | null
+          used_at?: string | null
+          used_by_teacher_id?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          code?: string
+          created_at?: string | null
+          created_by_admin_id?: string
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          notes?: string | null
+          used_at?: string | null
+          used_by_teacher_id?: string | null
+        }
+        Relationships: []
+      }
       teacher_turma_access: {
         Row: {
           created_at: string
@@ -1178,25 +1217,42 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_validated: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
           user_id: string
+          validated_at: string | null
+          validation_code_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
+          is_validated?: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id: string
+          validated_at?: string | null
+          validation_code_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
+          is_validated?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id?: string
+          validated_at?: string | null
+          validation_code_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_validation_code_id_fkey"
+            columns: ["validation_code_id"]
+            isOneToOne: false
+            referencedRelation: "teacher_access_codes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {
