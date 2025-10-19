@@ -112,6 +112,130 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
           </div>
         );
       
+      case 'cronograma_gantt':
+        return (
+          <MermaidDiagram
+            key={index}
+            code={bloco.definicao_mermaid || ''}
+            title={bloco.titulo || '⏱️ Cronograma da Aula'}
+            description="Estrutura temporal e sequência de atividades"
+            icon="📅"
+          />
+        );
+
+      case 'momento_pedagogico':
+        return (
+          <div key={index} className="bg-gradient-to-br from-indigo-50/80 to-indigo-100/80 dark:from-indigo-900/20 dark:to-indigo-800/20 border-2 border-indigo-400 dark:border-indigo-600 p-6 rounded-xl shadow-lg my-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
+                🎯 Momento {bloco.numero}: {bloco.titulo}
+              </h3>
+              <span className="bg-indigo-600 text-white px-4 py-2 rounded-full text-sm font-semibold">
+                {bloco.duracao_minutos} min
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="bg-white/50 dark:bg-black/20 p-3 rounded-lg">
+                <p className="text-xs text-indigo-700 dark:text-indigo-300 font-semibold mb-1">METODOLOGIA</p>
+                <p className="text-indigo-900 dark:text-indigo-100">{bloco.metodologia}</p>
+              </div>
+              <div className="bg-white/50 dark:bg-black/20 p-3 rounded-lg">
+                <p className="text-xs text-indigo-700 dark:text-indigo-300 font-semibold mb-1">RECURSOS</p>
+                <p className="text-indigo-900 dark:text-indigo-100">{bloco.recursos?.join(', ') || 'Nenhum'}</p>
+              </div>
+            </div>
+            
+            {bloco.passos && bloco.passos.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-bold text-indigo-800 dark:text-indigo-200 mb-2">Passos:</h4>
+                {bloco.passos.map((passo: any, i: number) => (
+                  <div key={i} className="flex gap-3 items-start bg-white/60 dark:bg-black/30 p-4 rounded-lg">
+                    <div className="flex-shrink-0 w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h5 className="font-bold text-indigo-900 dark:text-indigo-100">{passo.nome}</h5>
+                        <span className="text-xs bg-indigo-200 dark:bg-indigo-800 px-2 py-1 rounded">
+                          {passo.tempo_min} min
+                        </span>
+                      </div>
+                      <p className="text-indigo-800 dark:text-indigo-200 text-sm leading-relaxed">
+                        {passo.descricao}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      case 'problema_pbl':
+        return (
+          <div key={index} className="bg-gradient-to-br from-rose-100/80 to-rose-200/80 dark:from-rose-900/30 dark:to-rose-800/30 border-4 border-rose-500 dark:border-rose-400 p-6 rounded-xl shadow-2xl my-8">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-5xl">🎯</span>
+              <h3 className="text-3xl font-bold text-rose-900 dark:text-rose-100">
+                {bloco.titulo || 'O Desafio PBL'}
+              </h3>
+            </div>
+            
+            <div className="bg-white/70 dark:bg-black/30 p-5 rounded-lg mb-4">
+              <h4 className="font-bold text-rose-800 dark:text-rose-200 mb-2 text-lg">📜 A Missão:</h4>
+              <p className="text-rose-900 dark:text-rose-100 leading-relaxed text-lg">
+                {bloco.problema}
+              </p>
+            </div>
+            
+            {bloco.entregavel && (
+              <div className="bg-rose-200/50 dark:bg-rose-900/50 p-4 rounded-lg mb-4">
+                <h4 className="font-bold text-rose-800 dark:text-rose-200 mb-2">📦 Entregável:</h4>
+                <p className="text-rose-900 dark:text-rose-100">{bloco.entregavel}</p>
+              </div>
+            )}
+            
+            {bloco.questoes_guia && bloco.questoes_guia.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-bold text-rose-800 dark:text-rose-200 mb-2">🧭 Questões-Guia:</h4>
+                {bloco.questoes_guia.map((q: string, i: number) => (
+                  <div key={i} className="flex gap-2 items-start text-rose-900 dark:text-rose-100">
+                    <span className="font-bold">{i + 1}.</span>
+                    <span>{q}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      case 'metricas_avaliacao':
+        return (
+          <div key={index} className="bg-gradient-to-br from-teal-50/80 to-teal-100/80 dark:from-teal-900/20 dark:to-teal-800/20 border-l-4 border-teal-600 dark:border-teal-500 p-6 rounded-xl shadow-md my-6">
+            <h4 className="font-bold text-teal-900 dark:text-teal-100 mb-4 text-xl flex items-center gap-2">
+              📊 {bloco.titulo || 'Rubrica de Avaliação'}
+            </h4>
+            <div className="space-y-4">
+              {bloco.categorias?.map((cat: any, i: number) => (
+                <div key={i} className="bg-white/60 dark:bg-black/30 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <h5 className="font-bold text-teal-800 dark:text-teal-200">{cat.nome}</h5>
+                    <span className="bg-teal-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                      {cat.peso}%
+                    </span>
+                  </div>
+                  <ul className="list-disc list-inside text-teal-700 dark:text-teal-300 text-sm space-y-1">
+                    {cat.criterios?.map((c: string, j: number) => (
+                      <li key={j}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      
       case 'organograma':
       case 'fluxograma':
       case 'mapa_mental':
@@ -236,12 +360,8 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
         );
       
       default:
-        console.warn(`Tipo de bloco não suportado: ${bloco.tipo}`);
-        return (
-          <div key={index} className="bg-destructive/10 border-2 border-destructive/30 p-4 rounded-lg my-4">
-            <strong className="text-destructive">⚠️ Tipo de bloco não suportado:</strong> <code className="text-destructive/80">{bloco.tipo}</code>
-          </div>
-        );
+        console.warn(`[StructuredContentRenderer] Tipo de bloco não suportado: ${bloco.tipo}`);
+        return null; // Não renderizar nada, evitar poluição visual
     }
   };
 

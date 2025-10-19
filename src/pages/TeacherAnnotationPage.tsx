@@ -490,7 +490,7 @@ const TeacherAnnotationPage = () => {
     try {
       // Lógica especial para "Gerar Plano de Aula"
       if (actionType === 'format_lesson_plan') {
-        toast.info('🎓 Analisando conteúdo pedagógico...', { duration: 3000 });
+        toast.info('🎓 Gerando plano de aula completo (3-4h)... Fase 1: Análise pedagógica... Fase 2: Verificação de conteúdo... Fase 3: Estruturação final...', { duration: 5000 });
         
         const { data, error } = await supabase.functions.invoke('generate-lesson-plan', {
           body: { content }
