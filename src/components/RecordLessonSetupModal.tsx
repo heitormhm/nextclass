@@ -486,49 +486,6 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                 </div>
               </div>
 
-              {/* AI Generate Button - Inspired by Teacher AI Chat */}
-              <Button
-                onClick={handleGenerateTagsAndTitle}
-                disabled={!theme || theme.length < 20 || !selectedDisciplina || generatingTags}
-                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {generatingTags ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span className="animate-pulse">Gerando Tags e Título...</span>
-                  </div>
-                ) : (
-                  <>
-                    <Sparkles className="h-5 w-5 mr-2" />
-                    Salvar Tema e Gerar Tags
-                  </>
-                )}
-              </Button>
-
-              {/* Tags Display */}
-              {tags.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-sm flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    Tags Geradas pela IA
-                  </Label>
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map((tag, idx) => (
-                      <Badge 
-                        key={idx} 
-                        variant="secondary" 
-                        className="text-xs animate-fade-in opacity-0"
-                        style={{
-                          animationDelay: `${idx * 100}ms`,
-                          animationFillMode: 'forwards'
-                        }}
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Primary Fields - Turma & Disciplina - Glassmorphism */}
               <div className="backdrop-blur-md bg-white/6 dark:bg-white/4 border border-white/10 rounded-lg p-4">
@@ -690,6 +647,50 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                 )}
               </div>
 
+              {/* AI Generate Button - Inspired by Teacher AI Chat */}
+              <Button
+                onClick={handleGenerateTagsAndTitle}
+                disabled={!theme || theme.length < 20 || !selectedDisciplina || generatingTags}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generatingTags ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="animate-pulse">Gerando Tags e Título...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5 mr-2" />
+                    Salvar Tema e Gerar Tags
+                  </>
+                )}
+              </Button>
+
+              {/* Tags Display */}
+              {tags.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Tags Geradas pela IA
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag, idx) => (
+                      <Badge 
+                        key={idx} 
+                        variant="secondary" 
+                        className="text-xs animate-fade-in opacity-0"
+                        style={{
+                          animationDelay: `${idx * 100}ms`,
+                          animationFillMode: 'forwards'
+                        }}
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Advanced Resources - Premium Glassmorphism Card */}
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="resources" className="border-border/50 backdrop-blur-sm bg-white/5 rounded-xl overflow-hidden">
@@ -812,7 +813,7 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
 
         {/* Sticky Footer with Action Buttons */}
         {step === 'input' && (
-          <div className="sticky bottom-0 left-0 right-0 mt-4 pt-6 border-t border-border/50 bg-gradient-to-t from-white/95 via-white/90 to-white/80 dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/80 backdrop-blur-md shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)] rounded-b-2xl">
+          <div className="sticky bottom-0 left-0 right-0 mt-4 pt-6 border-t border-border/50 bg-gradient-to-t from-white/95 via-white/90 to-white/80 dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/80 backdrop-blur-md shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)] rounded-t-2xl rounded-b-2xl">
             <div className="px-6 pb-6">
             <div className="flex flex-col-reverse sm:flex-row gap-3 items-stretch sm:items-center sm:justify-end">
                 {/* Cancelar - Ghost with solid background */}
