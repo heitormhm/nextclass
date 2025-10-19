@@ -190,17 +190,22 @@ const AuthPage = () => {
 
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex flex-col lg:flex-row min-h-screen">
+    <div className="min-h-screen bg-background relative">
+      {/* ========== LAYER 1: BACKGROUND FULLSCREEN ========== */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Gradient Blobs */}
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full opacity-50 blur-3xl"></div>
+        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full opacity-40 blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full opacity-30 blur-3xl"></div>
+        
+        {/* Background Ripple Effect */}
+        <AuthBackgroundRipple />
+      </div>
+
+      {/* ========== LAYER 2: CONTENT CONTAINER ========== */}
+      <div className="relative z-10 flex flex-col lg:flex-row min-h-screen">
         {/* Left Panel - Modern Interactive Background (Desktop only) */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-slate-50">
-          {/* Gradient Blobs */}
-          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full opacity-50 blur-3xl"></div>
-          <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full opacity-40 blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full opacity-30 blur-3xl"></div>
-          
-          {/* Background Ripple Effect */}
-          <AuthBackgroundRipple />
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
           
           {/* Content */}
           <div className="relative z-10 flex flex-col justify-center items-start p-12 text-slate-800 animate-fade-in">
@@ -223,15 +228,19 @@ const AuthPage = () => {
         </div>
 
         {/* Right Panel - Authentication Form */}
-        <div className="flex-1 lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-white/40 backdrop-blur-sm">
-          <div className="w-full max-w-md space-y-6 sm:space-y-8">
+        <div className="flex-1 lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative">
+          {/* Glassmorphism Overlay */}
+          <div className="absolute inset-0 bg-white/30 backdrop-blur-md"></div>
+          
+          {/* Content acima do overlay */}
+          <div className="relative z-10 w-full max-w-md space-y-6 sm:space-y-8">
             {/* Mobile Header */}
             <div className="text-center lg:hidden py-4">
               <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">NEXTCLASS</h1>
               <p className="text-sm sm:text-base text-foreground-muted">Plataforma de engenharia com IA</p>
             </div>
 
-            <Card className="shadow-2xl border border-white/50 bg-white/90 backdrop-blur-xl">
+            <Card className="shadow-2xl border border-white/50 bg-white/90 backdrop-blur-xl transition-all duration-500 ease-out hover:scale-[1.02] hover:shadow-[0_30px_60px_-15px_rgba(236,72,153,0.4)] hover:-translate-y-1">
               <CardHeader className="space-y-4 pb-6">
                 {/* Role Selection Tabs - Only shown during signup */}
                 {!isLogin && (
