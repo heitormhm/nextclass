@@ -184,18 +184,43 @@ const TeacherAnnotationPage = () => {
       const previousContent = history[historyIndex - 1];
       setContent(previousContent);
       
-      if (editorRef.current) {
-        const scrollTop = editorRef.current.scrollTop;
-        editorRef.current.innerHTML = previousContent;
-        editorRef.current.scrollTop = scrollTop;
-        
-        const range = document.createRange();
-        const selection = window.getSelection();
-        if (editorRef.current.lastChild) {
-          range.selectNodeContents(editorRef.current);
-          range.collapse(false);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
+      // Try to parse as structured content
+      try {
+        const parsed = JSON.parse(previousContent);
+        if (parsed.conteudo && Array.isArray(parsed.conteudo)) {
+          // It's structured content
+          setStructuredContent(parsed);
+          setIsStructuredMode(true);
+          if (editorRef.current) {
+            editorRef.current.innerHTML = '';
+          }
+        } else {
+          // Not structured, treat as HTML
+          setStructuredContent(null);
+          setIsStructuredMode(false);
+          if (editorRef.current) {
+            const scrollTop = editorRef.current.scrollTop;
+            editorRef.current.innerHTML = previousContent;
+            editorRef.current.scrollTop = scrollTop;
+          }
+        }
+      } catch {
+        // Not JSON, treat as HTML
+        setStructuredContent(null);
+        setIsStructuredMode(false);
+        if (editorRef.current) {
+          const scrollTop = editorRef.current.scrollTop;
+          editorRef.current.innerHTML = previousContent;
+          editorRef.current.scrollTop = scrollTop;
+          
+          const range = document.createRange();
+          const selection = window.getSelection();
+          if (editorRef.current.lastChild) {
+            range.selectNodeContents(editorRef.current);
+            range.collapse(false);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
         }
       }
       
@@ -211,18 +236,43 @@ const TeacherAnnotationPage = () => {
       const nextContent = history[historyIndex + 1];
       setContent(nextContent);
       
-      if (editorRef.current) {
-        const scrollTop = editorRef.current.scrollTop;
-        editorRef.current.innerHTML = nextContent;
-        editorRef.current.scrollTop = scrollTop;
-        
-        const range = document.createRange();
-        const selection = window.getSelection();
-        if (editorRef.current.lastChild) {
-          range.selectNodeContents(editorRef.current);
-          range.collapse(false);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
+      // Try to parse as structured content
+      try {
+        const parsed = JSON.parse(nextContent);
+        if (parsed.conteudo && Array.isArray(parsed.conteudo)) {
+          // It's structured content
+          setStructuredContent(parsed);
+          setIsStructuredMode(true);
+          if (editorRef.current) {
+            editorRef.current.innerHTML = '';
+          }
+        } else {
+          // Not structured, treat as HTML
+          setStructuredContent(null);
+          setIsStructuredMode(false);
+          if (editorRef.current) {
+            const scrollTop = editorRef.current.scrollTop;
+            editorRef.current.innerHTML = nextContent;
+            editorRef.current.scrollTop = scrollTop;
+          }
+        }
+      } catch {
+        // Not JSON, treat as HTML
+        setStructuredContent(null);
+        setIsStructuredMode(false);
+        if (editorRef.current) {
+          const scrollTop = editorRef.current.scrollTop;
+          editorRef.current.innerHTML = nextContent;
+          editorRef.current.scrollTop = scrollTop;
+          
+          const range = document.createRange();
+          const selection = window.getSelection();
+          if (editorRef.current.lastChild) {
+            range.selectNodeContents(editorRef.current);
+            range.collapse(false);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
         }
       }
       

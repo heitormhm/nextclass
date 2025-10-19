@@ -683,17 +683,18 @@ RESPONDA APENAS COM O JSON PURO!`;
                   // First convert markdown to HTML
                   let htmlItem = convertMarkdownToHTML(item);
                   
-                  // For references, add line breaks after common patterns
-                  // This ensures proper visual formatting even if AI doesn't add them
+                  // Universal line break patterns for references
                   htmlItem = htmlItem
-                    // Add break after " - URL:" or "- URL:"
-                    .replace(/(\s*-\s*URL:\s*)/g, '<br>$1')
-                    // Add break after long URLs (60+ chars followed by space or end)
-                    .replace(/(https?:\/\/[^\s]{60,})(\s|$)/g, '$1<br>$2')
-                    // Add break after " - Autor:" or "- Autor:"
-                    .replace(/(\s*-\s*Autor[^:]*:\s*)/g, '<br>$1')
-                    // Add break after "(PDF)" or other format indicators followed by text
-                    .replace(/(\(PDF\)|(\[PDF\]))(\s+[A-Z])/g, '$1<br>$3');
+                    // Add break after reference numbers like [1], [10], etc.
+                    .replace(/(\[\d+\])\s*([A-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ])/g, '$1<br>$2')
+                    // Add break before "Titulo da Fonte:" or similar
+                    .replace(/(\s+)(Titulo da Fonte:|Título da Fonte:)/gi, '<br>$2')
+                    // Add break before URLs
+                    .replace(/(\s+)(https?:\/\/)/g, '<br>$2')
+                    // Add break before " - URL:", " - Autor:", etc.
+                    .replace(/(\s+-)(\s*)(URL|Autor|Editor|Editora|Acesso|Disponível):/gi, '<br>$1$2$3:')
+                    // Add break after format indicators
+                    .replace(/(\(PDF\)|\[PDF\]|\(Vídeo\)|\[Vídeo\])/gi, '$1<br>');
                   
                   return htmlItem;
                 }
