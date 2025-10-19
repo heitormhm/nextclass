@@ -392,10 +392,12 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       
       console.log(`   ✅ Imagem adicionada em Y=${currentY.toFixed(1)}mm`);
       
-      // Update position with fixed spacing
-      currentY += imageHeightMM + FIXED_SPACING;
+      // Update position with dynamic spacing (5mm for text, 15mm for visuals)
+      const isTextBlock = bloco.tipo === 'paragrafo' || bloco.tipo.startsWith('h');
+      const spacing = isTextBlock ? 5 : FIXED_SPACING;
+      currentY += imageHeightMM + spacing;
       
-      console.log(`   📍 Novo currentY: ${currentY.toFixed(1)}mm (espaçamento: ${FIXED_SPACING}mm)`);
+      console.log(`   📍 Novo currentY: ${currentY.toFixed(1)}mm (espaçamento: ${spacing}mm ${isTextBlock ? '[TEXTO]' : '[VISUAL]'})`);
       
       // Check if we need a new page for next iteration
       if (currentY > pageHeight - margin - FOOTER_MARGIN) {
@@ -410,6 +412,25 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     const finalPageCount = stats.totalPages;
     for (let pageNum = 1; pageNum <= finalPageCount; pageNum++) {
       pdf.setPage(pageNum);
+      
+      // Draw gradient line above footer (purple to pink)
+      const lineY = pageHeight - 14;
+      const gradientStops = 20;
+      const gradientWidth = pageWidth - (margin * 2);
+
+      for (let i = 0; i < gradientStops; i++) {
+        const x = margin + (i * gradientWidth / gradientStops);
+        const t = i / gradientStops;
+        
+        // Interpolate from purple (168, 85, 247) to pink (255, 70, 130)
+        const r = Math.round(168 + t * (255 - 168));
+        const g = Math.round(85 + t * (70 - 85));
+        const b = Math.round(247 + t * (130 - 247));
+        
+        pdf.setDrawColor(r, g, b);
+        pdf.setLineWidth(0.5);
+        pdf.line(x, lineY, x + (gradientWidth / gradientStops), lineY);
+      }
       
       // Rodapé
       const footerY = pageHeight - 10;
