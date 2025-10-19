@@ -4,7 +4,7 @@ import {
   ImagePlus, Type, Save, ArrowLeft, Tag, 
   Sparkles, X, Loader2, CheckCircle2, FileText, FileDown,
   Mic, Undo, Redo, BookOpen, Table as TableIcon, 
-  Lightbulb, GraduationCap, RotateCcw
+  Lightbulb, GraduationCap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -923,20 +923,6 @@ const TeacherAnnotationPage = () => {
     }
   };
 
-  const handleRestoreOriginal = () => {
-    if (preAIContent) {
-      console.log('[Restore] Restoring original content');
-      setContent(preAIContent);
-      setStructuredContent(null);
-      setIsStructuredMode(false);
-      if (editorRef.current) {
-        editorRef.current.innerHTML = preAIContent;
-      }
-      saveToHistory(preAIContent);
-      setPreAIContent(null);
-      toast.success('Conteúdo original restaurado');
-    }
-  };
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -1133,18 +1119,6 @@ const TeacherAnnotationPage = () => {
                 >
                   <Redo className="h-4 w-4" />
                 </Button>
-                
-                {preAIContent && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleRestoreOriginal}
-                    title="Restaurar conteúdo original antes da IA"
-                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                )}
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
                 
