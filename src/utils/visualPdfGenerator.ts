@@ -88,6 +88,23 @@ const detectAndConvertMarkdown = (bloco: ContentBlock): ContentBlock => {
   return bloco;
 };
 
+// Função para converter Markdown básico para HTML (sincronizada com frontend)
+const convertMarkdownToHtml = (text: string): string => {
+  if (!text) return '';
+  
+  return text
+    // Negrito: **texto** → <strong>texto</strong>
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Itálico: *texto* → <em>texto</em>
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+    // Quebras de linha
+    .replace(/&lt;br&gt;/gi, '<br>')
+    .replace(/&lt;br \/&gt;/gi, '<br>')
+    .replace(/&lt;br\/&gt;/gi, '<br>')
+    .replace(/\\n/g, '<br>')
+    .replace(/\n/g, '<br>');
+};
+
 // Função auxiliar para converter Blob para Base64
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -559,7 +576,7 @@ const captureBlockAsImage = async (bloco: ContentBlock, maxWidth: number): Promi
     // FASE 2: PNG para diagramas (preserva texto), JPEG para fotos
     const isDiagram = bloco.tipo.includes('diagrama') || bloco.tipo.includes('fluxograma') || 
                       bloco.tipo.includes('mapa_mental') || bloco.tipo === 'grafico';
-    const hasTransparency = bloco.tipo === 'post_it' || bloco.tipo === 'componente_react';
+    const hasTransparency = ['post_it', 'componente_react', 'questao_multipla_escolha', 'questao_aberta'].includes(bloco.tipo);
     const base64 = isDiagram || hasTransparency ? 
                    resizedCanvas.toDataURL('image/png', 0.92) : 
                    compressImage(resizedCanvas, false);
@@ -674,6 +691,7 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
       break;
 
     case 'componente_react':
+      // Suporte para estrutura antiga (Accordion)
       if (bloco.componente === 'Accordion') {
         let accordionHTML = `<h4 style="font-weight: bold; color: #581c87; margin-bottom: 8px;">⚛️ ${bloco.titulo}</h4>`;
         accordionHTML += `<p style="font-size: 12px; color: #6b21a8; font-style: italic; margin-bottom: 16px;">${bloco.descricao || ''}</p>`;
@@ -688,7 +706,188 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
         });
         
         div.innerHTML = accordionHTML;
+      } 
+      // Suporte para nova estrutura (código JSX)
+      else if (bloco.nome && bloco.codigo_jsx) {
+        let componentHTML = `
+          <div style="background: linear-gradient(to bottom right, #f3f4f6, #e5e7eb); border: 2px solid #6b7280; padding: 16px; border-radius: 12px; font-family: 'Courier New', monospace;">
+            <p style="font-weight: bold; color: #1f2937; margin: 0 0 8px 0; font-size: 14px;">💻 Exemplo de Componente: ${bloco.nome}</p>
+        `;
+        
+        if (bloco.descricao) {
+          componentHTML += `
+            <p style="font-size: 12px; color: #4b5563; font-style: italic; margin: 0 0 12px 0; line-height: 1.5;">
+              ${bloco.descricao}
+            </p>
+          `;
+        }
+        
+        // Código JSX (primeiras 15 linhas para caber no PDF)
+        const codeLines = bloco.codigo_jsx.split('\n').slice(0, 15);
+        const truncated = codeLines.length < bloco.codigo_jsx.split('\n').length;
+        
+        componentHTML += `
+          <div style="background: #1f2937; color: #e5e7eb; padding: 12px; border-radius: 6px; overflow: hidden; font-size: 10px; line-height: 1.4;">
+            <code style="white-space: pre-wrap; word-break: break-all;">${codeLines.join('\n')}${truncated ? '\n// ... (código truncado)' : ''}</code>
+          </div>
+        `;
+        
+        componentHTML += '</div>';
+        div.innerHTML = componentHTML;
       }
+      break;
+
+    case 'questao_multipla_escolha':
+      div.style.cssText = 'background: linear-gradient(to bottom right, #dbeafe, #bfdbfe); border: 2px solid #3b82f6; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: Manrope, sans-serif; margin-bottom: 16px;';
+      
+      let questaoHTML = `
+        <div style="display: flex; align-items: start; gap: 12px; margin-bottom: 16px;">
+          <div style="background: #3b82f6; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">
+            ${bloco.numero}
+          </div>
+          <div style="flex: 1;">
+            <p style="font-size: 15px; font-weight: 600; color: #1e3a8a; margin: 0 0 12px 0; line-height: 1.5;">
+              ${convertMarkdownToHtml(bloco.enunciado || '')}
+            </p>
+          </div>
+        </div>
+      `;
+      
+      // Renderizar alternativas
+      if (bloco.alternativas) {
+        questaoHTML += '<div style="display: flex; flex-direction: column; gap: 8px;">';
+        Object.entries(bloco.alternativas).forEach(([letra, texto]: [string, any]) => {
+          questaoHTML += `
+            <div style="display: flex; align-items: start; gap: 8px; padding: 12px; background: rgba(255,255,255,0.7); border: 1px solid #93c5fd; border-radius: 8px;">
+              <span style="font-weight: bold; color: #1e40af; min-width: 24px;">${letra})</span>
+              <span style="color: #1f2937; font-size: 14px; line-height: 1.5;">${convertMarkdownToHtml(texto)}</span>
+            </div>
+          `;
+        });
+        questaoHTML += '</div>';
+      }
+      
+      // Renderizar gabarito (sempre expandido no PDF)
+      if (bloco.gabarito) {
+        questaoHTML += `
+          <div style="margin-top: 16px; padding: 16px; background: linear-gradient(to bottom right, #d1fae5, #a7f3d0); border: 1px solid #10b981; border-radius: 8px;">
+            <p style="font-weight: bold; color: #065f46; margin: 0 0 8px 0;">✅ Gabarito</p>
+            <p style="color: #065f46; font-size: 14px; margin: 0 0 8px 0;">
+              <strong>Resposta Correta:</strong> ${bloco.gabarito.resposta_correta}
+            </p>
+            <p style="color: #064e3b; font-size: 13px; line-height: 1.6; margin: 0;">
+              ${convertMarkdownToHtml(bloco.gabarito.justificativa || '')}
+            </p>
+        `;
+        
+        // Análise das incorretas
+        if (bloco.gabarito.analise_incorretas) {
+          questaoHTML += `
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #6ee7b7;">
+              <p style="font-weight: 600; color: #065f46; font-size: 13px; margin: 0 0 8px 0;">Análise das Alternativas Incorretas:</p>
+          `;
+          Object.entries(bloco.gabarito.analise_incorretas).forEach(([letra, analise]: [string, any]) => {
+            questaoHTML += `
+              <p style="color: #064e3b; font-size: 12px; line-height: 1.5; margin: 0 0 4px 0;">
+                <strong style="color: #dc2626;">${letra}:</strong> ${analise}
+              </p>
+            `;
+          });
+          questaoHTML += '</div>';
+        }
+        
+        questaoHTML += '</div>';
+      }
+      
+      // Competência (se houver)
+      if (bloco.competencia) {
+        questaoHTML += `
+          <div style="margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #dbeafe; border-radius: 20px;">
+            <span style="font-size: 11px; font-weight: 500; color: #1e40af;">
+              🎯 Competência: ${bloco.competencia}
+            </span>
+          </div>
+        `;
+      }
+      
+      div.innerHTML = questaoHTML;
+      break;
+
+    case 'questao_aberta':
+      div.style.cssText = 'background: linear-gradient(to bottom right, #f3e8ff, #e9d5ff); border: 2px solid #a855f7; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: Manrope, sans-serif; margin-bottom: 16px;';
+      
+      let questaoAbertaHTML = `
+        <div style="display: flex; align-items: start; gap: 12px; margin-bottom: 16px;">
+          <div style="background: #a855f7; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">
+            ${bloco.numero}
+          </div>
+          <div style="flex: 1;">
+            <p style="font-size: 15px; font-weight: 600; color: #581c87; margin: 0 0 16px 0; line-height: 1.5;">
+              ${convertMarkdownToHtml(bloco.enunciado || '')}
+            </p>
+          </div>
+        </div>
+      `;
+      
+      // Resposta esperada (sempre expandida no PDF)
+      if (bloco.resposta_esperada) {
+        questaoAbertaHTML += `
+          <div style="padding: 16px; background: rgba(249, 240, 255, 0.6); border: 1px solid #d8b4fe; border-radius: 8px; margin-bottom: 12px;">
+            <p style="font-weight: bold; color: #6b21a8; margin: 0 0 8px 0; font-size: 14px;">💡 Resposta Esperada</p>
+            <div style="color: #1f2937; font-size: 13px; line-height: 1.6;">
+              ${convertMarkdownToHtml(bloco.resposta_esperada)}
+            </div>
+          </div>
+        `;
+      }
+      
+      // Rubrica de avaliação (sempre expandida no PDF)
+      if (bloco.rubrica && bloco.rubrica.criterios) {
+        questaoAbertaHTML += `
+          <div style="padding: 16px; background: rgba(255, 255, 255, 0.7); border: 1px solid #c084fc; border-radius: 8px;">
+            <p style="font-weight: bold; color: #6b21a8; margin: 0 0 12px 0; font-size: 14px;">📊 Rubrica de Avaliação</p>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              <thead>
+                <tr style="background: #f3e8ff;">
+                  <th style="border: 1px solid #c084fc; padding: 8px; text-align: left; font-weight: 600; color: #581c87;">Critério</th>
+                  <th style="border: 1px solid #c084fc; padding: 8px; text-align: left; font-weight: 600; color: #581c87;">Insuficiente (0-1)</th>
+                  <th style="border: 1px solid #c084fc; padding: 8px; text-align: left; font-weight: 600; color: #581c87;">Suficiente (2-3)</th>
+                  <th style="border: 1px solid #c084fc; padding: 8px; text-align: left; font-weight: 600; color: #581c87;">Excelente (4-5)</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+        
+        bloco.rubrica.criterios.forEach((criterio: any) => {
+          questaoAbertaHTML += `
+            <tr style="background: rgba(255, 255, 255, 0.5);">
+              <td style="border: 1px solid #c084fc; padding: 8px; font-weight: 500; color: #1f2937;">${criterio.nome}</td>
+              <td style="border: 1px solid #c084fc; padding: 8px; color: #4b5563;">${criterio.insuficiente}</td>
+              <td style="border: 1px solid #c084fc; padding: 8px; color: #4b5563;">${criterio.suficiente}</td>
+              <td style="border: 1px solid #c084fc; padding: 8px; color: #4b5563;">${criterio.excelente}</td>
+            </tr>
+          `;
+        });
+        
+        questaoAbertaHTML += `
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+      
+      // Competência (se houver)
+      if (bloco.competencia) {
+        questaoAbertaHTML += `
+          <div style="margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f3e8ff; border-radius: 20px;">
+            <span style="font-size: 11px; font-weight: 500; color: #6b21a8;">
+              🎯 Competência: ${bloco.competencia}
+            </span>
+          </div>
+        `;
+      }
+      
+      div.innerHTML = questaoAbertaHTML;
       break;
 
     case 'h2':
