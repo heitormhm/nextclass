@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import MainLayout from '@/components/MainLayout';
-import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { InsightCard } from '@/components/InsightCard';
 import { ActionCard } from '@/components/dashboard/ActionCard';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -317,7 +317,7 @@ const TeacherDashboard = () => {
       <MainLayout>
         <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
           {/* Animated Background with Ripple Effect */}
-          <BackgroundRippleEffect className="opacity-30" />
+          <TeacherBackgroundRipple className="opacity-30" />
           
           {/* Gradient Blobs for Depth */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -396,7 +396,7 @@ const TeacherDashboard = () => {
     <MainLayout>
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background with Ripple Effect */}
-        <BackgroundRippleEffect className="opacity-30" />
+        <TeacherBackgroundRipple className="opacity-30" />
         
         {/* Gradient Blobs for Depth */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

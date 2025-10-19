@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import MainLayout from '@/components/MainLayout';
-import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LiveTranscriptViewer } from '@/components/LiveTranscriptViewer';
@@ -385,7 +385,7 @@ const LiveLecture = () => {
     <MainLayout>
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background with Ripple Effect */}
-        <BackgroundRippleEffect className="opacity-30" />
+        <TeacherBackgroundRipple className="opacity-30" />
         
         {/* Gradient Blobs for Depth */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

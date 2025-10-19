@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { AuthBackgroundRipple } from '@/components/ui/auth-background-ripple';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -200,7 +200,7 @@ const AuthPage = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full opacity-30 blur-3xl"></div>
           
           {/* Background Ripple Effect */}
-          <BackgroundRippleEffect />
+          <AuthBackgroundRipple />
           
           {/* Content */}
           <div className="relative z-10 flex flex-col justify-center items-start p-12 text-slate-800 animate-fade-in">

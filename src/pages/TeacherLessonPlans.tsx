@@ -7,7 +7,7 @@ import { Sparkles, Plus, FileText, Clock, CheckCircle, Loader2 } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
+import { TeacherBackgroundRipple } from "@/components/ui/teacher-background-ripple";
 
 interface LessonPlan {
   id: string;
@@ -97,7 +97,7 @@ const TeacherLessonPlans = () => {
     <MainLayout>
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background */}
-        <BackgroundRippleEffect className="opacity-30" />
+        <TeacherBackgroundRipple className="opacity-30" />
         
         {/* Gradient Blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

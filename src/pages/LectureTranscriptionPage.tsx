@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import MainLayout from '@/components/MainLayout';
-import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { EditWithAIModal } from '@/components/EditWithAIModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -345,7 +345,7 @@ const LectureTranscriptionPage = () => {
       <MainLayout>
         <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
           <div className="absolute inset-0 z-0">
-            <BackgroundRippleEffect className="opacity-30" />
+            <TeacherBackgroundRipple className="opacity-30" />
           </div>
           <div className="relative z-10 flex flex-col items-center gap-4">
             <Loader2 className="h-12 w-12 text-purple-400 animate-spin" />
@@ -360,7 +360,7 @@ const LectureTranscriptionPage = () => {
     <MainLayout>
       <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div className="absolute inset-0 z-0">
-          <BackgroundRippleEffect className="opacity-30" />
+          <TeacherBackgroundRipple className="opacity-30" />
         </div>
 
         {/* Gradient Blobs */}

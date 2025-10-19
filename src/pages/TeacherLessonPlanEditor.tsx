@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Send, Loader2, Copy, Download, ArrowLeft, Mic, MicOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
+import { TeacherBackgroundRipple } from "@/components/ui/teacher-background-ripple";
 
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -537,7 +537,7 @@ const TeacherLessonPlanEditor = () => {
     <MainLayout>
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background */}
-        <BackgroundRippleEffect className="opacity-30" />
+        <TeacherBackgroundRipple className="opacity-30" />
         
         {/* Gradient Blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

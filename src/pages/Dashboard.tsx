@@ -9,7 +9,7 @@ import SmartReviewWidget from '@/components/dashboard/SmartReviewWidget';
 import GamifiedProgressTracking from '@/components/dashboard/GamifiedProgressTracking';
 import { FlashcardsSection } from '@/components/dashboard/FlashcardsSection';
 import { UpcomingEventsSection } from '@/components/dashboard/UpcomingEventsSection';
-import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { StudentBackgroundRipple } from '@/components/ui/student-background-ripple';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -93,7 +93,7 @@ const Dashboard = () => {
         <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40" />
         
         {/* Background Ripple Effect */}
-        <BackgroundRippleEffect />
+        <StudentBackgroundRipple />
         
         {/* Main Content */}
         <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-6 sm:space-y-8">

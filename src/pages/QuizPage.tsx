@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
-import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { StudentBackgroundRipple } from '@/components/ui/student-background-ripple';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -335,7 +335,7 @@ const QuizPage = () => {
           <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50 animate-float" style={{ animationDelay: '2s' }} />
           <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40 animate-float" style={{ animationDelay: '4s' }} />
           
-          <BackgroundRippleEffect />
+          <StudentBackgroundRipple />
           
           <Card className="relative z-10 border-0 shadow-sm bg-white/20 backdrop-blur-xl p-8 animate-fade-in">
             <div className="flex flex-col items-center gap-4">
@@ -364,7 +364,7 @@ const QuizPage = () => {
           <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50 animate-float" style={{ animationDelay: '2s' }} />
           <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40 animate-float" style={{ animationDelay: '4s' }} />
           
-          <BackgroundRippleEffect />
+          <StudentBackgroundRipple />
           
           <div className="relative z-10 container mx-auto px-4 py-8">
             <div className="max-w-3xl mx-auto space-y-6">
@@ -517,7 +517,7 @@ const QuizPage = () => {
         <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50 animate-float" style={{ animationDelay: '2s' }} />
         <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40 animate-float" style={{ animationDelay: '4s' }} />
         
-        <BackgroundRippleEffect />
+        <StudentBackgroundRipple />
         
         <div className="relative z-10 container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">

@@ -6,34 +6,49 @@ interface AnimatedCell {
   row: number;
   opacity: number;
   color: string;
-  phase: number;
-  speed: number;
+  state: 'appearing' | 'active' | 'fading';
+  stateStartTime: number;
+  targetOpacity: number;
 }
 
-interface DivGridProps {
+interface BackgroundRippleEffectProps {
   className?: string;
+  colorPalette: string[];
+  gridOpacity?: number;
+  cellSize?: number;
+  numCells?: number;
+  maxOpacity?: number;
+  minOpacity?: number;
 }
-
-const CELL_COLORS = [
-  '59, 130, 246',   // blue-500
-  '168, 85, 247',   // purple-500
-  '236, 72, 153',   // pink-500
-  '147, 51, 234',   // purple-600
-  '219, 39, 119',   // pink-600
-];
 
 const CONFIG = {
   CELL_SIZE: 40,
-  NUM_ANIMATED_CELLS: 20,
-  MIN_OPACITY: 0.05,
-  MAX_OPACITY: 0.35,
-  MIN_SPEED: 0.0003,
-  MAX_SPEED: 0.0008,
-  COLOR_CHANGE_CHANCE: 0.3,
-  TARGET_FRAME_TIME: 1000 / 30, // 30 FPS
+  NUM_ANIMATED_CELLS: 15,
+  MIN_OPACITY: 0.08,
+  MAX_OPACITY: 0.45,
+  APPEAR_DURATION: 2500,
+  ACTIVE_DURATION: 4000,
+  FADE_DURATION: 2500,
+  TARGET_FRAME_TIME: 1000 / 20, // 20 FPS
+  GRID_OPACITY: 0.12,
 };
 
-const DivGrid: React.FC<DivGridProps> = ({ className }) => {
+// Ease-in-out cubic for smooth transitions
+const easeInOutCubic = (t: number): number => {
+  return t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+};
+
+const DivGrid: React.FC<BackgroundRippleEffectProps> = ({ 
+  className,
+  colorPalette,
+  gridOpacity = CONFIG.GRID_OPACITY,
+  cellSize = CONFIG.CELL_SIZE,
+  numCells = CONFIG.NUM_ANIMATED_CELLS,
+  maxOpacity = CONFIG.MAX_OPACITY,
+  minOpacity = CONFIG.MIN_OPACITY,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [animatedCells, setAnimatedCells] = useState<AnimatedCell[]>([]);
@@ -57,13 +72,13 @@ const DivGrid: React.FC<DivGridProps> = ({ className }) => {
   useEffect(() => {
     if (dimensions.width === 0 || dimensions.height === 0) return;
 
-    const cols = Math.ceil(dimensions.width / CONFIG.CELL_SIZE);
-    const rows = Math.ceil(dimensions.height / CONFIG.CELL_SIZE);
+    const cols = Math.ceil(dimensions.width / cellSize);
+    const rows = Math.ceil(dimensions.height / cellSize);
 
     const cells: AnimatedCell[] = [];
     const usedPositions = new Set<string>();
 
-    for (let i = 0; i < CONFIG.NUM_ANIMATED_CELLS; i++) {
+    for (let i = 0; i < numCells; i++) {
       let col, row, key;
       do {
         col = Math.floor(Math.random() * cols);
@@ -73,18 +88,22 @@ const DivGrid: React.FC<DivGridProps> = ({ className }) => {
 
       usedPositions.add(key);
 
+      // Random target opacity for variety
+      const targetOpacity = minOpacity + Math.random() * (maxOpacity - minOpacity);
+
       cells.push({
         col,
         row,
-        opacity: Math.random() * (CONFIG.MAX_OPACITY - CONFIG.MIN_OPACITY) + CONFIG.MIN_OPACITY,
-        color: CELL_COLORS[Math.floor(Math.random() * CELL_COLORS.length)],
-        phase: Math.random() * Math.PI * 2,
-        speed: Math.random() * (CONFIG.MAX_SPEED - CONFIG.MIN_SPEED) + CONFIG.MIN_SPEED,
+        opacity: 0,
+        color: colorPalette[Math.floor(Math.random() * colorPalette.length)],
+        state: 'appearing',
+        stateStartTime: Date.now() + Math.random() * 2000, // Stagger initial appearance
+        targetOpacity,
       });
     }
 
     setAnimatedCells(cells);
-  }, [dimensions]);
+  }, [dimensions, cellSize, numCells, colorPalette, maxOpacity, minOpacity]);
 
   // Animation loop
   useEffect(() => {
@@ -101,7 +120,6 @@ const DivGrid: React.FC<DivGridProps> = ({ className }) => {
         return;
       }
 
-      const deltaTime = timestamp - lastFrameTimeRef.current;
       lastFrameTimeRef.current = timestamp;
 
       canvas.width = dimensions.width;
@@ -110,59 +128,95 @@ const DivGrid: React.FC<DivGridProps> = ({ className }) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Draw static grid
-      const cols = Math.ceil(canvas.width / CONFIG.CELL_SIZE);
-      const rows = Math.ceil(canvas.height / CONFIG.CELL_SIZE);
+      const cols = Math.ceil(canvas.width / cellSize);
+      const rows = Math.ceil(canvas.height / cellSize);
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.strokeStyle = `rgba(255, 255, 255, ${gridOpacity})`;
       ctx.lineWidth = 1;
 
       for (let i = 0; i <= cols; i++) {
         ctx.beginPath();
-        ctx.moveTo(i * CONFIG.CELL_SIZE, 0);
-        ctx.lineTo(i * CONFIG.CELL_SIZE, canvas.height);
+        ctx.moveTo(i * cellSize, 0);
+        ctx.lineTo(i * cellSize, canvas.height);
         ctx.stroke();
       }
 
       for (let i = 0; i <= rows; i++) {
         ctx.beginPath();
-        ctx.moveTo(0, i * CONFIG.CELL_SIZE);
-        ctx.lineTo(canvas.width, i * CONFIG.CELL_SIZE);
+        ctx.moveTo(0, i * cellSize);
+        ctx.lineTo(canvas.width, i * cellSize);
         ctx.stroke();
       }
 
       // Update and draw animated cells
-      setAnimatedCells(prevCells =>
-        prevCells.map(cell => {
-          // Update phase
-          const newPhase = cell.phase + deltaTime * cell.speed;
+      setAnimatedCells(prevCells => {
+        const now = Date.now();
+        
+        return prevCells.map(cell => {
+          const timeSinceStateStart = now - cell.stateStartTime;
+          let newState = cell.state;
+          let newOpacity = cell.opacity;
+          let newStateStartTime = cell.stateStartTime;
 
-          // Calculate opacity using sine wave
-          const newOpacity = CONFIG.MIN_OPACITY + 
-            (Math.sin(newPhase) + 1) / 2 * (CONFIG.MAX_OPACITY - CONFIG.MIN_OPACITY);
+          // State machine
+          if (cell.state === 'appearing') {
+            const progress = Math.min(timeSinceStateStart / CONFIG.APPEAR_DURATION, 1);
+            newOpacity = easeInOutCubic(progress) * cell.targetOpacity;
+
+            if (progress >= 1) {
+              newState = 'active';
+              newStateStartTime = now;
+            }
+          } else if (cell.state === 'active') {
+            newOpacity = cell.targetOpacity;
+
+            if (timeSinceStateStart >= CONFIG.ACTIVE_DURATION) {
+              newState = 'fading';
+              newStateStartTime = now;
+            }
+          } else if (cell.state === 'fading') {
+            const progress = Math.min(timeSinceStateStart / CONFIG.FADE_DURATION, 1);
+            newOpacity = cell.targetOpacity * (1 - easeInOutCubic(progress));
+
+            // Reset to new position after fading
+            if (progress >= 1) {
+              const cols = Math.ceil(canvas.width / cellSize);
+              const rows = Math.ceil(canvas.height / cellSize);
+              
+              // Find new random position
+              const newCol = Math.floor(Math.random() * cols);
+              const newRow = Math.floor(Math.random() * rows);
+              const newTargetOpacity = minOpacity + Math.random() * (maxOpacity - minOpacity);
+
+              return {
+                col: newCol,
+                row: newRow,
+                opacity: 0,
+                color: colorPalette[Math.floor(Math.random() * colorPalette.length)],
+                state: 'appearing' as const,
+                stateStartTime: now,
+                targetOpacity: newTargetOpacity,
+              };
+            }
+          }
 
           // Draw cell
           ctx.fillStyle = `rgba(${cell.color}, ${newOpacity})`;
           ctx.fillRect(
-            cell.col * CONFIG.CELL_SIZE,
-            cell.row * CONFIG.CELL_SIZE,
-            CONFIG.CELL_SIZE,
-            CONFIG.CELL_SIZE
+            cell.col * cellSize,
+            cell.row * cellSize,
+            cellSize,
+            cellSize
           );
-
-          // Chance to change color after full cycle
-          let newColor = cell.color;
-          if (newPhase > Math.PI * 2 && Math.random() < CONFIG.COLOR_CHANGE_CHANCE) {
-            newColor = CELL_COLORS[Math.floor(Math.random() * CELL_COLORS.length)];
-          }
 
           return {
             ...cell,
-            phase: newPhase % (Math.PI * 2),
             opacity: newOpacity,
-            color: newColor,
+            state: newState,
+            stateStartTime: newStateStartTime,
           };
-        })
-      );
+        });
+      });
 
       animationFrameRef.current = requestAnimationFrame(animate);
     };
@@ -174,7 +228,7 @@ const DivGrid: React.FC<DivGridProps> = ({ className }) => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [animatedCells.length, dimensions]);
+  }, [animatedCells.length, dimensions, cellSize, colorPalette, gridOpacity, maxOpacity, minOpacity]);
 
   return (
     <canvas
@@ -185,19 +239,15 @@ const DivGrid: React.FC<DivGridProps> = ({ className }) => {
   );
 };
 
-interface BackgroundRippleEffectProps {
-  className?: string;
-}
-
-export const BackgroundRippleEffect: React.FC<BackgroundRippleEffectProps> = ({ className }) => {
+export const BackgroundRippleEffect: React.FC<BackgroundRippleEffectProps> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   return (
     <div
       ref={containerRef}
-      className={cn('absolute inset-0 overflow-hidden', className)}
+      className={cn('absolute inset-0 overflow-hidden', props.className)}
     >
-      <DivGrid />
+      <DivGrid {...props} />
     </div>
   );
 };

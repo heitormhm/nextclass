@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
-import { BackgroundRippleEffect } from '@/components/ui/background-ripple-effect';
+import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
 import { generateVisualPDF } from '@/utils/visualPdfGenerator';
 import { generateReportPDF } from '@/utils/pdfGenerator';
@@ -1107,7 +1107,7 @@ const TeacherAnnotationPage = () => {
     return (
       <MainLayout>
         <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
-          <BackgroundRippleEffect className="opacity-30" />
+          <TeacherBackgroundRipple className="opacity-30" />
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
             <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
@@ -1128,7 +1128,7 @@ const TeacherAnnotationPage = () => {
     <MainLayout>
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background with Ripple Effect */}
-        <BackgroundRippleEffect className="opacity-30" />
+        <TeacherBackgroundRipple className="opacity-30" />
         
         {/* Gradient Blobs for Depth */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
