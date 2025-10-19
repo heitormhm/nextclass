@@ -1244,6 +1244,48 @@ RESPONDA APENAS COM O JSON PURO!`;
       }
     }
 
+    // Validação final do JSON gerado (para generate_activity e improve_didactic)
+    if (action === 'generate_activity' || action === 'improve_didactic') {
+      try {
+        const parsedValidation = JSON.parse(formattedText);
+        
+        if (!parsedValidation.conteudo || !Array.isArray(parsedValidation.conteudo)) {
+          console.error('[Validation] ❌ JSON inválido gerado - falta array conteudo');
+          console.error('[Validation] Estrutura recebida:', Object.keys(parsedValidation));
+          return new Response(
+            JSON.stringify({ 
+              error: 'JSON inválido gerado pela IA - estrutura incorreta',
+              details: 'Objeto não possui array "conteudo"'
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        if (parsedValidation.conteudo.length === 0) {
+          console.error('[Validation] ❌ Array conteudo vazio');
+          return new Response(
+            JSON.stringify({ 
+              error: 'JSON inválido gerado pela IA - conteúdo vazio',
+              details: 'Nenhum bloco gerado'
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        console.log(`[Validation] ✅ JSON válido com ${parsedValidation.conteudo.length} blocos`);
+      } catch (validationError) {
+        console.error('[Validation] ❌ Erro na validação final:', validationError);
+        console.error('[Validation] JSON problemático (primeiros 500 chars):', formattedText.substring(0, 500));
+        return new Response(
+          JSON.stringify({ 
+            error: 'JSON inválido gerado pela IA - erro de sintaxe',
+            details: validationError instanceof Error ? validationError.message : 'Erro desconhecido'
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     return new Response(JSON.stringify({ formattedText }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

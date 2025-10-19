@@ -594,48 +594,78 @@ const TeacherAnnotationPage = () => {
         
         // Verificar se é improve_didactic ou generate_activity e tentar parsear JSON estruturado
         if (actionType === 'improve_didactic' || actionType === 'generate_activity') {
+          console.log(`[${actionType}] Iniciando parsing JSON...`);
+          console.log(`[${actionType}] JSON recebido (primeiros 200 chars):`, jsonString.substring(0, 200));
+          console.log(`[${actionType}] JSON recebido (últimos 200 chars):`, jsonString.substring(jsonString.length - 200));
+          
           try {
             const parsedContent = JSON.parse(jsonString);
             
-            if (parsedContent.conteudo && Array.isArray(parsedContent.conteudo)) {
-              console.log(`[Structured Content] JSON válido detectado para ${actionType} - SUBSTITUINDO conteúdo`);
-              
-              // ✅ SUBSTITUIR completamente o conteúdo
-              const jsonContent = JSON.stringify(parsedContent);
-              setContent(jsonContent); // Salvar JSON como string
-              setStructuredContent(parsedContent); // Definir objeto para renderização
-              setIsStructuredMode(true); // Ativar modo estruturado
-              
-              // ✅ LIMPAR o editor HTML (não será mais usado)
-              if (editorRef.current) {
-                editorRef.current.innerHTML = '';
-              }
-              
-              // Salvar no histórico
-              saveToHistory(jsonContent);
-              
-              // Toast específico para cada tipo
-              if (actionType === 'generate_activity') {
-                const questoesObjetivas = parsedContent.conteudo.filter((b: any) => b.tipo === 'questao_multipla_escolha').length;
-                const questoesAbertas = parsedContent.conteudo.filter((b: any) => b.tipo === 'questao_aberta').length;
-                
-                toast.success('Atividade Avaliativa gerada! 📝', {
-                  description: `${questoesObjetivas} questões objetivas + ${questoesAbertas} questões abertas`,
-                  duration: 5000,
-                });
-              } else {
-                toast.success('Material didático gerado! 🎓', {
-                  description: `${parsedContent.conteudo.length} blocos pedagógicos criados`,
-                  duration: 5000,
-                });
-              }
-              
-              setIsProcessingAI(false);
-              return; // ✅ IMPORTANTE: Return early para não continuar com lógica HTML
+            // Validação rigorosa da estrutura
+            if (!parsedContent || typeof parsedContent !== 'object') {
+              throw new Error('JSON não é um objeto válido');
             }
-          } catch (jsonError) {
-            console.log('[Structured Content] Não é JSON válido, continuando com HTML');
-            // Não é JSON estruturado, continuar com lógica normal de HTML abaixo
+            
+            if (!parsedContent.conteudo || !Array.isArray(parsedContent.conteudo)) {
+              console.error(`[${actionType}] ❌ Estrutura inválida. Esperado: { conteudo: [...] }`);
+              console.error(`[${actionType}] Recebido:`, parsedContent);
+              throw new Error('JSON não possui array "conteudo"');
+            }
+            
+            if (parsedContent.conteudo.length === 0) {
+              console.warn(`[${actionType}] ⚠️ Array "conteudo" está vazio`);
+              throw new Error('Nenhum bloco de conteúdo gerado');
+            }
+            
+            // ✅ TUDO OK - Aplicar modo estruturado
+            console.log(`[${actionType}] ✅ ${parsedContent.conteudo.length} blocos detectados`);
+            console.log(`[${actionType}] Tipos de blocos:`, parsedContent.conteudo.map((b: any) => b.tipo).join(', '));
+            
+            const jsonContent = JSON.stringify(parsedContent);
+            
+            // IMPORTANTE: Definir estados na ordem correta
+            setStructuredContent(parsedContent); // 1. Definir dados
+            setIsStructuredMode(true);            // 2. Ativar modo
+            setContent(jsonContent);              // 3. Salvar JSON string
+            
+            // CRÍTICO: Limpar editor HTML completamente
+            if (editorRef.current) {
+              editorRef.current.innerHTML = '';
+              editorRef.current.blur(); // Remover foco do editor
+            }
+            
+            saveToHistory(jsonContent);
+            
+            // Toast específico para cada tipo
+            if (actionType === 'generate_activity') {
+              const questoesObjetivas = parsedContent.conteudo.filter((b: any) => b.tipo === 'questao_multipla_escolha').length;
+              const questoesAbertas = parsedContent.conteudo.filter((b: any) => b.tipo === 'questao_aberta').length;
+              
+              toast.success('✅ Atividade Avaliativa gerada com sucesso!', {
+                description: `${questoesObjetivas} questões objetivas + ${questoesAbertas} questões abertas`,
+                duration: 6000,
+              });
+            } else {
+              toast.success('✅ Material didático gerado com sucesso!', {
+                description: `${parsedContent.conteudo.length} blocos pedagógicos criados`,
+                duration: 6000,
+              });
+            }
+            
+            setIsProcessingAI(false);
+            return; // ✅ IMPORTANTE: Return early para não continuar com lógica HTML
+            
+          } catch (jsonError: any) {
+            console.error(`[${actionType}] ❌ Erro ao parsear JSON:`, jsonError.message);
+            console.error(`[${actionType}] JSON problemático (primeiros 500 chars):`, jsonString.substring(0, 500));
+            
+            toast.error('Erro ao processar conteúdo gerado', {
+              description: 'O formato retornado pela IA está incorreto. Tente novamente.',
+              duration: 8000,
+            });
+            
+            setIsProcessingAI(false);
+            return; // Não continuar com HTML
           }
         }
         
@@ -1105,17 +1135,6 @@ const TeacherAnnotationPage = () => {
                     <><Save className="h-4 w-4 mr-2" />Salvar e Sair</>
                   )}
                 </Button>
-                {isStructuredMode && (
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={handleExportPDF}
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-lg"
-                  >
-                    <FileDown className="h-4 w-4 mr-2" />
-                    Exportar como PDF
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -1127,28 +1146,40 @@ const TeacherAnnotationPage = () => {
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-xl">
               <CardContent className="p-8">
                 {isStructuredMode && structuredContent ? (
-                  <div className="structured-content-wrapper">
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <GraduationCap className="h-5 w-5 text-purple-600" />
-                        <span className="text-sm font-semibold text-purple-900">Modo de Visualização Pedagógica</span>
+                  (() => {
+                    console.log('[Render] 📊 Renderizando conteúdo estruturado');
+                    console.log('[Render] Título:', structuredContent.titulo_geral);
+                    console.log('[Render] Blocos:', structuredContent.conteudo?.length || 0);
+                    return (
+                      <div className="structured-content-wrapper">
+                        <div className="mb-4 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <GraduationCap className="h-5 w-5 text-purple-600" />
+                            <span className="text-sm font-semibold text-purple-900">Modo de Visualização Pedagógica Estruturada</span>
+                          </div>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={handleExportPDF}
+                            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-md hover:shadow-lg transition-all"
+                          >
+                            <FileDown className="h-4 w-4 mr-2" />
+                            Exportar PDF
+                          </Button>
+                        </div>
+                        <div className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg bg-gradient-to-br from-purple-50/50 to-blue-50/50">
+                          <StructuredContentRenderer structuredData={structuredContent} />
+                        </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleExportPDF}
-                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-md hover:shadow-lg transition-all"
-                      >
-                        <FileDown className="h-4 w-4 mr-2" />
-                        Exportar como PDF
-                      </Button>
-                    </div>
-                    <div className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg bg-gradient-to-br from-purple-50/50 to-blue-50/50">
-                      <StructuredContentRenderer structuredData={structuredContent} />
-                    </div>
-                  </div>
+                    );
+                  })()
                 ) : (
-                  <div
+                  (() => {
+                    console.log('[Render] 📝 Renderizando editor HTML');
+                    console.log('[Render] isStructuredMode:', isStructuredMode);
+                    console.log('[Render] hasStructuredContent:', !!structuredContent);
+                    return (
+                      <div
                     ref={editorRef}
                     contentEditable
                     suppressContentEditableWarning={true}
@@ -1167,6 +1198,8 @@ const TeacherAnnotationPage = () => {
                     data-placeholder="Comece a escrever sua anotação..."
                     style={{ lineHeight: '1.8', fontSize: '17px' }}
                   />
+                    );
+                  })()
                 )}
               </CardContent>
             </Card>
