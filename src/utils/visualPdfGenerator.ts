@@ -102,6 +102,83 @@ const detectAndConvertMarkdown = (bloco: ContentBlock): ContentBlock => {
   return bloco;
 };
 
+// FASE 2: Algoritmo inteligente de quebra de linha (anti-órfão)
+let orphansAvoided = 0;
+const smartTextSplit = (
+  pdf: jsPDF,
+  text: string,
+  maxWidth: number
+): string[] => {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+  
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = pdf.getTextWidth(testLine);
+    
+    if (testWidth > maxWidth && currentLine) {
+      // Verificar se próxima palavra é curta (< 10 letras) e é a última
+      const nextWord = words[i + 1];
+      const isLastWord = i === words.length - 1;
+      const nextIsOrphan = nextWord && nextWord.length < 10 && i === words.length - 2;
+      
+      if (nextIsOrphan) {
+        // Forçar quebra anterior para evitar órfão
+        const wordsInLine = currentLine.split(' ');
+        if (wordsInLine.length > 2) {
+          // Mover última palavra da linha atual para próxima linha
+          const lastWordInLine = wordsInLine.pop();
+          lines.push(wordsInLine.join(' '));
+          currentLine = `${lastWordInLine} ${word}`;
+          orphansAvoided++;
+          console.log('🔧 Órfão evitado:', nextWord);
+          continue;
+        }
+      }
+      
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  
+  return lines;
+};
+
+// FASE 3: Renderizar linha justificada
+const renderJustifiedLine = (
+  pdf: jsPDF,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  isLastLine: boolean = false
+): void => {
+  if (isLastLine || text.trim().split(' ').length === 1) {
+    // Última linha ou palavra única: alinhar à esquerda
+    pdf.text(text, x, y);
+    return;
+  }
+  
+  const words = text.trim().split(' ');
+  const totalTextWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
+  const totalSpaceWidth = maxWidth - totalTextWidth;
+  const spaceWidth = totalSpaceWidth / (words.length - 1);
+  
+  let currentX = x;
+  words.forEach((word, index) => {
+    pdf.text(word, currentX, y);
+    currentX += pdf.getTextWidth(word) + spaceWidth;
+  });
+};
+
 // Função auxiliar para converter Blob para Base64
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -186,6 +263,9 @@ const convertSVGtoPNG = async (svgString: string, width: number, height: number)
 };
 
 export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFResult> => {
+  // Reset contador global de órfãos
+  orphansAvoided = 0;
+  
   const startTime = Date.now();
   const stats: PDFStats = {
     imagesCaptured: 0,
@@ -197,6 +277,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     captureTime: 0
   };
   let fullPageImagesCount = 0; // FASE 4: Rastrear imagens em full-page
+  let pageBreaksPreventedForText = 0; // FASE 6: Quebras de página evitadas
   const warnings: string[] = [];
 
   try {
@@ -269,6 +350,125 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       });
       
       return decision;
+    };
+
+    // FASE 1: Função para pré-calcular altura de texto
+    const estimateTextBlockHeight = (
+      pdf: jsPDF,
+      bloco: ContentBlock,
+      contentWidth: number
+    ): number => {
+      const processedBloco = detectAndConvertMarkdown(bloco);
+      
+      switch (processedBloco.tipo) {
+        case 'h2':
+          pdf.setFontSize(16);
+          const h2Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
+          return h2Lines.length * 7 + 8; // Altura + linha decorativa + espaço
+          
+        case 'h3':
+          pdf.setFontSize(13);
+          const h3Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
+          return h3Lines.length * 6 + 6; // Altura + linha decorativa
+          
+        case 'h4':
+          pdf.setFontSize(11);
+          const h4Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
+          return h4Lines.length * 5 + 5;
+          
+        case 'paragrafo':
+          pdf.setFontSize(11);
+          const { cleanText } = sanitizeMarkdown(processedBloco.texto || '');
+          const lines = pdf.splitTextToSize(cleanText, contentWidth);
+          return lines.length * 6.5 + 5;
+          
+        case 'referencias':
+          let refHeight = 20; // Título + linha decorativa
+          bloco.itens?.forEach((ref: string) => {
+            const estimatedLines = Math.ceil(ref.length / 80);
+            refHeight += estimatedLines * 4 + 3;
+          });
+          return refHeight;
+          
+        default:
+          return 15; // Fallback
+      }
+    };
+
+    // FASE 2: Algoritmo inteligente de quebra de linha (anti-órfão)
+    const smartTextSplit = (
+      pdf: jsPDF,
+      text: string,
+      maxWidth: number
+    ): string[] => {
+      const words = text.split(' ');
+      const lines: string[] = [];
+      let currentLine = '';
+      
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const testWidth = pdf.getTextWidth(testLine);
+        
+        if (testWidth > maxWidth && currentLine) {
+          // Verificar se próxima palavra é curta (< 10 letras) e é a última
+          const nextWord = words[i + 1];
+          const isLastWord = i === words.length - 1;
+          const nextIsOrphan = nextWord && nextWord.length < 10 && i === words.length - 2;
+          
+          if (nextIsOrphan) {
+            // Forçar quebra anterior para evitar órfão
+            const wordsInLine = currentLine.split(' ');
+            if (wordsInLine.length > 2) {
+              // Mover última palavra da linha atual para próxima linha
+              const lastWordInLine = wordsInLine.pop();
+              lines.push(wordsInLine.join(' '));
+              currentLine = `${lastWordInLine} ${word}`;
+              orphansAvoided++;
+              console.log('🔧 Órfão evitado:', nextWord);
+              continue;
+            }
+          }
+          
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      return lines;
+    };
+
+    // FASE 3: Renderizar linha justificada
+    const renderJustifiedLine = (
+      pdf: jsPDF,
+      text: string,
+      x: number,
+      y: number,
+      maxWidth: number,
+      isLastLine: boolean = false
+    ): void => {
+      if (isLastLine || text.trim().split(' ').length === 1) {
+        // Última linha ou palavra única: alinhar à esquerda
+        pdf.text(text, x, y);
+        return;
+      }
+      
+      const words = text.trim().split(' ');
+      const totalTextWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
+      const totalSpaceWidth = maxWidth - totalTextWidth;
+      const spaceWidth = totalSpaceWidth / (words.length - 1);
+      
+      let currentX = x;
+      words.forEach((word, index) => {
+        pdf.text(word, currentX, y);
+        currentX += pdf.getTextWidth(word) + spaceWidth;
+      });
     };
 
     // FASE 2: Função para renderizar imagem em página dedicada (Full-Page Mode)
@@ -442,6 +642,42 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 
       console.log(`📦 [VisualPDF] Processando bloco ${i + 1}/${options.structuredData.conteudo.length}: ${bloco.tipo}`);
 
+      // FASE 4: Keep-Together para Títulos + Parágrafos
+      if (!strategy.renderAsImage && ['h2', 'h3', 'h4'].includes(bloco.tipo)) {
+        // Lookahead: verificar se próximo bloco é parágrafo
+        const nextBloco = options.structuredData.conteudo[i + 1];
+        if (nextBloco && nextBloco.tipo === 'paragrafo') {
+          const titleHeight = estimateTextBlockHeight(pdf, bloco, contentWidth);
+          const paragraphHeight = estimateTextBlockHeight(pdf, nextBloco, contentWidth);
+          const combinedHeight = titleHeight + paragraphHeight;
+          const availableSpace = pageHeight - margin - currentY - 20;
+          
+          if (combinedHeight > availableSpace) {
+            // Criar nova página para manter título + parágrafo juntos
+            pdf.addPage();
+            stats.totalPages++;
+            currentY = margin;
+            pageBreaksPreventedForText++;
+            console.log('📄 Keep-Together: Nova página para título + parágrafo');
+          }
+        }
+      }
+
+      // FASE 1: Pré-calcular altura de texto ANTES de renderizar
+      if (!strategy.renderAsImage) {
+        const estimatedHeight = estimateTextBlockHeight(pdf, bloco, contentWidth);
+        const availableSpace = pageHeight - margin - currentY - 20;
+        
+        if (estimatedHeight > availableSpace && currentY > margin + 50) {
+          // Criar nova página ANTES de renderizar texto
+          pdf.addPage();
+          stats.totalPages++;
+          currentY = margin;
+          pageBreaksPreventedForText++;
+          console.log('📄 Nova página criada ANTES de renderizar texto');
+        }
+      }
+
       if (strategy.renderAsImage) {
         // CAPTURAR COMO IMAGEM
         const imageData = await captureBlockAsImage(bloco, contentWidth);
@@ -486,10 +722,17 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
           } else {
             // MODO NORMAL: Renderizar na página atual
             
-            // Limitar altura máxima APENAS se espaço disponível for razoável
+            // FASE 5: Detecção inteligente de espaço para imagens
             const maxImageHeight = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
+            const needsNewPage = availableSpace < (imageHeight * 0.5); // < 50% da altura original
             
-            if (imageHeight > maxImageHeight && maxImageHeight > 80) {
+            if (needsNewPage && currentY > margin + 30) {
+              // Criar nova página se espaço < 50% da altura original
+              pdf.addPage();
+              stats.totalPages++;
+              currentY = margin;
+              console.log('📄 Nova página para imagem (espaço insuficiente)');
+            } else if (imageHeight > maxImageHeight && maxImageHeight > 80) {
               // Redimensionar APENAS se ainda couber de forma legível (min 80mm)
               const scaleFactor = maxImageHeight / imageHeight;
               imageHeight = maxImageHeight;
@@ -498,7 +741,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               console.log('📐 Imagem ajustada para caber na página (Modo Normal)');
             }
             
-            // Verificar quebra de página
+            // Verificar quebra de página final
             if (currentY + imageHeight > pageHeight - margin - FOOTER_SAFE_ZONE) {
               pdf.addPage();
               stats.totalPages++;
@@ -516,7 +759,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               imageHeight
             );
             
-            currentY += imageHeight + 10; // FASE 5: Aumentado de 8mm para 10mm (+25%)
+            currentY += imageHeight + 10;
             console.log(`✅ Imagem normal: ${imageWidth.toFixed(1)}mm x ${imageHeight.toFixed(1)}mm`);
           }
 
@@ -533,7 +776,17 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         }
       } else {
         // RENDERIZAR COMO TEXTO NATIVO
-        currentY = addTextBlockToPDF(pdf, bloco, currentY, margin, contentWidth, pageWidth, pageHeight);
+        currentY = addTextBlockToPDF(
+          pdf, 
+          bloco, 
+          currentY, 
+          margin, 
+          contentWidth, 
+          pageWidth, 
+          pageHeight,
+          smartTextSplit,
+          renderJustifiedLine
+        );
         stats.nativeTextBlocks++;
 
         // Verificar quebra de página após texto
@@ -606,12 +859,21 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     if (fullPageImagesCount > 0) {
       console.log(`🖼️ Imagens em Full-Page Mode: ${fullPageImagesCount}`);
     }
+    // FASE 6: Estatísticas de qualidade
+    if (pageBreaksPreventedForText > 0) {
+      console.log(`📄 Quebras de página evitadas: ${pageBreaksPreventedForText}`);
+    }
+    if (orphansAvoided > 0) {
+      console.log(`🔧 Órfãos corrigidos: ${orphansAvoided}`);
+    }
 
     return {
       success: true,
       stats: {
         ...stats,
-        fullPageImages: fullPageImagesCount
+        fullPageImages: fullPageImagesCount,
+        pageBreaksPreventedForText,
+        orphansAvoided
       } as any,
       warnings: warnings.length > 0 ? warnings : undefined
     };
@@ -832,7 +1094,9 @@ const addTextBlockToPDF = (
   margin: number,
   contentWidth: number,
   pageWidth: number,
-  pageHeight: number
+  pageHeight: number,
+  smartTextSplit: (pdf: jsPDF, text: string, maxWidth: number) => string[],
+  renderJustifiedLine: (pdf: jsPDF, text: string, x: number, y: number, maxWidth: number, isLastLine?: boolean) => void
 ): number => {
   pdf.setTextColor(0, 0, 0);
 
@@ -886,14 +1150,14 @@ const addTextBlockToPDF = (
       break;
 
     case 'paragrafo':
-      pdf.setFontSize(11); // FASE 4: Aumentado de 10pt para 11pt (+10% acessibilidade)
+      pdf.setFontSize(11);
       pdf.setTextColor(40, 40, 40);
       
       // FASE 2: Sanitizar markdown antes de processar
       const { cleanText: sanitizedText, hasBold: hasMarkdown } = sanitizeMarkdown(processedBloco.texto || '');
       
       if (hasMarkdown) {
-        // Processar **negrito**
+        // Processar **negrito** (manter comportamento atual - sem justificação)
         const keywordPattern = /\*\*(.*?)\*\*/g;
         const segments: Array<{text: string, bold: boolean}> = [];
         let lastIndex = 0;
@@ -914,18 +1178,27 @@ const addTextBlockToPDF = (
         // Renderizar com estilos alternados
         let lineY = currentY;
         segments.forEach(seg => {
-          const lines = pdf.splitTextToSize(seg.text, contentWidth);
+          const lines = smartTextSplit(pdf, seg.text, contentWidth);
           pdf.setFont('helvetica', seg.bold ? 'bold' : 'normal');
-          pdf.text(lines, margin, lineY);
-          lineY += lines.length * 6.5; // FASE 2: ANTES: 5, AGORA: 6.5mm
+          lines.forEach(line => {
+            pdf.text(line, margin, lineY);
+            lineY += 6.5;
+          });
         });
         
-        currentY = lineY + 5; // FASE 2: ANTES: 4, AGORA: 5mm
+        currentY = lineY + 5;
       } else {
+        // FASE 2 + FASE 3: Usar smartTextSplit + justificação para parágrafos sem negrito
         pdf.setFont('helvetica', 'normal');
-        const lines = pdf.splitTextToSize(sanitizedText, contentWidth);
-        pdf.text(lines, margin, currentY);
-        currentY += lines.length * 6.5 + 5; // FASE 2: ANTES: 5 + 4, AGORA: 6.5 + 5mm
+        const lines = smartTextSplit(pdf, sanitizedText, contentWidth);
+        
+        lines.forEach((line, index) => {
+          const isLastLine = index === lines.length - 1;
+          renderJustifiedLine(pdf, line, margin, currentY, contentWidth, isLastLine);
+          currentY += 6.5;
+        });
+        
+        currentY += 5;
       }
       break;
 
