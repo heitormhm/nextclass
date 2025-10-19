@@ -4,6 +4,23 @@ import { MermaidDiagram } from './MermaidDiagram';
 import { InteractiveChart } from './InteractiveChart';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+// Função para converter marcação Markdown básica para HTML
+const convertMarkdownToHtml = (text: string): string => {
+  if (!text) return '';
+  
+  return text
+    // 1. Negrito: **texto** → <strong>texto</strong>
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // 2. Itálico: *texto* → <em>texto</em> (só depois de negrito para evitar conflito)
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+    // 3. Quebras de linha escapadas
+    .replace(/&lt;br&gt;/gi, '<br>')
+    .replace(/&lt;br \/&gt;/gi, '<br>')
+    .replace(/&lt;br\/&gt;/gi, '<br>')
+    .replace(/\\n/g, '<br>')
+    .replace(/\n/g, '<br>');
+};
+
 interface ContentBlock {
   tipo: string;
   texto?: string;
@@ -84,18 +101,14 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
         return <h4 key={index} className="text-xl font-bold mt-4 mb-2 text-foreground/80 scroll-mt-20">{bloco.texto}</h4>;
       
       case 'paragrafo':
-        // Handle escaped <br> tags that might be coming from the edge function
-        const htmlContent = (bloco.texto || '')
-          .replace(/&lt;br&gt;/gi, '<br>')
-          .replace(/&lt;br \/&gt;/gi, '<br>')
-          .replace(/&lt;br\/&gt;/gi, '<br>');
+        const htmlContent = convertMarkdownToHtml(bloco.texto || '');
         return <p key={index} className="my-3 leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
       
       case 'caixa_de_destaque':
         return (
           <div key={index} className="bg-gradient-to-br from-amber-100/80 to-amber-200/80 dark:from-amber-900/30 dark:to-amber-800/30 border-l-4 border-amber-600 dark:border-amber-500 p-5 rounded-xl shadow-md my-6">
             <h4 className="font-bold text-amber-900 dark:text-amber-100 mb-3 text-lg">📌 {bloco.titulo}</h4>
-            <div className="text-amber-800 dark:text-amber-200 leading-relaxed" dangerouslySetInnerHTML={{ __html: bloco.texto || '' }} />
+            <div className="text-amber-800 dark:text-amber-200 leading-relaxed" dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(bloco.texto || '') }} />
           </div>
         );
       
@@ -129,7 +142,7 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
         
         return (
           <div key={index} className={`bg-gradient-to-br ${postItColors[postItType]} border-2 border-dashed dark:border-opacity-60 p-4 rounded-lg shadow-sm my-4`}>
-            <p className="italic leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: `${postItIcon} ${bloco.texto || ''}` }} />
+            <p className="italic leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: `${postItIcon} ${convertMarkdownToHtml(bloco.texto || '')}` }} />
           </div>
         );
       
@@ -150,9 +163,8 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
                   <label 
                     htmlFor={`checklist-${index}-${i}`}
                     className="text-emerald-800 dark:text-emerald-200 leading-relaxed cursor-pointer group-hover:text-emerald-900 dark:group-hover:text-emerald-100 transition-colors"
-                  >
-                    {item}
-                  </label>
+                    dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(item) }}
+                  />
                 </li>
               ))}
             </ul>
@@ -351,7 +363,7 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
               {bloco.itens?.map((item: string, i: number) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="text-indigo-600 dark:text-indigo-400 mt-1">•</span>
-                  <span dangerouslySetInnerHTML={{ __html: item }} />
+                  <span dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(item) }} />
                 </div>
               ))}
             </div>
@@ -375,13 +387,7 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
             <ScrollArea className="h-[400px] px-6 pb-6">
               <div className="space-y-6 pr-4">
                 {referencesContent.map((ref: string, i: number) => {
-                  // LIMPEZA AGRESSIVA de HTML escapado e quebras de linha
-                  let refHtml = ref
-                    .replace(/&lt;br&gt;/gi, '<br>')
-                    .replace(/&lt;br \/&gt;/gi, '<br>')
-                    .replace(/&lt;br\/&gt;/gi, '<br>')
-                    .replace(/\\n/g, '<br>')
-                    .replace(/\n/g, '<br>')
+                  let refHtml = convertMarkdownToHtml(ref)
                     // Garantir espaçamento mínimo entre seções
                     .replace(/<br><br>/gi, '<br><br><span style="display:block;height:8px;"></span>');
                   
