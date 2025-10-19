@@ -678,9 +678,27 @@ RESPONDA APENAS COM O JSON PURO!`;
             } 
             // Special handling for 'itens' array (e.g., references, guidelines)
             else if (key === 'itens' && Array.isArray(value)) {
-              processed[key] = value.map(item => 
-                typeof item === 'string' ? convertMarkdownToHTML(item) : processBlock(item)
-              );
+              processed[key] = value.map(item => {
+                if (typeof item === 'string') {
+                  // First convert markdown to HTML
+                  let htmlItem = convertMarkdownToHTML(item);
+                  
+                  // For references, add line breaks after common patterns
+                  // This ensures proper visual formatting even if AI doesn't add them
+                  htmlItem = htmlItem
+                    // Add break after " - URL:" or "- URL:"
+                    .replace(/(\s*-\s*URL:\s*)/g, '<br>$1')
+                    // Add break after long URLs (60+ chars followed by space or end)
+                    .replace(/(https?:\/\/[^\s]{60,})(\s|$)/g, '$1<br>$2')
+                    // Add break after " - Autor:" or "- Autor:"
+                    .replace(/(\s*-\s*Autor[^:]*:\s*)/g, '<br>$1')
+                    // Add break after "(PDF)" or other format indicators followed by text
+                    .replace(/(\(PDF\)|(\[PDF\]))(\s+[A-Z])/g, '$1<br>$3');
+                  
+                  return htmlItem;
+                }
+                return processBlock(item);
+              });
             }
             // Recursively process objects/arrays (including accordion items)
             else if (typeof value === 'object' && value !== null) {
