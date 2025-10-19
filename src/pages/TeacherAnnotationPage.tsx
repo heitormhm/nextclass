@@ -352,11 +352,11 @@ const TeacherAnnotationPage = () => {
       return;
     }
 
-    let finalTitle = title.trim();
+    let finalTitle = title?.trim() || '';
     
-    if (!finalTitle && content.trim()) {
+    if (!finalTitle && content && content.trim()) {
       await generateTitleWithAI();
-      finalTitle = title.trim();
+      finalTitle = title?.trim() || '';
     }
 
     if (!finalTitle) {
@@ -414,11 +414,11 @@ const TeacherAnnotationPage = () => {
       return;
     }
 
-    let finalTitle = title.trim();
+    let finalTitle = title?.trim() || '';
     
-    if (!finalTitle && content.trim()) {
+    if (!finalTitle && content && content.trim()) {
       await generateTitleWithAI();
-      finalTitle = title.trim();
+      finalTitle = title?.trim() || '';
     }
 
     if (!finalTitle) {
@@ -468,7 +468,7 @@ const TeacherAnnotationPage = () => {
   };
 
   const handleAIAction = async (actionType: string) => {
-    if (!content.trim()) {
+    if (!content || !content.trim()) {
       toast.error('Escreva conteúdo antes de usar a IA');
       return;
     }
@@ -641,7 +641,7 @@ const TeacherAnnotationPage = () => {
   };
 
   const generateTitleWithAI = async () => {
-    if (!content.trim()) {
+    if (!content || !content.trim()) {
       toast.error('Escreva conteúdo antes de gerar o título');
       return;
     }
@@ -673,7 +673,7 @@ const TeacherAnnotationPage = () => {
   };
 
   const generateTagsWithAI = async () => {
-    if (!content.trim()) {
+    if (!content || !content.trim()) {
       toast.error('Escreva conteúdo antes de gerar tags');
       return;
     }
@@ -971,7 +971,7 @@ const TeacherAnnotationPage = () => {
 
 
   const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+    if (tagInput && tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
       setTagInput('');
     }
@@ -1039,7 +1039,7 @@ const TeacherAnnotationPage = () => {
                   variant="ghost"
                   size="sm"
                   onClick={generateTitleWithAI}
-                  disabled={isGeneratingTitle || !content.trim()}
+                  disabled={isGeneratingTitle || !content || !content.trim()}
                   title="Gerar título automático com IA"
                   className="shrink-0 hover:bg-blue-100 hover:text-blue-600"
                 >
@@ -1388,7 +1388,7 @@ const TeacherAnnotationPage = () => {
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        if (dialogTagInput.trim() && !dialogTags.includes(dialogTagInput.trim())) {
+                        if (dialogTagInput && dialogTagInput.trim() && !dialogTags.includes(dialogTagInput.trim())) {
                           setDialogTags([...dialogTags, dialogTagInput.trim()]);
                           setDialogTagInput('');
                         }
@@ -1397,7 +1397,7 @@ const TeacherAnnotationPage = () => {
                   />
                   <Button
                     onClick={() => {
-                      if (dialogTagInput.trim() && !dialogTags.includes(dialogTagInput.trim())) {
+                      if (dialogTagInput && dialogTagInput.trim() && !dialogTags.includes(dialogTagInput.trim())) {
                         setDialogTags([...dialogTags, dialogTagInput.trim()]);
                         setDialogTagInput('');
                       }
