@@ -507,68 +507,89 @@ const TeacherAnnotationPage = () => {
     try {
       // Lógica especial para "Gerar Plano de Aula"
       if (actionType === 'format_lesson_plan') {
-        // ✅ ATIVAR MultiStepLoader
         setShowLessonPlanLoader(true);
         setLessonPlanLoadingStep(0);
         
-        // ✅ Simular progresso das etapas
-        progressIntervalRef.current = setInterval(() => {
-          setLessonPlanLoadingStep((prev) => {
-            if (prev < lessonPlanLoadingStates.length - 1) {
-              return prev + 1;
-            }
-            return prev;
-          });
-        }, 15000); // Avançar a cada 15 segundos (total: ~2 minutos)
-        
         try {
-          const { data, error } = await supabase.functions.invoke('generate-lesson-plan', {
+          // 1. Iniciar job (resposta imediata)
+          const { data: jobData, error: jobError } = await supabase.functions.invoke('generate-lesson-plan', {
             body: { content }
           });
 
-          if (progressIntervalRef.current) {
-            clearInterval(progressIntervalRef.current);
-          }
-
-          if (error) throw error;
-
-          if (data?.structuredContent) {
-            console.log('[Plano de Aula] JSON estruturado recebido - SUBSTITUINDO conteúdo');
-            
-            // ✅ SUBSTITUIR completamente o conteúdo
-            const jsonContent = JSON.stringify(data.structuredContent);
-            setContent(jsonContent);
-            setStructuredContent(data.structuredContent);
-            setIsStructuredMode(true);
-            
-            // ✅ LIMPAR o editor HTML
-            if (editorRef.current) {
-              editorRef.current.innerHTML = '';
+          if (jobError) throw jobError;
+          
+          const jobId = jobData.jobId;
+          console.log(`[Plano de Aula] Job iniciado: ${jobId}`);
+          
+          // 2. Simular progresso visual
+          progressIntervalRef.current = setInterval(() => {
+            setLessonPlanLoadingStep((prev) => 
+              prev < lessonPlanLoadingStates.length - 1 ? prev + 1 : prev
+            );
+          }, 15000); // Avançar a cada 15 segundos
+          
+          // 3. Polling para verificar conclusão
+          const pollInterval = setInterval(async () => {
+            try {
+              const { data: jobStatus, error: pollError } = await supabase
+                .from('lesson_plan_jobs')
+                .select('*')
+                .eq('job_id', jobId)
+                .single();
+              
+              if (pollError) {
+                console.error('[Polling] Erro:', pollError);
+                return;
+              }
+              
+              if (jobStatus.status === 'completed') {
+                clearInterval(pollInterval);
+                if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+                
+                console.log('[Plano de Aula] ✅ Concluído! Aplicando resultado...');
+                
+                // Aplicar resultado (type assertion para o JSON estruturado)
+                const structuredData = jobStatus.structured_content as any;
+                const jsonContent = JSON.stringify(structuredData);
+                setContent(jsonContent);
+                setStructuredContent(structuredData);
+                setIsStructuredMode(true);
+                
+                if (editorRef.current) {
+                  editorRef.current.innerHTML = '';
+                }
+                
+                saveToHistory(jsonContent);
+                
+                setShowLessonPlanLoader(false);
+                setLessonPlanLoadingStep(0);
+                
+                toast.success('Plano de aula gerado! 🎓', {
+                  description: `${structuredData?.conteudo?.length || 0} blocos pedagógicos criados`,
+                  duration: 5000,
+                });
+                setIsProcessingAI(false);
+              } else if (jobStatus.status === 'failed') {
+                clearInterval(pollInterval);
+                if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+                setShowLessonPlanLoader(false);
+                toast.error(`Erro ao gerar plano de aula: ${jobStatus.error_message || 'Erro desconhecido'}`);
+                setIsProcessingAI(false);
+              }
+            } catch (pollError) {
+              console.error('[Polling] Erro na verificação:', pollError);
             }
-            
-            saveToHistory(jsonContent);
-            
-            // ✅ FECHAR Loader e mostrar sucesso
-            setShowLessonPlanLoader(false);
-            setLessonPlanLoadingStep(0);
-            
-            toast.success('Plano de aula gerado! 🎓', {
-              description: `${data.structuredContent.conteudo?.length || 0} blocos pedagógicos criados`,
-              duration: 5000,
-            });
-            setIsProcessingAI(false);
-            return;
-          }
+          }, 5000); // Verificar a cada 5 segundos
+          
         } catch (error) {
-          if (progressIntervalRef.current) {
-            clearInterval(progressIntervalRef.current);
-          }
+          if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
           setShowLessonPlanLoader(false);
           console.error('[Plano de Aula] Erro:', error);
-          toast.error('Erro ao gerar plano de aula');
+          toast.error('Erro ao iniciar geração do plano de aula');
           setIsProcessingAI(false);
           throw error;
         }
+        return; // Não continuar para as outras ações
       }
       
       // Para outras ações, usar a edge function padrão
