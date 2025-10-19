@@ -41,9 +41,9 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
       
       if (!jaTemObjetivos && (obj.lembrar_entender || obj.aplicar_analisar || obj.avaliar_criar)) {
         const objetivosText = [
-          obj.lembrar_entender?.length ? `**Lembrar/Entender:**<br>${obj.lembrar_entender.map((o: string) => `• ${o}`).join('<br>')}` : '',
-          obj.aplicar_analisar?.length ? `<br><br>**Aplicar/Analisar:**<br>${obj.aplicar_analisar.map((o: string) => `• ${o}`).join('<br>')}` : '',
-          obj.avaliar_criar?.length ? `<br><br>**Avaliar/Criar:**<br>${obj.avaliar_criar.map((o: string) => `• ${o}`).join('<br>')}` : ''
+          obj.lembrar_entender?.length ? `<strong>Lembrar/Entender:</strong><br>${obj.lembrar_entender.map((o: string) => `• ${o}`).join('<br>')}` : '',
+          obj.aplicar_analisar?.length ? `<br><br><strong>Aplicar/Analisar:</strong><br>${obj.aplicar_analisar.map((o: string) => `• ${o}`).join('<br>')}` : '',
+          obj.avaliar_criar?.length ? `<br><br><strong>Avaliar/Criar:</strong><br>${obj.avaliar_criar.map((o: string) => `• ${o}`).join('<br>')}` : ''
         ].filter(Boolean).join('');
 
         if (objetivosText) {
@@ -60,7 +60,16 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
       }
     }
     
-    return blocos;
+    // Filtrar blocos com tipo undefined (Fase 2)
+    const blocosFiltrados = blocos.filter(bloco => {
+      if (!bloco.tipo) {
+        console.warn('[StructuredContentRenderer] Bloco sem tipo detectado e removido:', bloco);
+        return false;
+      }
+      return true;
+    });
+    
+    return blocosFiltrados;
   }, [structuredData]);
 
   const renderBlock = (bloco: ContentBlock, index: number) => {

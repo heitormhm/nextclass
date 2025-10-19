@@ -471,6 +471,24 @@ RETORNE APENAS JSON, SEM TEXTO ADICIONAL.
       console.log('✅ JSON parseado com sucesso');
       console.log('📊 Blocos encontrados:', structuredContent.conteudo?.length || 0);
       
+      // Fase 3: Validação e Filtragem de Blocos Sem Tipo
+      if (structuredContent.conteudo && Array.isArray(structuredContent.conteudo)) {
+        const blocosOriginais = structuredContent.conteudo.length;
+        structuredContent.conteudo = structuredContent.conteudo.filter((bloco: any, index: number) => {
+          if (!bloco.tipo) {
+            console.error(`❌ [Validação] Bloco #${index} sem campo 'tipo' removido:`, JSON.stringify(bloco).substring(0, 200));
+            return false;
+          }
+          return true;
+        });
+        
+        const blocosRemovidos = blocosOriginais - structuredContent.conteudo.length;
+        if (blocosRemovidos > 0) {
+          console.warn(`⚠️ [Validação] ${blocosRemovidos} bloco(s) sem 'tipo' foram removidos`);
+        }
+        console.log(`✅ [Validação] Blocos válidos após filtragem: ${structuredContent.conteudo.length}`);
+      }
+      
     } catch (e) {
       console.error('❌ Erro ao parsear JSON Fase 2:', e);
       console.log('📄 Conteúdo que causou erro:', fase2Content.substring(0, 1000));
