@@ -340,7 +340,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     // ============================================
     console.log('\n━━━━━━ PROCESSANDO CONTEÚDO (IMAGE-ONLY) ━━━━━━');
     
-    const FIXED_SPACING = 15; // 15mm spacing between all blocks
+    const FIXED_SPACING = 10; // 10mm spacing for visual blocks (optimized)
     const FOOTER_MARGIN = 30; // Reserve space for footer
     
     for (let i = 0; i < options.structuredData.conteudo.length; i++) {
@@ -371,12 +371,18 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       
       console.log(`   Imagem capturada: ${imageWidthMM.toFixed(1)}mm x ${imageHeightMM.toFixed(1)}mm`);
       
-      // Simple page break logic: if image takes more than 70% of available space, move to new page
-      if (imageHeightMM > availableSpace * 0.7 && currentY > margin + 20) {
-        console.log(`   🔄 Nova página (imagem ocupa >${(imageHeightMM/availableSpace*100).toFixed(0)}% do espaço disponível)`);
+      // Optimized page break: only if content actually won't fit
+      const isLastBlock = i === options.structuredData.conteudo.length - 1;
+      const requiredFooterSpace = isLastBlock ? 35 : FOOTER_MARGIN; // Extra space for last block
+      const willFit = imageHeightMM <= availableSpace - 5; // 5mm safety margin
+      
+      if (!willFit && currentY > margin + 20) {
+        console.log(`   🔄 Nova página (imagem não cabe: ${imageHeightMM.toFixed(1)}mm > ${availableSpace.toFixed(1)}mm disponível)`);
         pdf.addPage();
         stats.totalPages++;
         currentY = margin;
+      } else if (!willFit && isLastBlock) {
+        console.log(`   ⚠️ Último bloco forçando inclusão na página atual`);
       }
       
       // Add image to PDF
@@ -399,8 +405,16 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       
       console.log(`   📍 Novo currentY: ${currentY.toFixed(1)}mm (espaçamento: ${spacing}mm ${isTextBlock ? '[TEXTO]' : '[VISUAL]'})`);
       
-      // Check if we need a new page for next iteration
-      if (currentY > pageHeight - margin - FOOTER_MARGIN) {
+      // Footer overlap protection: ensure minimum distance to footer
+      const distanceToFooter = pageHeight - currentY;
+      const hasNextBlock = i < options.structuredData.conteudo.length - 1;
+      
+      if (hasNextBlock && distanceToFooter < 35) {
+        console.log(`   ⚠️ Muito próximo do rodapé (${distanceToFooter.toFixed(1)}mm), movendo próximo bloco para nova página`);
+        pdf.addPage();
+        stats.totalPages++;
+        currentY = margin;
+      } else if (currentY > pageHeight - margin - FOOTER_MARGIN) {
         console.log(`   📄 Página cheia, próximo bloco começará em nova página`);
         pdf.addPage();
         stats.totalPages++;
