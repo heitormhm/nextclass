@@ -161,9 +161,11 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
             <ScrollArea className="h-[400px] px-6 pb-6">
               <div className="space-y-3 pr-4">
                 {bloco.itens?.map((ref: string, i: number) => (
-                  <p key={i} className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600">
-                    {ref}
-                  </p>
+                  <p 
+                    key={i} 
+                    className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600 break-words whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{ __html: ref }}
+                  />
                 ))}
               </div>
             </ScrollArea>
