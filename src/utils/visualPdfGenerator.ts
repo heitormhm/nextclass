@@ -102,83 +102,6 @@ const detectAndConvertMarkdown = (bloco: ContentBlock): ContentBlock => {
   return bloco;
 };
 
-// FASE 2: Algoritmo inteligente de quebra de linha (anti-órfão)
-let orphansAvoided = 0;
-const smartTextSplit = (
-  pdf: jsPDF,
-  text: string,
-  maxWidth: number
-): string[] => {
-  const words = text.split(' ');
-  const lines: string[] = [];
-  let currentLine = '';
-  
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const testWidth = pdf.getTextWidth(testLine);
-    
-    if (testWidth > maxWidth && currentLine) {
-      // Verificar se próxima palavra é curta (< 10 letras) e é a última
-      const nextWord = words[i + 1];
-      const isLastWord = i === words.length - 1;
-      const nextIsOrphan = nextWord && nextWord.length < 10 && i === words.length - 2;
-      
-      if (nextIsOrphan) {
-        // Forçar quebra anterior para evitar órfão
-        const wordsInLine = currentLine.split(' ');
-        if (wordsInLine.length > 2) {
-          // Mover última palavra da linha atual para próxima linha
-          const lastWordInLine = wordsInLine.pop();
-          lines.push(wordsInLine.join(' '));
-          currentLine = `${lastWordInLine} ${word}`;
-          orphansAvoided++;
-          console.log('🔧 Órfão evitado:', nextWord);
-          continue;
-        }
-      }
-      
-      lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = testLine;
-    }
-  }
-  
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-  
-  return lines;
-};
-
-// FASE 3: Renderizar linha justificada
-const renderJustifiedLine = (
-  pdf: jsPDF,
-  text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  isLastLine: boolean = false
-): void => {
-  if (isLastLine || text.trim().split(' ').length === 1) {
-    // Última linha ou palavra única: alinhar à esquerda
-    pdf.text(text, x, y);
-    return;
-  }
-  
-  const words = text.trim().split(' ');
-  const totalTextWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
-  const totalSpaceWidth = maxWidth - totalTextWidth;
-  const spaceWidth = totalSpaceWidth / (words.length - 1);
-  
-  let currentX = x;
-  words.forEach((word, index) => {
-    pdf.text(word, currentX, y);
-    currentX += pdf.getTextWidth(word) + spaceWidth;
-  });
-};
-
 // Função auxiliar para converter Blob para Base64
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -263,8 +186,8 @@ const convertSVGtoPNG = async (svgString: string, width: number, height: number)
 };
 
 export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFResult> => {
-  // Reset contador global de órfãos
-  orphansAvoided = 0;
+  // FASE 6: Contador de órfãos evitados
+  let orphansAvoided = 0;
   
   const startTime = Date.now();
   const stats: PDFStats = {
@@ -278,6 +201,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
   };
   let fullPageImagesCount = 0; // FASE 4: Rastrear imagens em full-page
   let pageBreaksPreventedForText = 0; // FASE 6: Quebras de página evitadas
+  let lastBlockWasFullPage = false; // FASE 1: Controlar páginas após full-page images
   const warnings: string[] = [];
 
   try {
@@ -395,12 +319,14 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       }
     };
 
-    // FASE 2: Algoritmo inteligente de quebra de linha (anti-órfão)
+    // FASE 2: Algoritmo inteligente de quebra de linha (anti-órfão) + proteção de palavras em negrito
     const smartTextSplit = (
       pdf: jsPDF,
       text: string,
-      maxWidth: number
+      maxWidth: number,
+      preserveWords?: string[] // FASE 2: Palavras que não devem ser quebradas (negrito)
     ): string[] => {
+      const protectedWords = preserveWords || [];
       const words = text.split(' ');
       const lines: string[] = [];
       let currentLine = '';
@@ -411,6 +337,17 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         const testWidth = pdf.getTextWidth(testLine);
         
         if (testWidth > maxWidth && currentLine) {
+          // FASE 2: Verificar se palavra é protegida (negrito)
+          const isProtectedWord = protectedWords.some(pw => word.includes(pw));
+          
+          if (isProtectedWord && pdf.getTextWidth(word) < maxWidth * 0.9) {
+            // Palavra protegida não cabe na linha atual, mover linha inteira
+            lines.push(currentLine);
+            currentLine = word;
+            console.log('🛡️ Palavra em negrito protegida:', word);
+            continue;
+          }
+          
           // Verificar se próxima palavra é curta (< 10 letras) e é a última
           const nextWord = words[i + 1];
           const isLastWord = i === words.length - 1;
@@ -444,7 +381,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       return lines;
     };
 
-    // FASE 3: Renderizar linha justificada
+    // FASE 3: Renderizar linha justificada com verificação de espaçamento excessivo
     const renderJustifiedLine = (
       pdf: jsPDF,
       text: string,
@@ -463,6 +400,13 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       const totalTextWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
       const totalSpaceWidth = maxWidth - totalTextWidth;
       const spaceWidth = totalSpaceWidth / (words.length - 1);
+      
+      // FASE 3: Se espaço entre palavras > 8mm, usar alinhamento à esquerda
+      if (spaceWidth > 8) {
+        console.log('⚠️ Espaçamento excessivo detectado, usando alinhamento à esquerda');
+        pdf.text(text, x, y);
+        return;
+      }
       
       let currentX = x;
       words.forEach((word, index) => {
@@ -642,6 +586,15 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 
       console.log(`📦 [VisualPDF] Processando bloco ${i + 1}/${options.structuredData.conteudo.length}: ${bloco.tipo}`);
 
+      // FASE 1: Garantir espaço após full-page images
+      if (lastBlockWasFullPage && currentY < margin + 50) {
+        pdf.addPage();
+        stats.totalPages++;
+        currentY = margin;
+        lastBlockWasFullPage = false;
+        console.log('✅ Full-page finalizado, forçando nova página para próximo bloco');
+      }
+
       // FASE 4: Keep-Together para Títulos + Parágrafos
       if (!strategy.renderAsImage && ['h2', 'h3', 'h4'].includes(bloco.tipo)) {
         // Lookahead: verificar se próximo bloco é parágrafo
@@ -716,7 +669,9 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               margin
             );
             
-            currentY = margin; // Resetar para próxima página
+            // FASE 1: Marcar que último bloco foi full-page e forçar nova página para próximo bloco
+            lastBlockWasFullPage = true;
+            currentY = pageHeight - margin - 20; // Forçar próxima verificação criar nova página
             console.log('📊 Estatística: Imagem renderizada em Full-Page Mode');
             
           } else {
@@ -1095,7 +1050,7 @@ const addTextBlockToPDF = (
   contentWidth: number,
   pageWidth: number,
   pageHeight: number,
-  smartTextSplit: (pdf: jsPDF, text: string, maxWidth: number) => string[],
+  smartTextSplit: (pdf: jsPDF, text: string, maxWidth: number, preserveWords?: string[]) => string[],
   renderJustifiedLine: (pdf: jsPDF, text: string, x: number, y: number, maxWidth: number, isLastLine?: boolean) => void
 ): number => {
   pdf.setTextColor(0, 0, 0);
@@ -1162,6 +1117,13 @@ const addTextBlockToPDF = (
         const segments: Array<{text: string, bold: boolean}> = [];
         let lastIndex = 0;
         
+        // FASE 2: Extrair todas as palavras em negrito para proteção
+        const boldWords: string[] = [];
+        sanitizedText.replace(keywordPattern, (match, p1) => {
+          boldWords.push(p1);
+          return match;
+        });
+        
         sanitizedText.replace(keywordPattern, (match, p1, offset) => {
           if (offset > lastIndex) {
             segments.push({ text: sanitizedText.substring(lastIndex, offset), bold: false });
@@ -1178,7 +1140,9 @@ const addTextBlockToPDF = (
         // Renderizar com estilos alternados
         let lineY = currentY;
         segments.forEach(seg => {
-          const lines = smartTextSplit(pdf, seg.text, contentWidth);
+          // FASE 2: Passar palavras protegidas se for segmento em negrito
+          const protectedBoldWords = seg.bold ? [seg.text] : [];
+          const lines = smartTextSplit(pdf, seg.text, contentWidth, protectedBoldWords);
           pdf.setFont('helvetica', seg.bold ? 'bold' : 'normal');
           lines.forEach(line => {
             pdf.text(line, margin, lineY);
@@ -1190,7 +1154,9 @@ const addTextBlockToPDF = (
       } else {
         // FASE 2 + FASE 3: Usar smartTextSplit + justificação para parágrafos sem negrito
         pdf.setFont('helvetica', 'normal');
-        const lines = smartTextSplit(pdf, sanitizedText, contentWidth);
+        // FASE 3: Permitir 2% de expansão para texto justificado
+        const lines = smartTextSplit(pdf, sanitizedText, contentWidth * 1.02);
+        console.log('📏 Linha expandida para justificação (+2%)');
         
         lines.forEach((line, index) => {
           const isLastLine = index === lines.length - 1;
