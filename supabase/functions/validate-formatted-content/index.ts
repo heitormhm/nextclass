@@ -250,6 +250,55 @@ FORMATO DE RETORNO (JSON puro, sem markdown):
     if (referencesFixed > 0) console.log(`[Validation Agent] 🔧 Referencias formatadas: ${referencesFixed}`);
     console.log('[Validation Agent] ═══════════════════════════════════════════════');
 
+    // Validar equilíbrio texto-visual
+    const contagem = {
+      paragrafos: 0,
+      elementosVisuais: 0,
+      objetivosAprendizagem: false,
+      leiturasObrigatorias: false
+    };
+
+    validatedData.conteudo?.forEach((bloco: any) => {
+      if (bloco.tipo === 'paragrafo') contagem.paragrafos++;
+      if (['post_it', 'mapa_mental', 'fluxograma', 'grafico', 'checklist', 'cronograma_gantt'].includes(bloco.tipo)) {
+        contagem.elementosVisuais++;
+      }
+      if (bloco.tipo === 'caixa_de_destaque' && bloco.titulo?.includes('Objetivos')) {
+        contagem.objetivosAprendizagem = true;
+      }
+      if (bloco.tipo === 'caixa_de_destaque' && bloco.titulo?.includes('Leituras')) {
+        contagem.leiturasObrigatorias = true;
+      }
+    });
+
+    // Adicionar avisos se estrutura estiver incompleta
+    const avisos: string[] = [];
+    if (contagem.paragrafos < 8) {
+      console.warn(`[Validation] ⚠️ Poucos parágrafos: ${contagem.paragrafos} (mínimo: 8)`);
+      avisos.push(`Conteúdo textual insuficiente (${contagem.paragrafos} parágrafos, mínimo: 8)`);
+    }
+
+    if (!contagem.objetivosAprendizagem) {
+      console.warn('[Validation] ⚠️ Falta caixa de "Objetivos de Aprendizagem"');
+      avisos.push('Ausente: Caixa de Objetivos de Aprendizagem');
+    }
+
+    if (!contagem.leiturasObrigatorias) {
+      console.warn('[Validation] ⚠️ Falta caixa de "Leituras Obrigatórias"');
+      avisos.push('Ausente: Caixa de Leituras Obrigatórias');
+    }
+
+    const proporcao = contagem.paragrafos / Math.max(contagem.elementosVisuais, 1);
+    if (proporcao < 0.5) {
+      console.warn(`[Validation] ⚠️ Desequilíbrio texto-visual: ${proporcao.toFixed(2)} (ideal: 0.5-0.8)`);
+      avisos.push(`Desequilíbrio: muitos elementos visuais, poucos parágrafos (proporção: ${proporcao.toFixed(2)})`);
+    }
+
+    console.log(`[Validation] 📊 Estrutura: ${contagem.paragrafos} parágrafos, ${contagem.elementosVisuais} visuais (proporção: ${proporcao.toFixed(2)})`);
+    if (avisos.length > 0) {
+      console.log(`[Validation] ⚠️ Avisos estruturais: ${avisos.join('; ')}`);
+    }
+
     // Additional post-processing for references
     if (validatedData.conteudo) {
       validatedData.conteudo = validatedData.conteudo.map((bloco: any) => {

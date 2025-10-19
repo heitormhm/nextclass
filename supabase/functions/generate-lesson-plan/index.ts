@@ -271,27 +271,99 @@ Com base no {JSON_ANALISE} e {TEXTO_BASE_ENRIQUECIDO}, crie um plano de aula pro
 
 [COMPONENTE: PlanoDeAulaHeader]
 - h2: "Plano de Aula: {titulo}"
-- paragrafo: Contextualização
-- caixa_de_destaque: Objetivos (Taxonomia de Bloom)
+- paragrafo: Contextualização (150-300 palavras) ⚠️ OBRIGATÓRIO
+- h3: "Objetivos de Aprendizagem da Sessão"
+- paragrafo: Introduzir os objetivos antes de listá-los (50-100 palavras) ⚠️ OBRIGATÓRIO
+- caixa_de_destaque: Objetivos estruturados por nível de Bloom
+  {
+    "tipo": "caixa_de_destaque",
+    "titulo": "🎯 Objetivos de Aprendizagem",
+    "texto": "**Lembrar/Entender:**<br>• Objetivo 1<br>• Objetivo 2<br><br>**Aplicar/Analisar:**<br>• Objetivo 3<br>• Objetivo 4<br><br>**Avaliar/Criar:**<br>• Objetivo 5<br>• Objetivo 6"
+  }
 
 [COMPONENTE: VisualizacaoEstrategicaAula]
+- h3: "Estrutura Temporal da Aula"
+- paragrafo: Explicar a estratégia de divisão temporal (50-100 palavras) ⚠️ OBRIGATÓRIO
 - cronograma_gantt: Linha do tempo
 
 [COMPONENTE: ConteudoDetalhado]
+- h2: "Desenvolvimento da Aula"
+- paragrafo: Introdução aos momentos pedagógicos (100-200 palavras) ⚠️ OBRIGATÓRIO
 - momento_pedagogico 1: Abertura (15 min)
+- paragrafo: Transição para próxima fase (30-80 palavras) ⚠️ OBRIGATÓRIO
 - momento_pedagogico 2: Demonstração (30 min)
-- momento_pedagogico 3: Desafio PBL (15 min) → com problema_pbl
+- paragrafo: Justificativa para o desafio PBL (50-100 palavras) ⚠️ OBRIGATÓRIO
+- momento_pedagogico 3: Apresentação do Desafio PBL (15 min)
+- problema_pbl: O desafio central
+- post_it (categoria: 💡 Dica): Orientações para resolução
 - momento_pedagogico 4: Trabalho em Grupo (60 min)
+- paragrafo: Descrição do processo colaborativo (80-150 palavras) ⚠️ OBRIGATÓRIO
 - momento_pedagogico 5: Apresentações (30 min)
-- momento_pedagogico 6: Síntese (15 min)
+- momento_pedagogico 6: Síntese e Encerramento (15 min)
+- paragrafo: Reflexão sobre aprendizagem (100-200 palavras) ⚠️ OBRIGATÓRIO
 
 [COMPONENTE: MapaMentalConceitos]
-- mapa_mental: Conceitos-chave
+- h2: "Mapa Conceitual"
+- paragrafo: Explicar as relações entre conceitos (100-150 palavras) ⚠️ OBRIGATÓRIO
+- mapa_mental: Conceitos-chave e conexões
+
+[COMPONENTE: RecursosELeituras] ⭐ NOVO
+- h2: "Recursos e Materiais de Apoio"
+- h3: "Leituras Obrigatórias"
+- paragrafo: Introdução às leituras (50-100 palavras) ⚠️ OBRIGATÓRIO
+- caixa_de_destaque:
+  {
+    "tipo": "caixa_de_destaque",
+    "titulo": "📚 Leituras Obrigatórias",
+    "texto": "**Antes da Aula:**<br>• Leitura 1 (páginas, capítulos)<br>• Leitura 2 (artigo, seções)<br><br>**Após a Aula:**<br>• Leitura complementar 1<br>• Leitura complementar 2"
+  }
+- h3: "Fontes de Consulta e Aprofundamento"
+- paragrafo: Orientações sobre como usar as fontes (50-100 palavras) ⚠️ OBRIGATÓRIO
+- checklist:
+  {
+    "tipo": "checklist",
+    "titulo": "📖 Fontes Recomendadas",
+    "itens": [
+      "Livro-texto principal (capítulos específicos)",
+      "Vídeo-aula ou tutorial online (com links)",
+      "Artigo científico ou case study",
+      "Ferramenta ou software (se aplicável)",
+      "Material complementar (slides, handouts)"
+    ]
+  }
 
 [COMPONENTE: AvaliacaoERecursos]
-- metricas_avaliacao: Rubrica
-- checklist: Recursos necessários
-- referencias: Fontes
+- h2: "Avaliação e Critérios"
+- paragrafo: Explicar a abordagem avaliativa (100-150 palavras) ⚠️ OBRIGATÓRIO
+- metricas_avaliacao: Rubrica detalhada
+- h3: "Checklist de Preparação"
+- paragrafo: Orientações finais (50-100 palavras) ⚠️ OBRIGATÓRIO
+- checklist: Recursos físicos e digitais necessários
+
+[COMPONENTE: Referencias]
+- h2: "Referências Bibliográficas"
+- paragrafo: Nota sobre as fontes utilizadas (30-50 palavras) ⚠️ OBRIGATÓRIO
+- referencias: Fontes formatadas ABNT/APA (mínimo 5 referências)
+
+## REGRA DE EQUILÍBRIO TEXTO-VISUAL ⚠️ OBRIGATÓRIO:
+
+Para cada 2-3 elementos visuais (post_it, diagrama, checklist, gráfico):
+- INSERIR 1 bloco "paragrafo" de transição/explicação (mínimo 50 palavras)
+
+Contagem mínima obrigatória no plano final:
+- ✅ 8-12 blocos "paragrafo" (contexto, transições, explicações)
+- ✅ 6 blocos "momento_pedagogico" (estrutura da aula)
+- ✅ 1 bloco "problema_pbl" (desafio central)
+- ✅ 1 bloco "caixa_de_destaque" para objetivos de aprendizagem
+- ✅ 1 bloco "caixa_de_destaque" para leituras obrigatórias
+- ✅ 3-5 blocos "post_it" (dicas, atenção, aplicação)
+- ✅ 1 bloco "cronograma_gantt"
+- ✅ 1 bloco "mapa_mental"
+- ✅ 2-3 blocos "checklist" (fontes, recursos, preparação)
+- ✅ 1 bloco "metricas_avaliacao"
+- ✅ 1 bloco "referencias" (mínimo 5 referências formatadas)
+
+NUNCA gerar mais de 3 elementos visuais seguidos sem um parágrafo explicativo!
 
 ## DIRETRIZES:
 
@@ -299,7 +371,7 @@ Com base no {JSON_ANALISE} e {TEXTO_BASE_ENRIQUECIDO}, crie um plano de aula pro
 - SEMPRE incluir cronograma_gantt
 - SEMPRE incluir problema_pbl destacado
 - 3-5 post_its estratégicos
-- 1-2 checklists
+- 2-3 checklists (incluindo fontes recomendadas)
 - Métricas tangíveis
 - Mermaid: usar \\n (não \\\\n), usar --> (não →)
 

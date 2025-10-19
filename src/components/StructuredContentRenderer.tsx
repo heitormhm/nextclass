@@ -1,3 +1,4 @@
+import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { MermaidDiagram } from './MermaidDiagram';
 import { InteractiveChart } from './InteractiveChart';
@@ -25,6 +26,43 @@ interface StructuredContentRendererProps {
 }
 
 export const StructuredContentRenderer = ({ structuredData }: StructuredContentRendererProps) => {
+  // Preparar blocos com objetivos de aprendizagem da metadata se disponíveis
+  const blocosComObjetivos = React.useMemo(() => {
+    const blocos = [...structuredData.conteudo];
+    
+    // Se metadata contém objetivos_aprendizagem estruturados, adicionar bloco dedicado
+    if ((structuredData as any).metadata?.objetivos_aprendizagem || (structuredData as any).objetivos_aprendizagem) {
+      const obj = (structuredData as any).metadata?.objetivos_aprendizagem || (structuredData as any).objetivos_aprendizagem;
+      
+      // Verificar se já existe uma caixa de objetivos
+      const jaTemObjetivos = blocos.some(b => 
+        b.tipo === 'caixa_de_destaque' && b.titulo?.toLowerCase().includes('objetivos')
+      );
+      
+      if (!jaTemObjetivos && (obj.lembrar_entender || obj.aplicar_analisar || obj.avaliar_criar)) {
+        const objetivosText = [
+          obj.lembrar_entender?.length ? `**Lembrar/Entender:**<br>${obj.lembrar_entender.map((o: string) => `• ${o}`).join('<br>')}` : '',
+          obj.aplicar_analisar?.length ? `<br><br>**Aplicar/Analisar:**<br>${obj.aplicar_analisar.map((o: string) => `• ${o}`).join('<br>')}` : '',
+          obj.avaliar_criar?.length ? `<br><br>**Avaliar/Criar:**<br>${obj.avaliar_criar.map((o: string) => `• ${o}`).join('<br>')}` : ''
+        ].filter(Boolean).join('');
+
+        if (objetivosText) {
+          // Inserir após o primeiro h2 ou no início
+          const primeiroH2Index = blocos.findIndex(b => b.tipo === 'h2');
+          const insertIndex = primeiroH2Index >= 0 ? primeiroH2Index + 1 : 0;
+          
+          blocos.splice(insertIndex, 0, {
+            tipo: 'caixa_de_destaque',
+            titulo: '🎯 Objetivos de Aprendizagem da Sessão',
+            texto: objetivosText
+          });
+        }
+      }
+    }
+    
+    return blocos;
+  }, [structuredData]);
+
   const renderBlock = (bloco: ContentBlock, index: number) => {
     switch (bloco.tipo) {
       case 'h2':
@@ -369,7 +407,7 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
     <div className="structured-content prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-bold mb-8 text-foreground border-b pb-4 scroll-mt-20">{structuredData.titulo_geral}</h1>
       <div className="space-y-4">
-        {structuredData.conteudo.map((bloco, index) => renderBlock(bloco, index))}
+        {blocosComObjetivos.map((bloco, index) => renderBlock(bloco, index))}
       </div>
     </div>
   );

@@ -38,6 +38,15 @@ export const MultiStepLoader = ({
         )}
 
         <div className="space-y-4">
+          <div className="text-center mb-4">
+            <p className="text-sm text-muted-foreground">
+              ⏱️ A geração do plano de aula pode demorar <span className="font-semibold text-pink-600">2 a 3 minutos</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Estamos a analisar conteúdo académico e a estruturar pedagogicamente...
+            </p>
+          </div>
+          
           <div className="flex items-center justify-center">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-pink-500/20 border-t-pink-500" />
           </div>
