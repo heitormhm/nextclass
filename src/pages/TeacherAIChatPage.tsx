@@ -570,12 +570,26 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
   };
 
   const handleSendMessage = async () => {
-    const currentMessage = inputMessage.trim();
+    const currentMessage = activeTag ? userInput.trim() : inputMessage.trim();
     if (!currentMessage) return;
 
+    // Limpar inputs
     setInputMessage("");
+    setUserInput("");
     
     let conversationId = activeConversationId;
+    let finalMessage = currentMessage;
+    let systemPromptToSend = "";
+    
+    // Se há tag ativa, preparar contexto especializado
+    if (activeTag) {
+      finalMessage = `${activeTag.userPromptTemplate}${currentMessage}`;
+      systemPromptToSend = activeTag.systemPrompt;
+    }
+    
+    // Limpar tag após preparar mensagem
+    const tagWasActive = !!activeTag;
+    setActiveTag(null);
     
     if (!conversationId) {
       try {
@@ -650,10 +664,11 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
 
       const { data: functionData, error: functionError } = await supabase.functions.invoke('mia-teacher-chat', {
         body: {
-          message: currentMessage,
+          message: finalMessage,
           isDeepSearch,
           conversationId,
-          autoDetectSearch: true,
+          systemPrompt: systemPromptToSend || undefined,
+          autoDetectSearch: !tagWasActive,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -722,11 +737,22 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
 
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        setInputMessage(prev => prev + transcript);
+        
+        // Detectar estado da tag e escolher o setter correto
+        if (activeTag) {
+          setUserInput(prev => prev + transcript);
+        } else {
+          setInputMessage(prev => prev + transcript);
+        }
       };
 
       recognition.onerror = () => {
         setIsListening(false);
+        toast({
+          title: "Erro no reconhecimento",
+          description: "Não foi possível capturar o áudio. Tente novamente.",
+          variant: "destructive"
+        });
       };
 
       recognition.onend = () => {
@@ -736,6 +762,11 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
       recognition.start();
       recognitionRef.current = recognition;
       setIsListening(true);
+      
+      toast({
+        title: "🎤 Gravando",
+        description: "Fale agora...",
+      });
     }
   };
 
@@ -762,110 +793,6 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
     setInputMessage("");
   };
 
-  const handleSendMessageWithTag = async () => {
-    if (!userInput.trim() && !activeTag) return;
-    
-    let finalMessage = userInput.trim();
-    let systemPromptToSend = "";
-    
-    if (activeTag) {
-      finalMessage = `${activeTag.userPromptTemplate}${userInput}`;
-      systemPromptToSend = activeTag.systemPrompt;
-    }
-    
-    const tagCopy = activeTag;
-    setActiveTag(null);
-    setUserInput("");
-    setInputMessage("");
-    
-    let conversationId = activeConversationId;
-    
-    if (!conversationId) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Não autenticado');
-
-        const title = finalMessage.slice(0, 50) || "Nova Conversa";
-        
-        const { data: newConversation, error: conversationError } = await supabase
-          .from('conversations')
-          .insert({
-            user_id: session.user.id,
-            title: title,
-            user_role: 'teacher',
-          })
-          .select()
-          .single();
-
-        if (conversationError) throw conversationError;
-        
-        conversationId = newConversation.id;
-        setActiveConversationId(conversationId);
-        loadConversations();
-      } catch (error) {
-        console.error('Error creating conversation:', error);
-        toast({
-          variant: "destructive",
-          title: "Erro",
-          description: "Não foi possível criar a conversa.",
-        });
-        return;
-      }
-    }
-    
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      content: finalMessage,
-      isUser: true,
-      timestamp: new Date(),
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Não autenticado');
-
-      const { data: functionData, error: functionError } = await supabase.functions.invoke('mia-teacher-chat', {
-        body: {
-          message: finalMessage,
-          isDeepSearch: false,
-          conversationId,
-          systemPrompt: systemPromptToSend || undefined,
-          autoDetectSearch: true,
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (functionError) throw functionError;
-
-      const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
-        content: functionData.response,
-        isUser: false,
-        timestamp: new Date(),
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
-
-      if (functionData.conversationId && !activeConversationId) {
-        setActiveConversationId(functionData.conversationId);
-        loadConversations();
-      }
-    } catch (error: any) {
-      console.error('Error:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: error.message || "Erro ao enviar mensagem",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Process job updates from realtime
   const processJobUpdate = async (job: any, currentConversationId: string | null) => {
@@ -1172,101 +1099,7 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
                       : "bg-white/65 text-gray-900 border border-white/40 shadow-lg"
                   )}
                 >
-                  {/* Renderização condicional: Botões 3x2 OU Conteúdo normal */}
-                  {!message.isUser && message.content.includes('Continue explorando') ? (
-                    <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-purple-50/80 to-pink-50/80 border-2 border-purple-200">
-                      <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" />
-                        Continue explorando com Mia:
-                      </h3>
-                      
-                      {/* Grid 3x2 de botões */}
-                      <div 
-                        className="grid gap-3 w-full" 
-                        style={{ 
-                          gridTemplateColumns: 'repeat(3, 1fr)',
-                          gridTemplateRows: 'repeat(2, minmax(60px, 1fr))',
-                          height: 'auto'
-                        }}
-                      >
-                        {/* LINHA 1 - Gradiente Rosa → Roxo → Índigo */}
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_SLIDES', { 
-                            context: messages[messages.length - 2]?.content || '', 
-                            topic: 'este tópico' 
-                          })}
-                          className="h-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
-                        >
-                          <Presentation className="w-5 h-5 shrink-0" />
-                          <span className="font-bold text-xs text-center">Criar apresentação em slides</span>
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_QUIZ', { 
-                            context: messages[messages.length - 2]?.content || '', 
-                            topic: 'este tópico' 
-                          })}
-                          className="h-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
-                        >
-                          <FileQuestion className="w-5 h-5 shrink-0" />
-                          <span className="font-bold text-xs text-center">Criar quiz</span>
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_FLASHCARDS', { 
-                            context: messages[messages.length - 2]?.content || '', 
-                            topic: 'este tópico' 
-                          })}
-                          className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
-                        >
-                          <Layers className="w-5 h-5 shrink-0" />
-                          <span className="font-bold text-xs text-center">Criar flashcards</span>
-                        </Button>
-                        
-                        {/* LINHA 2 - Contraste Laranja → Azul → Verde */}
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_OPEN_ENDED_ACTIVITY', { 
-                            context: messages[messages.length - 2]?.content || '', 
-                            topic: 'este tópico' 
-                          })}
-                          className="h-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
-                        >
-                          <Edit className="w-5 h-5 shrink-0" />
-                          <span className="font-bold text-xs text-center">Criar atividade avaliativa</span>
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_LESSON_PLAN', { 
-                            context: messages[messages.length - 2]?.content || '', 
-                            topic: 'este tópico' 
-                          })}
-                          className="h-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
-                        >
-                          <BookOpen className="w-5 h-5 shrink-0" />
-                          <span className="font-bold text-xs text-center">Criar Plano de aula</span>
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          onClick={() => handleAction('GENERATE_STUDY_MATERIAL', { 
-                            context: messages[messages.length - 2]?.content || '', 
-                            topic: 'este tópico' 
-                          })}
-                          className="h-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg transition-all duration-300 px-3 py-2 rounded-xl flex flex-col items-center justify-center gap-1"
-                        >
-                          <BookOpen className="w-5 h-5 shrink-0" />
-                          <span className="font-bold text-xs text-center">Criar Material de estudo</span>
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
+                  <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm, remarkMath]}
                           rehypePlugins={[rehypeKatex]}
@@ -1426,8 +1259,6 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
                           </Button>
                         </div>
                       )}
-                    </>
-                  )}
                            
                           {!message.isUser && message.jobIds?.map((jobId) => {
                             const job = activeJobs.get(jobId);
@@ -1444,22 +1275,6 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
                             ) : null;
                           })}
                           
-                    {!message.isUser && 
-                     !message.isSystemMessage && 
-                     message.content !== 'DEEP_SEARCH_ACTION_BUTTONS' &&
-                     !deepSearchIndicators.some(ind => message.content.includes(ind)) && (
-                      <div className="mt-4">
-                        <ActionButtons
-                          messageContent={message.content}
-                          topic="este tópico"
-                          onAction={handleAction}
-                          disabled={isLoading}
-                          activeJobs={activeJobs}
-                          messageJobIds={message.jobIds || []}
-                          isTeacher={true}
-                        />
-                      </div>
-                    )}
                         </div>
                       </div>
                     ))}
@@ -1582,11 +1397,7 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
-                          if (activeTag) {
-                            handleSendMessageWithTag();
-                          } else {
-                            handleSendMessage();
-                          }
+                          handleSendMessage();
                         }
                       }}
                       placeholder={
@@ -1651,11 +1462,9 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
 
                   {/* Botão de Enviar */}
                   <Button
-                    onClick={activeTag ? handleSendMessageWithTag : handleSendMessage}
+                    onClick={handleSendMessage}
                     disabled={
-                      activeTag 
-                        ? !userInput.trim() || isLoading 
-                        : !inputMessage.trim() || isLoading
+                      (activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading
                     }
                     size="icon"
                     className="shrink-0 h-10 w-10 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg"
