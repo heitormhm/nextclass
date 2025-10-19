@@ -55,9 +55,7 @@ const AuthPage = () => {
       setIsLoadingTurmas(true);
       try {
         const { data, error } = await supabase
-          .from('turmas')
-          .select('faculdade, cidade, periodo, curso')
-          .order('periodo', { ascending: true });
+          .rpc('get_available_turmas');
         
         if (error) {
           console.error('Error fetching turmas:', error);

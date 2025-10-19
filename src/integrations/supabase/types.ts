@@ -1251,6 +1251,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_available_turmas: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          cidade: string
+          curso: string
+          faculdade: string
+          periodo: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
