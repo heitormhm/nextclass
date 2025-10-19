@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Mic, Type, FileText, Sparkles, Loader2, GraduationCap, BookOpen, X, CheckCircle2, Plus, ArrowRight } from 'lucide-react';
+import { Mic, FileText, Sparkles, Loader2, GraduationCap, BookOpen, X, CheckCircle2, Plus, ArrowRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
@@ -24,8 +25,8 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
   const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState<'input' | 'generating'>('input');
-  const [inputMode, setInputMode] = useState<'text' | 'audio'>('text');
   const [theme, setTheme] = useState('');
+  const [generatedTitle, setGeneratedTitle] = useState('');
   const [selectedTurma, setSelectedTurma] = useState('');
   const [selectedDisciplina, setSelectedDisciplina] = useState('');
   const [lessonPlanFile, setLessonPlanFile] = useState<File | null>(null);
@@ -129,21 +130,8 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
   };
 
 
-  // Auto-generate tags with debounce when theme and disciplina are filled
-  useEffect(() => {
-    if (!theme || !selectedDisciplina || theme.length < 20) {
-      return;
-    }
-
-    const timeoutId = setTimeout(() => {
-      handleGenerateTags();
-    }, 1500);
-
-    return () => clearTimeout(timeoutId);
-  }, [theme, selectedDisciplina, lessonPlanFile]);
-
-  const handleGenerateTags = async () => {
-    if (!theme || !selectedDisciplina) return;
+  const handleGenerateTagsAndTitle = async () => {
+    if (!theme || !selectedDisciplina || theme.length < 20) return;
 
     setGeneratingTags(true);
     try {
@@ -153,17 +141,23 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
         body: {
           theme,
           discipline: disciplinaData?.nome,
-          content: lessonPlanFile ? await lessonPlanFile.text() : undefined
         }
       });
 
       if (error) throw error;
+      
       setTags(data.tags || []);
+      setGeneratedTitle(data.title || theme);
+      
+      toast({
+        title: '✨ Tags e título gerados!',
+        description: 'Conteúdo gerado com sucesso pela IA',
+      });
     } catch (error) {
       console.error('Error generating tags:', error);
       toast({
-        title: 'Aviso',
-        description: 'Não foi possível gerar tags automaticamente',
+        title: 'Erro',
+        description: 'Não foi possível gerar tags e título',
         variant: 'destructive',
       });
       setTags([]);
@@ -255,7 +249,7 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
       const { data: lecture, error } = await supabase
         .from('lectures')
         .insert({
-          title: theme,
+          title: generatedTitle || theme,
           teacher_id: user.id,
           class_id: selectedTurma,
           disciplina_id: selectedDisciplina || null,
@@ -303,74 +297,115 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
         {step === 'input' ? (
           <div className="flex-1 overflow-y-auto px-1 minimal-scrollbar">
             <div className="space-y-6 py-4">
-              {/* Hero Section - Theme Input - Glassmorphism */}
+              {/* Hero Section - Theme Input with Integrated Audio - Glassmorphism */}
               <div className="space-y-3 backdrop-blur-md bg-white/8 dark:bg-white/5 border border-white/12 shadow-[0_4px_6px_rgba(0,0,0,0.05),0_10px_15px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] rounded-xl p-6">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold flex items-center gap-2">
-                    🎯 Tema da Aula <span className="text-destructive">*</span>
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  🎯 Tema da Aula <span className="text-destructive">*</span>
+                </Label>
+
+                <div className="relative">
+                  <Textarea
+                    placeholder={
+                      isRecording 
+                        ? "🔴 Gravando... Fale o tema da aula" 
+                        : "Ex: Leis de Newton - Aplicações em Sistemas Mecânicos Complexos"
+                    }
+                    value={theme}
+                    onChange={(e) => setTheme(e.target.value.slice(0, 200))}
+                    className={cn(
+                      "min-h-[120px] text-base resize-none pr-20 transition-all duration-300",
+                      isRecording && "border-red-500 border-2 animate-pulse-border"
+                    )}
+                    maxLength={200}
+                  />
+                  
+                  {/* Integrated Microphone Button */}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className={cn(
+                      "absolute bottom-3 right-12 h-10 w-10 rounded-full transition-all",
+                      isRecording 
+                        ? "bg-red-500 hover:bg-red-600 text-white animate-pulse" 
+                        : "hover:bg-accent"
+                    )}
+                    onClick={() => {
+                      if (isRecording) {
+                        stopRecording();
+                      } else {
+                        startRecording();
+                      }
+                    }}
+                  >
+                    <Mic className={cn(
+                      "h-5 w-5",
+                      isRecording && "animate-pulse"
+                    )} />
+                  </Button>
+                  
+                  {/* Character Counter & Validation */}
+                  <div className="absolute bottom-3 right-2 flex items-center gap-2">
+                    {theme.length >= 20 && !isRecording && (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    )}
+                    <span className={`text-xs ${theme.length >= 180 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      {theme.length}/200
+                    </span>
+                  </div>
+                  
+                  {/* Wave Animation when recording */}
+                  {isRecording && (
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-lg">
+                      <div className="wave-animation" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* AI Generate Button - Inspired by Teacher AI Chat */}
+              <Button
+                onClick={handleGenerateTagsAndTitle}
+                disabled={!theme || theme.length < 20 || !selectedDisciplina || generatingTags}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generatingTags ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Gerando Tags e Título...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5 mr-2" />
+                    Salvar Tema e Gerar Tags
+                  </>
+                )}
+              </Button>
+
+              {/* Tags Display */}
+              {tags.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Tags Geradas pela IA
                   </Label>
-                  <div className="flex gap-1.5">
-                    <Button
-                      type="button"
-                      variant={inputMode === 'text' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setInputMode('text')}
-                      className="h-8"
-                    >
-                      <Type className="h-3.5 w-3.5 mr-1.5" />
-                      Texto
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={inputMode === 'audio' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setInputMode('audio')}
-                      className="h-8"
-                    >
-                      <Mic className="h-3.5 w-3.5 mr-1.5" />
-                      Áudio
-                    </Button>
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag, idx) => (
+                      <Badge 
+                        key={idx} 
+                        variant="secondary" 
+                        className="text-xs animate-fade-in opacity-0"
+                        style={{
+                          animationDelay: `${idx * 100}ms`,
+                          animationFillMode: 'forwards'
+                        }}
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-
-                {inputMode === 'text' ? (
-                  <div className="relative">
-                    <Textarea
-                      placeholder="Ex: Leis de Newton - Aplicações em Sistemas Mecânicos Complexos"
-                      value={theme}
-                      onChange={(e) => setTheme(e.target.value.slice(0, 200))}
-                      className="min-h-[120px] text-base resize-none pr-16"
-                      maxLength={200}
-                    />
-                    <div className="absolute bottom-2 right-2 flex items-center gap-2">
-                      {theme.length >= 20 && (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      )}
-                      <span className={`text-xs ${theme.length >= 180 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                        {theme.length}/200
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-3 p-4 border rounded-lg bg-muted/30">
-                    <Button
-                      type="button"
-                      variant={isRecording ? 'destructive' : 'default'}
-                      onClick={isRecording ? stopRecording : startRecording}
-                      size="lg"
-                      className="w-full"
-                    >
-                      <Mic className={`h-4 w-4 mr-2 ${isRecording ? 'animate-pulse' : ''}`} />
-                      {isRecording ? 'Parar Gravação' : 'Gravar Tema'}
-                    </Button>
-                    {theme && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        <strong>Gravado:</strong> {theme}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Primary Fields - Turma & Disciplina - Glassmorphism */}
               <div className="backdrop-blur-md bg-white/6 dark:bg-white/4 border border-white/10 rounded-lg p-4">
@@ -585,65 +620,9 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                         )}
                       </div>
                     </div>
-
-                    {/* Tags - Auto-generated */}
-                    <div className="space-y-2">
-                      <Label className="text-sm flex items-center gap-2">
-                        <Sparkles className="h-4 w-4" />
-                        Tags (geradas automaticamente)
-                      </Label>
-                      {generatingTags ? (
-                        <div className="flex gap-2">
-                          <Skeleton className="h-7 w-24 rounded-full" />
-                          <Skeleton className="h-7 w-28 rounded-full" />
-                          <Skeleton className="h-7 w-20 rounded-full" />
-                        </div>
-                      ) : tags.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {tags.slice(0, 5).map((tag, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {tags.length > 5 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{tags.length - 5} mais
-                            </Badge>
-                          )}
-                        </div>
-                      ) : theme.length >= 20 && selectedDisciplina ? (
-                        <p className="text-xs text-muted-foreground italic">
-                          Tags serão geradas automaticamente...
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Preencha o tema (mín. 20 caracteres) e selecione uma disciplina
-                        </p>
-                      )}
-                    </div>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
-
-              {/* Action Buttons */}
-              <div className="flex justify-between gap-3 pt-2">
-                <Button 
-                  variant="ghost" 
-                  onClick={() => onOpenChange(false)}
-                  className="min-w-[100px]"
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleStartRecording} 
-                  disabled={!isFormValid || generatingTags}
-                  size="lg"
-                  className="min-w-[180px] bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all"
-                >
-                  <Mic className="h-4 w-4 mr-2" />
-                  Iniciar Gravação
-                </Button>
-              </div>
             </div>
           </div>
         ) : (
@@ -653,6 +632,55 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
             <p className="text-sm text-muted-foreground">
               Criando registro e configurando sistema
             </p>
+          </div>
+        )}
+
+        {/* Sticky Footer with Action Buttons */}
+        {step === 'input' && (
+          <div className="sticky bottom-0 left-0 right-0 mt-4 pt-6 border-t backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 -mx-6 -mb-6 px-6 pb-6">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+              {/* Cancelar - Subtle */}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  if (theme || selectedTurma || selectedDisciplina) {
+                    if (!confirm('Descartar alterações e sair?')) return;
+                  }
+                  onOpenChange(false);
+                }}
+                className="order-2 sm:order-1 text-muted-foreground hover:text-foreground"
+              >
+                Cancelar
+              </Button>
+              
+              {/* Spacer */}
+              <div className="flex-1 hidden sm:block" />
+              
+              {/* Iniciar Gravação - Hero Button */}
+              <Button
+                onClick={handleStartRecording}
+                disabled={!isFormValid || generatingTags || tags.length === 0}
+                className="order-1 sm:order-2 bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 hover:from-purple-700 hover:via-pink-700 hover:to-red-600 text-white font-bold py-4 px-8 rounded-xl shadow-2xl hover:shadow-3xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Mic className="h-6 w-6 group-hover:scale-110 transition-transform" />
+                    {!isFormValid && (
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
+                    )}
+                  </div>
+                  <span className="text-lg">Iniciar Gravação</span>
+                </div>
+              </Button>
+            </div>
+            
+            {/* Validation message */}
+            {(!isFormValid || tags.length === 0) && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 text-center sm:text-right">
+                ⚠️ {tags.length === 0 ? 'Gere tags antes de iniciar' : 'Preencha todos os campos obrigatórios'}
+              </p>
+            )}
           </div>
         )}
 

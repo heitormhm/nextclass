@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Menu, X, ChevronDown, LayoutDashboard, Briefcase, BookOpen, StickyNote, Library, Calendar, Sparkles, Home, Mic, BarChart3, BookPlus } from "lucide-react";
+import { RecordLessonSetupModal } from "@/components/RecordLessonSetupModal";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -29,7 +30,7 @@ const studentNavigationItems = [
 
 const teacherNavigationItems = [
   { label: "Home", href: "/teacherdashboard", icon: Home },
-  { label: "Gravar Aula", href: "/livelecture", icon: Mic },
+  { label: "Gravar Aula", href: "__modal__", icon: Mic }, // Special handling for modal
   { label: "Calendário", href: "/teachercalendar", icon: Calendar },
   { label: "Anotações", href: "/teacher/annotations", icon: StickyNote },
   { label: "Mia IA", href: "/teacher-aichat", icon: Sparkles },
@@ -38,6 +39,7 @@ const teacherNavigationItems = [
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, firstName, user } = useAuth();
@@ -95,6 +97,23 @@ const Navbar = () => {
           {navigationItems.map((item) => {
             const isCalendar = item.href === '/calendar' || item.href === '/teachercalendar';
             const showBadge = isCalendar && hasUnreadEvents;
+            
+            // Special handling for "Gravar Aula" - opens modal instead of navigation
+            if (item.href === '__modal__') {
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    setIsRecordModalOpen(true);
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-lg p-3 rounded-lg hover:bg-accent min-h-[48px] relative"
+                >
+                  <item.icon className="h-6 w-6 shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            }
 
             return (
               <Link
@@ -123,6 +142,28 @@ const Navbar = () => {
       <TooltipProvider>
         <div className="flex gap-6">
           {navigationItems.map((item) => {
+            // Special handling for "Gravar Aula" - opens modal instead of navigation
+            if (item.href === '__modal__') {
+              const isActive = false; // Modal trigger is never "active"
+              
+              return (
+                <Tooltip key={item.label}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setIsRecordModalOpen(true)}
+                      className="flex items-center text-foreground-muted hover:text-primary transition-colors"
+                      aria-label={item.label}
+                    >
+                      <item.icon className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+            
             const isActive = location.pathname === item.href;
             
             if (isActive) {
@@ -224,21 +265,22 @@ const Navbar = () => {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b frost-white-subtle shadow-sm">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-14 sm:h-16 items-center justify-between">
-          {/* Logo */}
-          <Logo />
+    <>
+      <header className="sticky top-0 z-50 w-full border-b frost-white-subtle shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-14 sm:h-16 items-center justify-between">
+            {/* Logo */}
+            <Logo />
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:block">
-            <NavigationLinks />
-          </nav>
+            {/* Desktop Navigation */}
+            <nav className="hidden md:block">
+              <NavigationLinks />
+            </nav>
 
-          {/* Desktop User Section */}
-          <div className="hidden md:flex">
-            <UserSection />
-          </div>
+            {/* Desktop User Section */}
+            <div className="hidden md:flex">
+              <UserSection />
+            </div>
 
           {/* Mobile Menu */}
           <div className="md:hidden">
@@ -319,9 +361,16 @@ const Navbar = () => {
               </SheetContent>
             </Sheet>
           </div>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      
+      {/* Record Lesson Setup Modal */}
+      <RecordLessonSetupModal 
+        open={isRecordModalOpen}
+        onOpenChange={setIsRecordModalOpen}
+      />
+    </>
   );
 };
 

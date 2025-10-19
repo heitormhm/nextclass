@@ -147,6 +147,43 @@ All colors MUST be HSL. Design tokens for consistent theming.
   .minimal-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
   }
+
+  /* Wave Animation for Audio Recording */
+  @keyframes wave {
+    0%, 100% { 
+      transform: translateX(-100%); 
+      opacity: 0.3; 
+    }
+    50% { 
+      transform: translateX(100%); 
+      opacity: 0.6; 
+    }
+  }
+
+  .wave-animation {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(239, 68, 68, 0.1),
+      transparent
+    );
+    height: 100%;
+    animation: wave 2s infinite;
+  }
+
+  /* Pulse Border Animation */
+  @keyframes pulse-border {
+    0%, 100% { 
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); 
+    }
+    50% { 
+      box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); 
+    }
+  }
+
+  .animate-pulse-border {
+    animation: pulse-border 1.5s infinite;
+  }
   
   /* Mobile-first responsive typography system */
   h1 {

@@ -28,6 +28,7 @@ interface TranscriptSegment {
 
 const LiveLecture = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const lectureId = new URLSearchParams(window.location.search).get('lectureId');
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -51,7 +52,44 @@ const LiveLecture = () => {
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const { toast } = useToast();
+
+  // Route Protection - Check for valid lectureId
+  useEffect(() => {
+    const checkLectureAccess = async () => {
+      if (!lectureId) {
+        toast({
+          title: 'Acesso Negado',
+          description: 'Configure a gravação primeiro no dashboard.',
+          variant: 'destructive',
+        });
+        navigate('/teacherdashboard');
+        return;
+      }
+
+      // Verify lecture exists and belongs to teacher
+      try {
+        const { data, error } = await supabase
+          .from('lectures')
+          .select('id, teacher_id')
+          .eq('id', lectureId)
+          .single();
+
+        if (error || !data) {
+          toast({
+            title: 'Aula não encontrada',
+            description: 'Esta gravação não existe ou foi excluída.',
+            variant: 'destructive',
+          });
+          navigate('/teacherdashboard');
+        }
+      } catch (error) {
+        console.error('Error checking lecture access:', error);
+        navigate('/teacherdashboard');
+      }
+    };
+
+    checkLectureAccess();
+  }, [lectureId, navigate, toast]);
 
   // Simulate recording timer
   useEffect(() => {
