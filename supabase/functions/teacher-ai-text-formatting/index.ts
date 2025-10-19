@@ -5,6 +5,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to convert Markdown to HTML
+function convertMarkdownToHTML(text: string): string {
+  if (!text || typeof text !== 'string') return text;
+  
+  return text
+    // Convert **bold** to <strong>bold</strong>
+    .replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>')
+    // Convert *italic* to <em>italic</em> (but not ** which was already processed)
+    .replace(/(?<!\*)\*([^\*]+)\*(?!\*)/g, '<em>$1</em>')
+    // Strip any remaining markdown headers (safety net)
+    .replace(/^#{1,6}\s+/gm, '')
+    // Clean up any escaped markdown that slipped through
+    .replace(/\\([*_#])/g, '$1');
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -608,11 +623,57 @@ RESPONDA APENAS COM O JSON PURO!`;
     }
 
     const data = await response.json();
-    const formattedText = data.choices[0].message.content.trim();
+    let formattedText = data.choices[0].message.content.trim();
 
     console.log('Texto formatado com sucesso');
     console.log('[AI Response] Primeiros 500 chars:', formattedText.substring(0, 500));
     console.log('[AI Response] Último caractere:', formattedText[formattedText.length - 1]);
+
+    // Post-process for "improve_didactic" action: convert markdown to HTML
+    if (action === 'improve_didactic') {
+      try {
+        console.log('[Post-Processing] Convertendo markdown para HTML...');
+        
+        // Parse the JSON response
+        const structuredData = JSON.parse(formattedText);
+        
+        // Function to recursively process all text fields in the structure
+        function processBlock(block: any): any {
+          if (!block || typeof block !== 'object') return block;
+          
+          // Process arrays recursively
+          if (Array.isArray(block)) {
+            return block.map(processBlock);
+          }
+          
+          // Process object properties
+          const processed: any = {};
+          for (const [key, value] of Object.entries(block)) {
+            if (key === 'texto' || key === 'titulo' || key === 'descricao') {
+              // Convert markdown to HTML in text fields
+              processed[key] = convertMarkdownToHTML(value as string);
+            } else if (typeof value === 'object') {
+              // Recursively process nested objects/arrays
+              processed[key] = processBlock(value);
+            } else {
+              processed[key] = value;
+            }
+          }
+          return processed;
+        }
+        
+        // Process the entire structured data
+        const processedData = processBlock(structuredData);
+        
+        // Convert back to JSON string
+        formattedText = JSON.stringify(processedData);
+        
+        console.log('[Post-Processing] Conversão concluída. Markdown → HTML aplicado.');
+      } catch (parseError) {
+        console.error('[Post-Processing] Erro ao processar JSON:', parseError);
+        // If parsing fails, return original text (fallback for non-JSON responses)
+      }
+    }
 
     return new Response(JSON.stringify({ formattedText }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
