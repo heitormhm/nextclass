@@ -196,6 +196,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     totalPages: 1,
     captureTime: 0
   };
+  let fullPageImagesCount = 0; // FASE 4: Rastrear imagens em full-page
   const warnings: string[] = [];
 
   try {
@@ -233,6 +234,99 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     const margin = 20;
     const contentWidth = pageWidth - (2 * margin);
     let currentY = margin;
+
+    // FASE 1: Função para detectar se imagem merece página dedicada
+    const shouldUseDedicatedPage = (
+      imageHeight: number,
+      aspectRatio: number,
+      currentY: number,
+      bloco: ContentBlock,
+      availableSpace: number
+    ): boolean => {
+      const isLargeImage = imageHeight > 150; // Altura > 150mm
+      const isVerticalImage = aspectRatio > 1.5; // Muito vertical
+      const isComplexDiagram = [
+        'fluxograma',
+        'mapa_mental',
+        'diagrama'
+      ].includes(bloco.tipo) || bloco.definicao_mermaid;
+      
+      const decision = (
+        (isLargeImage && availableSpace < 180) ||
+        (isComplexDiagram && availableSpace < 200) ||
+        isVerticalImage
+      );
+      
+      console.log('🔍 Análise de imagem:', {
+        tipo: bloco.tipo,
+        alturaOriginal: `${imageHeight.toFixed(1)}mm`,
+        espacoDisponivel: `${availableSpace.toFixed(1)}mm`,
+        aspectRatio: aspectRatio.toFixed(2),
+        isLargeImage,
+        isComplexDiagram,
+        isVerticalImage,
+        decisao: decision ? 'FULL-PAGE' : 'NORMAL'
+      });
+      
+      return decision;
+    };
+
+    // FASE 2: Função para renderizar imagem em página dedicada (Full-Page Mode)
+    const renderImageFullPage = (
+      pdf: jsPDF,
+      imageData: { base64: string; width: number; height: number },
+      pageWidth: number,
+      pageHeight: number,
+      margin: number
+    ): void => {
+      // Criar nova página dedicada
+      pdf.addPage();
+      stats.totalPages++;
+      fullPageImagesCount++;
+      console.log('📄 Página dedicada criada para imagem grande (Full-Page Mode)');
+      
+      // Calcular dimensões máximas disponíveis
+      const maxWidth = (pageWidth - 2 * margin) * 0.90; // 90% da largura (respiro visual)
+      const maxHeight = (pageHeight - 2 * margin) * 0.85; // 85% da altura (sem invadir rodapé)
+      
+      let finalWidth = imageData.width;
+      let finalHeight = imageData.height;
+      
+      // Escalar proporcionalmente para caber
+      const widthRatio = maxWidth / imageData.width;
+      const heightRatio = maxHeight / imageData.height;
+      const scaleFactor = Math.min(widthRatio, heightRatio);
+      
+      finalWidth = imageData.width * scaleFactor;
+      finalHeight = imageData.height * scaleFactor;
+      
+      // Centralizar vertical E horizontal
+      const xPosition = (pageWidth - finalWidth) / 2;
+      const yPosition = (pageHeight - finalHeight) / 2;
+      
+      // Renderizar imagem
+      pdf.addImage(
+        imageData.base64,
+        imageData.base64.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG',
+        xPosition,
+        yPosition,
+        finalWidth,
+        finalHeight
+      );
+      
+      // FASE 5: Legenda discreta (opcional)
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'italic');
+      pdf.setTextColor(145, 127, 251); // Roxo claro
+      pdf.text(
+        'Imagem otimizada para visualização completa',
+        pageWidth / 2,
+        yPosition + finalHeight + 8,
+        { align: 'center' }
+      );
+      
+      console.log(`✅ Imagem full-page: ${finalWidth.toFixed(1)}mm x ${finalHeight.toFixed(1)}mm (centralizada)`);
+    };
 
     // FASE 1: CABEÇALHO COM LOGO SVG NEXTCLASS CENTRALIZADA
     const logoY = currentY;
@@ -373,35 +467,59 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
           let xPosition = margin + (contentWidth - imageWidth) / 2; // FASE 2: Sempre centralizar
 
           const FOOTER_SAFE_ZONE = 20; // 15mm rodapé + 5mm buffer
+          const availableSpace = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
           
-          // Limitar altura máxima de imagens grandes
-          const maxImageHeight = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
-          if (imageHeight > maxImageHeight && maxImageHeight > 50) {
-            // Redimensionar imagem para caber na página
-            const scaleFactor = maxImageHeight / imageHeight;
-            imageHeight = maxImageHeight;
-            imageWidth = imageWidth * scaleFactor;
-            console.log('📐 Imagem redimensionada para caber na página sem invadir rodapé');
-          }
-          
-          // Verificar quebra de página
-          if (currentY + imageHeight > pageHeight - margin - FOOTER_SAFE_ZONE) {
-            pdf.addPage();
-            stats.totalPages++;
-            currentY = margin;
-            console.log('📄 Nova página criada para imagem (evitar invasão de rodapé)');
+          // FASE 3: DECISÃO INTELIGENTE - Full-Page vs Normal
+          if (shouldUseDedicatedPage(imageHeight, aspectRatio, currentY, bloco, availableSpace)) {
+            // MODO FULL-PAGE: Página dedicada para legibilidade máxima
+            renderImageFullPage(
+              pdf,
+              imageData,
+              pageWidth,
+              pageHeight,
+              margin
+            );
+            
+            currentY = margin; // Resetar para próxima página
+            console.log('📊 Estatística: Imagem renderizada em Full-Page Mode');
+            
+          } else {
+            // MODO NORMAL: Renderizar na página atual
+            
+            // Limitar altura máxima APENAS se espaço disponível for razoável
+            const maxImageHeight = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
+            
+            if (imageHeight > maxImageHeight && maxImageHeight > 80) {
+              // Redimensionar APENAS se ainda couber de forma legível (min 80mm)
+              const scaleFactor = maxImageHeight / imageHeight;
+              imageHeight = maxImageHeight;
+              imageWidth = imageWidth * scaleFactor;
+              xPosition = margin + (contentWidth - imageWidth) / 2; // Re-centralizar
+              console.log('📐 Imagem ajustada para caber na página (Modo Normal)');
+            }
+            
+            // Verificar quebra de página
+            if (currentY + imageHeight > pageHeight - margin - FOOTER_SAFE_ZONE) {
+              pdf.addPage();
+              stats.totalPages++;
+              currentY = margin;
+              console.log('📄 Nova página criada (Modo Normal)');
+            }
+            
+            // Renderizar imagem
+            pdf.addImage(
+              imageData.base64,
+              imageData.base64.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG',
+              xPosition,
+              currentY,
+              imageWidth,
+              imageHeight
+            );
+            
+            currentY += imageHeight + 10; // FASE 5: Aumentado de 8mm para 10mm (+25%)
+            console.log(`✅ Imagem normal: ${imageWidth.toFixed(1)}mm x ${imageHeight.toFixed(1)}mm`);
           }
 
-          pdf.addImage(
-            imageData.base64,
-            imageData.base64.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG',
-            xPosition,
-            currentY,
-            imageWidth,
-            imageHeight
-          );
-
-          currentY += imageHeight + 10; // FASE 5: Aumentado de 8mm para 10mm (+25%)
           stats.imagesCaptured++;
 
           // Estatísticas específicas
@@ -485,10 +603,16 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 
     stats.captureTime = Date.now() - startTime;
     console.log('✅ [VisualPDF] Geração concluída em', stats.captureTime, 'ms');
+    if (fullPageImagesCount > 0) {
+      console.log(`🖼️ Imagens em Full-Page Mode: ${fullPageImagesCount}`);
+    }
 
     return {
       success: true,
-      stats,
+      stats: {
+        ...stats,
+        fullPageImages: fullPageImagesCount
+      } as any,
       warnings: warnings.length > 0 ? warnings : undefined
     };
   } catch (error) {
