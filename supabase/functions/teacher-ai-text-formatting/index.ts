@@ -24,6 +24,102 @@ function convertMarkdownToHTML(text: string): string {
     .replace(/\\([*_#])/g, '$1');
 }
 
+// Manual safety validations as fallback for when AI validation fails or needs reinforcement
+function applyManualSafetyValidations(data: any): any {
+  if (!data || !data.conteudo) return data;
+  
+  console.log('[Manual Validation] Aplicando validações de segurança manuais...');
+  
+  const validatedContent = data.conteudo.map((bloco: any, index: number) => {
+    // 1. MERMAID: Remover caracteres especiais proibidos e simplificar
+    if (['fluxograma', 'mapa_mental', 'diagrama', 'organograma'].includes(bloco.tipo)) {
+      if (bloco.definicao_mermaid) {
+        let sanitized = bloco.definicao_mermaid;
+        const originalLength = sanitized.length;
+        
+        // Substituir setas Unicode por sintaxe Mermaid válida
+        sanitized = sanitized
+          .replace(/→/g, '-->')
+          .replace(/←/g, '<--')
+          .replace(/↔/g, '<-->')
+          .replace(/⇒/g, '==>')
+          .replace(/⇐/g, '<==')
+          .replace(/⇔/g, '<==>');
+        
+        // Remover parênteses dentro de labels que podem quebrar sintaxe
+        sanitized = sanitized.replace(/\[([^\]]*?)\(([^)]*?)\)([^\]]*?)\]/g, '[$1 - $2 $3]');
+        
+        // Simplificar fórmulas complexas em labels
+        sanitized = sanitized.replace(/\[([^\]]*?)(P\/γ|V²\/2g|ρgh)([^\]]*?)\]/g, '[Fórmula de energia]');
+        
+        if (sanitized.length !== originalLength) {
+          console.log(`[Manual Validation] Bloco ${index}: Mermaid sanitizado`);
+        }
+        
+        // Se ainda tiver caracteres problemáticos, remover bloco
+        if (sanitized.match(/[→←↔⇒⇐⇔]/)) {
+          console.warn(`[Manual Validation] ⚠️ Bloco ${index}: Mermaid com erros graves - REMOVENDO`);
+          return {
+            tipo: 'paragrafo',
+            texto: '<em class="text-muted-foreground">⚠️ Diagrama removido por conter erros de sintaxe</em>'
+          };
+        }
+        
+        bloco.definicao_mermaid = sanitized;
+      }
+    }
+    
+    // 2. REFERÊNCIAS: Garantir formato de array com <br><br>
+    if (bloco.tipo === 'referencias') {
+      if (bloco.texto && !bloco.itens) {
+        console.log(`[Manual Validation] Bloco ${index}: Convertendo referencias de texto para array`);
+        // Converter texto para array
+        const refs = bloco.texto.split(/(?=\[\d+\])/).filter((r: string) => r.trim());
+        bloco.itens = refs.map((ref: string) => {
+          const trimmed = ref.trim();
+          return trimmed.endsWith('<br><br>') ? trimmed : trimmed + '<br><br>';
+        });
+        delete bloco.texto;
+      }
+      
+      if (bloco.itens && Array.isArray(bloco.itens)) {
+        bloco.itens = bloco.itens.map((ref: string, refIndex: number) => {
+          if (!ref.endsWith('<br><br>')) {
+            console.log(`[Manual Validation] Bloco ${index}, Ref ${refIndex}: Adicionando <br><br>`);
+            return ref + '<br><br>';
+          }
+          return ref;
+        });
+      }
+    }
+    
+    // 3. POST-ITS e CAIXAS: Sanitizar HTML mantendo apenas tags permitidas
+    if (['post_it', 'caixa_de_destaque'].includes(bloco.tipo)) {
+      if (bloco.texto) {
+        const originalText = bloco.texto;
+        // Remover tags não permitidas, manter apenas: strong, em, br, u, p, span
+        bloco.texto = bloco.texto
+          .replace(/<(?!\/?(?:strong|em|br|u|p|span)\b)[^>]+>/gi, '')
+          .replace(/<(\w+)(?![^>]*>)/g, '') // Remover tags não fechadas
+          .trim();
+        
+        if (bloco.texto !== originalText) {
+          console.log(`[Manual Validation] Bloco ${index}: HTML sanitizado em ${bloco.tipo}`);
+        }
+      }
+    }
+    
+    return bloco;
+  });
+  
+  console.log('[Manual Validation] ✅ Validações manuais concluídas');
+  
+  return {
+    ...data,
+    conteudo: validatedContent
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -788,15 +884,25 @@ RESPONDA APENAS COM O JSON PURO!`;
             if (validationData.validatedContent) {
               processedData = validationData.validatedContent;
               console.log('[Validation] ✅ Conteúdo validado e corrigido pelo agente');
+              // Apply additional manual validations to ensure safety
+              processedData = applyManualSafetyValidations(processedData);
             } else {
-              console.log('[Validation] ⚠️ Validação retornou null, usando dados processados originais');
+              // Validation returned null - apply manual safety validations as fallback
+              console.warn('[Validation] ⚠️ Agente retornou null, usando validação manual de fallback');
+              processedData = applyManualSafetyValidations(processedData);
             }
           } else {
-            console.error('[Validation] ⚠️ Erro na validação, continuando com dados processados');
+            // Validation failed - apply manual safety validations as fallback
+            const errorText = await validationResponse.text();
+            console.error('[Validation] ❌ Erro no agente de validação:', errorText);
+            console.log('[Validation] Aplicando correções manuais de emergência...');
+            processedData = applyManualSafetyValidations(processedData);
           }
         } catch (validationError) {
           console.error('[Validation] ⚠️ Erro ao chamar agente de validação:', validationError);
-          // Continue with processed data even if validation fails
+          // Apply manual safety validations as emergency fallback
+          console.log('[Validation] Aplicando correções manuais de emergência após erro...');
+          processedData = applyManualSafetyValidations(processedData);
         }
         
         // 7. Convert back to JSON string

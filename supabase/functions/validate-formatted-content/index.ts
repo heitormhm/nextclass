@@ -18,107 +18,173 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY não configurada');
     }
 
-    console.log('[Validation Agent] Iniciando validação de conteúdo estruturado...');
-    console.log(`[Validation Agent] Blocos a validar: ${structuredContent?.conteudo?.length || 0}`);
+    console.log('[Validation Agent] ═══════════════════════════════════════════════');
+    console.log('[Validation Agent] Iniciando correção automática agressiva...');
+    console.log(`[Validation Agent] Blocos a corrigir: ${structuredContent?.conteudo?.length || 0}`);
+    
+    // Log problematic blocks before validation
+    structuredContent?.conteudo?.forEach((bloco: any, idx: number) => {
+      if (['fluxograma', 'mapa_mental', 'diagrama'].includes(bloco.tipo)) {
+        const hasUnicodeArrows = bloco.definicao_mermaid?.match(/[→←↔⇒⇐⇔]/);
+        const hasParenInLabel = bloco.definicao_mermaid?.match(/\[([^\]]*?)\([^)]*?\)([^\]]*?)\]/);
+        if (hasUnicodeArrows || hasParenInLabel) {
+          console.log(`[Validation Agent] ⚠️ Bloco ${idx} (${bloco.tipo}): Contém erros Mermaid`);
+        }
+      }
+      if (bloco.tipo === 'referencias' && bloco.texto && !bloco.itens) {
+        console.log(`[Validation Agent] ⚠️ Bloco ${idx}: Referencias em formato 'texto' (deve ser 'itens')`);
+      }
+    });
 
-    const validationPrompt = `Você é um agente de CORREÇÃO AUTOMÁTICA de conteúdo pedagógico estruturado.
+    const validationPrompt = `Você é um agente de CORREÇÃO AUTOMÁTICA AGRESSIVA de conteúdo pedagógico estruturado.
 
-TAREFA CRÍTICA: Corrija AUTOMATICAMENTE todos os erros no JSON a seguir. NÃO apenas valide, CORRIJA!
+TAREFA CRÍTICA: Corrija AUTOMATICAMENTE e AGRESSIVAMENTE todos os erros no JSON a seguir. NÃO apenas valide, CORRIJA COM FORÇA!
 
 JSON A CORRIGIR:
 ${JSON.stringify(structuredContent, null, 2)}
 
-CORREÇÕES OBRIGATÓRIAS:
+CORREÇÕES OBRIGATÓRIAS E EXEMPLOS DETALHADOS:
 
-1. MERMAID DIAGRAMS - CORREÇÕES AUTOMÁTICAS AGRESSIVAS:
+═══════════════════════════════════════════════════════════════════════════════
+1. MERMAID DIAGRAMS - CORREÇÃO AGRESSIVA E SIMPLIFICAÇÃO FORÇADA
+═══════════════════════════════════════════════════════════════════════════════
+
+🚨 REGRA ABSOLUTA: TODO Mermaid DEVE ser renderizável ou deve ser SIMPLIFICADO drasticamente.
+
+PROBLEMAS COMUNS E CORREÇÕES OBRIGATÓRIAS:
+
+A) SETAS UNICODE (PROIBIDAS):
+   ❌ ERRO: graph TD; A → B; C ← D; E ↔ F
+   ✅ CORREÇÃO: graph TD; A --> B; C <-- D; E <--> F
    
-   PROBLEMA: Caracteres especiais (→, ←, ↔, ⇒, ⇐, ⇔)
-   CORREÇÃO: Substituir por --> <-- <--> ==> <== <==>
+   CARACTERES A SUBSTITUIR SEMPRE:
+   → = -->
+   ← = <--
+   ↔ = <-->
+   ⇒ = ==>
+   ⇐ = <==
+   ⇔ = <==>
+
+B) PARÊNTESES EM LABELS (CAUSAM ERRO):
+   ❌ ERRO: A[Pressão (P/γ) + altura]
+   ✅ CORREÇÃO: A[Pressão dividida por peso específico mais altura]
    
-   PROBLEMA: Parênteses não balanceados em labels: A[Texto (não fechado]
-   CORREÇÃO: Remover parênteses: A[Texto - não fechado]
+   ❌ ERRO: B[Bernoulli (energia conservada)]
+   ✅ CORREÇÃO: B[Bernoulli - energia conservada]
+
+C) FÓRMULAS COMPLEXAS EM LABELS:
+   ❌ ERRO: graph TD; A[H = (P/γ) + (V²/2g) + z]
+   ✅ CORREÇÃO: graph TD; A[Carga hidráulica total]
    
-   PROBLEMA: Sintaxe complexa que causa erro de renderização
-   CORREÇÃO: SIMPLIFICAR o diagrama mantendo a essência pedagógica
-   
-   EXEMPLOS DE SIMPLIFICAÇÃO:
-   
-   ❌ ANTES (com erro):
+   ❌ ERRO: mindmap; root((ΔP = ρ × g × Δh))
+   ✅ CORREÇÃO: mindmap; root((Variação de Pressão))
+
+D) SINTAXE COMPLEXA QUE FALHA:
+   ❌ ERRO REAL (exemplo do sistema):
    mindmap
-     root((Conceito Principal))
-       Item A
-         Subitem (com parênteses não balanceados)
-         Fórmula: (P/γ) + (V²/2g) + z
+     root((Mecânica dos Fluidos))
+       Hidrostática
+         Princípio de Pascal (transmissão de pressão)
+         Princípio de Arquimedes (empuxo = ρ × V × g)
    
-   ✅ DEPOIS (simplificado e corrigido):
+   ✅ CORREÇÃO APLICADA:
    mindmap
-     root((Conceito Principal))
-       Item A
-         Subitem com detalhes
-         Fórmula de energia
+     root((Mecânica dos Fluidos))
+       Hidrostática
+         Princípio de Pascal - transmissão de pressão
+         Princípio de Arquimedes - conceito de empuxo
+
+E) SE MERMAID É MUITO COMPLEXO PARA CORRIGIR:
+   - SIMPLIFIQUE DRASTICAMENTE mantendo só a estrutura básica
+   - Remova TODOS os detalhes técnicos
+   - Use apenas texto descritivo simples
    
-   ❌ ANTES (com setas especiais):
+   Exemplo de simplificação drástica:
+   ❌ ORIGINAL QUEBRADO:
    graph TD
-     A[Início] → B[Processo]
-     B ← C[Feedback]
+     A[Reservatório (z₁, P₁)] --> B[Tubulação (perda ΔH)]
+     B --> C[Saída (z₂, P₂, V₂²/2g)]
    
-   ✅ DEPOIS (corrigido):
+   ✅ SIMPLIFICADO E FUNCIONAL:
    graph TD
-     A[Início] --> B[Processo]
-     B <-- C[Feedback]
-   
-   INSTRUÇÕES ESPECÍFICAS PARA MERMAID:
-   - Remova TODOS os caracteres Unicode especiais de setas
-   - Substitua parênteses dentro de labels por traços ou remova
-   - Se um label tiver fórmula complexa, simplifique para texto descritivo
-   - Garanta que todos os nodes tenham IDs únicos e válidos
-   - Se houver erro de sintaxe não corrigível, crie versão simplificada
+     A[Ponto Inicial] --> B[Tubulação]
+     B --> C[Ponto Final]
 
-2. REFERÊNCIAS BIBLIOGRÁFICAS - GARANTIR QUEBRAS DE LINHA:
-   
-   ❌ ERRO: Referencias em campo 'texto' único sem quebras
-   ✅ CORREÇÃO: Converter para campo 'itens' array com formatação:
-   
-   {
-     "tipo": "referencias",
-     "titulo": "Referências Bibliográficas",
-     "itens": [
-       "[1]<br>Título completo da primeira fonte<br>- URL: https://exemplo.com<br><br>",
-       "[2]<br>Título completo da segunda fonte<br>- URL: https://exemplo2.com<br><br>"
-     ]
-   }
-   
-   REGRAS PARA REFERÊNCIAS:
-   - SEMPRE use campo 'itens' como array de strings
-   - Cada item do array = uma referência completa
-   - SEMPRE adicione <br><br> no final de cada item
-   - Formato: "[N]<br>Título<br>- URL: link<br><br>"
-   - Se vier em 'texto', detecte padrão [1], [2] e separe em array
-   - Garanta espaçamento visual entre referências
+═══════════════════════════════════════════════════════════════════════════════
+2. REFERÊNCIAS BIBLIOGRÁFICAS - FORMATAÇÃO RIGOROSA
+═══════════════════════════════════════════════════════════════════════════════
 
-3. POST-ITS E CAIXAS DE DESTAQUE:
-   - Remova HTML inválido ou tags não fechadas
-   - Garanta que <strong>, <em>, <br> estejam corretamente fechados
-   - Limpe caracteres especiais que podem quebrar renderização
-   - Mantenha formatação didática mas garanta HTML válido
+🚨 REGRA ABSOLUTA: Referências SEMPRE em array 'itens', NUNCA em campo 'texto'.
 
-4. GRÁFICOS:
-   - Valide estrutura de 'dados' array
-   - Garanta valores numéricos válidos
-   - Corrija nomes de propriedades se necessário
+❌ ERRO ENCONTRADO NO SISTEMA:
+{
+  "tipo": "referencias",
+  "titulo": "Referências Bibliográficas",
+  "texto": "[1] Fonte 1 - URL [2] Fonte 2 - URL"
+}
 
-5. PARÁGRAFOS:
-   - Valide HTML
-   - Garanta tags fechadas
-   - Mantenha <br> para quebras de linha
+✅ CORREÇÃO OBRIGATÓRIA:
+{
+  "tipo": "referencias",
+  "titulo": "Referências Bibliográficas",
+  "itens": [
+    "[1]<br>Fonte completa número um com título detalhado<br>- URL: https://exemplo1.com<br><br>",
+    "[2]<br>Fonte completa número dois com título detalhado<br>- URL: https://exemplo2.com<br><br>"
+  ]
+}
 
-ESTRATÉGIA DE CORREÇÃO:
-- Para Mermaid: SEMPRE corrija ou simplifique, NUNCA deixe com erro
-- Para Referências: SEMPRE converta para 'itens' array com <br><br>
-- Para HTML: SEMPRE garanta tags válidas e fechadas
-- Se não puder corrigir perfeitamente, SIMPLIFIQUE mantendo essência
+FORMATO EXATO OBRIGATÓRIO PARA CADA ITEM:
+[NÚMERO]<br>
+Título completo da fonte<br>
+- URL: link_completo<br><br>
 
-FORMATO DE RETORNO (apenas JSON, sem comentários):
+VALIDAÇÃO:
+- Se campo 'texto' existe → Converter para 'itens' array
+- Se 'itens' não termina com '<br><br>' → Adicionar
+- Se falta quebra entre número e título → Adicionar '<br>'
+- Se falta '- URL:' antes do link → Adicionar
+
+═══════════════════════════════════════════════════════════════════════════════
+3. POST-ITS E CAIXAS DE DESTAQUE - SANITIZAÇÃO HTML
+═══════════════════════════════════════════════════════════════════════════════
+
+TAGS PERMITIDAS: <strong>, <em>, <br>, <u>, <p>, <span>
+TAGS PROIBIDAS: <div>, <script>, <style>, <a>, <img>, etc.
+
+❌ ERRO: <div><strong>Atenção:</strong> ponto importante<script>alert(1)</script></div>
+✅ CORREÇÃO: <strong>Atenção:</strong> ponto importante
+
+❌ ERRO: <strong>Texto não fechado
+✅ CORREÇÃO: <strong>Texto fechado corretamente</strong>
+
+═══════════════════════════════════════════════════════════════════════════════
+INSTRUÇÕES FINAIS DE PROCESSAMENTO
+═══════════════════════════════════════════════════════════════════════════════
+
+PRIORIDADES DE CORREÇÃO:
+1. Mermaid: Substituir → por --> (e similares)
+2. Mermaid: Remover ou substituir parênteses em labels
+3. Mermaid: Simplificar fórmulas para texto descritivo
+4. Mermaid: Se ainda quebrar, SIMPLIFICAR DRASTICAMENTE
+5. Referencias: Converter 'texto' para 'itens' array
+6. Referencias: Garantir <br><br> no final de cada item
+7. HTML: Remover tags não permitidas
+8. HTML: Fechar tags abertas
+
+SE ALGO NÃO PUDER SER CORRIGIDO:
+- Mermaid → Simplificar ao máximo ou criar versão genérica
+- Referencias → Converter para formato padrão sempre
+- HTML → Remover código problemático, manter só texto
+
+VALIDAÇÃO FINAL ANTES DE RETORNAR:
+✓ Nenhum Mermaid contém →, ←, ↔, ⇒, ⇐, ⇔
+✓ Nenhum Mermaid contém parênteses em labels
+✓ Todas referencias em formato 'itens' array
+✓ Todos itens de referencias terminam com <br><br>
+✓ Todo HTML usa apenas tags permitidas
+✓ Todas tags HTML estão fechadas
+
+FORMATO DE RETORNO (JSON puro, sem markdown):
 {
   "titulo_geral": "...",
   "conteudo": [...]
@@ -163,8 +229,26 @@ FORMATO DE RETORNO (apenas JSON, sem comentários):
     // Parse the validated JSON
     const validatedData = JSON.parse(validatedContent);
 
-    console.log('[Validation Agent] ✅ Validação concluída com sucesso');
-    console.log(`[Validation Agent] Blocos validados: ${validatedData.conteudo?.length || 0}`);
+    console.log('[Validation Agent] ✅ Correção automática concluída com sucesso');
+    console.log(`[Validation Agent] Blocos corrigidos: ${validatedData.conteudo?.length || 0}`);
+    
+    // Log what was fixed
+    let mermaidFixed = 0;
+    let referencesFixed = 0;
+    validatedData.conteudo?.forEach((bloco: any) => {
+      if (['fluxograma', 'mapa_mental', 'diagrama'].includes(bloco.tipo)) {
+        if (bloco.definicao_mermaid && !bloco.definicao_mermaid.match(/[→←↔⇒⇐⇔]/)) {
+          mermaidFixed++;
+        }
+      }
+      if (bloco.tipo === 'referencias' && bloco.itens && Array.isArray(bloco.itens)) {
+        referencesFixed++;
+      }
+    });
+    
+    if (mermaidFixed > 0) console.log(`[Validation Agent] 🔧 Diagramas Mermaid corrigidos: ${mermaidFixed}`);
+    if (referencesFixed > 0) console.log(`[Validation Agent] 🔧 Referencias formatadas: ${referencesFixed}`);
+    console.log('[Validation Agent] ═══════════════════════════════════════════════');
 
     // Additional post-processing for references
     if (validatedData.conteudo) {
