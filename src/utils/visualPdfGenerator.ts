@@ -634,8 +634,8 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       if (lastBlockWasFullPage) {
         const usableSpace = pageHeight - margin - currentY;
         
-        if (usableSpace < 80) {
-          // Apenas adicionar página se NÃO houver espaço útil (>80mm)
+        if (usableSpace < 100) {
+          // Apenas adicionar página se NÃO houver espaço SIGNIFICATIVO (>100mm)
           pdf.addPage();
           stats.totalPages++;
           currentY = margin;
@@ -659,8 +659,8 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
           
           // NOVO: Apenas forçar nova página se:
           // 1. Não cabe DE VERDADE (espaço < combinedHeight)
-          // 2. E espaço disponível é MUITO pequeno (<60mm = "órfão visual")
-          if (combinedHeight > availableSpace && availableSpace < 60) {
+          // 2. E espaço disponível é MUITO pequeno (<40mm = "órfão real")
+          if (combinedHeight > availableSpace && availableSpace < 40) {
             pdf.addPage();
             stats.totalPages++;
             currentY = margin;
@@ -861,14 +861,30 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               imageSpacing = 20; // Imagens médias: 20mm
             }
             
-            // Detectar diagramas técnicos e adicionar espaço extra
+            // NOVO: Detectar se PRÓXIMO bloco é diagrama
+            const nextBloco = options.structuredData.conteudo[i + 1];
+            const nextIsDiagram = nextBloco && (
+              nextBloco.tipo === 'fluxograma' || 
+              nextBloco.tipo === 'diagrama' || 
+              nextBloco.tipo === 'mapa_mental' ||
+              nextBloco.tipo === 'grafico' ||
+              (nextBloco.tipo === 'componente_react' && nextBloco.texto?.includes('mermaid'))
+            );
+            
+            // Se ESTE bloco é post-it E PRÓXIMO é diagrama, adicionar buffer massivo
+            if (bloco.tipo === 'post_it' && nextIsDiagram) {
+              imageSpacing = 30; // CRÍTICO: Post-it + Diagrama = 30mm
+              console.log('🛡️ PROTEÇÃO: Post-it antes de diagrama (+30mm)');
+            }
+            
+            // Detectar diagramas técnicos e adicionar espaço extra (APÓS)
             const isDiagram = bloco.tipo === 'fluxograma' || 
                               bloco.tipo === 'diagrama' || 
                               bloco.tipo === 'mapa_mental' ||
                               (bloco.tipo === 'componente_react' && bloco.texto?.includes('mermaid'));
             
             if (isDiagram) {
-              imageSpacing += 10; // Diagramas: +10mm
+              imageSpacing += 10; // Diagramas: +10mm APÓS
               console.log('📊 Espaçamento extra aplicado: diagrama técnico (+10mm)');
             }
             
