@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -362,26 +363,21 @@ RETORNE APENAS JSON, SEM TEXTO ADICIONAL.
     console.log('🔒 Enviando para agente de validação...');
     
     try {
-      const validationResponse = await fetch(
-        `${Deno.env.get('SUPABASE_URL')}/functions/v1/validate-formatted-content`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': req.headers.get('Authorization') || '',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ structuredContent }),
-        }
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       );
 
-      if (validationResponse.ok) {
-        const validationData = await validationResponse.json();
-        if (validationData.validatedContent) {
-          structuredContent = validationData.validatedContent;
-          console.log('✅ Conteúdo validado e corrigido pelo agente');
-        }
+      const { data: validationData, error: validationError } = await supabase.functions.invoke(
+        'validate-formatted-content',
+        { body: { structuredContent } }
+      );
+
+      if (!validationError && validationData?.validatedContent) {
+        structuredContent = validationData.validatedContent;
+        console.log('✅ Conteúdo validado e corrigido pelo agente');
       } else {
-        console.warn('⚠️ Agente de validação falhou, usando validações básicas');
+        console.warn('⚠️ Agente de validação falhou, usando validações básicas', validationError);
         
         // Fallback: validações básicas
         if (structuredContent.conteudo && Array.isArray(structuredContent.conteudo)) {
