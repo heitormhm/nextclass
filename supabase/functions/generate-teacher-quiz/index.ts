@@ -1,0 +1,175 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { lectureId, content, title } = await req.json();
+
+    if (!lectureId || !content) {
+      throw new Error('lectureId and content are required');
+    }
+
+    // Verify lecture ownership
+    const { data: lecture, error: lectureError } = await supabaseClient
+      .from('lectures')
+      .select('teacher_id, title')
+      .eq('id', lectureId)
+      .single();
+
+    if (lectureError || !lecture || lecture.teacher_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized or lecture not found' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
+    }
+
+    const systemPrompt = `You are an expert assessment designer for engineering education. Generate a comprehensive quiz based on lecture content following Bloom's Taxonomy.
+
+Requirements:
+- 10 multiple choice questions total
+- Distribution:
+  * 2 questions: Remember (Lembrar) - facts, terminology
+  * 3 questions: Understand (Entender) - concepts, explanations
+  * 3 questions: Apply (Aplicar) - calculations, problem-solving
+  * 1 question: Analyze (Analisar) - compare, differentiate
+  * 1 question: Evaluate (Avaliar) - judge, critique
+
+Each question must have:
+- 4 alternatives (A, B, C, D)
+- Only ONE correct answer
+- Technical, precise language
+- Realistic engineering scenarios for application questions
+
+Return ONLY a valid JSON object with this structure:
+{
+  "questions": [
+    {
+      "question": "question text",
+      "alternatives": [
+        { "letter": "A", "text": "alternative A" },
+        { "letter": "B", "text": "alternative B" },
+        { "letter": "C", "text": "alternative C" },
+        { "letter": "D", "text": "alternative D" }
+      ],
+      "correctAnswer": "A",
+      "explanation": "why this is correct",
+      "bloomLevel": "Remember|Understand|Apply|Analyze|Evaluate"
+    }
+  ]
+}`;
+
+    const userPrompt = `Lecture: ${title || lecture.title}
+
+Content:
+${typeof content === 'string' ? content : JSON.stringify(content)}
+
+Generate a comprehensive quiz following the requirements.`;
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.8,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Lovable AI error:', response.status, errorText);
+      throw new Error(`AI service error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content_text = data.choices?.[0]?.message?.content;
+
+    if (!content_text) {
+      throw new Error('No response from AI');
+    }
+
+    // Parse quiz
+    let quizData;
+    const jsonMatch = content_text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      quizData = JSON.parse(jsonMatch[0]);
+    } else {
+      quizData = JSON.parse(content_text);
+    }
+
+    // Save to database
+    const { data: quiz, error: insertError } = await supabaseClient
+      .from('teacher_quizzes')
+      .insert({
+        lecture_id: lectureId,
+        teacher_id: user.id,
+        title: `Quiz: ${title || lecture.title}`,
+        questions: quizData.questions
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Database insert error:', insertError);
+      throw new Error('Failed to save quiz');
+    }
+
+    return new Response(
+      JSON.stringify({ quiz }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('Error in generate-teacher-quiz:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+});

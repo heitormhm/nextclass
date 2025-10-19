@@ -28,6 +28,7 @@ interface TranscriptSegment {
 
 const LiveLecture = () => {
   const navigate = useNavigate();
+  const lectureId = new URLSearchParams(window.location.search).get('lectureId');
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);

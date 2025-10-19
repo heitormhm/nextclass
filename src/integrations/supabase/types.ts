@@ -679,11 +679,14 @@ export type Database = {
           audio_url: string | null
           class_id: string | null
           created_at: string
+          disciplina_id: string | null
           duration: number | null
           id: string
+          lesson_plan_url: string | null
           raw_transcript: string
           status: string
           structured_content: Json | null
+          tags: string[] | null
           teacher_id: string
           title: string
           updated_at: string
@@ -692,11 +695,14 @@ export type Database = {
           audio_url?: string | null
           class_id?: string | null
           created_at?: string
+          disciplina_id?: string | null
           duration?: number | null
           id?: string
+          lesson_plan_url?: string | null
           raw_transcript: string
           status?: string
           structured_content?: Json | null
+          tags?: string[] | null
           teacher_id: string
           title?: string
           updated_at?: string
@@ -705,11 +711,14 @@ export type Database = {
           audio_url?: string | null
           class_id?: string | null
           created_at?: string
+          disciplina_id?: string | null
           duration?: number | null
           id?: string
+          lesson_plan_url?: string | null
           raw_transcript?: string
           status?: string
           structured_content?: Json | null
+          tags?: string[] | null
           teacher_id?: string
           title?: string
           updated_at?: string
@@ -720,6 +729,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lectures_disciplina_id_fkey"
+            columns: ["disciplina_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinas"
             referencedColumns: ["id"]
           },
         ]
@@ -1111,6 +1127,82 @@ export type Database = {
           used_by_teacher_id?: string | null
         }
         Relationships: []
+      }
+      teacher_flashcards: {
+        Row: {
+          cards: Json
+          created_at: string | null
+          id: string
+          lecture_id: string
+          teacher_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          cards: Json
+          created_at?: string | null
+          id?: string
+          lecture_id: string
+          teacher_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          cards?: Json
+          created_at?: string | null
+          id?: string
+          lecture_id?: string
+          teacher_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_flashcards_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_quizzes: {
+        Row: {
+          created_at: string | null
+          id: string
+          lecture_id: string
+          questions: Json
+          teacher_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lecture_id: string
+          questions: Json
+          teacher_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lecture_id?: string
+          questions?: Json
+          teacher_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_quizzes_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       teacher_turma_access: {
         Row: {

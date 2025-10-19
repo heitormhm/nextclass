@@ -291,7 +291,11 @@ const LectureTranscriptionPage = () => {
     setStructuredContent(newContent);
   };
 
-  const handlePublish = async () => {
+  const handlePublish = () => {
+    setOpenPublishModal(true);
+  };
+
+  const handlePublishConfirmed = async () => {
     if (!selectedClassId) {
       toast({
         variant: 'destructive',

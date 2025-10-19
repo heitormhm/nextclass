@@ -18,6 +18,7 @@ import { UploadMaterialModal } from '@/components/UploadMaterialModal';
 import { LessonPlanFloatingIndicator } from '@/components/LessonPlanFloatingIndicator';
 import AnnouncementModal from '@/components/AnnouncementModal';
 import { TeacherAccessCodeModal } from '@/components/TeacherAccessCodeModal';
+import { RecordLessonSetupModal } from '@/components/RecordLessonSetupModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -46,6 +47,7 @@ const TeacherDashboard = () => {
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [isRecordSetupModalOpen, setIsRecordSetupModalOpen] = useState(false);
   const [needsValidation, setNeedsValidation] = useState(false);
   const [isCheckingValidation, setIsCheckingValidation] = useState(true);
   const [teacherName, setTeacherName] = useState('');
@@ -726,11 +728,16 @@ const TeacherDashboard = () => {
         
         <LessonPlanFloatingIndicator />
         
-        <AnnouncementModal
-          open={isAnnouncementModalOpen}
-          onOpenChange={setIsAnnouncementModalOpen}
-          classes={classes}
-        />
+      <AnnouncementModal
+        open={isAnnouncementModalOpen}
+        onOpenChange={setIsAnnouncementModalOpen}
+        classes={classes}
+      />
+
+      <RecordLessonSetupModal 
+        open={isRecordSetupModalOpen}
+        onOpenChange={setIsRecordSetupModalOpen}
+      />
       </div>
     </MainLayout>
   );
