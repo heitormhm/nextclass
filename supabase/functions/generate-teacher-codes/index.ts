@@ -36,8 +36,15 @@ serve(async (req) => {
       throw new Error('Invalid token');
     }
 
-    if (user.email !== 'heitor.mhm@gmail.com') {
-      console.log(`🚫 Unauthorized code generation attempt by ${user.email}`);
+    // Verificar se o usuário tem role de admin
+    const { data: roleData, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (roleError || roleData?.role !== 'admin') {
+      console.log(`🚫 Unauthorized code generation attempt by ${user.email} (role: ${roleData?.role})`);
       return new Response(
         JSON.stringify({ error: 'Acesso negado. Apenas administradores podem gerar códigos.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
