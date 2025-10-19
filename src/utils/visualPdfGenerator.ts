@@ -202,6 +202,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
   let fullPageImagesCount = 0; // FASE 4: Rastrear imagens em full-page
   let pageBreaksPreventedForText = 0; // FASE 6: Quebras de página evitadas
   let lastBlockWasFullPage = false; // FASE 1: Controlar páginas após full-page images
+  let lastImageBottom = 0; // FASE 3: Tracking de posição de imagens
   const warnings: string[] = [];
 
   try {
@@ -790,29 +791,14 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               margin
             );
             
-            // CORREÇÃO 2: Calcular espaço disponível real após full-page
-            const imageBottom = (pageHeight - ((imageData.height / imageData.width) * (contentWidth * 0.85))) / 2 
-                              + ((imageData.height / imageData.width) * (contentWidth * 0.85)) + 15;
-            currentY = Math.min(imageBottom, pageHeight - margin - 80);
-            
-            // Verificar se próximo bloco cabe no espaço disponível
-            const nextBlockIndex = i + 1;
-            if (nextBlockIndex < options.structuredData.conteudo.length) {
-              const nextBlock = options.structuredData.conteudo[nextBlockIndex];
-              const estimatedNextHeight = nextBlock.tipo === 'paragrafo' ? 30 : 50;
-              
-              if (currentY + estimatedNextHeight > pageHeight - margin - 20) {
-                // Não cabe: adicionar nova página
-                pdf.addPage();
-                stats.totalPages++;
-                currentY = margin;
-                console.log('📄 Nova página após full-page (espaço insuficiente)');
-              } else {
-                console.log('✅ Aproveitando espaço após full-page');
-              }
-            }
-            
+            // FASE 1: SEMPRE forçar nova página após full-page (ZERO aproveitamento de espaço)
+            pdf.addPage();
+            stats.totalPages++;
+            currentY = margin;
+            lastImageBottom = pageHeight; // FASE 3: Marcar que última imagem ocupou página inteira
             lastBlockWasFullPage = true;
+            
+            console.log('✅ Full-page finalizado, forçando nova página para próximo bloco');
             console.log('📊 Estatística: Imagem renderizada em Full-Page Mode');
             
           } else {
@@ -855,12 +841,12 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               imageHeight
             );
             
-            // FASE 4: Espaçamento AGRESSIVO após imagens inline
-            let imageSpacing = 15; // AUMENTADO: 12mm → 15mm
+            // FASE 2: Espaçamento MASSIVO após imagens inline (+40%)
+            let imageSpacing = 20; // AUMENTADO: 15mm → 20mm
             if (imageHeight > 100) {
-              imageSpacing = 25; // AUMENTADO: 20mm → 25mm
+              imageSpacing = 35; // AUMENTADO: 25mm → 35mm
             } else if (imageHeight > 60) {
-              imageSpacing = 20; // AUMENTADO: 15mm → 20mm
+              imageSpacing = 28; // AUMENTADO: 20mm → 28mm
             }
             
             // Detectar diagramas técnicos e adicionar espaço extra
@@ -870,23 +856,24 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
                               (bloco.tipo === 'componente_react' && bloco.texto?.includes('mermaid'));
             
             if (isDiagram) {
-              imageSpacing += 10; // AUMENTADO: +8mm → +10mm
-              console.log('📊 Espaçamento extra aplicado: diagrama técnico (+10mm)');
+              imageSpacing += 15; // AUMENTADO: +10mm → +15mm
+              console.log('📊 Espaçamento extra aplicado: diagrama técnico (+15mm)');
             }
             
             // Se imagem foi redimensionada, adicionar buffer extra
             const originalHeight = (imageData.height / imageData.width) * imageWidth;
             const wasResized = Math.abs(imageHeight - originalHeight) > 5;
             if (wasResized) {
-              imageSpacing += 8; // AUMENTADO: +5mm → +8mm
-              console.log('🔧 Espaçamento extra: imagem redimensionada (+8mm)');
+              imageSpacing += 10; // AUMENTADO: +8mm → +10mm
+              console.log('🔧 Espaçamento extra: imagem redimensionada (+10mm)');
             }
             
             currentY += imageHeight + imageSpacing;
-            
-            // CORREÇÃO 4: Marcar que último bloco foi imagem
+            lastImageBottom = currentY; // FASE 3: Registrar onde imagem terminou
             lastBlockWasImage = true;
-            console.log(`✅ Imagem normal: ${imageWidth.toFixed(1)}mm x ${imageHeight.toFixed(1)}mm (espaçamento: ${imageSpacing}mm)`);
+            
+            console.log(`✅ Imagem inline: ${imageWidth.toFixed(1)}mm x ${imageHeight.toFixed(1)}mm (espaçamento: ${imageSpacing}mm)`);
+            console.log(`📍 Posição atual: ${currentY.toFixed(1)}mm | Última imagem: ${lastImageBottom.toFixed(1)}mm`);
           }
 
           stats.imagesCaptured++;
@@ -902,7 +889,21 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         }
       } else {
         // RENDERIZAR COMO TEXTO NATIVO
-        // (Lookahead removido - proteção agora é feita em shouldUseDedicatedPage + MINIMUM_SPACE_REQUIRED)
+        
+        // FASE 4: DETECÇÃO PROATIVA de colisão ANTES de renderizar texto
+        const MINIMUM_DISTANCE_FROM_IMAGE = 25; // 25mm de buffer de segurança
+        
+        if (lastBlockWasImage && lastImageBottom > 0) {
+          const distanceFromImage = currentY - lastImageBottom;
+          
+          if (distanceFromImage < MINIMUM_DISTANCE_FROM_IMAGE) {
+            pdf.addPage();
+            stats.totalPages++;
+            currentY = margin;
+            lastImageBottom = 0; // Reset após nova página
+            console.log(`🚨 COLISÃO EVITADA: Texto estava a ${distanceFromImage.toFixed(1)}mm da imagem (mínimo: ${MINIMUM_DISTANCE_FROM_IMAGE}mm)`);
+          }
+        }
         
         // CORREÇÃO 4: Passar flag lastBlockWasImage para ajustar espaçamento
         (bloco as any).__lastBlockWasImage = lastBlockWasImage;
