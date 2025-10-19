@@ -1267,8 +1267,11 @@ export type Database = {
           id: string
           period: string | null
           phone: string | null
+          transcription_language: string | null
           university: string | null
           updated_at: string | null
+          video_quality: string | null
+          weekly_report_enabled: boolean | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1282,8 +1285,11 @@ export type Database = {
           id: string
           period?: string | null
           phone?: string | null
+          transcription_language?: string | null
           university?: string | null
           updated_at?: string | null
+          video_quality?: string | null
+          weekly_report_enabled?: boolean | null
         }
         Update: {
           avatar_url?: string | null
@@ -1297,8 +1303,11 @@ export type Database = {
           id?: string
           period?: string | null
           phone?: string | null
+          transcription_language?: string | null
           university?: string | null
           updated_at?: string | null
+          video_quality?: string | null
+          weekly_report_enabled?: boolean | null
         }
         Relationships: []
       }

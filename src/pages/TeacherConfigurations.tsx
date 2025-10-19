@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Bell, Video, Globe, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,14 +8,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const TeacherConfigurations = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
     emailNotifications: true,
     weeklyReport: false,
     videoQuality: '1080p',
     transcriptionLanguage: 'pt-BR'
   });
+
+  useEffect(() => {
+    const fetchUserSettings = async () => {
+      if (!user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('email_notifications, weekly_report_enabled, video_quality, transcription_language')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) {
+        setSettings({
+          emailNotifications: data.email_notifications ?? true,
+          weeklyReport: data.weekly_report_enabled ?? false,
+          videoQuality: data.video_quality ?? '1080p',
+          transcriptionLanguage: data.transcription_language ?? 'pt-BR'
+        });
+      }
+      setLoading(false);
+    };
+    
+    fetchUserSettings();
+  }, [user?.id]);
 
   const handleSwitchChange = (field: string, value: boolean) => {
     setSettings(prev => ({ ...prev, [field]: value }));
@@ -25,12 +55,38 @@ const TeacherConfigurations = () => {
     setSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Sucesso",
-      description: "Configurações salvas com sucesso!",
-      variant: "default"
-    });
+  const handleSave = async () => {
+    if (!user?.id) return;
+    
+    setSaving(true);
+    
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          email_notifications: settings.emailNotifications,
+          weekly_report_enabled: settings.weeklyReport,
+          video_quality: settings.videoQuality,
+          transcription_language: settings.transcriptionLanguage
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Sucesso",
+        description: "Configurações salvas com sucesso!",
+      });
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao salvar as configurações.",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -54,9 +110,31 @@ const TeacherConfigurations = () => {
             </p>
           </div>
 
-          <div className="space-y-6">
-            {/* Notification Settings */}
-            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+          {loading ? (
+            <div className="space-y-6">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-64" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </CardContent>
+              </Card>
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-10 w-full" />
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Notification Settings */}
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bell className="h-5 w-5" />
@@ -158,17 +236,28 @@ const TeacherConfigurations = () => {
               </CardContent>
             </Card>
 
-            {/* Save Button */}
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleSave}
-                className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2"
-              >
-                <Save className="h-4 w-4" />
-                Salvar Configurações
-              </Button>
+              {/* Save Button */}
+              <div className="flex justify-end">
+                <Button 
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2"
+                >
+                  {saving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Salvar Configurações
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </MainLayout>

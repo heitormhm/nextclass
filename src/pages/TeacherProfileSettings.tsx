@@ -1,30 +1,155 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, Lock, Camera, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const TeacherProfileSettings = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [profileData, setProfileData] = useState({
-    fullName: 'Ana Santos',
-    email: 'ana.santos@netclass.com.br',
+    fullName: '',
+    email: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
-
   const [profileImage, setProfileImage] = useState('');
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('full_name, email, avatar_url')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) {
+        setProfileData({
+          fullName: data.full_name || '',
+          email: data.email || '',
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setProfileImage(data.avatar_url || '');
+      }
+      setLoading(false);
+    };
+    
+    fetchUserProfile();
+  }, [user?.id]);
 
   const handleInputChange = (field: string, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user?.id) return;
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Erro",
+        description: "A imagem deve ter no máximo 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Erro",
+        description: "Formato inválido. Use JPG, PNG ou WEBP.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setUploading(true);
+    
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('profile-pictures')
+        .upload(filePath, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-pictures')
+        .getPublicUrl(filePath);
+      
+      // Update user profile
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+      
+      if (updateError) throw updateError;
+      
+      setProfileImage(publicUrl);
+      toast({
+        title: "Sucesso",
+        description: "Foto atualizada com sucesso!",
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao fazer upload da imagem.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+    
+    // Validate full name
+    if (profileData.fullName.trim().length < 3) {
+      toast({
+        title: "Erro",
+        description: "Nome completo deve ter no mínimo 3 caracteres.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(profileData.email)) {
+      toast({
+        title: "Erro",
+        description: "Email inválido.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate passwords
     if (profileData.newPassword && profileData.newPassword !== profileData.confirmPassword) {
       toast({
         title: "Erro",
@@ -34,21 +159,59 @@ const TeacherProfileSettings = () => {
       return;
     }
 
-    toast({
-      title: "Sucesso",
-      description: "Perfil atualizado com sucesso!",
-      variant: "default"
-    });
-  };
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfileImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (profileData.newPassword && profileData.newPassword.length < 8) {
+      toast({
+        title: "Erro",
+        description: "A senha deve ter no mínimo 8 caracteres.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setSaving(true);
+    
+    try {
+      // Update profile data
+      const { error: profileError } = await supabase
+        .from('users')
+        .update({
+          full_name: profileData.fullName.trim(),
+          email: profileData.email.trim()
+        })
+        .eq('id', user.id);
+      
+      if (profileError) throw profileError;
+      
+      // Update password if provided
+      if (profileData.newPassword) {
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: profileData.newPassword
+        });
+        
+        if (passwordError) throw passwordError;
+      }
+      
+      toast({
+        title: "Sucesso",
+        description: "Perfil atualizado com sucesso!",
+      });
+      
+      // Clear password fields
+      setProfileData(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      }));
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao atualizar o perfil.",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -73,129 +236,177 @@ const TeacherProfileSettings = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Profile Picture */}
-            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Camera className="h-5 w-5" />
-                  Foto do Perfil
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <div className="mb-6">
-                  <Avatar className="w-32 h-32 mx-auto mb-4">
-                    <AvatarImage src={profileImage} alt="Profile" />
-                    <AvatarFallback className="text-2xl bg-primary text-white">AS</AvatarFallback>
-                  </Avatar>
-                </div>
-                <div>
-                  <input
-                    type="file"
-                    id="profile-image"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <Label htmlFor="profile-image">
-                    <Button asChild className="cursor-pointer">
-                      <span>
-                        <Camera className="h-4 w-4 mr-2" />
-                        Alterar Foto
-                      </span>
-                    </Button>
-                  </Label>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Profile Information */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Personal Information */}
-              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+          {loading ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] h-fit">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Informações Pessoais
-                  </CardTitle>
+                  <Skeleton className="h-6 w-32" />
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="fullName">Nome Completo</Label>
-                    <Input
-                      id="fullName"
-                      value={profileData.fullName}
-                      onChange={(e) => handleInputChange('fullName', e.target.value)}
-                      placeholder="Digite seu nome completo"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email de Contato</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      placeholder="Digite seu email"
-                    />
-                  </div>
+                <CardContent>
+                  <Skeleton className="h-32 w-32 rounded-full mx-auto mb-4" />
+                  <Skeleton className="h-10 w-full" />
                 </CardContent>
               </Card>
-
-              {/* Password Change */}
-              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Lock className="h-5 w-5" />
-                    Alterar Senha
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="currentPassword">Senha Atual</Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      value={profileData.currentPassword}
-                      onChange={(e) => handleInputChange('currentPassword', e.target.value)}
-                      placeholder="Digite sua senha atual"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="newPassword">Nova Senha</Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      value={profileData.newPassword}
-                      onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                      placeholder="Digite a nova senha"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={profileData.confirmPassword}
-                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                      placeholder="Confirme a nova senha"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Save Button */}
-              <div className="flex justify-end">
-                <Button 
-                  onClick={handleSave}
-                  className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2"
-                >
-                  <Save className="h-4 w-4" />
-                  Salvar Alterações
-                </Button>
+              <div className="lg:col-span-2 space-y-6">
+                <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+                  <CardHeader>
+                    <Skeleton className="h-6 w-48" />
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </CardContent>
+                </Card>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Profile Picture */}
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] h-fit">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="h-5 w-5" />
+                    Foto do Perfil
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <div className="mb-6">
+                    <Avatar className="w-32 h-32 mx-auto mb-4">
+                      <AvatarImage src={profileImage} alt="Profile" />
+                      <AvatarFallback className="text-2xl bg-primary text-white">
+                        {profileData.fullName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      id="profile-image"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleImageUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                    <Label htmlFor="profile-image">
+                      <Button asChild className="cursor-pointer" disabled={uploading}>
+                        <span>
+                          {uploading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Enviando...
+                            </>
+                          ) : (
+                            <>
+                              <Camera className="h-4 w-4 mr-2" />
+                              Alterar Foto
+                            </>
+                          )}
+                        </span>
+                      </Button>
+                    </Label>
+                    <p className="text-xs text-gray-500 mt-2">Máx. 5MB (JPG, PNG, WEBP)</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Profile Information */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Personal Information */}
+                <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Informações Pessoais
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="fullName">Nome Completo</Label>
+                      <Input
+                        id="fullName"
+                        value={profileData.fullName}
+                        onChange={(e) => handleInputChange('fullName', e.target.value)}
+                        placeholder="Digite seu nome completo"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">Email de Contato</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={profileData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        placeholder="Digite seu email"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Password Change */}
+                <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Lock className="h-5 w-5" />
+                      Alterar Senha
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="currentPassword">Senha Atual</Label>
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        value={profileData.currentPassword}
+                        onChange={(e) => handleInputChange('currentPassword', e.target.value)}
+                        placeholder="Digite sua senha atual"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="newPassword">Nova Senha</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={profileData.newPassword}
+                        onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                        placeholder="Digite a nova senha (mín. 8 caracteres)"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={profileData.confirmPassword}
+                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                        placeholder="Confirme a nova senha"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2"
+                  >
+                    {saving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Salvar Alterações
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </MainLayout>
