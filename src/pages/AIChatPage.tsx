@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { MultiStepLoader } from "@/components/ui/multi-step-loader";
+
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -2099,14 +2099,6 @@ const AIChatPage = () => {
         </div>
       </div>
 
-      {/* Multi-Step Loader for Deep Search */}
-      {isDeepSearchLoading && (
-        <MultiStepLoader
-          loadingStates={deepSearchSteps}
-          loading={isDeepSearchLoading}
-          currentState={deepSearchProgress}
-        />
-      )}
 
       <QuizModal
         open={isQuizModalOpen}

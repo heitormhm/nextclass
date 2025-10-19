@@ -721,39 +721,6 @@ export type Database = {
           },
         ]
       }
-      lesson_plan_jobs: {
-        Row: {
-          created_at: string
-          error_message: string | null
-          id: string
-          job_id: string
-          status: string
-          structured_content: Json | null
-          teacher_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          job_id: string
-          status: string
-          structured_content?: Json | null
-          teacher_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          job_id?: string
-          status?: string
-          structured_content?: Json | null
-          teacher_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       lesson_plans: {
         Row: {
           content: string | null

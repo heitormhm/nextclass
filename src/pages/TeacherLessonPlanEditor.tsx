@@ -8,7 +8,7 @@ import { Sparkles, Send, Loader2, Copy, Download, ArrowLeft, Mic, MicOff } from 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
-import { MultiStepLoader } from "@/components/ui/multi-step-loader";
+
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -535,19 +535,6 @@ const TeacherLessonPlanEditor = () => {
 
   return (
     <MainLayout>
-      <MultiStepLoader
-        loadingStates={loadingStates}
-        loading={isGenerating}
-        currentState={currentLoadingStep}
-        onClose={() => {
-          setIsGenerating(false);
-          setCurrentLoadingStep(0);
-          toast({
-            title: "Cancelado",
-            description: "Geração cancelada. Pode tentar novamente.",
-          });
-        }}
-      />
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background */}
         <BackgroundRippleEffect className="opacity-30" />

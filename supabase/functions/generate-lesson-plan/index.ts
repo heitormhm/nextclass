@@ -14,70 +14,31 @@ serve(async (req) => {
   try {
     const { content } = await req.json();
 
-    if (!content) {
-      return new Response(JSON.stringify({ error: 'Conteúdo não fornecido' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!content || content.trim().length < 50) {
+      return new Response(
+        JSON.stringify({ error: 'Conteúdo insuficiente para gerar plano de aula.' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY não configurada');
+      return new Response(
+        JSON.stringify({ error: 'LOVABLE_API_KEY não configurada.' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    console.log('🎓 Iniciando geração de plano de aula Master Prompt V2.0...');
+    console.log('🎓 Iniciando geração de plano de aula (síncrono)...');
 
-    // Gerar ID único para o job e pegar teacher_id do header
-    const jobId = crypto.randomUUID();
-    const authHeader = req.headers.get('authorization');
-    
-    // Extrair teacher_id do token JWT
-    let teacherId: string | null = null;
-    if (authHeader) {
-      try {
-        const token = authHeader.replace('Bearer ', '');
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        teacherId = payload.sub;
-      } catch (e) {
-        console.error('❌ Erro ao extrair teacher_id:', e);
-      }
-    }
-
-    // Criar registro inicial do job no banco
-    if (teacherId) {
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      
-      await supabase.from('lesson_plan_jobs').insert({
-        job_id: jobId,
-        teacher_id: teacherId,
-        status: 'processing',
-        created_at: new Date().toISOString()
-      });
-      
-      console.log(`✅ Job ${jobId} registrado no BD para teacher ${teacherId}`);
-    }
-
-    // Retornar resposta imediata
-    const immediateResponse = new Response(
-      JSON.stringify({ 
-        jobId, 
-        status: 'processing',
-        message: 'Plano de aula em processamento. Aguarde 2-3 minutos.' 
-      }), 
-      {
-        status: 202, // Accepted
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
-
-    // Usar waitUntil para processar em background
-    const backgroundProcessing = (async () => {
-      try {
-        console.log(`[Job ${jobId}] 🔍 Fase 1: Análise Pedagógica...`);
+    // FASE 1: Análise Pedagógica
+    console.log('🔍 Fase 1: Análise Pedagógica...');
     
     const fase1SystemPrompt = `# ARQUITETO DE EXPERIÊNCIAS DE APRENDIZAGEM
 
@@ -118,7 +79,7 @@ Crie um problema autêntico e complexo do mundo real.
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: fase1SystemPrompt },
           { role: 'user', content: `[TEXTO_BASE]:\n${content}` }
@@ -174,7 +135,7 @@ Se "suficiente": false, sugira 2-3 consultas de pesquisa específicas em inglês
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: verificacaoPrompt },
           { role: 'user', content: `[TEXTO_BASE]:\n${content}\n\n[JSON_ANALISE]:\n${JSON.stringify(jsonAnalise, null, 2)}` }
@@ -433,7 +394,7 @@ RETORNE APENAS JSON, SEM TEXTO ADICIONAL.
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: fase2SystemPrompt },
           { 
@@ -498,80 +459,40 @@ RETORNE APENAS JSON, SEM TEXTO ADICIONAL.
       });
     }
 
-    // Adicionar metadata
-    if (!structuredContent.metadata) {
-      structuredContent.metadata = {
-        disciplina: jsonAnalise.disciplina,
-        grande_area: jsonAnalise.grande_area,
-        duracao_estimada: "3-4 horas/aula",
-        problema_central: jsonAnalise.problema_central_pbl
-      };
-    }
+    // Metadados finais
+    structuredContent.metadata_geracao = {
+      modelo_usado: 'gemini-2.5-flash',
+      data_geracao: new Date().toISOString(),
+      versao_prompt: 'Master Prompt V2.0',
+    };
 
-        console.log(`[Job ${jobId}] ✅ Plano de aula gerado!`);
-        console.log(`[Job ${jobId}] 📊 Estatísticas:`, {
-          blocos_totais: structuredContent.conteudo?.length || 0,
-          momentos: structuredContent.conteudo?.filter((b: any) => b.tipo === 'momento_pedagogico').length || 0,
-          checklists: structuredContent.conteudo?.filter((b: any) => b.tipo === 'checklist').length || 0,
-          problemas_pbl: structuredContent.conteudo?.filter((b: any) => b.tipo === 'problema_pbl').length || 0
-        });
+    const stats = {
+      blocos_totais: structuredContent.conteudo?.length || 0,
+      momentos: structuredContent.conteudo?.filter((b: any) => b.tipo === 'momento_pedagogico').length || 0,
+      checklists: structuredContent.conteudo?.filter((b: any) => b.tipo === 'checklist').length || 0,
+      problemas_pbl: structuredContent.conteudo?.filter((b: any) => b.tipo === 'problema_pbl').length || 0,
+    };
 
-        // Salvar resultado no banco
-        if (teacherId) {
-          const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-          const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-          const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-          const supabase = createClient(supabaseUrl, supabaseKey);
-          
-          await supabase.from('lesson_plan_jobs').update({
-            status: 'completed',
-            structured_content: structuredContent,
-            updated_at: new Date().toISOString()
-          }).eq('job_id', jobId);
-          
-          console.log(`[Job ${jobId}] ✅ Resultado salvo no BD`);
-        }
-      } catch (error) {
-        console.error(`[Job ${jobId}] ❌ Erro:`, error);
-        
-        // Salvar erro no banco
-        if (teacherId) {
-          try {
-            const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-            const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-            const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-            const supabase = createClient(supabaseUrl, supabaseKey);
-            
-            await supabase.from('lesson_plan_jobs').update({
-              status: 'failed',
-              error_message: error instanceof Error ? error.message : 'Erro desconhecido',
-              updated_at: new Date().toISOString()
-            }).eq('job_id', jobId);
-            
-            console.log(`[Job ${jobId}] ❌ Erro salvo no BD`);
-          } catch (e) {
-            console.error(`[Job ${jobId}] ❌ Erro ao salvar erro no BD:`, e);
-          }
-        }
+    console.log('📊 Estatísticas:', stats);
+    console.log('✅ Plano de aula gerado com sucesso!');
+
+    return new Response(
+      JSON.stringify({ structured_content: structuredContent }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    })();
+    );
 
-    // Usar EdgeRuntime.waitUntil se disponível, senão executar diretamente
-    if (typeof (globalThis as any).EdgeRuntime !== 'undefined') {
-      (globalThis as any).EdgeRuntime.waitUntil(backgroundProcessing);
-    } else {
-      // Fallback: executar em background sem bloquear resposta
-      backgroundProcessing.catch(e => console.error('Background processing error:', e));
-    }
-
-    return immediateResponse;
-
-  } catch (error) {
-    console.error('❌ Erro crítico:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  } catch (error: any) {
+    console.error('❌ Erro no processamento:', error);
+    
+    return new Response(
+      JSON.stringify({ error: error.message || 'Erro ao gerar plano de aula' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });

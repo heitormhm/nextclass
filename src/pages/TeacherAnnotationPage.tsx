@@ -23,15 +23,6 @@ import { StructuredContentRenderer } from '@/components/StructuredContentRendere
 import { generateVisualPDF } from '@/utils/visualPdfGenerator';
 import { generateReportPDF } from '@/utils/pdfGenerator';
 import { structuredContentToMarkdown } from '@/utils/structuredContentToMarkdown';
-import { MultiStepLoader } from '@/components/ui/multi-step-loader';
-
-const lessonPlanLoadingStates = [
-  { text: "📚 A analisar conteúdo e objetivos de aprendizagem..." },
-  { text: "🧩 A estruturar momentos pedagógicos e atividades..." },
-  { text: "📊 A criar recursos visuais e complementares..." },
-  { text: "✅ A validar e finalizar plano de aula completo..." }
-];
-
 const TeacherAnnotationPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -56,12 +47,6 @@ const TeacherAnnotationPage = () => {
   const [hasInitializedHistory, setHasInitializedHistory] = useState(false);
   const [preAIContent, setPreAIContent] = useState<string | null>(null);
   const [originalInputContent, setOriginalInputContent] = useState<string>('');
-  
-  // Lesson Plan Loader states
-  const [showLessonPlanLoader, setShowLessonPlanLoader] = useState(false);
-  const [lessonPlanLoadingStep, setLessonPlanLoadingStep] = useState(0);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
@@ -503,98 +488,50 @@ const TeacherAnnotationPage = () => {
     
     try {
       // Lógica especial para "Gerar Plano de Aula"
-      if (actionType === 'format_lesson_plan') {
-        setShowLessonPlanLoader(true);
-        setLessonPlanLoadingStep(0);
-        
-        try {
-          // 1. Iniciar job (resposta imediata)
-          const { data: jobData, error: jobError } = await supabase.functions.invoke('generate-lesson-plan', {
-            body: { content }
-          });
+    if (actionType === 'format_lesson_plan') {
+      try {
+        toast.info('Gerando plano de aula... 📚', {
+          description: 'Aguarde 60-90 segundos',
+          duration: 5000,
+        });
 
-          if (jobError) throw jobError;
-          
-          const jobId = jobData.jobId;
-          console.log(`[Plano de Aula] Job iniciado: ${jobId}`);
-          
-            // 2. Simular progresso visual (4 etapas × 40s = 160s ≈ 2min 40s)
-            progressIntervalRef.current = setInterval(() => {
-              setLessonPlanLoadingStep((prev) => 
-                prev < lessonPlanLoadingStates.length - 1 ? prev + 1 : prev
-              );
-            }, 40000);
-            
-            // 3. Polling para verificar conclusão
-            pollIntervalRef.current = setInterval(async () => {
-              try {
-                const { data: jobStatus, error: pollError } = await supabase
-                  .from('lesson_plan_jobs')
-                  .select('*')
-                  .eq('job_id', jobId)
-                  .single();
-                
-                // Se não encontrou job ainda, continuar esperando
-                if (pollError && pollError.code === 'PGRST116') {
-                  console.log('[Polling] Job ainda não processado, aguardando...');
-                  return;
-                }
-                
-                if (pollError) {
-                  console.error('[Polling] Erro:', pollError);
-                  return;
-                }
-              
-                if (jobStatus.status === 'completed') {
-                  if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-                  if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-                
-                console.log('[Plano de Aula] ✅ Concluído! Aplicando resultado...');
-                
-                // Aplicar resultado (type assertion para o JSON estruturado)
-                const structuredData = jobStatus.structured_content as any;
-                const jsonContent = JSON.stringify(structuredData);
-                setContent(jsonContent);
-                setStructuredContent(structuredData);
-                setIsStructuredMode(true);
-                
-                if (editorRef.current) {
-                  editorRef.current.innerHTML = '';
-                }
-                
-                saveToHistory(jsonContent);
-                
-                setShowLessonPlanLoader(false);
-                setLessonPlanLoadingStep(0);
-                
-                toast.success('Plano de aula gerado! 🎓', {
-                  description: `${structuredData?.conteudo?.length || 0} blocos pedagógicos criados`,
-                  duration: 5000,
-                });
-                setIsProcessingAI(false);
-              } else if (jobStatus.status === 'failed') {
-                if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-                if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-                setShowLessonPlanLoader(false);
-                toast.error(`Erro ao gerar plano de aula: ${jobStatus.error_message || 'Erro desconhecido'}`);
-                setIsProcessingAI(false);
-              }
-            } catch (pollError) {
-              console.error('[Polling] Erro na verificação:', pollError);
-            }
-          }, 5000); // Verificar a cada 5 segundos
-          
-          } catch (error) {
-            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-            setShowLessonPlanLoader(false);
-            console.error('[Plano de Aula] Erro:', error);
-            toast.error('Erro ao iniciar geração do plano de aula');
-            setIsProcessingAI(false);
-            throw error;
-          }
-        return; // Não continuar para as outras ações
+        const { data, error } = await supabase.functions.invoke('generate-lesson-plan', {
+          body: { content }
+        });
+
+        if (error) {
+          console.error('[Plano de Aula] Erro:', error);
+          toast.error('Erro ao gerar plano de aula');
+          setIsProcessingAI(false);
+          return;
+        }
+        
+        const structuredData = data.structured_content;
+        const jsonContent = JSON.stringify(structuredData);
+        
+        setContent(jsonContent);
+        setStructuredContent(structuredData);
+        setIsStructuredMode(true);
+        
+        if (editorRef.current) {
+          editorRef.current.innerHTML = '';
+        }
+        
+        saveToHistory(jsonContent);
+        
+        toast.success('Plano de aula gerado! 🎓', {
+          description: `${structuredData?.conteudo?.length || 0} blocos pedagógicos criados`,
+          duration: 5000,
+        });
+        setIsProcessingAI(false);
+        
+      } catch (error) {
+        console.error('[Plano de Aula] Erro:', error);
+        toast.error('Erro ao gerar plano de aula');
+        setIsProcessingAI(false);
       }
+      return;
+    }
       
       // Para outras ações, usar a edge function padrão
       const { data, error } = await supabase.functions.invoke('teacher-ai-text-formatting', {
@@ -1507,22 +1444,6 @@ const TeacherAnnotationPage = () => {
           </DialogContent>
         </Dialog>
 
-        {/* MultiStepLoader para Geração de Plano de Aula */}
-        {showLessonPlanLoader && (
-          <MultiStepLoader
-            loadingStates={lessonPlanLoadingStates}
-            loading={showLessonPlanLoader}
-            currentState={lessonPlanLoadingStep}
-          onClose={() => {
-            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-            setShowLessonPlanLoader(false);
-            toast.info('✅ Processamento continua em background. Aguarde a notificação de conclusão.', {
-              duration: 6000
-            });
-          }}
-          />
-        )}
       </div>
     </MainLayout>
   );

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation, FileDown } from "lucide-react";
-import { MultiStepLoader } from "@/components/ui/multi-step-loader";
+
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -1356,14 +1356,6 @@ const TeacherAIChatPage = () => {
           </SheetContent>
         </Sheet>
 
-        {/* Multi-Step Loader para Busca Profunda */}
-        {isDeepSearchLoading && (
-          <MultiStepLoader
-            loadingStates={deepSearchSteps}
-            loading={isDeepSearchLoading}
-            currentState={deepSearchProgress}
-          />
-        )}
       </div>
     </MainLayout>
   );
