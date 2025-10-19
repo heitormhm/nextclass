@@ -257,23 +257,6 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
         );
       
       case 'grafico':
-        console.log('[Grafico] Renderizando:', {
-          titulo: bloco.titulo,
-          tipo: bloco.tipo_grafico,
-          dados_estrutura: bloco.dados?.length > 0 ? Object.keys(bloco.dados[0]) : 'vazio',
-          dados_sample: bloco.dados?.[0]
-        });
-        
-        // Validar dados antes de renderizar
-        if (!bloco.dados || !Array.isArray(bloco.dados) || bloco.dados.length === 0) {
-          console.error('[Grafico] ❌ Dados ausentes ou inválidos:', bloco.titulo);
-          return (
-            <div key={index} className="bg-destructive/10 border-2 border-destructive p-4 rounded-lg my-4">
-              <p className="text-destructive font-semibold">⚠️ Gráfico "{bloco.titulo}": Dados inválidos ou ausentes</p>
-            </div>
-          );
-        }
-        
         return (
           <InteractiveChart
             key={index}

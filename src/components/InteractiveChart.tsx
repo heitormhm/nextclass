@@ -28,23 +28,9 @@ const COLORS = [
 ];
 
 export const InteractiveChart = ({ title, description, tipo_grafico, dados }: InteractiveChartProps) => {
-  // Normalizar dados para formato esperado
-  const normalizedData = dados.map((item: any) => {
-    // Se já está no formato correto, retornar
-    if ('categoria' in item && 'valor' in item) {
-      return item;
-    }
-    
-    // Tentar extrair de outros formatos comuns
-    const categoria = item.categoria || item.x || item.nome || item.label || item.name || 'N/A';
-    const valor = item.valor || item.y || item.quantidade || item.value || item.porcentagem || 0;
-    
-    return { categoria: String(categoria), valor: Number(valor) };
-  });
-
   const getChartHeight = () => {
     if (tipo_grafico === 'pizza') return 380;
-    if (tipo_grafico === 'barras' && normalizedData.length > 10) return 450;
+    if (tipo_grafico === 'barras' && dados.length > 10) return 450;
     return 320;
   };
 
@@ -52,7 +38,7 @@ export const InteractiveChart = ({ title, description, tipo_grafico, dados }: In
     switch (tipo_grafico) {
       case 'barras':
         return (
-          <BarChart data={normalizedData}>
+          <BarChart data={dados}>
             <defs>
               <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.9}/>
@@ -78,7 +64,7 @@ export const InteractiveChart = ({ title, description, tipo_grafico, dados }: In
         return (
           <PieChart>
             <Pie 
-              data={normalizedData}
+              data={dados} 
               dataKey="valor" 
               nameKey="categoria" 
               cx="50%" 
@@ -86,7 +72,7 @@ export const InteractiveChart = ({ title, description, tipo_grafico, dados }: In
               outerRadius={120}
               label={(entry) => `${entry.categoria}: ${entry.valor}`}
             >
-              {normalizedData.map((_, index) => (
+              {dados.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
@@ -103,7 +89,7 @@ export const InteractiveChart = ({ title, description, tipo_grafico, dados }: In
       
       case 'linha':
         return (
-          <LineChart data={normalizedData}>
+          <LineChart data={dados}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="categoria" stroke="hsl(var(--muted-foreground))" />
             <YAxis stroke="hsl(var(--muted-foreground))" />

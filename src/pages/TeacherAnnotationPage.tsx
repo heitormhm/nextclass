@@ -66,9 +66,6 @@ const TeacherAnnotationPage = () => {
   // Voice transcription refs
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // 🔒 Camada 3: Lock para proteção anti-loop
-  const processingLockRef = useRef<boolean>(false);
 
   useEffect(() => {
     const loadAnnotation = async () => {
@@ -472,18 +469,6 @@ const TeacherAnnotationPage = () => {
   };
 
   const handleAIAction = async (actionType: string) => {
-    // 🔒 Camada 1: Check de estado isProcessingAI
-    if (isProcessingAI) {
-      console.warn('[Anti-Loop] ⚠️ Chamada bloqueada - isProcessingAI já está true');
-      return;
-    }
-    
-    // 🔒 Camada 3: Check do lock ref
-    if (processingLockRef.current) {
-      console.warn('[Anti-Loop] ⚠️ Chamada bloqueada - processingLockRef já está true');
-      return;
-    }
-    
     if (!content.trim()) {
       toast.error('Escreva conteúdo antes de usar a IA');
       return;
@@ -500,9 +485,7 @@ const TeacherAnnotationPage = () => {
       console.log('[AI Action] ✅ originalInputContent salvo pela primeira vez');
     }
     
-    // 🔒 Ativar ambos os locks
     setIsProcessingAI(true);
-    processingLockRef.current = true;
     
     try {
       // Lógica especial para "Gerar Plano de Aula"
@@ -536,7 +519,6 @@ const TeacherAnnotationPage = () => {
             duration: 5000,
           });
           setIsProcessingAI(false);
-          processingLockRef.current = false; // 🔒 Liberar lock
           return;
         }
       }
@@ -596,7 +578,6 @@ const TeacherAnnotationPage = () => {
                 duration: 5000,
               });
               setIsProcessingAI(false);
-              processingLockRef.current = false; // 🔒 Liberar lock
               return; // ✅ IMPORTANTE: Return early para não continuar com lógica HTML
             }
           } catch (jsonError) {
@@ -621,7 +602,6 @@ const TeacherAnnotationPage = () => {
       }
       
       setIsProcessingAI(false);
-      processingLockRef.current = false; // 🔒 Liberar lock
       
       // Se não for conteúdo estruturado, mas foi formatação de IA
       if (actionType !== 'improve_didactic' && actionType !== 'format_lesson_plan') {
@@ -647,7 +627,6 @@ const TeacherAnnotationPage = () => {
       }
       
       setIsProcessingAI(false);
-      processingLockRef.current = false; // 🔒 Liberar lock no erro também
     }
   };
 
@@ -1302,11 +1281,7 @@ const TeacherAnnotationPage = () => {
             <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
               🎓 Ferramentas Pedagógicas
             </DropdownMenuLabel>
-            <DropdownMenuItem 
-              onClick={() => handleAIAction('format_lesson_plan')} 
-              className="cursor-pointer pl-6 py-2"
-              disabled={isProcessingAI}
-            >
+            <DropdownMenuItem onClick={() => handleAIAction('format_lesson_plan')} className="cursor-pointer pl-6 py-2">
               <BookOpen className="h-4 w-4 mr-2 text-blue-600" />
               <div className="flex flex-col">
                 <span className="font-medium">Gerar Plano de Aula</span>

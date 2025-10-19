@@ -127,9 +127,6 @@ verify_jwt = true
 [functions.upload-library-material]
 verify_jwt = true
 
-[functions.validate-formatted-content]
-verify_jwt = true
-
 [functions.generate-lesson-plan]
 verify_jwt = true
 
@@ -155,6 +152,9 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.teacher-ai-text-formatting]
+verify_jwt = true
+
+[functions.validate-formatted-content]
 verify_jwt = true
 
 [functions.send-teacher-event-notification]

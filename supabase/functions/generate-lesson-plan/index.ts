@@ -1,6 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -261,22 +260,7 @@ Com base no {JSON_ANALISE} e {TEXTO_BASE_ENRIQUECIDO}, crie um plano de aula pro
 - checklist
 - mapa_mental (Mermaid mindmap)
 - fluxograma (Mermaid graph)
-- grafico (barras, pizza, linha) → **FORMATO OBRIGATÓRIO DOS DADOS**:
-  {
-    "tipo": "grafico",
-    "titulo": "string",
-    "descricao": "string",
-    "tipo_grafico": "barras" | "pizza" | "linha",
-    "dados": [
-      { "categoria": "string", "valor": number },
-      { "categoria": "string", "valor": number }
-    ]
-  }
-  ⚠️ **ATENÇÃO CRÍTICA**: Campo 'dados' OBRIGATORIAMENTE deve ter:
-  - **"categoria"** (string): Nome da categoria/eixo X
-  - **"valor"** (number): Valor numérico
-  ❌ **NÃO USE**: "x", "y", "nome", "quantidade", "porcentagem", "label"
-  ✅ **USE SEMPRE**: "categoria" e "valor"
+- grafico (barras, pizza, linha)
 - referencias
 
 ### BLOCOS PROIBIDOS (NÃO USAR):
@@ -359,43 +343,39 @@ RETORNE APENAS JSON, SEM TEXTO ADICIONAL.
       throw new Error('Falha ao parsear conteúdo estruturado');
     }
 
-    // 🔒 Chamar Agente de Validação
-    console.log('🔒 Enviando para agente de validação...');
-    
-    try {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
+    // VALIDAÇÕES DE SEGURANÇA
+    console.log('🔒 Aplicando validações...');
 
-      const { data: validationData, error: validationError } = await supabase.functions.invoke(
-        'validate-formatted-content',
-        { body: { structuredContent } }
-      );
-
-      if (!validationError && validationData?.validatedContent) {
-        structuredContent = validationData.validatedContent;
-        console.log('✅ Conteúdo validado e corrigido pelo agente');
-      } else {
-        console.warn('⚠️ Agente de validação falhou, usando validações básicas', validationError);
-        
-        // Fallback: validações básicas
-        if (structuredContent.conteudo && Array.isArray(structuredContent.conteudo)) {
-          structuredContent.conteudo = structuredContent.conteudo.map((bloco: any) => {
-            // Sanitizar Mermaid
-            if (bloco.definicao_mermaid) {
-              bloco.definicao_mermaid = bloco.definicao_mermaid
-                .replace(/→/g, '-->')
-                .replace(/\\\\n/g, '\\n')
-                .replace(/[\u2192\u21D2\u27A1]/g, '-->')
-                .trim();
-            }
-            return bloco;
-          });
+    if (structuredContent.conteudo && Array.isArray(structuredContent.conteudo)) {
+      structuredContent.conteudo = structuredContent.conteudo.map((bloco: any) => {
+        // Sanitizar Mermaid
+        if (bloco.definicao_mermaid) {
+          bloco.definicao_mermaid = bloco.definicao_mermaid
+            .replace(/→/g, '-->')
+            .replace(/\\\\n/g, '\\n')
+            .replace(/[\u2192\u21D2\u27A1]/g, '-->')
+            .trim();
+          
+          if (!bloco.definicao_mermaid.match(/^(graph|flowchart|gantt|mindmap|pie|journey)/)) {
+            console.warn('⚠️ Diagrama Mermaid inválido:', bloco.titulo);
+            delete bloco.definicao_mermaid;
+          }
         }
-      }
-    } catch (validationError) {
-      console.warn('⚠️ Erro ao chamar agente de validação:', validationError);
+
+        // Garantir <br><br> em referências
+        if (bloco.tipo === 'referencias' && bloco.itens) {
+          bloco.itens = bloco.itens.map((ref: string) => 
+            ref.endsWith('<br><br>') ? ref : ref + '<br><br>'
+          );
+        }
+
+        // Limitar HTML
+        if (bloco.texto && typeof bloco.texto === 'string') {
+          bloco.texto = bloco.texto.replace(/<(?!\/?(?:strong|em|br|u)\b)[^>]+>/gi, '');
+        }
+
+        return bloco;
+      });
     }
 
     // Adicionar metadata
