@@ -74,6 +74,13 @@ const AuthPage = () => {
           if (afyaMC) {
             signupForm.setValue('university', afyaMC.faculdade);
             signupForm.setValue('city', afyaMC.cidade);
+            
+            // Toast de confirmação com delay para não aparecer muito rápido
+            setTimeout(() => {
+              toast.success('🎓 Instituição pré-selecionada: Centro Universitário Afya Montes Claros', {
+                duration: 3000,
+              });
+            }, 800);
           } else {
             // Fallback: primeira faculdade disponível
             signupForm.setValue('university', data[0].faculdade);
@@ -185,12 +192,20 @@ const AuthPage = () => {
     }
 
     if (!data.university) {
-      signupForm.setError('university', { message: 'Selecione sua faculdade' });
+      signupForm.setError('university', { 
+        message: 'Por favor, confirme sua instituição de ensino' 
+      });
+      setStep(2);
+      toast.error('Por favor, confirme sua instituição antes de continuar');
       return;
     }
     
     if (selectedRole === 'student' && !data.period) {
-      signupForm.setError('period', { message: 'Selecione seu período atual' });
+      signupForm.setError('period', { 
+        message: 'Selecione o período que você está cursando' 
+      });
+      setStep(2);
+      toast.error('Por favor, selecione seu período atual');
       return;
     }
     
@@ -513,10 +528,42 @@ const AuthPage = () => {
                     {/* Step 2: Dados Acadêmicos */}
                     {step === 2 && (
                       <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                        {/* Contextual Description */}
+                        <div className="text-center space-y-1 mb-2">
+                          <p className="text-sm text-muted-foreground">
+                            {selectedRole === 'teacher' 
+                              ? 'Confirme os dados da sua instituição' 
+                              : 'Confirme sua instituição e selecione seu período atual'}
+                          </p>
+                          {selectedRole === 'student' && (
+                            <p className="text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full inline-block">
+                              💡 Você será automaticamente matriculado na turma do seu período
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Loading State */}
+                        {isLoadingTurmas && (
+                          <div className="flex items-center justify-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg animate-pulse">
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-sm text-blue-700 font-medium">
+                              Carregando informações da instituição...
+                            </span>
+                          </div>
+                        )}
+
                         <div className="space-y-2">
                           <Label htmlFor="signup-university" className="text-sm font-medium">
-                            {selectedRole === 'teacher' ? 'Instituição de Ensino' : 'Sua Faculdade'}
+                            {selectedRole === 'teacher' ? '🏫 Instituição de Ensino' : '🎓 Sua Instituição'}
                           </Label>
+                          
+                          {/* Badge de Pré-selecionado */}
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1">
+                              ✓ Pré-selecionado
+                            </span>
+                          </div>
+                          
                           <Select
                             defaultValue="Centro Universitário Afya Montes Claros"
                             value={signupForm.watch('university') || 'Centro Universitário Afya Montes Claros'}
@@ -529,8 +576,8 @@ const AuthPage = () => {
                             }}
                             disabled={isLoadingTurmas}
                           >
-                            <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/50 focus:ring-primary">
-                              <SelectValue placeholder={isLoadingTurmas ? "Carregando..." : "Centro Universitário Afya Montes Claros"} />
+                            <SelectTrigger className="w-full transition-all duration-200 border-green-300 bg-green-50/50 hover:bg-green-50 hover:border-green-400 focus:ring-green-500">
+                              <SelectValue placeholder={isLoadingTurmas ? "⏳ Carregando..." : "Centro Universitário Afya Montes Claros"} />
                             </SelectTrigger>
                             <SelectContent>
                               {uniqueFaculdades.map((faculdade) => (
@@ -541,15 +588,21 @@ const AuthPage = () => {
                             </SelectContent>
                           </Select>
                           {signupForm.formState.errors.university && (
-                            <p className="text-sm text-destructive animate-in slide-in-from-left-1">
-                              {signupForm.formState.errors.university.message}
+                            <p className="text-sm text-destructive animate-in slide-in-from-left-1 flex items-center gap-1">
+                              ⚠️ {signupForm.formState.errors.university.message}
                             </p>
                           )}
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Você pode alterar se necessário
+                          </p>
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="signup-city" className="text-sm font-medium">
-                            Localização do Campus
+                            📍 Localização do Campus
                           </Label>
                           <Input
                             id="signup-city"
@@ -568,7 +621,7 @@ const AuthPage = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="signup-course">Curso</Label>
+                          <Label htmlFor="signup-course" className="text-sm font-medium">🎯 Curso</Label>
                           <Input
                             id="signup-course"
                             type="text"
@@ -583,30 +636,40 @@ const AuthPage = () => {
                         {selectedRole === 'student' && (
                           <div className="space-y-2">
                             <Label htmlFor="signup-period" className="text-sm font-medium">
-                              Período/Semestre Atual
+                              📚 Período/Semestre Atual
                             </Label>
                             <Select
                               onValueChange={(value) => signupForm.setValue('period', value)}
                               disabled={isLoadingTurmas}
                             >
                               <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/50 focus:ring-primary">
-                                <SelectValue placeholder={isLoadingTurmas ? "Carregando..." : "Ex: 3º Período"} />
+                                <SelectValue placeholder={isLoadingTurmas ? "⏳ Carregando períodos..." : "Selecione seu período (1º a 10º)"} />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="max-h-64">
                                 {uniquePeriodos.map((periodo) => (
-                                  <SelectItem key={periodo} value={periodo.toString()}>
-                                    {periodo}º Período
+                                  <SelectItem 
+                                    key={periodo} 
+                                    value={periodo.toString()}
+                                    className="flex items-center justify-between"
+                                  >
+                                    <span className="flex items-center gap-2">
+                                      <span className="font-semibold text-primary">{periodo}º</span>
+                                      <span className="text-muted-foreground">Período</span>
+                                    </span>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                             {signupForm.formState.errors.period && (
-                              <p className="text-sm text-destructive animate-in slide-in-from-left-1">
-                                {signupForm.formState.errors.period.message}
+                              <p className="text-sm text-destructive animate-in slide-in-from-left-1 flex items-center gap-1">
+                                ⚠️ {signupForm.formState.errors.period.message}
                               </p>
                             )}
-                            <p className="text-xs text-slate-500">
-                              Seu período será usado para personalizar seus conteúdos
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Seu período será usado para personalizar seus conteúdos e turma
                             </p>
                           </div>
                         )}
