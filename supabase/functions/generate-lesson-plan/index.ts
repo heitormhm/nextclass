@@ -72,6 +72,7 @@ Identifique 3-5 conceitos-chave fundamentais.
 Crie um problema autêntico e complexo do mundo real.
 `;
 
+    console.log('📤 Chamando Lovable AI para Fase 1...');
     const fase1Response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -88,8 +89,19 @@ Crie um problema autêntico e complexo do mundo real.
       }),
     });
 
+    console.log(`📥 Resposta da API Fase 1 - Status: ${fase1Response.status}`);
+
     if (!fase1Response.ok) {
-      throw new Error(`Fase 1 falhou: ${fase1Response.status}`);
+      const errorText = await fase1Response.text();
+      console.error('❌ Erro da API Fase 1:', errorText);
+      
+      if (fase1Response.status === 429) {
+        throw new Error('Rate limit excedido. Aguarde alguns minutos e tente novamente.');
+      }
+      if (fase1Response.status === 402) {
+        throw new Error('Créditos insuficientes no Lovable AI. Adicione créditos em Settings > Workspace > Usage.');
+      }
+      throw new Error(`Fase 1 falhou (${fase1Response.status}): ${errorText}`);
     }
 
     const fase1Data = await fase1Response.json();
@@ -128,6 +140,7 @@ CRITÉRIOS:
 
 Se "suficiente": false, sugira 2-3 consultas de pesquisa específicas em inglês.`;
 
+    console.log('📤 Chamando Lovable AI para verificação de suficiência...');
     const verificacaoResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -143,6 +156,21 @@ Se "suficiente": false, sugira 2-3 consultas de pesquisa específicas em inglês
         temperature: 0.2,
       }),
     });
+
+    console.log(`📥 Resposta da API Verificação - Status: ${verificacaoResponse.status}`);
+
+    if (!verificacaoResponse.ok) {
+      const errorText = await verificacaoResponse.text();
+      console.error('❌ Erro da API Verificação:', errorText);
+      
+      if (verificacaoResponse.status === 429) {
+        throw new Error('Rate limit excedido. Aguarde alguns minutos e tente novamente.');
+      }
+      if (verificacaoResponse.status === 402) {
+        throw new Error('Créditos insuficientes no Lovable AI. Adicione créditos em Settings > Workspace > Usage.');
+      }
+      throw new Error(`Verificação falhou (${verificacaoResponse.status}): ${errorText}`);
+    }
 
     let verificacao: { suficiente: boolean; justificativa?: string; lacunas_identificadas?: string[]; consultas_sugeridas?: string[] } = { suficiente: true };
     try {
@@ -387,6 +415,7 @@ NUNCA gerar mais de 3 elementos visuais seguidos sem um parágrafo explicativo!
 RETORNE APENAS JSON, SEM TEXTO ADICIONAL.
 `;
 
+    console.log('📤 Chamando Lovable AI para Fase 2 (geração estruturada)...');
     const fase2Response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -406,8 +435,19 @@ RETORNE APENAS JSON, SEM TEXTO ADICIONAL.
       }),
     });
 
+    console.log(`📥 Resposta da API Fase 2 - Status: ${fase2Response.status}`);
+
     if (!fase2Response.ok) {
-      throw new Error(`Fase 2 falhou: ${fase2Response.status}`);
+      const errorText = await fase2Response.text();
+      console.error('❌ Erro da API Fase 2:', errorText);
+      
+      if (fase2Response.status === 429) {
+        throw new Error('Rate limit excedido. Aguarde alguns minutos e tente novamente.');
+      }
+      if (fase2Response.status === 402) {
+        throw new Error('Créditos insuficientes no Lovable AI. Adicione créditos em Settings > Workspace > Usage.');
+      }
+      throw new Error(`Fase 2 falhou (${fase2Response.status}): ${errorText}`);
     }
 
     const fase2Data = await fase2Response.json();
