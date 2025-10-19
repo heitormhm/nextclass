@@ -4,7 +4,7 @@ import {
   ImagePlus, Type, Save, ArrowLeft, Tag, 
   Sparkles, X, Loader2, CheckCircle2, FileText, FileDown,
   Mic, Undo, Redo, BookOpen, Table as TableIcon, 
-  Lightbulb, GraduationCap
+  Lightbulb, GraduationCap, ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -1201,7 +1201,15 @@ const TeacherAnnotationPage = () => {
               </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="left" align="end" className="w-80 p-2 max-h-[80vh] overflow-y-auto">
+          <DropdownMenuContent 
+            side="left" 
+            align="end" 
+            className="w-80 p-2 max-h-[80vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgb(209 213 219) transparent'
+            }}
+          >
             <DropdownMenuLabel className="text-blue-600 font-semibold flex items-center gap-2 text-base">
               <Sparkles className="h-5 w-5" />
               Assistente IA Mia
@@ -1213,45 +1221,16 @@ const TeacherAnnotationPage = () => {
               <span className="font-medium">Corrigir erros gramaticais</span>
             </DropdownMenuItem>
             
-            <DropdownMenuSeparator className="my-2" />
-            
-            <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
-              📝 Ajustar Tom
-            </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleAIAction('tone_formal')} className="cursor-pointer pl-6 py-2">
-              <FileText className="h-4 w-4 mr-2 text-blue-600" />
-              <div className="flex flex-col">
-                <span className="font-medium">Tom Formal</span>
-                <span className="text-xs text-muted-foreground">Vocabulário técnico e preciso</span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAIAction('tone_informal')} className="cursor-pointer pl-6 py-2">
-              <FileText className="h-4 w-4 mr-2 text-orange-600" />
-              <div className="flex flex-col">
-                <span className="font-medium">Tom Informal</span>
-                <span className="text-xs text-muted-foreground">Linguagem do dia a dia</span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAIAction('tone_professional')} className="cursor-pointer pl-6 py-2">
-              <FileText className="h-4 w-4 mr-2 text-purple-600" />
-              <div className="flex flex-col">
-                <span className="font-medium">Tom Profissional</span>
-                <span className="text-xs text-muted-foreground">Jargão técnico especializado</span>
-              </div>
+            <DropdownMenuItem onClick={() => handleAIAction('fact_check')} className="cursor-pointer py-3">
+              <ShieldCheck className="h-4 w-4 mr-2 text-blue-600" />
+              <span className="font-medium">Fact Checking</span>
             </DropdownMenuItem>
             
             <DropdownMenuSeparator className="my-2" />
             
             <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
-              ✨ Melhorias Didáticas
+              ✏️ Edição de Conteúdo
             </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleAIAction('improve_didactic')} className="cursor-pointer pl-6 py-2">
-              <GraduationCap className="h-4 w-4 mr-2 text-purple-600" />
-              <div className="flex flex-col">
-                <span className="font-medium">Tornar mais Didático</span>
-                <span className="text-xs text-muted-foreground">Adicione exemplos e simplificações</span>
-              </div>
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAIAction('expand')} className="cursor-pointer pl-6 py-2">
               <Sparkles className="h-4 w-4 mr-2 text-blue-600" />
               <span className="font-medium">Expandir conteúdo</span>
@@ -1273,18 +1252,18 @@ const TeacherAnnotationPage = () => {
                 <span className="text-xs text-muted-foreground">Estrutura pedagógica completa</span>
               </div>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAIAction('create_rubric')} className="cursor-pointer pl-6 py-2">
-              <TableIcon className="h-4 w-4 mr-2 text-green-600" />
-              <div className="flex flex-col">
-                <span className="font-medium">Criar Rubrica de Avaliação</span>
-                <span className="text-xs text-muted-foreground">Tabela de critérios e níveis</span>
-              </div>
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAIAction('generate_activity')} className="cursor-pointer pl-6 py-2">
               <Lightbulb className="h-4 w-4 mr-2 text-orange-600" />
               <div className="flex flex-col">
                 <span className="font-medium">Gerar Roteiro de Atividade</span>
                 <span className="text-xs text-muted-foreground">Passo a passo prático</span>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleAIAction('improve_didactic')} className="cursor-pointer pl-6 py-2">
+              <GraduationCap className="h-4 w-4 mr-2 text-purple-600" />
+              <div className="flex flex-col">
+                <span className="font-medium">Gerar Material Educativo</span>
+                <span className="text-xs text-muted-foreground">Conteúdo de Apoio Didático para seus Alunos</span>
               </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
