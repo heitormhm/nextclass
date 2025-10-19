@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Mic, Type, FileText, Sparkles, Loader2, GraduationCap, BookOpen, X, CheckCircle2 } from 'lucide-react';
+import { Mic, Type, FileText, Sparkles, Loader2, GraduationCap, BookOpen, X, CheckCircle2, Plus, ArrowRight } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
@@ -35,6 +36,11 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
   const [generatingTags, setGeneratingTags] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(true);
+  const [showCreateDisciplina, setShowCreateDisciplina] = useState(false);
+  const [creatingDisciplina, setCreatingDisciplina] = useState(false);
+  const [newDisciplinaNome, setNewDisciplinaNome] = useState('');
+  const [newDisciplinaCodigo, setNewDisciplinaCodigo] = useState('');
+  const [newDisciplinaCargaHoraria, setNewDisciplinaCargaHoraria] = useState('');
 
   const { isRecording, startRecording, stopRecording, onTranscriptionReceived } = useAudioRecorder();
 
@@ -166,6 +172,52 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
     }
   };
 
+  const handleCreateDisciplina = async () => {
+    if (!newDisciplinaNome || !selectedTurma) return;
+    
+    setCreatingDisciplina(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      
+      const { data, error } = await supabase
+        .from('disciplinas')
+        .insert({
+          nome: newDisciplinaNome,
+          codigo: newDisciplinaCodigo || null,
+          carga_horaria: newDisciplinaCargaHoraria ? parseInt(newDisciplinaCargaHoraria) : null,
+          teacher_id: user.id,
+          turma_id: selectedTurma,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      setDisciplinas(prev => [...prev, data]);
+      setSelectedDisciplina(data.id);
+      setShowCreateDisciplina(false);
+      
+      setNewDisciplinaNome('');
+      setNewDisciplinaCodigo('');
+      setNewDisciplinaCargaHoraria('');
+      
+      toast({
+        title: 'Disciplina criada!',
+        description: `${data.nome} foi adicionada à turma`,
+      });
+    } catch (error) {
+      console.error('Error creating disciplina:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível criar a disciplina',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreatingDisciplina(false);
+    }
+  };
+
   const handleStartRecording = async () => {
     if (!theme || !selectedTurma || !selectedDisciplina) {
       toast({
@@ -240,7 +292,7 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col custom-scrollbar">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl font-bold">Nova Gravação de Aula</DialogTitle>
           <DialogDescription>
@@ -249,10 +301,10 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
         </DialogHeader>
 
         {step === 'input' ? (
-          <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto px-1 minimal-scrollbar">
             <div className="space-y-6 py-4">
-              {/* Hero Section - Theme Input */}
-              <div className="space-y-3">
+              {/* Hero Section - Theme Input - Glassmorphism */}
+              <div className="space-y-3 backdrop-blur-md bg-white/8 dark:bg-white/5 border border-white/12 shadow-[0_4px_6px_rgba(0,0,0,0.05),0_10px_15px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <Label className="text-base font-semibold flex items-center gap-2">
                     🎯 Tema da Aula <span className="text-destructive">*</span>
@@ -320,10 +372,11 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                 )}
               </div>
 
-              {/* Primary Fields - Turma & Disciplina */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/20 border">
-                {/* Turma */}
-                <div className="space-y-2">
+              {/* Primary Fields - Turma & Disciplina - Glassmorphism */}
+              <div className="backdrop-blur-md bg-white/6 dark:bg-white/4 border border-white/10 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-start">
+                  {/* Turma */}
+                  <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <GraduationCap className="h-4 w-4" />
                     Turma <span className="text-destructive">*</span>
@@ -350,10 +403,16 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                       </SelectContent>
                     </Select>
                   )}
-                </div>
+                  </div>
 
-                {/* Disciplina */}
-                <div className="space-y-2">
+                  {/* Arrow indicator */}
+                  <div className="hidden md:flex items-center justify-center pt-8">
+                    <ArrowRight className="h-5 w-5 text-muted-foreground/50" />
+                  </div>
+                  <div className="md:hidden h-px bg-border/50 my-2" />
+
+                  {/* Disciplina */}
+                  <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <BookOpen className="h-4 w-4" />
                     Disciplina <span className="text-destructive">*</span>
@@ -361,39 +420,138 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                   {loadingDisciplinas ? (
                     <Skeleton className="h-10 w-full" />
                   ) : (
-                    <Select 
-                      value={selectedDisciplina} 
-                      onValueChange={setSelectedDisciplina}
-                      disabled={!selectedTurma}
-                    >
-                      <SelectTrigger className={!selectedDisciplina ? 'border-muted-foreground/30' : ''}>
-                        <SelectValue placeholder="Selecione uma disciplina" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[200px]">
-                        {disciplinas.length === 0 ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            {!selectedTurma ? 'Selecione uma turma primeiro' : 'Nenhuma disciplina encontrada'}
-                          </div>
-                        ) : (
-                          disciplinas.map((disciplina) => (
-                            <SelectItem key={disciplina.id} value={disciplina.id}>
-                              {disciplina.nome}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <>
+                      <Select 
+                        value={selectedDisciplina} 
+                        onValueChange={(value) => {
+                          if (value === '__create_new__') {
+                            setShowCreateDisciplina(true);
+                            setSelectedDisciplina('');
+                          } else {
+                            setSelectedDisciplina(value);
+                            setShowCreateDisciplina(false);
+                          }
+                        }}
+                        disabled={!selectedTurma}
+                      >
+                        <SelectTrigger className={`${!selectedDisciplina ? 'border-muted-foreground/30' : ''} hover:border-primary/50 hover:shadow-[0_0_0_3px_rgba(var(--primary),0.1)] transition-all`}>
+                          <SelectValue placeholder={!selectedTurma ? "Selecione uma turma primeiro" : "Selecione uma disciplina"} />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {disciplinas.length === 0 ? (
+                            <div className="p-6 text-center space-y-3">
+                              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/30" />
+                              <p className="text-sm text-muted-foreground">
+                                {!selectedTurma ? 'Selecione uma turma primeiro' : 'Nenhuma disciplina cadastrada'}
+                              </p>
+                              {selectedTurma && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setShowCreateDisciplina(true)}
+                                >
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Criar Primeira Disciplina
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <>
+                              {disciplinas.map((disciplina) => (
+                                <SelectItem key={disciplina.id} value={disciplina.id}>
+                                  {disciplina.nome}
+                                </SelectItem>
+                              ))}
+                              <Separator className="my-1" />
+                              <SelectItem value="__create_new__" className="text-primary font-medium">
+                                <div className="flex items-center gap-2">
+                                  <Plus className="h-4 w-4" />
+                                  Criar Nova Disciplina
+                                </div>
+                              </SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {!selectedTurma && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          👉 Selecione uma turma primeiro
+                        </p>
+                      )}
+                      {!selectedDisciplina && selectedTurma && !showCreateDisciplina && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                          ⚠️ Disciplina obrigatória para organizar a aula
+                        </p>
+                      )}
+                    </>
                   )}
+                  </div>
                 </div>
+
+                {/* Inline Create Disciplina Form */}
+                {showCreateDisciplina && (
+                  <div className="mt-4 p-4 border-2 border-primary/30 rounded-lg bg-primary/5 space-y-3 animate-in slide-in-from-top-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold">Nova Disciplina</Label>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => {
+                          setShowCreateDisciplina(false);
+                          setNewDisciplinaNome('');
+                          setNewDisciplinaCodigo('');
+                          setNewDisciplinaCargaHoraria('');
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <Input 
+                      placeholder="Nome da disciplina *" 
+                      value={newDisciplinaNome}
+                      onChange={(e) => setNewDisciplinaNome(e.target.value)}
+                      disabled={creatingDisciplina}
+                    />
+                    
+                    <Input 
+                      placeholder="Código (ex: ENG101)" 
+                      value={newDisciplinaCodigo}
+                      onChange={(e) => setNewDisciplinaCodigo(e.target.value)}
+                      disabled={creatingDisciplina}
+                    />
+                    
+                    <Input 
+                      type="number"
+                      placeholder="Carga horária (horas)" 
+                      value={newDisciplinaCargaHoraria}
+                      onChange={(e) => setNewDisciplinaCargaHoraria(e.target.value)}
+                      disabled={creatingDisciplina}
+                    />
+                    
+                    <Button 
+                      onClick={handleCreateDisciplina} 
+                      disabled={!newDisciplinaNome || creatingDisciplina}
+                      className="w-full"
+                    >
+                      {creatingDisciplina ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      Criar Disciplina
+                    </Button>
+                  </div>
+                )}
               </div>
 
-              {/* Advanced Resources - Collapsible */}
+              {/* Advanced Resources - Collapsible - Glassmorphism */}
               <Accordion type="single" collapsible value={showAdvanced ? "advanced" : ""} onValueChange={(val) => setShowAdvanced(val === "advanced")}>
-                <AccordionItem value="advanced" className="border rounded-lg">
-                  <AccordionTrigger className="px-4 hover:no-underline">
+                <AccordionItem value="advanced" className="border-none">
+                  <AccordionTrigger className="backdrop-blur-sm bg-white/4 dark:bg-white/3 border border-white/8 hover:bg-white/6 rounded-lg px-4 py-3 hover:no-underline transition-colors">
                     <span className="text-sm font-semibold">📂 Recursos Adicionais</span>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4 space-y-4">
+                  <AccordionContent className="px-4 pt-4 pb-0 space-y-4">
                     {/* Lesson Plan Upload */}
                     <div className="space-y-2">
                       <Label className="text-sm flex items-center gap-2">
