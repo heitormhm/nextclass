@@ -132,11 +132,15 @@ const TeacherAnnotationPage = () => {
   }, [location.state]);
 
   useEffect(() => {
-    if (content && history.length === 0) {
+    // Initialize history with empty string for new annotations
+    if (id === 'new' && history.length === 0) {
+      setHistory(['']);
+      setHistoryIndex(0);
+    } else if (content && history.length === 0) {
       setHistory([content]);
       setHistoryIndex(0);
     }
-  }, []);
+  }, [id, content, history.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

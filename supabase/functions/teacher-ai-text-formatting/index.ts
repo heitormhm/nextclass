@@ -678,24 +678,26 @@ RESPONDA APENAS COM O JSON PURO!`;
             } 
             // Special handling for 'itens' array (e.g., references, guidelines)
             else if (key === 'itens' && Array.isArray(value)) {
-              processed[key] = value.map(item => {
+              console.log(`[Processing] Found 'itens' array with ${value.length} items`);
+              processed[key] = value.map((item, idx) => {
                 if (typeof item === 'string') {
-                  // First convert markdown to HTML
                   let htmlItem = convertMarkdownToHTML(item);
+                  console.log(`[Item ${idx}] Original length: ${htmlItem.length} chars`);
                   
-                  // Universal line break patterns for references
+                  // Smart line breaking for bibliographic references
                   htmlItem = htmlItem
-                    // Add break after reference numbers like [1], [10], etc.
-                    .replace(/(\[\d+\])\s*([A-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ])/g, '$1<br>$2')
-                    // Add break before "Titulo da Fonte:" or similar
-                    .replace(/(\s+)(Titulo da Fonte:|Título da Fonte:)/gi, '<br>$2')
-                    // Add break before URLs
-                    .replace(/(\s+)(https?:\/\/)/g, '<br>$2')
-                    // Add break before " - URL:", " - Autor:", etc.
-                    .replace(/(\s+-)(\s*)(URL|Autor|Editor|Editora|Acesso|Disponível):/gi, '<br>$1$2$3:')
-                    // Add break after format indicators
-                    .replace(/(\(PDF\)|\[PDF\]|\(Vídeo\)|\[Vídeo\])/gi, '$1<br>');
+                    // 1. Break after reference number [1], [2], etc. (double break for separation)
+                    .replace(/(\[\d+\])\s*([A-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ])/g, '$1<br><br>$2')
+                    // 2. Break BEFORE "- URL:" pattern (no matter spacing)
+                    .replace(/\s*-\s*URL:/gi, '<br>- URL:')
+                    // 3. Break BEFORE "- Autor:", "- Acesso:", etc.
+                    .replace(/\s*-\s*(Autor|Acesso|Disponível|Editor|Editora|Publicado):/gi, '<br>- $1:')
+                    // 4. Break after format indicators like (PDF), [PDF], etc.
+                    .replace(/(\(PDF\)|\[PDF\]|\(Vídeo\)|\[Vídeo\]|\(Artigo\))/gi, '$1<br>')
+                    // 5. Break very long URLs (80+ chars) at slashes
+                    .replace(/(https?:\/\/[^\s]{80,}?)(\/)([^\s]{20,})/g, '$1/$2<br>$3');
                   
+                  console.log(`[Item ${idx}] After processing: ${htmlItem.substring(0, 200)}...`);
                   return htmlItem;
                 }
                 return processBlock(item);
@@ -714,7 +716,34 @@ RESPONDA APENAS COM O JSON PURO!`;
         }
         
         // 5. Process the entire structured data
-        const processedData = processBlock(structuredData);
+        let processedData = processBlock(structuredData);
+        
+        // 5.5. Post-processing: Apply reference formatting to any text field
+        console.log('[Post-Processing] Searching for reference text blocks...');
+        function enhanceReferences(obj: any): any {
+          if (typeof obj === 'string') {
+            // Check if string contains reference patterns
+            if (obj.match(/\[\d+\].*?(URL:|Autor:|Acesso:)/i)) {
+              console.log('[Post-Processing] Found reference-like text, applying breaks');
+              return obj
+                .replace(/(\[\d+\])\s*([A-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ])/g, '$1<br><br>$2')
+                .replace(/\s*-\s*URL:/gi, '<br>- URL:')
+                .replace(/\s*-\s*(Autor|Acesso|Disponível|Editor|Editora):/gi, '<br>- $1:')
+                .replace(/(\(PDF\)|\[PDF\]|\(Vídeo\))/gi, '$1<br>');
+            }
+          } else if (Array.isArray(obj)) {
+            return obj.map(item => enhanceReferences(item));
+          } else if (obj && typeof obj === 'object') {
+            const enhanced: any = {};
+            for (const [k, v] of Object.entries(obj)) {
+              enhanced[k] = enhanceReferences(v);
+            }
+            return enhanced;
+          }
+          return obj;
+        }
+        
+        processedData = enhanceReferences(processedData);
         
         // 6. Convert back to JSON string
         formattedText = JSON.stringify(processedData);
