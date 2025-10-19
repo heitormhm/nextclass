@@ -305,19 +305,12 @@ Analisar o [TEXTO BASE] fornecido, realizar uma desconstrução conceitual para 
 - **SE INSUFICIENTE:** Mencione que idealmente uma busca web seria feita para enriquecer o conteúdo (mas gere a atividade com base no texto disponível).
 - **OBRIGATÓRIO:** Ao final da atividade, crie uma seção chamada "Fontes e Referências Adicionais" com sugestões de fontes para aprofundamento (formato ABNT).
 
-### ETAPA 2: Estruturação Visual e Didática da Atividade
+### ETAPA 2: Estruturação Textual da Atividade
 
-**Geração de Elementos Visuais com Mermaid.js para Síntese:**
+**Criação de Componentes Textuais de Apoio:**
 
-- Crie um **Mapa Mental (mindmap)** detalhado que conecte os Tópicos Centrais, os Conceitos Fundamentais e suas aplicações práticas.
-- Desenvolva um **Gráfico de Fluxo (graph TD)** que ilustre um processo, ciclo ou sequência relacionada ao tema.
-- **Se aplicável**, crie um **Diagrama de Sequência (sequenceDiagram)** mostrando interação entre componentes.
-
-**Criação de Componentes de Apoio Estratégico ao Professor:**
-
-- **Checklist de Objetivos de Aprendizagem**: Use sintaxe Markdown com checkboxes (- [ ]).
-- **Post-its com Dicas Pedagógicas**: Crie 3 dicas usando blockquotes (> **📌 Dica:**).
-- **Tabela de Competências Avaliadas**: Associe cada questão a uma competência (ex: Q1 → Análise Crítica).
+- **Checklist de Objetivos de Aprendizagem**: Liste 5-7 objetivos específicos que serão avaliados nesta atividade.
+- **Síntese Conceitual**: Crie um parágrafo introdutório (100-150 palavras) resumindo os conceitos-chave do texto base e sua relevância para a formação do engenheiro.
 
 ### DIRETRIZES DE CONTEXTUALIZAÇÃO OBRIGATÓRIA (CRITICAL)
 
@@ -436,13 +429,6 @@ Todas as questões devem seguir a estrutura CESP (Contexto → Situação → Pr
 | Argumentação Técnica | Frágil/inexistente | Coerente mas incompleta | Robusta e fundamentada |
 \`\`\`
 
-### ETAPA 4: Integração com Exemplos de Componentes React (JSX)
-
-Forneça 3 exemplos estruturais comentados (não funcionais) em JSX:
-
-1. **Componente QuestaoMultiplaEscolha**: Card interativo com feedback visual
-2. **Componente QuestaoAbertaComRubrica**: Área de texto + rubrica lado a lado
-3. **Componente DashboardDaAtividade**: Painel com Mermaid + Checklist
 
 ## FORMATO DE SAÍDA
 
@@ -454,31 +440,22 @@ Retorne a atividade em **JSON estruturado** seguindo este schema:
   "conteudo": [
     {
       "tipo": "h2",
-      "texto": "Análise Conceitual"
+      "texto": "Síntese Conceitual"
     },
     {
       "tipo": "paragrafo",
-      "texto": "Descrição da análise realizada..."
-    },
-    {
-      "tipo": "mapa_mental",
-      "titulo": "Mapa Conceitual",
-      "definicao_mermaid": "mindmap\\n  root((Tema))\\n    (Conceito A)\\n    (Conceito B)"
+      "texto": "Resumo introdutório dos conceitos-chave abordados nesta atividade (100-150 palavras)..."
     },
     {
       "tipo": "checklist",
       "titulo": "Objetivos de Aprendizagem",
-      "itens": ["Objetivo 1", "Objetivo 2"]
-    },
-    {
-      "tipo": "post_it",
-      "subtipo": "dica",
-      "texto": "📌 Dica: Contextualize com exemplos locais"
-    },
-    {
-      "tipo": "post_it",
-      "subtipo": "alerta",
-      "texto": "⚠️ **ATENÇÃO PARA O PROFESSOR:** Todas as questões desta atividade foram contextualizadas com cenários profissionais reais da engenharia brasileira. Os valores numéricos e situações foram baseados em dados de mercado de 2024-2025. Incentive os alunos a pesquisarem sobre as empresas, normas e projetos mencionados para aprofundar o aprendizado!"
+      "itens": [
+        "Objetivo 1: Compreender...",
+        "Objetivo 2: Aplicar...",
+        "Objetivo 3: Analisar...",
+        "Objetivo 4: Avaliar...",
+        "Objetivo 5: Sintetizar..."
+      ]
     },
     {
       "tipo": "h2",
@@ -512,46 +489,156 @@ Retorne a atividade em **JSON estruturado** seguindo este schema:
     {
       "tipo": "questao_aberta",
       "numero": 1,
-      "enunciado": "Cenário realista + pergunta...",
-      "resposta_esperada": "Descrição completa da resposta ideal...",
+      "enunciado": "A startup de mobilidade urbana MoveSmart, sediada em Florianópolis, está escalando rapidamente após receber um investimento de R$ 5 milhões. O sistema atual, desenvolvido em Django com PostgreSQL, atende 2.000 pedidos/dia com 50 ms de latência média. A empresa projeta crescimento para 20.000 pedidos/dia nos próximos 6 meses e quer implementar um sistema de recomendação baseado em machine learning que analisará comportamento de navegação de 100.000 usuários ativos. O CTO está avaliando migrar o catálogo de produtos (80.000 itens com dados semi-estruturados) para MongoDB, mantendo transações financeiras em PostgreSQL. O time de desenvolvimento tem 3 engenheiros sêniores experientes em SQL mas sem experiência prévia com NoSQL. Custos mensais de infraestrutura atual: R$ 8.000 (AWS RDS PostgreSQL). Projeção com MongoDB Atlas: R$ 15.000. Como consultor técnico contratado, analise os trade-offs técnicos, econômicos e humanos desta decisão. Sua resposta deve cobrir: (1) adequação de cada tecnologia aos requisitos específicos, (2) estratégia de migração gradual vs Big Bang, (3) impacto no time e necessidade de capacitação, (4) custos ocultos não considerados pelo CTO.",
+      "resposta_esperada": "A análise deve equilibrar aspectos técnicos, econômicos e humanos. MongoDB é adequado para catálogo de produtos com dados semi-estruturados e alta variabilidade de atributos, facilitando o sistema de ML. Porém, a migração tem custos ocultos: 3-4 meses de capacitação do time (R$ 60k), riscos de sincronização entre bancos, complexidade de transações distribuídas. Recomenda-se abordagem híbrida gradual: (1) manter PostgreSQL para core transacional, (2) implementar cache Redis para catálogo inicialmente (custo R$ 3k/mês), (3) avaliar MongoDB após validar necessidade real com métricas. Se migração for inevitável, preferir estratégia gradual com feature flags, começando por módulo de recomendações isolado. Economia aparente de R$ 7k/mês não compensa risco técnico e custo de aprendizado do time em janela de 6 meses com crescimento projetado de 10x.",
       "rubrica": {
         "criterios": [
           {
-            "nome": "Compreensão do Conceito",
-            "insuficiente": "Não entende",
-            "suficiente": "Entende com imprecisões",
-            "excelente": "Domina com precisão"
+            "nome": "Compreensão Técnica",
+            "insuficiente": "Ignora características técnicas das tecnologias (ACID, escalabilidade, consistência)",
+            "suficiente": "Identifica vantagens e desvantagens de cada tecnologia mas com superficialidade",
+            "excelente": "Demonstra domínio profundo: quando usar SQL vs NoSQL, trade-offs CAP theorem, padrões de consistência eventual"
+          },
+          {
+            "nome": "Análise Econômica",
+            "insuficiente": "Considera apenas custos diretos de infraestrutura",
+            "suficiente": "Inclui custos de licenciamento e operação mas não considera TCO completo",
+            "excelente": "Calcula TCO detalhado: infraestrutura, licenças, treinamento, tempo de migração, risco de downtime, custo de oportunidade"
+          },
+          {
+            "nome": "Visão Humana",
+            "insuficiente": "Ignora capacitação da equipe e impacto organizacional",
+            "suficiente": "Menciona necessidade de treinamento mas sem plano concreto",
+            "excelente": "Propõe estratégia de upskilling gradual, considera curva de aprendizado, identifica riscos de turnover, sugere mentoria externa"
+          },
+          {
+            "nome": "Estratégia de Migração",
+            "insuficiente": "Propõe Big Bang ou não define estratégia",
+            "suficiente": "Sugere migração gradual mas sem etapas claras",
+            "excelente": "Detalha roadmap com milestones, feature flags, rollback plan, métricas de sucesso, validação progressiva"
           }
         ]
       },
-      "competencia": "Resolução de Problemas"
+      "competencia": "Análise de Trade-offs e Tomada de Decisão Estratégica"
     },
     {
       "tipo": "referencias",
       "titulo": "Fontes e Referências Adicionais",
       "itens": [
-        "[1] Autor, A. (2023). Título do livro. Editora.<br><br>",
-        "[2] Autor, B. (2022). Título do artigo. Revista.<br><br>"
+        "[1] Referência bibliográfica em formato ABNT",
+        "[2] Referência bibliográfica em formato ABNT"
       ]
-    },
-    {
-      "tipo": "componente_react",
-      "nome": "QuestaoMultiplaEscolha",
-      "descricao": "Componente para renderizar questões objetivas",
-      "codigo_jsx": "// Exemplo de código comentado..."
     }
   ]
 }
 \`\`\`
 
-## IMPORTANTE
+## IMPORTANTE - INSTRUÇÕES DE SAÍDA
 
 - Use **APENAS JSON estruturado** como resposta
-- Garanta que todos os diagramas Mermaid tenham sintaxe válida
-- Inclua competências para cada questão
-- Rubricas devem ser objetivas e mensuráveis
-- Exemplos JSX são apenas ilustrativos (comentados, não executáveis)
-- Retorne **APENAS o JSON**, sem texto adicional antes ou depois`;
+- Retorne APENAS blocos textuais (sem elementos visuais Mermaid, gráficos ou componentes React)
+- Garanta que todos os enunciados sigam a estrutura CESP (Contexto → Situação → Problema)
+- Inclua competências específicas para cada questão
+- Rubricas devem ser objetivas e mensuráveis com 3-4 níveis de desempenho claramente definidos
+- Todas as questões devem conter dados quantitativos realistas e cenários profissionais brasileiros
+- Retorne **APENAS o JSON**, sem texto adicional antes ou depois
+{
+  "titulo_geral": "Atividade Avaliativa: [Título do Tema]",
+  "conteudo": [
+    {
+      "tipo": "h2",
+      "texto": "Síntese Conceitual"
+    },
+    {
+      "tipo": "paragrafo",
+      "texto": "Resumo introdutório dos conceitos-chave abordados nesta atividade (100-150 palavras)..."
+    },
+    {
+      "tipo": "checklist",
+      "titulo": "Objetivos de Aprendizagem",
+      "itens": [
+        "Objetivo 1: Compreender...",
+        "Objetivo 2: Aplicar...",
+        "Objetivo 3: Analisar...",
+        "Objetivo 4: Avaliar...",
+        "Objetivo 5: Sintetizar..."
+      ]
+    },
+    {
+      "tipo": "h2",
+      "texto": "Parte 1: Questões de Múltipla Escolha"
+    },
+    {
+      "tipo": "questao_multipla_escolha",
+      "numero": 1,
+      "enunciado": "A TechFlow Sistemas foi contratada pela Prefeitura de Campinas para desenvolver um portal de transparência que integrará dados de 12 secretarias municipais, processando em média 50.000 acessos diários. O sistema precisará armazenar histórico de 5 anos de dados financeiros (aproximadamente 2TB) e gerar relatórios consolidados em tempo real. O engenheiro de software João Silva está avaliando a arquitetura de banco de dados. A equipe de TI da prefeitura possui experiência consolidada com SQL Server, mas o orçamento para licenciamento é limitado (R$ 80.000 anuais). Considerando escalabilidade, custo total de propriedade (TCO) e requisitos de compliance com a LGPD, qual alternativa apresenta a melhor decisão técnica para este cenário?",
+      "alternativas": {
+        "A": "PostgreSQL em servidores on-premise com backup diário em nuvem (AWS S3), permitindo zero custo de licenciamento e flexibilidade para expansão futura",
+        "B": "SQL Server Enterprise com licenciamento perpétuo e infraestrutura local completa, garantindo suporte oficial da Microsoft e compatibilidade com sistemas legados",
+        "C": "MongoDB Atlas na nuvem com tier dedicado, priorizando performance em consultas complexas mas aumentando custos operacionais mensais",
+        "D": "MySQL Community Edition com replicação master-slave, reduzindo custos mas limitando recursos avançados de auditoria necessários para compliance"
+      },
+      "gabarito": {
+        "resposta_correta": "A",
+        "justificativa": "PostgreSQL oferece o melhor custo-benefício para este cenário: é open-source (elimina R$ 80k anuais de licenciamento), possui recursos enterprise robustos (particionamento, replicação, JSONB para dados semi-estruturados), atende compliance LGPD com log de auditoria detalhado, e a equipe pode realocar o budget de licenças para treinamento. O backup em S3 garante disaster recovery com baixo custo (aproximadamente R$ 800/mês para 2TB). A migração de SQL Server para PostgreSQL é viável com ferramentas como AWS DMS, e a comunidade brasileira é ativa.",
+        "analise_incorretas": {
+          "B": "SQL Server Enterprise tem custo proibitivo (R$ 80k/ano apenas licenciamento + infraestrutura), contradizendo a restrição orçamentária. Embora ofereça suporte oficial, o ROI é negativo neste cenário de prefeitura com budget limitado.",
+          "C": "MongoDB é NoSQL orientado a documentos, inadequado para dados financeiros altamente relacionais. Custos operacionais na nuvem (tier dedicado) ultrapassariam R$ 15.000/mês, inviabilizando o projeto. Falta de ACID completo pode comprometer auditoria.",
+          "D": "MySQL Community carece de recursos críticos de auditoria e compliance necessários para dados públicos sensíveis. Replicação master-slave básica não atende requisitos de alta disponibilidade para 50k acessos/dia. Log de auditoria limitado dificulta conformidade com LGPD."
+        }
+      },
+      "competencia": "Tomada de Decisão Arquitetural"
+    },
+    {
+      "tipo": "h2",
+      "texto": "Parte 2: Questões Abertas"
+    },
+    {
+      "tipo": "questao_aberta",
+      "numero": 1,
+      "enunciado": "A startup de mobilidade urbana MoveSmart, sediada em Florianópolis, está escalando rapidamente após receber um investimento de R$ 5 milhões. O sistema atual, desenvolvido em Django com PostgreSQL, atende 2.000 pedidos/dia com 50 ms de latência média. A empresa projeta crescimento para 20.000 pedidos/dia nos próximos 6 meses e quer implementar um sistema de recomendação baseado em machine learning que analisará comportamento de navegação de 100.000 usuários ativos. O CTO está avaliando migrar o catálogo de produtos (80.000 itens com dados semi-estruturados) para MongoDB, mantendo transações financeiras em PostgreSQL. O time de desenvolvimento tem 3 engenheiros sêniores experientes em SQL mas sem experiência prévia com NoSQL. Custos mensais de infraestrutura atual: R$ 8.000 (AWS RDS PostgreSQL). Projeção com MongoDB Atlas: R$ 15.000. Como consultor técnico contratado, analise os trade-offs técnicos, econômicos e humanos desta decisão. Sua resposta deve cobrir: (1) adequação de cada tecnologia aos requisitos específicos, (2) estratégia de migração gradual vs Big Bang, (3) impacto no time e necessidade de capacitação, (4) custos ocultos não considerados pelo CTO.",
+      "resposta_esperada": "A análise deve equilibrar aspectos técnicos, econômicos e humanos. MongoDB é adequado para catálogo de produtos com dados semi-estruturados e alta variabilidade de atributos, facilitando o sistema de ML. Porém, a migração tem custos ocultos: 3-4 meses de capacitação do time (R$ 60k), riscos de sincronização entre bancos, complexidade de transações distribuídas. Recomenda-se abordagem híbrida gradual: (1) manter PostgreSQL para core transacional, (2) implementar cache Redis para catálogo inicialmente (custo R$ 3k/mês), (3) avaliar MongoDB após validar necessidade real com métricas. Se migração for inevitável, preferir estratégia gradual com feature flags, começando por módulo de recomendações isolado. Economia aparente de R$ 7k/mês não compensa risco técnico e custo de aprendizado do time em janela de 6 meses com crescimento projetado de 10x.",
+      "rubrica": {
+        "criterios": [
+          {
+            "nome": "Compreensão Técnica",
+            "insuficiente": "Ignora características técnicas das tecnologias (ACID, escalabilidade, consistência)",
+            "suficiente": "Identifica vantagens e desvantagens de cada tecnologia mas com superficialidade",
+            "excelente": "Demonstra domínio profundo: quando usar SQL vs NoSQL, trade-offs CAP theorem, padrões de consistência eventual"
+          },
+          {
+            "nome": "Análise Econômica",
+            "insuficiente": "Considera apenas custos diretos de infraestrutura",
+            "suficiente": "Inclui custos de licenciamento e operação mas não considera TCO completo",
+            "excelente": "Calcula TCO detalhado: infraestrutura, licenças, treinamento, tempo de migração, risco de downtime, custo de oportunidade"
+          },
+          {
+            "nome": "Visão Humana",
+            "insuficiente": "Ignora capacitação da equipe e impacto organizacional",
+            "suficiente": "Menciona necessidade de treinamento mas sem plano concreto",
+            "excelente": "Propõe estratégia de upskilling gradual, considera curva de aprendizado, identifica riscos de turnover, sugere mentoria externa"
+          },
+          {
+            "nome": "Estratégia de Migração",
+            "insuficiente": "Propõe Big Bang ou não define estratégia",
+            "suficiente": "Sugere migração gradual mas sem etapas claras",
+            "excelente": "Detalha roadmap com milestones, feature flags, rollback plan, métricas de sucesso, validação progressiva"
+          }
+        ]
+      },
+      "competencia": "Análise de Trade-offs e Tomada de Decisão Estratégica"
+    },
+    {
+      "tipo": "referencias",
+      "titulo": "Fontes e Referências Adicionais",
+      "itens": [
+        "[1] Referência bibliográfica em formato ABNT",
+        "[2] Referência bibliográfica em formato ABNT"
+      ]
+    }
+  ]
+}
+\`\`\``;
         break;
 
       case 'improve_didactic':
