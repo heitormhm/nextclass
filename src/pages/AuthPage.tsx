@@ -67,9 +67,16 @@ const AuthPage = () => {
         
         setTurmas(data || []);
         
+        // Debug: Verificar dados carregados
+        console.log('🔍 Turmas carregadas:', data?.length);
+        console.log('🔍 Primeira turma:', data?.[0]);
+        console.log('🔍 Faculdades únicas:', Array.from(new Set(data?.map(t => t.faculdade))));
+        
         // Pré-selecionar faculdade e cidade com shouldValidate
         if (data && data.length > 0) {
-          const afyaMC = data.find(t => t.faculdade === 'Centro Universitario Afya Montes Claros');
+          const afyaMC = data.find(t => t.faculdade === 'Centro Universitário Afya Montes Claros');
+          
+          console.log('🔍 Instituição encontrada:', afyaMC);
           
           if (afyaMC) {
             signupForm.setValue('university', afyaMC.faculdade, { shouldValidate: true });
