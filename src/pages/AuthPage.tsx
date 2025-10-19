@@ -223,7 +223,7 @@ const AuthPage = () => {
         </div>
 
         {/* Right Panel - Authentication Form */}
-        <div className="flex-1 lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-12">
+        <div className="flex-1 lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-white/40 backdrop-blur-sm">
           <div className="w-full max-w-md space-y-6 sm:space-y-8">
             {/* Mobile Header */}
             <div className="text-center lg:hidden py-4">
@@ -231,7 +231,7 @@ const AuthPage = () => {
               <p className="text-sm sm:text-base text-foreground-muted">Plataforma de engenharia com IA</p>
             </div>
 
-            <Card className="shadow-2xl border-0 bg-gradient-to-br from-pink-100/60 via-purple-100/60 to-pink-100/60 backdrop-blur-lg">
+            <Card className="shadow-2xl border border-white/50 bg-white/90 backdrop-blur-xl">
               <CardHeader className="space-y-4 pb-6">
                 {/* Role Selection Tabs - Only shown during signup */}
                 {!isLogin && (
