@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ActionButtons } from "@/components/ActionButtons";
 import { JobStatus } from "@/components/JobStatus";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { TeacherBackgroundRipple } from "@/components/ui/teacher-background-ripple";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -1006,7 +1007,10 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
         {/* ========== ÁREA DE CHAT ========== */}
         <div className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
           
-          {/* Blobs animados para profundidade */}
+          {/* NOVO: Animated Background with Ripple Effect */}
+          <TeacherBackgroundRipple />
+          
+          {/* Blobs animados para profundidade (MANTER) */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
             <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-400/40 to-purple-500/40 rounded-full blur-3xl animate-float" />
             <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-300/35 to-purple-400/35 rounded-full blur-3xl" />

@@ -537,7 +537,7 @@ const TeacherLessonPlanEditor = () => {
     <MainLayout>
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background */}
-        <TeacherBackgroundRipple className="opacity-30" />
+        <TeacherBackgroundRipple />
         
         {/* Gradient Blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

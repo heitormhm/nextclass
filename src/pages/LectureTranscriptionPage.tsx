@@ -344,9 +344,9 @@ const LectureTranscriptionPage = () => {
     return (
       <MainLayout>
         <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
-          <div className="absolute inset-0 z-0">
-            <TeacherBackgroundRipple className="opacity-30" />
-          </div>
+        <div className="absolute inset-0 z-0">
+          <TeacherBackgroundRipple />
+        </div>
           <div className="relative z-10 flex flex-col items-center gap-4">
             <Loader2 className="h-12 w-12 text-purple-400 animate-spin" />
             <p className="text-white text-lg">Carregando aula...</p>
@@ -360,7 +360,7 @@ const LectureTranscriptionPage = () => {
     <MainLayout>
       <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div className="absolute inset-0 z-0">
-          <TeacherBackgroundRipple className="opacity-30" />
+          <TeacherBackgroundRipple />
         </div>
 
         {/* Gradient Blobs */}
