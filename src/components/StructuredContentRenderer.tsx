@@ -171,21 +171,25 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
             </div>
             <ScrollArea className="h-[400px] px-6 pb-6">
               <div className="space-y-3 pr-4">
-                {bloco.itens?.map((ref: string, i: number) => {
-                  // Handle escaped <br> tags in references
-                  const refHtml = ref
-                    .replace(/&lt;br&gt;/gi, '<br>')
-                    .replace(/&lt;br \/&gt;/gi, '<br>')
-                    .replace(/&lt;br\/&gt;/gi, '<br>');
-                  return (
-                    <div 
-                      key={i} 
-                      className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600 break-words"
-                      style={{ whiteSpace: 'normal', display: 'block' }}
-                      dangerouslySetInnerHTML={{ __html: refHtml }}
-                    />
-                  );
-                })}
+                {(() => {
+                  // Handle both itens array and texto field for references
+                  const referencesContent = bloco.itens || (bloco.texto ? [bloco.texto] : []);
+                  return referencesContent.map((ref: string, i: number) => {
+                    // Handle escaped <br> tags in references
+                    const refHtml = ref
+                      .replace(/&lt;br&gt;/gi, '<br>')
+                      .replace(/&lt;br \/&gt;/gi, '<br>')
+                      .replace(/&lt;br\/&gt;/gi, '<br>');
+                    return (
+                      <div 
+                        key={i} 
+                        className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600 break-words"
+                        style={{ whiteSpace: 'normal', display: 'block' }}
+                        dangerouslySetInnerHTML={{ __html: refHtml }}
+                      />
+                    );
+                  });
+                })()}
               </div>
             </ScrollArea>
           </div>

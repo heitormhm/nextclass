@@ -4,7 +4,7 @@ import {
   ImagePlus, Type, Save, ArrowLeft, Tag, 
   Sparkles, X, Loader2, CheckCircle2, FileText, FileDown,
   Mic, Undo, Redo, BookOpen, Table as TableIcon, 
-  Lightbulb, GraduationCap
+  Lightbulb, GraduationCap, RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -46,6 +46,7 @@ const TeacherAnnotationPage = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isLoadingAnnotation, setIsLoadingAnnotation] = useState(false);
   const [hasInitializedHistory, setHasInitializedHistory] = useState(false);
+  const [preAIContent, setPreAIContent] = useState<string | null>(null);
   
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
@@ -136,13 +137,27 @@ const TeacherAnnotationPage = () => {
   useEffect(() => {
     if (!editorRef.current || hasInitializedHistory) return;
     
-    const handleFirstInput = () => {
-      const currentContent = editorRef.current?.innerHTML || '';
-      if (currentContent.trim() && history.length === 0) {
-        console.log('[History] Capturing first input:', currentContent.substring(0, 50));
-        setHistory([currentContent]);
-        setHistoryIndex(0);
-        setHasInitializedHistory(true);
+    const handleFirstInput = (e: Event) => {
+      // For paste events, wait for content to be inserted into DOM
+      if (e.type === 'paste') {
+        setTimeout(() => {
+          const currentContent = editorRef.current?.innerHTML || '';
+          if (currentContent.trim() && history.length === 0) {
+            console.log('[History] Capturing first paste:', currentContent.substring(0, 50));
+            setHistory([currentContent]);
+            setHistoryIndex(0);
+            setHasInitializedHistory(true);
+          }
+        }, 0);
+      } else {
+        // For regular input, capture immediately
+        const currentContent = editorRef.current?.innerHTML || '';
+        if (currentContent.trim() && history.length === 0) {
+          console.log('[History] Capturing first input:', currentContent.substring(0, 50));
+          setHistory([currentContent]);
+          setHistoryIndex(0);
+          setHasInitializedHistory(true);
+        }
       }
     };
     
@@ -436,6 +451,10 @@ const TeacherAnnotationPage = () => {
       toast.error('Escreva conteúdo antes de usar a IA');
       return;
     }
+
+    // Save original content before AI formatting
+    setPreAIContent(content);
+    console.log('[AI] Saved original content before formatting');
 
     setIsProcessingAI(true);
     
@@ -763,6 +782,9 @@ const TeacherAnnotationPage = () => {
       const newContent = editorRef.current.innerHTML;
       setContent(newContent);
       
+      // Clear preAI content when user manually edits
+      if (preAIContent) setPreAIContent(null);
+      
       if (historyTimeoutRef.current) {
         clearTimeout(historyTimeoutRef.current);
       }
@@ -869,6 +891,21 @@ const TeacherAnnotationPage = () => {
       stopVoiceTranscription();
     } else {
       startVoiceTranscription();
+    }
+  };
+
+  const handleRestoreOriginal = () => {
+    if (preAIContent) {
+      console.log('[Restore] Restoring original content');
+      setContent(preAIContent);
+      setStructuredContent(null);
+      setIsStructuredMode(false);
+      if (editorRef.current) {
+        editorRef.current.innerHTML = preAIContent;
+      }
+      saveToHistory(preAIContent);
+      setPreAIContent(null);
+      toast.success('Conteúdo original restaurado');
     }
   };
 
@@ -1067,6 +1104,18 @@ const TeacherAnnotationPage = () => {
                 >
                   <Redo className="h-4 w-4" />
                 </Button>
+                
+                {preAIContent && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleRestoreOriginal}
+                    title="Restaurar conteúdo original antes da IA"
+                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
                 

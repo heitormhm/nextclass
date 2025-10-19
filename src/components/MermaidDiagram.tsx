@@ -98,14 +98,22 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           
           const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           const sanitizedCode = sanitizeMermaidCode(code);
+          
+          // Debug logging
+          console.log('[Mermaid] === RENDERING ATTEMPT ===');
+          console.log('[Mermaid] Original code:', code);
+          console.log('[Mermaid] Sanitized code:', sanitizedCode);
+          
           const { svg } = await mermaid.render(uniqueId, sanitizedCode);
           ref.current.innerHTML = svg;
           setError(null);
+          console.log('[Mermaid] ✅ Rendered successfully');
         } catch (err) {
-          console.error('[Mermaid] Erro ao renderizar:', err);
-          console.error('[Mermaid] Código original:', code);
+          console.error('[Mermaid] ❌ RENDER ERROR:', err);
+          console.error('[Mermaid] Original code:', code);
           const sanitizedCode = sanitizeMermaidCode(code);
-          console.error('[Mermaid] Código sanitizado:', sanitizedCode);
+          console.error('[Mermaid] Sanitized code:', sanitizedCode);
+          console.error('[Mermaid] Error message:', (err as Error).message);
           setError(`Erro na sintaxe do diagrama. Detalhes: ${(err as Error).message}`);
         }
       }
