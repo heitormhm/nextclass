@@ -134,11 +134,11 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
       
       case 'referencias':
         return (
-          <div key={index} className="bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-900/50 dark:to-slate-800/50 border-l-4 border-slate-600 dark:border-slate-500 p-6 rounded-xl shadow-md my-8 mt-12">
-            <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-4 text-xl flex items-center gap-2">
+          <div key={index} className="bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-900/50 dark:to-slate-800/50 border-l-4 border-slate-600 dark:border-slate-500 p-6 rounded-xl shadow-md my-8 mt-12 max-h-[500px] overflow-y-auto">
+            <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-4 text-xl flex items-center gap-2 sticky top-0 bg-slate-100/95 dark:bg-slate-900/95 py-2 -mx-6 px-6 z-10">
               📚 {bloco.titulo || 'Referências Bibliográficas'}
             </h4>
-            <div className="space-y-3">
+            <div className="space-y-3 px-2">
               {bloco.itens?.map((ref: string, i: number) => (
                 <p key={i} className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600">
                   {ref}

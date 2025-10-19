@@ -10,13 +10,17 @@ function convertMarkdownToHTML(text: string): string {
   if (!text || typeof text !== 'string') return text;
   
   return text
-    // Convert **bold** to <strong>bold</strong>
-    .replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>')
-    // Convert *italic* to <em>italic</em> (but not ** which was already processed)
-    .replace(/(?<!\*)\*([^\*]+)\*(?!\*)/g, '<em>$1</em>')
-    // Strip any remaining markdown headers (safety net)
+    // 1. Bold + Italic (***text***)
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    // 2. Bold (**text**)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // 3. Italic (*text*)
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // 4. Underline (__text__)
+    .replace(/__(.+?)__/g, '<u>$1</u>')
+    // 5. Strip remaining markdown headers (safety)
     .replace(/^#{1,6}\s+/gm, '')
-    // Clean up any escaped markdown that slipped through
+    // 6. Clean escaped markdown
     .replace(/\\([*_#])/g, '$1');
 }
 
@@ -632,45 +636,70 @@ RESPONDA APENAS COM O JSON PURO!`;
     // Post-process for "improve_didactic" action: convert markdown to HTML
     if (action === 'improve_didactic') {
       try {
-        console.log('[Post-Processing] Convertendo markdown para HTML...');
+        console.log('[Post-Processing] Limpando resposta da IA...');
         
-        // Parse the JSON response
-        const structuredData = JSON.parse(formattedText);
+        // 1. Remove code fences (```json ... ```)
+        let jsonString = formattedText.trim();
+        jsonString = jsonString.replace(/^```(?:json)?\s*\n?/gm, '');
+        jsonString = jsonString.replace(/\n?```\s*$/gm, '');
         
-        // Function to recursively process all text fields in the structure
+        // 2. Extract JSON object (first { to last })
+        const firstBrace = jsonString.indexOf('{');
+        const lastBrace = jsonString.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+          jsonString = jsonString.substring(firstBrace, lastBrace + 1).trim();
+        }
+        
+        console.log('[Post-Processing] Primeiros 200 chars após limpeza:', jsonString.substring(0, 200));
+        
+        // 3. Parse the cleaned JSON
+        const structuredData = JSON.parse(jsonString);
+        
+        // 4. Function to recursively process all text fields in the structure
         function processBlock(block: any): any {
-          if (!block || typeof block !== 'object') return block;
+          if (!block) return block;
           
-          // Process arrays recursively
+          // Handle arrays
           if (Array.isArray(block)) {
             return block.map(processBlock);
+          }
+          
+          // Handle primitive types
+          if (typeof block !== 'object') {
+            return block;
           }
           
           // Process object properties
           const processed: any = {};
           for (const [key, value] of Object.entries(block)) {
-            if (key === 'texto' || key === 'titulo' || key === 'descricao') {
-              // Convert markdown to HTML in text fields
-              processed[key] = convertMarkdownToHTML(value as string);
-            } else if (typeof value === 'object') {
-              // Recursively process nested objects/arrays
+            // Convert markdown in text fields (including accordion fields)
+            if (['texto', 'titulo', 'descricao', 'content', 'trigger'].includes(key) && typeof value === 'string') {
+              processed[key] = convertMarkdownToHTML(value);
+            } 
+            // Recursively process objects/arrays (including accordion items)
+            else if (typeof value === 'object' && value !== null) {
               processed[key] = processBlock(value);
-            } else {
+            } 
+            // Keep other values as-is
+            else {
               processed[key] = value;
             }
           }
           return processed;
         }
         
-        // Process the entire structured data
+        // 5. Process the entire structured data
         const processedData = processBlock(structuredData);
         
-        // Convert back to JSON string
+        // 6. Convert back to JSON string
         formattedText = JSON.stringify(processedData);
         
-        console.log('[Post-Processing] Conversão concluída. Markdown → HTML aplicado.');
+        console.log('[Post-Processing] ✅ Conversão concluída. Markdown → HTML aplicado.');
+        console.log(`[Post-Processing] Blocos processados: ${processedData.conteudo?.length || 0}`);
+        console.log('[Post-Processing] Primeiros 3 blocos:', JSON.stringify(processedData.conteudo?.slice(0, 3), null, 2));
       } catch (parseError) {
-        console.error('[Post-Processing] Erro ao processar JSON:', parseError);
+        console.error('[Post-Processing] ❌ Erro ao processar JSON:', parseError);
+        console.error('[Post-Processing] Erro detalhado:', parseError instanceof Error ? parseError.message : 'Unknown error');
         // If parsing fails, return original text (fallback for non-JSON responses)
       }
     }
