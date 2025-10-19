@@ -104,17 +104,33 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           console.log('[Mermaid] Original code:', code);
           console.log('[Mermaid] Sanitized code:', sanitizedCode);
           
-          const { svg } = await mermaid.render(uniqueId, sanitizedCode);
-          ref.current.innerHTML = svg;
-          setError(null);
-          console.log('[Mermaid] ✅ Rendered successfully');
+          // Create temporary hidden div to capture any rendering errors
+          const tempDiv = document.createElement('div');
+          tempDiv.style.display = 'none';
+          document.body.appendChild(tempDiv);
+          
+          try {
+            const { svg } = await mermaid.render(uniqueId, sanitizedCode);
+            ref.current.innerHTML = svg;
+            setError(null);
+            console.log('[Mermaid] ✅ Rendered successfully');
+          } finally {
+            // Clean up temp div
+            if (document.body.contains(tempDiv)) {
+              document.body.removeChild(tempDiv);
+            }
+          }
         } catch (err) {
-          console.error('[Mermaid] ❌ RENDER ERROR:', err);
+          // Log error details to console only - DO NOT show to user
+          console.error('[Mermaid] ❌ RENDER ERROR (hidden from user):', err);
           console.error('[Mermaid] Original code:', code);
           const sanitizedCode = sanitizeMermaidCode(code);
           console.error('[Mermaid] Sanitized code:', sanitizedCode);
           console.error('[Mermaid] Error message:', (err as Error).message);
-          setError(`Erro na sintaxe do diagrama. Detalhes: ${(err as Error).message}`);
+          console.error('[Mermaid] Full error stack:', (err as Error).stack);
+          
+          // Set error flag but don't expose technical details to user
+          setError('hidden');
         }
       }
     };
@@ -127,9 +143,9 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
       <h4 className="font-bold text-foreground mb-2 text-lg">{icon} {title}</h4>
       <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
       {error ? (
-        <div className="flex flex-col items-center justify-center min-h-[200px] bg-muted/20 rounded-lg p-4">
-          <div className="text-4xl mb-2">{icon}</div>
-          <p className="text-sm text-muted-foreground">Diagrama em processamento</p>
+        <div className="flex flex-col items-center justify-center min-h-[200px] bg-muted/10 rounded-lg p-4">
+          <div className="text-5xl mb-2 opacity-50">{icon}</div>
+          <p className="text-xs text-muted-foreground/70">Visualização em construção</p>
         </div>
       ) : (
         <div ref={ref} className="flex justify-center items-center min-h-[200px] bg-white rounded-lg p-4" />

@@ -163,6 +163,11 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
       
       case 'referencias':
         const referencesContent = bloco.itens || (bloco.texto ? [bloco.texto] : []);
+        
+        // Log para debug
+        console.log('[Referencias] Conteúdo recebido:', referencesContent);
+        console.log('[Referencias] Tem <br> tags?', referencesContent.some((r: string) => r.includes('<br>')));
+        
         return (
           <div key={index} className="bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-900/50 dark:to-slate-800/50 border-l-4 border-slate-600 dark:border-slate-500 rounded-xl shadow-md my-8 mt-12">
             <div className="p-6 pb-0">
@@ -171,24 +176,29 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
               </h4>
             </div>
             <ScrollArea className="h-[400px] px-6 pb-6">
-              <div className="space-y-4 pr-4">
+              <div className="space-y-6 pr-4">
                 {referencesContent.map((ref: string, i: number) => {
-                  // Limpar e processar HTML escapado + adicionar suporte para \n
-                  const refHtml = ref
+                  // LIMPEZA AGRESSIVA de HTML escapado e quebras de linha
+                  let refHtml = ref
                     .replace(/&lt;br&gt;/gi, '<br>')
                     .replace(/&lt;br \/&gt;/gi, '<br>')
                     .replace(/&lt;br\/&gt;/gi, '<br>')
-                    .replace(/\\n/g, '<br>') // Add support for \n
-                    .replace(/\n/g, '<br>'); // Add support for actual newlines
+                    .replace(/\\n/g, '<br>')
+                    .replace(/\n/g, '<br>')
+                    // Garantir espaçamento mínimo entre seções
+                    .replace(/<br><br>/gi, '<br><br><span style="display:block;height:8px;"></span>');
+                  
+                  console.log(`[Referencias] Item ${i} após limpeza:`, refHtml.substring(0, 100));
                   
                   return (
                     <div 
                       key={i} 
-                      className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600"
+                      className="text-slate-800 dark:text-slate-200 text-sm pl-4 border-l-2 border-slate-400 dark:border-slate-600 mb-6"
                       style={{ 
                         whiteSpace: 'normal',
                         display: 'block',
-                        lineHeight: '1.7'
+                        lineHeight: '1.8',
+                        minHeight: '60px'
                       }}
                       dangerouslySetInnerHTML={{ __html: refHtml }}
                     />

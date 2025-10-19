@@ -21,83 +21,104 @@ serve(async (req) => {
     console.log('[Validation Agent] Iniciando validação de conteúdo estruturado...');
     console.log(`[Validation Agent] Blocos a validar: ${structuredContent?.conteudo?.length || 0}`);
 
-    const validationPrompt = `Você é um agente de validação e correção automática de conteúdo pedagógico estruturado.
+    const validationPrompt = `Você é um agente de CORREÇÃO AUTOMÁTICA de conteúdo pedagógico estruturado.
 
-TAREFA: Valide e corrija automaticamente o seguinte JSON estruturado. Você DEVE corrigir todos os erros encontrados SEM alterar o conteúdo pedagógico.
+TAREFA CRÍTICA: Corrija AUTOMATICAMENTE todos os erros no JSON a seguir. NÃO apenas valide, CORRIJA!
 
-JSON A VALIDAR:
+JSON A CORRIGIR:
 ${JSON.stringify(structuredContent, null, 2)}
 
-VERIFICAÇÕES E CORREÇÕES OBRIGATÓRIAS:
+CORREÇÕES OBRIGATÓRIAS:
 
-1. MERMAID DIAGRAMS (tipos: fluxograma, mapa_mental, diagrama, organograma):
-   PROBLEMAS COMUNS:
-   - Caracteres especiais: →, ←, ↔
-   - Parênteses não balanceados: ( ) dentro de labels []
-   - Caracteres especiais em labels: &, <, >, ", '
+1. MERMAID DIAGRAMS - CORREÇÕES AUTOMÁTICAS AGRESSIVAS:
    
-   CORREÇÕES AUTOMÁTICAS:
-   - Substitua → por -->
-   - Substitua ← por <--
-   - Substitua ↔ por <-->
-   - Remova parênteses dentro de [] ou substitua por hífen: "Estado (inicial)" → "Estado - inicial"
-   - Remova &, <, >, ", ' de dentro de labels
-   - Se encontrar erro, simplifique o diagrama mantendo a essência
-   - Garanta que cada nó tenha um ID único e válido (A, B, C, etc.)
+   PROBLEMA: Caracteres especiais (→, ←, ↔, ⇒, ⇐, ⇔)
+   CORREÇÃO: Substituir por --> <-- <--> ==> <== <==>
+   
+   PROBLEMA: Parênteses não balanceados em labels: A[Texto (não fechado]
+   CORREÇÃO: Remover parênteses: A[Texto - não fechado]
+   
+   PROBLEMA: Sintaxe complexa que causa erro de renderização
+   CORREÇÃO: SIMPLIFICAR o diagrama mantendo a essência pedagógica
+   
+   EXEMPLOS DE SIMPLIFICAÇÃO:
+   
+   ❌ ANTES (com erro):
+   mindmap
+     root((Conceito Principal))
+       Item A
+         Subitem (com parênteses não balanceados)
+         Fórmula: (P/γ) + (V²/2g) + z
+   
+   ✅ DEPOIS (simplificado e corrigido):
+   mindmap
+     root((Conceito Principal))
+       Item A
+         Subitem com detalhes
+         Fórmula de energia
+   
+   ❌ ANTES (com setas especiais):
+   graph TD
+     A[Início] → B[Processo]
+     B ← C[Feedback]
+   
+   ✅ DEPOIS (corrigido):
+   graph TD
+     A[Início] --> B[Processo]
+     B <-- C[Feedback]
+   
+   INSTRUÇÕES ESPECÍFICAS PARA MERMAID:
+   - Remova TODOS os caracteres Unicode especiais de setas
+   - Substitua parênteses dentro de labels por traços ou remova
+   - Se um label tiver fórmula complexa, simplifique para texto descritivo
+   - Garanta que todos os nodes tenham IDs únicos e válidos
+   - Se houver erro de sintaxe não corrigível, crie versão simplificada
 
-2. REFERÊNCIAS BIBLIOGRÁFICAS (tipo: referencias):
-   PROBLEMAS COMUNS:
-   - Referências em texto único sem quebras
-   - Falta de separação entre referências
-   - Campo 'texto' em vez de 'itens' array
+2. REFERÊNCIAS BIBLIOGRÁFICAS - GARANTIR QUEBRAS DE LINHA:
    
-   CORREÇÕES AUTOMÁTICAS:
-   - SEMPRE converta para formato 'itens' array
-   - Cada referência = um item do array
-   - Formato de cada item: "[1]<br>Título<br>- URL: link<br><br>"
-   - Separe cada referência com <br><br>
-   - Se detectar padrão [1], [2], [3], divida em itens separados
-   - Adicione quebras antes de "- URL:", "- Autor:", "- Acesso:"
+   ❌ ERRO: Referencias em campo 'texto' único sem quebras
+   ✅ CORREÇÃO: Converter para campo 'itens' array com formatação:
+   
+   {
+     "tipo": "referencias",
+     "titulo": "Referências Bibliográficas",
+     "itens": [
+       "[1]<br>Título completo da primeira fonte<br>- URL: https://exemplo.com<br><br>",
+       "[2]<br>Título completo da segunda fonte<br>- URL: https://exemplo2.com<br><br>"
+     ]
+   }
+   
+   REGRAS PARA REFERÊNCIAS:
+   - SEMPRE use campo 'itens' como array de strings
+   - Cada item do array = uma referência completa
+   - SEMPRE adicione <br><br> no final de cada item
+   - Formato: "[N]<br>Título<br>- URL: link<br><br>"
+   - Se vier em 'texto', detecte padrão [1], [2] e separe em array
+   - Garanta espaçamento visual entre referências
 
-3. POST-ITS e CAIXAS (tipos: post_it, caixa_de_destaque):
-   PROBLEMAS COMUNS:
-   - HTML inválido ou tags não fechadas
-   - Tags não permitidas
-   
-   CORREÇÕES AUTOMÁTICAS:
-   - Remova tags inválidas mantendo o texto
-   - Feche tags não fechadas
-   - Garanta HTML limpo e seguro
+3. POST-ITS E CAIXAS DE DESTAQUE:
+   - Remova HTML inválido ou tags não fechadas
+   - Garanta que <strong>, <em>, <br> estejam corretamente fechados
+   - Limpe caracteres especiais que podem quebrar renderização
+   - Mantenha formatação didática mas garanta HTML válido
 
-4. PARÁGRAFOS (tipo: paragrafo):
-   PROBLEMAS COMUNS:
-   - Tags HTML inválidas
-   - Quebras de linha inconsistentes
-   
-   CORREÇÕES AUTOMÁTICAS:
+4. GRÁFICOS:
+   - Valide estrutura de 'dados' array
+   - Garanta valores numéricos válidos
+   - Corrija nomes de propriedades se necessário
+
+5. PARÁGRAFOS:
    - Valide HTML
+   - Garanta tags fechadas
    - Mantenha <br> para quebras de linha
-   - Remova tags não permitidas
-   - Limpe formatação inconsistente
 
-5. GRÁFICOS (tipo: grafico):
-   PROBLEMAS COMUNS:
-   - Dados com valores não numéricos
-   - Categorias vazias
-   
-   CORREÇÕES AUTOMÁTICAS:
-   - Converta valores para números
-   - Remova itens inválidos
-   - Garanta pelo menos 2 pontos de dados
+ESTRATÉGIA DE CORREÇÃO:
+- Para Mermaid: SEMPRE corrija ou simplifique, NUNCA deixe com erro
+- Para Referências: SEMPRE converta para 'itens' array com <br><br>
+- Para HTML: SEMPRE garanta tags válidas e fechadas
+- Se não puder corrigir perfeitamente, SIMPLIFIQUE mantendo essência
 
-IMPORTANTE:
-- Retorne APENAS o JSON corrigido
-- NÃO adicione explicações ou comentários
-- NÃO mude o conteúdo pedagógico, apenas corrija formatação e sintaxe
-- Se não puder corrigir um bloco, mantenha o original
-- Mantenha a estrutura exata do JSON
-
-FORMATO DE RETORNO (apenas o JSON, sem markdown):
+FORMATO DE RETORNO (apenas JSON, sem comentários):
 {
   "titulo_geral": "...",
   "conteudo": [...]
@@ -112,10 +133,9 @@ FORMATO DE RETORNO (apenas o JSON, sem markdown):
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: validationPrompt },
-          { role: 'user', content: 'Valide e corrija o JSON fornecido.' }
+          { role: 'user', content: validationPrompt }
         ],
-        temperature: 0.3, // Lower temperature for more consistent validation
+        temperature: 0.1, // Lower temperature for more consistent corrections
       }),
     });
 

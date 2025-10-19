@@ -217,63 +217,70 @@ const TeacherAnnotationPage = () => {
 
   const handleUndo = () => {
     if (historyIndex > 0) {
-      setIsUndoRedoAction(true);
-      const previousContent = history[historyIndex - 1];
-      setContent(previousContent);
+      const newIndex = historyIndex - 1;
+      const previousContent = history[newIndex];
       
-      // If we're undoing back to position 0 and we have originalInputContent, use it
-      if (historyIndex === 1 && originalInputContent) {
-        console.log('[History] Undo to original input content');
+      console.log('[Undo] Current index:', historyIndex, '→ New index:', newIndex);
+      console.log('[Undo] Has originalInputContent?', !!originalInputContent);
+      
+      // CRITICAL FIX: Se voltando para índice 0 E temos originalInputContent, usar ele
+      if (newIndex === 0 && originalInputContent) {
+        console.log('[Undo] 🔄 Restaurando conteúdo original do input');
+        setIsUndoRedoAction(true);
+        
+        // Se estava em modo estruturado, desativar
+        if (isStructuredMode) {
+          console.log('[Undo] Desativando modo estruturado');
+          setIsStructuredMode(false);
+          setStructuredContent(null);
+        }
+        
         setContent(originalInputContent);
         if (editorRef.current) {
           editorRef.current.innerHTML = originalInputContent;
         }
-        setHistoryIndex(0);
+        setHistoryIndex(newIndex);
+        toast.info('Desfeito - Conteúdo original restaurado');
         setTimeout(() => setIsUndoRedoAction(false), 100);
         return;
       }
       
-      // Try to parse as structured content
-      try {
-        const parsed = JSON.parse(previousContent);
-        if (parsed.conteudo && Array.isArray(parsed.conteudo)) {
-          // It's structured content
-          setStructuredContent(parsed);
-          setIsStructuredMode(true);
-          if (editorRef.current) {
-            editorRef.current.innerHTML = '';
+      // Lógica normal de undo para outros casos
+      setIsUndoRedoAction(true);
+      
+      // Check if content is structured JSON
+      if (isStructuredMode) {
+        try {
+          const parsedContent = JSON.parse(previousContent);
+          if (parsedContent.conteudo) {
+            setStructuredContent(parsedContent);
+            setContent(previousContent);
+          } else {
+            // Not structured, switch back to HTML mode
+            setIsStructuredMode(false);
+            setStructuredContent(null);
+            setContent(previousContent);
+            if (editorRef.current) {
+              editorRef.current.innerHTML = previousContent;
+            }
           }
-        } else {
-          // Not structured, treat as HTML
-          setStructuredContent(null);
+        } catch {
+          // Failed to parse, switch to HTML mode
           setIsStructuredMode(false);
+          setStructuredContent(null);
+          setContent(previousContent);
           if (editorRef.current) {
-            const scrollTop = editorRef.current.scrollTop;
             editorRef.current.innerHTML = previousContent;
-            editorRef.current.scrollTop = scrollTop;
           }
         }
-      } catch {
-        // Not JSON, treat as HTML
-        setStructuredContent(null);
-        setIsStructuredMode(false);
+      } else {
+        setContent(previousContent);
         if (editorRef.current) {
-          const scrollTop = editorRef.current.scrollTop;
           editorRef.current.innerHTML = previousContent;
-          editorRef.current.scrollTop = scrollTop;
-          
-          const range = document.createRange();
-          const selection = window.getSelection();
-          if (editorRef.current.lastChild) {
-            range.selectNodeContents(editorRef.current);
-            range.collapse(false);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-          }
         }
       }
       
-      setHistoryIndex(historyIndex - 1);
+      setHistoryIndex(newIndex);
       toast.info('Desfeito');
       setTimeout(() => setIsUndoRedoAction(false), 100);
     }
@@ -467,16 +474,17 @@ const TeacherAnnotationPage = () => {
       return;
     }
 
-    // Save BOTH preAI and original input content before AI formatting
-    setPreAIContent(content);
-    console.log('[AI] Saved original content before formatting');
+    const currentContent = editorRef.current?.innerHTML || '';
+    console.log('[AI Action] 💾 Salvando estado antes de processar:', actionType);
+    console.log('[AI Action] Conteúdo atual (primeiros 100 chars):', currentContent.substring(0, 100));
+    setPreAIContent(currentContent);
     
-    // If this is the first AI action and we have original input, preserve it
-    if (!originalInputContent && hasInitializedHistory && history.length > 0) {
-      console.log('[AI] Saving original input content for undo:', history[0].substring(0, 50));
-      setOriginalInputContent(history[0]);
+    // Se ainda não temos originalInputContent, salvar agora
+    if (!originalInputContent) {
+      setOriginalInputContent(currentContent);
+      console.log('[AI Action] ✅ originalInputContent salvo pela primeira vez');
     }
-
+    
     setIsProcessingAI(true);
     
     try {
