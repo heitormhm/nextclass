@@ -505,8 +505,39 @@ const TeacherAnnotationPage = () => {
           setIsProcessingAI(false);
           return;
         }
-        
+
+        // ⭐ VALIDAÇÃO ROBUSTA DA RESPOSTA
+        if (!data || !data.structured_content) {
+          console.error('[Plano de Aula] Resposta inválida:', data);
+          toast.error('Erro: Resposta vazia do servidor', {
+            description: 'Tente novamente ou entre em contato com suporte',
+          });
+          setIsProcessingAI(false);
+          return;
+        }
+
         const structuredData = data.structured_content;
+
+        // ⭐ VALIDAR CONTEÚDO
+        if (!structuredData.conteudo || !Array.isArray(structuredData.conteudo)) {
+          console.error('[Plano de Aula] Estrutura inválida:', structuredData);
+          toast.error('Erro: Plano de aula vazio', {
+            description: 'O servidor retornou uma estrutura inválida. Verifique os logs.',
+          });
+          setIsProcessingAI(false);
+          return;
+        }
+
+        if (structuredData.conteudo.length === 0) {
+          console.warn('[Plano de Aula] Plano gerado sem blocos');
+          toast.warning('Plano de aula gerado sem blocos 🤔', {
+            description: 'O conteúdo pode não ter sido suficiente. Tente adicionar mais detalhes.',
+            duration: 7000,
+          });
+          setIsProcessingAI(false);
+          return;
+        }
+        
         const jsonContent = JSON.stringify(structuredData);
         
         setContent(jsonContent);
@@ -520,7 +551,7 @@ const TeacherAnnotationPage = () => {
         saveToHistory(jsonContent);
         
         toast.success('Plano de aula gerado! 🎓', {
-          description: `${structuredData?.conteudo?.length || 0} blocos pedagógicos criados`,
+          description: `${structuredData.conteudo.length} blocos pedagógicos criados`,
           duration: 5000,
         });
         setIsProcessingAI(false);

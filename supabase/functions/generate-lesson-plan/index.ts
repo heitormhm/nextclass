@@ -413,14 +413,27 @@ RETORNE APENAS JSON, SEM TEXTO ADICIONAL.
     const fase2Data = await fase2Response.json();
     let fase2Content = fase2Data.choices[0].message.content;
     
+    // ⭐ LOGS DETALHADOS DA FASE 2
+    console.log('📦 Resposta bruta da Fase 2 (primeiros 500 chars):', fase2Content.substring(0, 500));
+    console.log('📏 Tamanho total da resposta:', fase2Content.length);
     console.log('✅ Fase 2 concluída. Extraindo JSON...');
 
     let structuredContent;
     try {
       const jsonMatch = fase2Content.match(/\{[\s\S]*\}/);
-      structuredContent = JSON.parse(jsonMatch ? jsonMatch[0] : fase2Content);
+      if (!jsonMatch) {
+        console.error('❌ Nenhum JSON encontrado na resposta da Fase 2');
+        console.log('📄 Conteúdo completo:', fase2Content);
+        throw new Error('JSON não encontrado na resposta');
+      }
+      
+      structuredContent = JSON.parse(jsonMatch[0]);
+      console.log('✅ JSON parseado com sucesso');
+      console.log('📊 Blocos encontrados:', structuredContent.conteudo?.length || 0);
+      
     } catch (e) {
       console.error('❌ Erro ao parsear JSON Fase 2:', e);
+      console.log('📄 Conteúdo que causou erro:', fase2Content.substring(0, 1000));
       throw new Error('Falha ao parsear conteúdo estruturado');
     }
 
@@ -428,6 +441,7 @@ RETORNE APENAS JSON, SEM TEXTO ADICIONAL.
     console.log('🔒 Aplicando validações...');
 
     if (structuredContent.conteudo && Array.isArray(structuredContent.conteudo)) {
+      console.log(`🔍 Validando ${structuredContent.conteudo.length} blocos...`);
       structuredContent.conteudo = structuredContent.conteudo.map((bloco: any) => {
         // Sanitizar Mermaid
         if (bloco.definicao_mermaid) {
