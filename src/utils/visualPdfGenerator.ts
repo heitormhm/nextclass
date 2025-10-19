@@ -656,8 +656,21 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         const imageData = await captureBlockAsImage(bloco, contentWidth);
         
         if (imageData) {
-          // FASE 3: Prevenir órfão visual (texto isolado antes de imagem grande)
           const estimatedImageHeight = (imageData.height / imageData.width) * contentWidth * 0.7;
+          
+          // FASE 2: Zona de Proteção ANTES de Imagens (15mm buffer)
+          const IMAGE_PROTECTION_ZONE = 15; // 15mm de buffer obrigatório
+          const spaceAvailable = pageHeight - margin - currentY;
+          
+          if (spaceAvailable < IMAGE_PROTECTION_ZONE + estimatedImageHeight) {
+            // Não há espaço suficiente: criar nova página
+            pdf.addPage();
+            stats.totalPages++;
+            currentY = margin;
+            console.log(`🛡️ Nova página: proteção de ${IMAGE_PROTECTION_ZONE}mm antes de imagem (espaço: ${spaceAvailable.toFixed(1)}mm)`);
+          }
+          
+          // FASE 3: Prevenir órfão visual (texto isolado antes de imagem grande)
           
           if (i > 0 && estimatedImageHeight > 80) {
             const previousBlock = options.structuredData.conteudo[i - 1];
@@ -829,6 +842,31 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         }
       } else {
         // RENDERIZAR COMO TEXTO NATIVO
+        
+        // FASE 3: Lookahead - verificar se próximo bloco é imagem (proteção de proximidade)
+        if (bloco.tipo === 'paragrafo' && i + 1 < options.structuredData.conteudo.length) {
+          const nextBlock = options.structuredData.conteudo[i + 1];
+          const nextIsImage = ['fluxograma', 'diagrama', 'mapa_mental', 'componente_react', 'grafico'].includes(nextBlock.tipo);
+          
+          if (nextIsImage) {
+            const IMAGE_SAFETY_MARGIN = 15; // 15mm de distância mínima antes de imagens
+            const spaceAvailable = pageHeight - margin - currentY;
+            
+            // Estimativa rápida de altura do parágrafo
+            const textLength = (bloco.texto || '').length;
+            const estimatedParagraphHeight = Math.ceil(textLength / 80) * 6.5 + 11;
+            const spaceAfterParagraph = spaceAvailable - estimatedParagraphHeight;
+            
+            // Se parágrafo deixará menos de 15mm antes da imagem, mover para nova página
+            if (spaceAfterParagraph < IMAGE_SAFETY_MARGIN && spaceAvailable > estimatedParagraphHeight) {
+              pdf.addPage();
+              stats.totalPages++;
+              currentY = margin;
+              console.log(`🛡️ Parágrafo movido para nova página: próximo é imagem (${spaceAfterParagraph.toFixed(1)}mm < ${IMAGE_SAFETY_MARGIN}mm)`);
+            }
+          }
+        }
+        
         // CORREÇÃO 4: Passar flag lastBlockWasImage para ajustar espaçamento
         (bloco as any).__lastBlockWasImage = lastBlockWasImage;
         
@@ -1234,10 +1272,47 @@ const addTextBlockToPDF = (
       // FASE 2: Sanitizar markdown antes de processar
       const { cleanText: sanitizedText, hasBold: hasMarkdown } = sanitizeMarkdown(processedBloco.texto || '');
       
-      // CORREÇÃO 2: Pré-calcular altura TOTAL do parágrafo antes de renderizar
-      const estimatedLines = hasMarkdown 
-        ? Math.ceil(sanitizedText.length / 80) // Estimativa para texto com negrito
-        : smartTextSplit(pdf, sanitizedText, contentWidth * 1.05).length;
+      // FASE 1: Estimativa PRECISA de altura para parágrafos com negrito (simulação dry-run)
+      let estimatedLines: number;
+      
+      if (hasMarkdown) {
+        // NOVO: Simulação precisa de quebra de linhas considerando largura de negrito
+        const words: Array<{text: string, bold: boolean}> = [];
+        const keywordPattern = /\*\*(.*?)\*\*/g;
+        const parts = sanitizedText.split(keywordPattern);
+        
+        parts.forEach((part, index) => {
+          if (!part) return;
+          const isBold = index % 2 === 1;
+          part.split(' ').filter(w => w.trim()).forEach(word => {
+            words.push({ text: word, bold: isBold });
+          });
+        });
+        
+        // Simular quebra de linhas (dry-run)
+        pdf.setFontSize(11);
+        let simulatedLines = 1;
+        let currentLineWidth = 0;
+        const spaceWidth = pdf.getTextWidth(' ');
+        
+        words.forEach(word => {
+          pdf.setFont('helvetica', word.bold ? 'bold' : 'normal');
+          const wordWidth = pdf.getTextWidth(word.text);
+          const nextWidth = currentLineWidth + wordWidth + (currentLineWidth > 0 ? spaceWidth : 0);
+          
+          if (nextWidth > contentWidth) {
+            simulatedLines++;
+            currentLineWidth = wordWidth;
+          } else {
+            currentLineWidth = nextWidth;
+          }
+        });
+        
+        estimatedLines = simulatedLines;
+        console.log(`📏 Estimativa precisa: ${estimatedLines} linhas (texto com negrito)`);
+      } else {
+        estimatedLines = smartTextSplit(pdf, sanitizedText, contentWidth * 1.05).length;
+      }
       
       const totalParagraphHeight = estimatedLines * 6.5 + 11; // linhas + espaço pós-parágrafo
       
