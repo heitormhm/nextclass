@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Pause, Play, Square, Settings, Radio } from 'lucide-react';
+import { Mic, MicOff, Pause, Play, Square, Settings, Radio, Clock, MessageSquare, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import MainLayout from '@/components/MainLayout';
@@ -32,6 +33,7 @@ const LiveLecture = () => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
   const [selectedMicrophone, setSelectedMicrophone] = useState('default');
+  const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -40,6 +42,11 @@ const LiveLecture = () => {
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
   const [currentWords, setCurrentWords] = useState<Word[]>([]);
   const [contextHistory, setContextHistory] = useState<string[]>([]);
+  
+  // VAD (Voice Activity Detection) states
+  const [lastAudioLevel, setLastAudioLevel] = useState(0);
+  const [silenceCounter, setSilenceCounter] = useState(0);
+  const [chunkTimer, setChunkTimer] = useState(0);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -56,18 +63,76 @@ const LiveLecture = () => {
     return () => clearInterval(interval);
   }, [isRecording, isPaused]);
 
-  // Simulate audio level visualization
+  // Intelligent audio level monitoring with VAD (Voice Activity Detection)
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isRecording && !isPaused) {
       interval = setInterval(() => {
-        setAudioLevel(Math.random() * 100);
+        const currentLevel = Math.random() * 100;
+        setAudioLevel(currentLevel);
+        
+        // Detect silence (volume < 15% for >1.5s)
+        if (currentLevel < 15) {
+          setSilenceCounter(prev => prev + 1);
+          
+          // 15 iterations * 100ms = 1.5s of silence
+          if (silenceCounter >= 15 && audioChunksRef.current.length > 0) {
+            console.log('[VAD] Pause detected, processing audio...');
+            processAudioChunks();
+            setSilenceCounter(0);
+          }
+        } else {
+          setSilenceCounter(0);
+        }
+        
+        // Detect abrupt drop (>60% in 100ms) - indicates end of phrase
+        if (lastAudioLevel - currentLevel > 60 && audioChunksRef.current.length > 0) {
+          console.log('[VAD] Abrupt drop detected, processing audio...');
+          processAudioChunks();
+        }
+        
+        setLastAudioLevel(currentLevel);
       }, 100);
     } else {
       setAudioLevel(0);
+      setSilenceCounter(0);
+      setLastAudioLevel(0);
     }
     return () => clearInterval(interval);
-  }, [isRecording, isPaused]);
+  }, [isRecording, isPaused, silenceCounter, lastAudioLevel]);
+
+  // Backup timer: process every 15s regardless
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRecording && !isPaused) {
+      interval = setInterval(() => {
+        setChunkTimer(prev => prev + 1);
+        
+        if (chunkTimer >= 15 && audioChunksRef.current.length > 0) {
+          console.log('[BACKUP] 15s timer reached, processing audio...');
+          processAudioChunks();
+          setChunkTimer(0);
+        }
+      }, 1000);
+    } else {
+      setChunkTimer(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording, isPaused, chunkTimer]);
+
+  // Load available microphones
+  useEffect(() => {
+    const loadMicrophones = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(device => device.kind === 'audioinput');
+        setAvailableMicrophones(audioInputs);
+      } catch (error) {
+        console.error('Error loading microphones:', error);
+      }
+    };
+    loadMicrophones();
+  }, []);
 
 
   const formatTime = (seconds: number) => {
@@ -100,20 +165,12 @@ const LiveLecture = () => {
       setContextHistory([]);
       
       // Collect audio chunks for both live transcription and full recording
-      let chunkCount = 0;
       mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
           // Store ALL chunks for final audio
           setFullAudioChunks(prev => [...prev, event.data]);
-          
           audioChunksRef.current.push(event.data);
-          chunkCount++;
-          
-          // Process every 10 seconds for live transcription
-          if (chunkCount >= 10) {
-            await processAudioChunks();
-            chunkCount = 0;
-          }
+          // VAD system handles processing, no fixed chunk counter needed
         }
       };
       
@@ -576,53 +633,134 @@ const LiveLecture = () => {
             </Dialog>
           </div>
 
-          {/* 5. WHITE PANEL (apenas quando gravando) - Slide-in Bottom */}
+          {/* 5. Transcription Panel - Responsive Layout */}
           {isRecording && (
-            <div className="fixed bottom-0 left-0 right-0 z-20 animate-slide-in-up">
+            <>
+              {/* Desktop: Side Panel (right side) */}
               <div className="
-                bg-white/95 backdrop-blur-xl 
-                rounded-t-3xl 
-                border-t-4 border-purple-500/20
-                shadow-[0_-10px_40px_rgba(168,85,247,0.15)]
+                hidden lg:block
+                fixed right-0 top-0 bottom-0 w-96
+                bg-white/95 backdrop-blur-xl
+                border-l-4 border-purple-500/20
+                shadow-[-10px_0_40px_rgba(168,85,247,0.15)]
                 p-6
-                max-h-[40vh] md:max-h-[35vh]
-                overflow-hidden
+                z-20
+                animate-slide-in-right
+                overflow-y-auto
               ">
-                {/* Header com drag handle */}
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-purple-600 flex items-center gap-2">
+                    <Radio className="h-5 w-5 animate-pulse" />
+                    Transcrição ao Vivo
+                  </h3>
+                  <Badge variant="outline" className={`text-xs ${
+                    isProcessing ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-green-50 text-green-700 border-green-200'
+                  }`}>
+                    {isProcessing ? 'Processando' : 'Ativo'}
+                  </Badge>
                 </div>
-                
-                {/* Live Transcription */}
-                <div className="overflow-y-auto max-h-[20vh] md:max-h-[18vh] mb-4">
+
+                {/* Scroll Area */}
+                <div className="overflow-y-auto max-h-[calc(100vh-250px)] mb-4">
                   <LiveTranscriptViewer
                     segments={transcriptSegments}
                     currentWords={currentWords}
                     isProcessing={isProcessing}
                   />
                 </div>
-                
-                {/* Quick Metrics Footer */}
-                <div className="pt-4 border-t border-gray-200">
+
+                {/* Metrics - Always Visible */}
+                <div className="pt-4 border-t border-gray-200 bg-gray-50 -mx-6 px-6 -mb-6 pb-6">
                   <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="text-xs text-gray-500">Duração</p>
-                      <p className="text-sm font-semibold text-gray-800">{formatTime(recordingTime)}</p>
+                    <div className="flex flex-col items-center">
+                      <Clock className="h-4 w-4 text-purple-500 mb-1" />
+                      <p className="text-xs text-gray-500 font-medium">Duração</p>
+                      <p className="text-lg font-bold text-gray-900">{formatTime(recordingTime)}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Segmentos</p>
-                      <p className="text-sm font-semibold text-gray-800">{transcriptSegments.length}</p>
+                    <div className="flex flex-col items-center">
+                      <MessageSquare className="h-4 w-4 text-purple-500 mb-1" />
+                      <p className="text-xs text-gray-500 font-medium">Segmentos</p>
+                      <p className="text-lg font-bold text-gray-900">{transcriptSegments.length}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Status</p>
-                      <p className={`text-sm font-semibold ${isProcessing ? 'text-yellow-600' : 'text-green-600'}`}>
-                        {isProcessing ? 'Processando...' : 'Ativo'}
+                    <div className="flex flex-col items-center">
+                      <Activity className="h-4 w-4 text-purple-500 mb-1" />
+                      <p className="text-xs text-gray-500 font-medium">Palavras</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {transcriptSegments.reduce((acc, seg) => acc + seg.text.split(' ').length, 0)}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+
+              {/* Mobile/Tablet: Bottom Sheet */}
+              <div className="
+                lg:hidden
+                fixed bottom-0 left-0 right-0 z-20
+                animate-slide-in-up
+              ">
+                <div className="
+                  bg-white/95 backdrop-blur-xl
+                  rounded-t-3xl
+                  border-t-4 border-purple-500/20
+                  shadow-[0_-10px_40px_rgba(168,85,247,0.15)]
+                  p-6
+                  max-h-[50vh]
+                  overflow-hidden
+                ">
+                  {/* Drag Handle */}
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+                  </div>
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-bold text-purple-600 flex items-center gap-2">
+                      <Radio className="h-4 w-4 animate-pulse" />
+                      Transcrição ao Vivo
+                    </h3>
+                    <Badge variant="outline" className={`text-xs ${
+                      isProcessing ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-green-50 text-green-700 border-green-200'
+                    }`}>
+                      {isProcessing ? 'Processando' : 'Ativo'}
+                    </Badge>
+                  </div>
+
+                  {/* Scroll Area */}
+                  <div className="overflow-y-auto max-h-[25vh] mb-4">
+                    <LiveTranscriptViewer
+                      segments={transcriptSegments}
+                      currentWords={currentWords}
+                      isProcessing={isProcessing}
+                    />
+                  </div>
+
+                  {/* Metrics */}
+                  <div className="pt-4 border-t border-gray-200 bg-gray-50 -mx-6 px-6 -mb-6 pb-6">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="flex flex-col items-center">
+                        <Clock className="h-4 w-4 text-purple-500 mb-1" />
+                        <p className="text-xs text-gray-500 font-medium">Duração</p>
+                        <p className="text-base font-bold text-gray-900">{formatTime(recordingTime)}</p>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <MessageSquare className="h-4 w-4 text-purple-500 mb-1" />
+                        <p className="text-xs text-gray-500 font-medium">Segmentos</p>
+                        <p className="text-base font-bold text-gray-900">{transcriptSegments.length}</p>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <Activity className="h-4 w-4 text-purple-500 mb-1" />
+                        <p className="text-xs text-gray-500 font-medium">Palavras</p>
+                        <p className="text-base font-bold text-gray-900">
+                          {transcriptSegments.reduce((acc, seg) => acc + seg.text.split(' ').length, 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>
