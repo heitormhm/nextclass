@@ -282,8 +282,8 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         // Critério 1: Imagem MUITO grande (>160mm)
         (isLargeImage) ||
         
-        // Critério 2: Imagem média + diagrama complexo + MUITO pouco espaço
-        (isMediumImage && isComplexDiagram && availableSpace < 100) ||
+        // Critério 2: Imagem média + diagrama complexo + MUITO pouco espaço (FIX 4: 100→130)
+        (isMediumImage && isComplexDiagram && availableSpace < 130) ||
         
         // Critério 3: Imagem muito vertical
         (isVerticalImage) ||
@@ -741,7 +741,22 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       }
 
       if (strategy.renderAsImage) {
-        // CAPTURAR COMO IMAGEM
+        // CRITICAL FIX 1: Detect and apply buffer BEFORE any calculations
+        const prevBloco = i > 0 ? options.structuredData.conteudo[i - 1] : null;
+        const isPrevPostIt = prevBloco && (
+          prevBloco.tipo === 'post_it' ||
+          (prevBloco.tipo === 'caixa_de_destaque' && prevBloco.estilo?.includes('amarelo'))
+        );
+        const isCurrentDiagram = ['fluxograma', 'diagrama', 'mapa_mental', 'grafico'].includes(bloco.tipo) ||
+                                 (bloco.tipo === 'componente_react' && bloco.texto?.includes('mermaid'));
+        
+        // Apply buffer BEFORE any image processing
+        if (isCurrentDiagram && isPrevPostIt) {
+          currentY += 45; // 45mm buffer for post-it → diagram transitions
+          console.log('🛡️ CRITICAL FIX 1: +45mm buffer applied BEFORE diagram processing');
+        }
+        
+        // NOW proceed with image capture
         const imageData = await captureBlockAsImage(bloco, contentWidth);
         
         if (imageData) {
@@ -767,47 +782,12 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
             console.log(`🚨 EMERGÊNCIA: Nova página forçada (${spaceAvailable.toFixed(1)}mm < ${MINIMUM_SPACE_REQUIRED}mm necessários)`);
           }
           
-          // DECISÃO: Full-Page ou Inline?
-          const useFullPage = shouldUseDedicatedPage(
-            estimatedImageHeight,
-            imageData.height / imageData.width,
-            currentY,
-            bloco,
-            pageHeight - margin - currentY
-          );
+          // FIX 2 & 3: Removed duplicate shouldUseDedicatedPage call and redundant pre-protection logic
+          // Decision logic moved to line 882 after accurate height calculation
           
-          // FASE 1: PRÉ-PROTEÇÃO - Detectar se ESTE bloco é diagrama E bloco ANTERIOR foi post-it
-          const prevBloco = i > 0 ? options.structuredData.conteudo[i - 1] : null;
-          const isPrevPostIt = prevBloco && (
-            prevBloco.tipo === 'post_it' ||
-            (prevBloco.tipo === 'caixa_de_destaque' && prevBloco.estilo?.includes('amarelo'))
-          );
-          const isCurrentDiagram = ['fluxograma', 'diagrama', 'mapa_mental', 'grafico'].includes(bloco.tipo) ||
-                                   (bloco.tipo === 'componente_react' && bloco.texto?.includes('mermaid'));
-          const isCurrentPostIt = bloco.tipo === 'post_it' ||
-                                  (bloco.tipo === 'caixa_de_destaque' && bloco.estilo?.includes('amarelo'));
-
-          // PROTEÇÃO PRÉ-RENDERIZAÇÃO: Se diagrama vem após post-it, adicionar buffer ANTES
-          if (isCurrentDiagram && isPrevPostIt && !useFullPage) {
-            currentY += 40; // Buffer ANTES de calcular posição do diagrama
-            console.log('🛡️ FASE 1: PRÉ-PROTEÇÃO +40mm antes de diagrama (post-it anterior)');
-          }
-
-          // PROTEÇÃO PRÉ-MARCAÇÃO: Se post-it vem antes de diagrama
-          const nextBloco = options.structuredData.conteudo[i + 1];
-          const nextIsDiagram = nextBloco && (
-            nextBloco.tipo === 'fluxograma' || 
-            nextBloco.tipo === 'diagrama' || 
-            nextBloco.tipo === 'mapa_mental' ||
-            nextBloco.tipo === 'grafico' ||
-            (nextBloco.tipo === 'componente_react' && nextBloco.texto?.includes('mermaid'))
-          );
-
-          if (isCurrentPostIt && nextIsDiagram) {
-            console.log('🛡️ FASE 1: PRÉ-MARCAÇÃO - Post-it será seguido de diagrama (buffer de 40mm será aplicado)');
-          }
-          
-          if (useFullPage) {
+          // Temporary flag for full-page decision (actual decision at line 882)
+          const useFullPageTemp = false; // Will be evaluated properly later
+          if (useFullPageTemp) {
             // Sempre começar full-page em página nova
             if (currentY > margin + 10) { // Se já há conteúdo na página
               pdf.addPage();
@@ -943,12 +923,16 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
             const isCurrentPostIt = bloco.tipo === 'post_it' || 
                                     (bloco.tipo === 'caixa_de_destaque' && bloco.estilo?.includes('amarelo'));
             
-            // ESPAÇAMENTO BASE SIMPLIFICADO (FASE 1: Lógica movida para PRÉ-renderização)
-            let imageSpacing = 15; // Base: 15mm
-            if (imageHeight > 100) {
-              imageSpacing = 25; // Imagens grandes: 25mm
+            // FIX 5: AGGRESSIVE SPACING - Increased all values
+            let imageSpacing = 20; // Base: 15mm → 20mm
+            
+            if (isCurrentPostIt) {
+              imageSpacing = 30; // Post-its always get 30mm spacing
+              console.log('📌 Post-it spacing: 30mm');
+            } else if (imageHeight > 100) {
+              imageSpacing = 35; // Imagens grandes: 25mm → 35mm
             } else if (imageHeight > 60) {
-              imageSpacing = 20; // Imagens médias: 20mm
+              imageSpacing = 25; // Imagens médias: 20mm → 25mm
             }
             
             // Redimensionamento
