@@ -598,6 +598,8 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     currentY += 15;
 
     // PROCESSAR CADA BLOCO
+    let lastBlockWasImage = false; // CORREÇÃO 4: Rastrear blocos de imagem para ajustar espaçamento
+    
     for (let i = 0; i < options.structuredData.conteudo.length; i++) {
       const bloco = options.structuredData.conteudo[i];
       const strategy = RENDER_STRATEGIES[bloco.tipo] || { renderAsImage: false };
@@ -661,8 +663,12 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
             const previousBlock = options.structuredData.conteudo[i - 1];
             const linesOnCurrentPage = (currentY - margin) / 6.5;
             
-            // Se apenas 1-2 linhas do parágrafo anterior estão nesta página
-            if (previousBlock.tipo === 'paragrafo' && linesOnCurrentPage < 3 && linesOnCurrentPage > 0.5) {
+            // CORREÇÃO 1: Incluir títulos na verificação de órfão visual
+            if ((previousBlock.tipo === 'paragrafo' || 
+                 previousBlock.tipo === 'h2' || 
+                 previousBlock.tipo === 'h3' || 
+                 previousBlock.tipo === 'h4') && 
+                linesOnCurrentPage < 3 && linesOnCurrentPage > 0.5) {
               // Criar nova página e re-renderizar parágrafo
               pdf.addPage();
               stats.totalPages++;
@@ -784,6 +790,17 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               imageSpacing = 15;
             }
             
+            // CORREÇÃO 3: Detectar diagramas técnicos e adicionar espaço extra
+            const isDiagram = bloco.tipo === 'fluxograma' || 
+                              bloco.tipo === 'diagrama' || 
+                              bloco.tipo === 'mapa_mental' ||
+                              (bloco.tipo === 'componente_react' && bloco.texto?.includes('mermaid'));
+            
+            if (isDiagram) {
+              imageSpacing += 8; // +8mm extra para diagramas técnicos
+              console.log('📊 Espaçamento extra aplicado: diagrama técnico');
+            }
+            
             // Se imagem foi redimensionada, adicionar buffer extra
             const originalHeight = (imageData.height / imageData.width) * imageWidth;
             const wasResized = Math.abs(imageHeight - originalHeight) > 5;
@@ -793,6 +810,9 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
             }
             
             currentY += imageHeight + imageSpacing;
+            
+            // CORREÇÃO 4: Marcar que último bloco foi imagem
+            lastBlockWasImage = true;
             console.log(`✅ Imagem normal: ${imageWidth.toFixed(1)}mm x ${imageHeight.toFixed(1)}mm (espaçamento: ${imageSpacing}mm)`);
           }
 
@@ -809,6 +829,9 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         }
       } else {
         // RENDERIZAR COMO TEXTO NATIVO
+        // CORREÇÃO 4: Passar flag lastBlockWasImage para ajustar espaçamento
+        (bloco as any).__lastBlockWasImage = lastBlockWasImage;
+        
         currentY = addTextBlockToPDF(
           pdf, 
           bloco, 
@@ -821,6 +844,9 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
           renderJustifiedLine
         );
         stats.nativeTextBlocks++;
+        
+        // Reset flag após renderizar texto
+        lastBlockWasImage = false;
 
         // Verificar quebra de página após texto
         if (currentY > pageHeight - margin) {
@@ -1135,12 +1161,23 @@ const addTextBlockToPDF = (
 
   // FASE 4: Aplicar conversão automática de markdown residual
   const processedBloco = detectAndConvertMarkdown(bloco);
+  
+  // CORREÇÃO 4: Receber flag lastBlockWasImage como parâmetro
+  const isAfterImage = (bloco as any).__lastBlockWasImage || false;
 
   switch (processedBloco.tipo) {
     case 'h2':
       pdf.setFontSize(16);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(63, 45, 175); // Roxo escuro
+      
+      // CORREÇÃO 4: Espaçamento adaptativo antes de H2 (maior após imagens)
+      const h2Spacing = isAfterImage ? 15 : 10; // +5mm após imagem
+      currentY += h2Spacing;
+      if (isAfterImage) {
+        console.log('📐 Espaçamento aumentado: H2 após imagem (+5mm)');
+      }
+      
       const h2Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h2Lines, margin, currentY);
       
@@ -1159,6 +1196,14 @@ const addTextBlockToPDF = (
       pdf.setFontSize(13);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(145, 127, 251); // Roxo claro
+      
+      // CORREÇÃO 4: Espaçamento adaptativo antes de H3 (maior após imagens)
+      const h3SpacingBefore = isAfterImage ? 12 : 8; // +4mm após imagem
+      currentY += h3SpacingBefore;
+      if (isAfterImage) {
+        console.log('📐 Espaçamento aumentado: H3 após imagem (+4mm)');
+      }
+      
       const h3Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h3Lines, margin, currentY);
       
@@ -1188,6 +1233,20 @@ const addTextBlockToPDF = (
       
       // FASE 2: Sanitizar markdown antes de processar
       const { cleanText: sanitizedText, hasBold: hasMarkdown } = sanitizeMarkdown(processedBloco.texto || '');
+      
+      // CORREÇÃO 2: Pré-calcular altura TOTAL do parágrafo antes de renderizar
+      const estimatedLines = hasMarkdown 
+        ? Math.ceil(sanitizedText.length / 80) // Estimativa para texto com negrito
+        : smartTextSplit(pdf, sanitizedText, contentWidth * 1.05).length;
+      
+      const totalParagraphHeight = estimatedLines * 6.5 + 11; // linhas + espaço pós-parágrafo
+      
+      // Se parágrafo NÃO CABE completamente, criar nova página ANTES
+      if (currentY + totalParagraphHeight + 20 > pageHeight - margin) {
+        pdf.addPage();
+        currentY = margin;
+        console.log('📄 Nova página: parágrafo completo protegido do rodapé');
+      }
       
       if (hasMarkdown) {
         // CORREÇÃO 1: Renderização inline palavra por palavra para evitar isolamento
