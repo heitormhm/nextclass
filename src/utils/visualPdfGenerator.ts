@@ -248,29 +248,58 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       bloco: ContentBlock,
       availableSpace: number
     ): boolean => {
-      const isLargeImage = imageHeight > 150; // Altura > 150mm
-      const isVerticalImage = aspectRatio > 1.5; // Muito vertical
+      
+      const isLargeImage = imageHeight > 120; // REDUZIDO: 150mm → 120mm
+      const isMediumImage = imageHeight > 80; // NOVO: imagens médias
+      const isVerticalImage = aspectRatio > 1.3; // REDUZIDO: 1.5 → 1.3
       const isComplexDiagram = [
         'fluxograma',
         'mapa_mental',
-        'diagrama'
-      ].includes(bloco.tipo) || bloco.definicao_mermaid;
+        'diagrama',
+        'grafico' // ADICIONADO: gráficos também
+      ].includes(bloco.tipo) || !!bloco.definicao_mermaid;
       
-      const decision = (
-        (isLargeImage && availableSpace < 180) ||
-        (isComplexDiagram && availableSpace < 200) ||
-        isVerticalImage
+      // NOVO: Calcular ocupação percentual
+      const imageOccupancy = imageHeight / availableSpace;
+      const isHighOccupancy = imageOccupancy > 0.4; // > 40% do espaço
+      
+      // NOVA DECISÃO: MUITO MAIS AGRESSIVA
+      const decision: boolean = (
+        // Critério 1: Imagem grande OU espaço limitado
+        (isLargeImage) ||
+        
+        // Critério 2: Imagem média + diagrama complexo
+        (isMediumImage && isComplexDiagram) ||
+        
+        // Critério 3: Imagem muito vertical
+        (isVerticalImage) ||
+        
+        // Critério 4: NOVO - Alta ocupação (>40%)
+        (isHighOccupancy && imageHeight > 60) ||
+        
+        // Critério 5: NOVO - Pouco espaço disponível (<150mm)
+        (availableSpace < 150 && imageHeight > 70) ||
+        
+        // Critério 6: NOVO - Já estamos no meio/final da página
+        (currentY > 100 && imageHeight > 80)
       );
       
-      console.log('🔍 Análise de imagem:', {
+      console.log('🔍 Análise AGRESSIVA de imagem:', {
         tipo: bloco.tipo,
-        alturaOriginal: `${imageHeight.toFixed(1)}mm`,
+        alturaImagem: `${imageHeight.toFixed(1)}mm`,
         espacoDisponivel: `${availableSpace.toFixed(1)}mm`,
+        ocupacao: `${(imageOccupancy * 100).toFixed(1)}%`,
+        posicaoAtual: `${currentY.toFixed(1)}mm`,
         aspectRatio: aspectRatio.toFixed(2),
-        isLargeImage,
-        isComplexDiagram,
-        isVerticalImage,
-        decisao: decision ? 'FULL-PAGE' : 'NORMAL'
+        criterios: {
+          isLargeImage,
+          isMediumImage,
+          isComplexDiagram,
+          isVerticalImage,
+          isHighOccupancy,
+          currentYPosition: currentY > 100
+        },
+        decisao: decision ? '📄 FULL-PAGE' : '📝 INLINE'
       });
       
       return decision;
@@ -657,17 +686,48 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         
         if (imageData) {
           const estimatedImageHeight = (imageData.height / imageData.width) * contentWidth * 0.7;
-          
-          // FASE 2: Zona de Proteção ANTES de Imagens (15mm buffer)
-          const IMAGE_PROTECTION_ZONE = 15; // 15mm de buffer obrigatório
           const spaceAvailable = pageHeight - margin - currentY;
           
-          if (spaceAvailable < IMAGE_PROTECTION_ZONE + estimatedImageHeight) {
-            // Não há espaço suficiente: criar nova página
+          // PROTEÇÃO DE EMERGÊNCIA: Verificar se HÁ ESPAÇO REAL
+          const MINIMUM_SPACE_REQUIRED = 30; // 30mm mínimo (5 linhas de texto)
+          
+          // Se não há nem 30mm de espaço, FORÇAR nova página
+          if (spaceAvailable < MINIMUM_SPACE_REQUIRED) {
             pdf.addPage();
             stats.totalPages++;
             currentY = margin;
-            console.log(`🛡️ Nova página: proteção de ${IMAGE_PROTECTION_ZONE}mm antes de imagem (espaço: ${spaceAvailable.toFixed(1)}mm)`);
+            console.log(`🚨 EMERGÊNCIA: Nova página forçada (apenas ${spaceAvailable.toFixed(1)}mm disponível)`);
+          }
+          
+          // DECISÃO: Full-Page ou Inline?
+          const useFullPage = shouldUseDedicatedPage(
+            estimatedImageHeight,
+            imageData.height / imageData.width,
+            currentY,
+            bloco,
+            pageHeight - margin - currentY
+          );
+          
+          if (useFullPage) {
+            // Sempre começar full-page em página nova
+            if (currentY > margin + 10) { // Se já há conteúdo na página
+              pdf.addPage();
+              stats.totalPages++;
+              currentY = margin;
+              console.log('📄 Nova página para Full-Page Mode');
+            }
+          } else {
+            // INLINE: Verificar se REALMENTE cabe
+            const FOOTER_SAFE_ZONE = 25; // AUMENTADO: 20mm → 25mm
+            const actualSpace = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
+            
+            if (estimatedImageHeight > actualSpace && actualSpace < 80) {
+              // Não cabe de forma legível: nova página
+              pdf.addPage();
+              stats.totalPages++;
+              currentY = margin;
+              console.log(`📄 Nova página: imagem inline não cabe (precisa ${estimatedImageHeight.toFixed(1)}mm, tem ${actualSpace.toFixed(1)}mm)`);
+            }
           }
           
           // FASE 3: Prevenir órfão visual (texto isolado antes de imagem grande)
@@ -795,31 +855,31 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               imageHeight
             );
             
-            // FASE 2: Espaçamento inteligente adaptativo após imagens
-            let imageSpacing = 12; // Base: 12mm
+            // FASE 4: Espaçamento AGRESSIVO após imagens inline
+            let imageSpacing = 15; // AUMENTADO: 12mm → 15mm
             if (imageHeight > 100) {
-              imageSpacing = 20;
+              imageSpacing = 25; // AUMENTADO: 20mm → 25mm
             } else if (imageHeight > 60) {
-              imageSpacing = 15;
+              imageSpacing = 20; // AUMENTADO: 15mm → 20mm
             }
             
-            // CORREÇÃO 3: Detectar diagramas técnicos e adicionar espaço extra
+            // Detectar diagramas técnicos e adicionar espaço extra
             const isDiagram = bloco.tipo === 'fluxograma' || 
                               bloco.tipo === 'diagrama' || 
                               bloco.tipo === 'mapa_mental' ||
                               (bloco.tipo === 'componente_react' && bloco.texto?.includes('mermaid'));
             
             if (isDiagram) {
-              imageSpacing += 8; // +8mm extra para diagramas técnicos
-              console.log('📊 Espaçamento extra aplicado: diagrama técnico');
+              imageSpacing += 10; // AUMENTADO: +8mm → +10mm
+              console.log('📊 Espaçamento extra aplicado: diagrama técnico (+10mm)');
             }
             
             // Se imagem foi redimensionada, adicionar buffer extra
             const originalHeight = (imageData.height / imageData.width) * imageWidth;
             const wasResized = Math.abs(imageHeight - originalHeight) > 5;
             if (wasResized) {
-              imageSpacing += 5;
-              console.log('🔧 Espaçamento extra: imagem foi redimensionada');
+              imageSpacing += 8; // AUMENTADO: +5mm → +8mm
+              console.log('🔧 Espaçamento extra: imagem redimensionada (+8mm)');
             }
             
             currentY += imageHeight + imageSpacing;
@@ -842,30 +902,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         }
       } else {
         // RENDERIZAR COMO TEXTO NATIVO
-        
-        // FASE 3: Lookahead - verificar se próximo bloco é imagem (proteção de proximidade)
-        if (bloco.tipo === 'paragrafo' && i + 1 < options.structuredData.conteudo.length) {
-          const nextBlock = options.structuredData.conteudo[i + 1];
-          const nextIsImage = ['fluxograma', 'diagrama', 'mapa_mental', 'componente_react', 'grafico'].includes(nextBlock.tipo);
-          
-          if (nextIsImage) {
-            const IMAGE_SAFETY_MARGIN = 15; // 15mm de distância mínima antes de imagens
-            const spaceAvailable = pageHeight - margin - currentY;
-            
-            // Estimativa rápida de altura do parágrafo
-            const textLength = (bloco.texto || '').length;
-            const estimatedParagraphHeight = Math.ceil(textLength / 80) * 6.5 + 11;
-            const spaceAfterParagraph = spaceAvailable - estimatedParagraphHeight;
-            
-            // Se parágrafo deixará menos de 15mm antes da imagem, mover para nova página
-            if (spaceAfterParagraph < IMAGE_SAFETY_MARGIN && spaceAvailable > estimatedParagraphHeight) {
-              pdf.addPage();
-              stats.totalPages++;
-              currentY = margin;
-              console.log(`🛡️ Parágrafo movido para nova página: próximo é imagem (${spaceAfterParagraph.toFixed(1)}mm < ${IMAGE_SAFETY_MARGIN}mm)`);
-            }
-          }
-        }
+        // (Lookahead removido - proteção agora é feita em shouldUseDedicatedPage + MINIMUM_SPACE_REQUIRED)
         
         // CORREÇÃO 4: Passar flag lastBlockWasImage para ajustar espaçamento
         (bloco as any).__lastBlockWasImage = lastBlockWasImage;
