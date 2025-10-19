@@ -368,23 +368,31 @@ const LiveLecture = () => {
 
   return (
     <MainLayout>
-      <div className="relative min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <BackgroundRippleEffect className="fixed inset-0 -z-10" />
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%] flex items-center justify-center p-4">
+        {/* Animated Background with Ripple Effect */}
+        <BackgroundRippleEffect className="opacity-30" />
+        
+        {/* Gradient Blobs for Depth */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        </div>
         
         <div className="relative z-10 w-full max-w-5xl">
           {/* Header with status indicator */}
           <div className="text-center mb-4 space-y-2">
             <div className="flex items-center justify-center gap-3">
-              <Radio className="h-6 w-6 text-purple-600" />
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              <Radio className="h-6 w-6 text-white" />
+              <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
                 Gravação de Aula ao Vivo
               </h1>
             </div>
             
             {isRecording && (
-              <div className="inline-flex items-center gap-2 bg-red-50 border border-red-200 rounded-full px-4 py-1">
-                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                <span className="text-red-600 font-mono font-semibold">
+              <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-300/40 rounded-full px-4 py-1 backdrop-blur-sm">
+                <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                <span className="text-white font-mono font-semibold drop-shadow-sm">
                   {formatTime(recordingTime)}
                 </span>
               </div>
@@ -392,7 +400,7 @@ const LiveLecture = () => {
           </div>
 
           {/* Main Control Panel */}
-          <div className="bg-white shadow-lg rounded-lg border border-gray-200 p-6 md:p-8 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
+          <div className="bg-white/90 backdrop-blur-xl shadow-[0_8px_30px_rgb(59,130,246,0.12)] rounded-lg border border-white/30 p-6 md:p-8 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
             
             {/* Central Microphone Orb - Reduced size */}
             <div className="flex flex-col items-center space-y-4">
@@ -434,7 +442,7 @@ const LiveLecture = () => {
               
               {/* Status text */}
               <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-900 mb-1">
+                <h2 className="text-xl font-bold text-gray-800 mb-1">
                   {isRecording 
                     ? (isPaused ? 'Gravação Pausada' : 'Gravando Agora')
                     : 'Pronto para Gravar'
@@ -452,7 +460,7 @@ const LiveLecture = () => {
             </div>
 
             {/* Audio Waveform Visualization */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200/50 rounded-lg p-4 shadow-sm">
               <AudioWaveform />
               <div className="flex items-center justify-center gap-2 mt-3">
                 <div className={`w-2 h-2 rounded-full ${isRecording && !isPaused ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
@@ -487,7 +495,7 @@ const LiveLecture = () => {
                   <Button
                     onClick={handlePauseRecording}
                     variant="outline"
-                    className="px-6 py-4 text-base bg-white border-gray-300 text-gray-700 hover:bg-gray-50 shadow-lg transition-all duration-300 hover:scale-105"
+                    className="px-6 py-4 text-base bg-white/90 backdrop-blur-sm border-gray-300 text-gray-700 hover:bg-white shadow-lg transition-all duration-300 hover:scale-105"
                   >
                     {isPaused ? (
                       <>
@@ -519,7 +527,7 @@ const LiveLecture = () => {
                   <Button 
                     variant="outline" 
                     size="icon"
-                    className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 shadow-lg h-10 w-10 transition-all duration-300 hover:scale-105"
+                    className="bg-white/90 backdrop-blur-sm border-gray-300 text-gray-700 hover:bg-white shadow-lg h-10 w-10 transition-all duration-300 hover:scale-105"
                   >
                     <Settings className="h-5 w-5" />
                   </Button>
