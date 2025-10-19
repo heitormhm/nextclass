@@ -38,6 +38,7 @@ import TeacherLessonPlanEditor from "./pages/TeacherLessonPlanEditor";
 import LectureTranscriptionPage from "./pages/LectureTranscriptionPage";
 import TeacherAnnotationsPage from "./pages/TeacherAnnotationsPage";
 import TeacherAnnotationPage from "./pages/TeacherAnnotationPage";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,9 @@ const App = () => (
           <Route path="/settings" element={<ProtectedRoute role="student"><SettingsPage /></ProtectedRoute>} />
           <Route path="/aichat" element={<ProtectedRoute role="student"><AIChatPage /></ProtectedRoute>} />
           <Route path="/review" element={<ProtectedRoute role="student"><ReviewPage /></ProtectedRoute>} />
+          
+          {/* Admin-only routes */}
+          <Route path="/admindashboard" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
           
           {/* Teacher-only routes */}
           <Route path="/teacherdashboard" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />

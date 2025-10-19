@@ -54,11 +54,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }
 
     // Show user-friendly error toast
     toast.error('Acesso negado', {
-      description: `Esta página é exclusiva para ${role === 'teacher' ? 'professores' : 'alunos'}.`
+      description: `Esta página é exclusiva para ${role === 'teacher' ? 'professores' : role === 'admin' ? 'administradores' : 'alunos'}.`
     });
 
     // Redirect to appropriate dashboard based on user's actual role
-    const redirectPath = userRole === 'teacher' ? '/teacherdashboard' : '/dashboard';
+    const redirectPath = userRole === 'admin' 
+      ? '/admindashboard' 
+      : userRole === 'teacher' 
+        ? '/teacherdashboard' 
+        : '/dashboard';
     return <Navigate to={redirectPath} replace />;
   }
 

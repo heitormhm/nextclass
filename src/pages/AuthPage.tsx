@@ -114,7 +114,16 @@ const AuthPage = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/dashboard', { replace: true });
+      const { role } = useAuth();
+      
+      // Redirecionar baseado no role real do usuário
+      if (role === 'admin') {
+        navigate('/admindashboard', { replace: true });
+      } else if (role === 'teacher') {
+        navigate('/teacherdashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
   }, [user, navigate]);
 
