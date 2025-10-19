@@ -140,7 +140,7 @@ const Navbar = () => {
 
     return (
       <TooltipProvider>
-        <div className="flex gap-6">
+        <div className="flex items-center gap-8">
           {navigationItems.map((item) => {
             // Special handling for "Gravar Aula" - opens modal instead of navigation
             if (item.href === '__modal__') {
@@ -168,15 +168,15 @@ const Navbar = () => {
             
             if (isActive) {
               return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className="flex items-center gap-2 text-primary font-medium transition-colors text-sm"
-                  aria-label={item.label}
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
+            <Link
+              key={item.href}
+              to={item.href}
+              className="flex items-center gap-2 text-primary font-medium transition-colors text-sm h-5"
+              aria-label={item.label}
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </Link>
               );
             }
 
@@ -191,7 +191,7 @@ const Navbar = () => {
                     className="flex items-center text-foreground-muted hover:text-primary transition-colors relative"
                     aria-label={item.label}
                   >
-                    <item.icon className="h-4 w-4" />
+                    <item.icon className="h-5 w-5" />
                     {showBadge && (
                       <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                     )}
