@@ -12,6 +12,15 @@ interface MermaidDiagramProps {
 const sanitizeMermaidCode = (code: string): string => {
   let sanitized = code;
   
+  // 0. FIRST: Replace problematic arrow characters BEFORE processing brackets
+  sanitized = sanitized
+    .replace(/→/g, '-->')
+    .replace(/←/g, '<--')
+    .replace(/↔/g, '<-->')
+    .replace(/⇒/g, '==>')
+    .replace(/⇐/g, '<==')
+    .replace(/⇔/g, '<==>');
+  
   // 1. Remover caracteres problemáticos em labels com colchetes []
   sanitized = sanitized.replace(/([A-Z]\[)([^\]]+)(\])/g, (match, open, content, close) => {
     let cleanContent = content;

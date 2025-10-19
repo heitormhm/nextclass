@@ -86,10 +86,16 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
           </div>
         );
       
+      case 'organograma':
       case 'fluxograma':
       case 'mapa_mental':
       case 'diagrama':
-        const icons: Record<string, string> = { fluxograma: '📊', mapa_mental: '🧠', diagrama: '📐' };
+        const icons: Record<string, string> = { 
+          fluxograma: '📊', 
+          mapa_mental: '🧠', 
+          diagrama: '📐',
+          organograma: '🏢' 
+        };
         return (
           <MermaidDiagram
             key={index}
@@ -172,9 +178,10 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
                     .replace(/&lt;br \/&gt;/gi, '<br>')
                     .replace(/&lt;br\/&gt;/gi, '<br>');
                   return (
-                    <p 
+                    <div 
                       key={i} 
-                      className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600 break-words whitespace-pre-wrap"
+                      className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600 break-words"
+                      style={{ whiteSpace: 'normal', display: 'block' }}
                       dangerouslySetInnerHTML={{ __html: refHtml }}
                     />
                   );

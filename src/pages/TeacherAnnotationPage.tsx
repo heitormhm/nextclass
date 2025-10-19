@@ -45,6 +45,7 @@ const TeacherAnnotationPage = () => {
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isLoadingAnnotation, setIsLoadingAnnotation] = useState(false);
+  const [hasInitializedHistory, setHasInitializedHistory] = useState(false);
   
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
@@ -131,16 +132,30 @@ const TeacherAnnotationPage = () => {
     }
   }, [location.state]);
 
+  // Capture the FIRST user input to initialize history properly
   useEffect(() => {
-    // Only initialize history when there's actual content to save
-    if (editorRef.current && history.length === 0) {
-      const currentContent = editorRef.current.innerHTML;
-      if (currentContent && currentContent.trim() !== '') {
+    if (!editorRef.current || hasInitializedHistory) return;
+    
+    const handleFirstInput = () => {
+      const currentContent = editorRef.current?.innerHTML || '';
+      if (currentContent.trim() && history.length === 0) {
+        console.log('[History] Capturing first input:', currentContent.substring(0, 50));
         setHistory([currentContent]);
         setHistoryIndex(0);
+        setHasInitializedHistory(true);
       }
-    }
-  }, [history.length]);
+    };
+    
+    editorRef.current.addEventListener('input', handleFirstInput);
+    editorRef.current.addEventListener('paste', handleFirstInput);
+    
+    return () => {
+      if (editorRef.current) {
+        editorRef.current.removeEventListener('input', handleFirstInput);
+        editorRef.current.removeEventListener('paste', handleFirstInput);
+      }
+    };
+  }, [history.length, hasInitializedHistory]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -170,13 +185,6 @@ const TeacherAnnotationPage = () => {
 
   const saveToHistory = (newContent: string) => {
     if (isUndoRedoAction) return;
-    
-    // Special case: if this is the first save and history is empty, initialize with empty string
-    if (history.length === 0) {
-      setHistory(['', newContent]); // Store both: empty initial state + first edit
-      setHistoryIndex(1); // Point to the content, not empty
-      return;
-    }
     
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(newContent);
