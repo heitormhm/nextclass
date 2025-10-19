@@ -315,15 +315,32 @@ const TeacherDashboard = () => {
   if (classes.length === 0 && !dashboardStats.isLoading) {
     return (
       <MainLayout>
-        <BackgroundRippleEffect className="fixed inset-0 -z-10" />
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-          <Users className="w-24 h-24 text-gray-300 mb-4" />
-          <h2 className="text-2xl font-bold text-gray-700 mb-2">
-            Nenhuma Turma Cadastrada
-          </h2>
-          <p className="text-gray-500 max-w-md">
-            Você ainda não tem turmas vinculadas. Entre em contato com a coordenação para ter acesso às suas turmas.
-          </p>
+        <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+          {/* Animated Background with Ripple Effect */}
+          <BackgroundRippleEffect className="opacity-30" />
+          
+          {/* Gradient Blobs for Depth */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+            <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+            <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+          </div>
+
+          {/* Main Content */}
+          <div className="relative z-10 flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
+            {/* Icon com estilo consistente */}
+            <div className="mb-6 p-8 bg-white/10 backdrop-blur-lg rounded-full border border-white/20 shadow-2xl">
+              <Users className="w-24 h-24 text-white" />
+            </div>
+            
+            {/* Título e descrição com cores brancas */}
+            <h2 className="text-4xl font-bold text-white mb-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+              Nenhuma Turma Cadastrada
+            </h2>
+            <p className="text-white/90 text-lg max-w-md drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+              Você ainda não tem turmas vinculadas. Entre em contato com a coordenação para ter acesso às suas turmas.
+            </p>
+          </div>
         </div>
       </MainLayout>
     );
