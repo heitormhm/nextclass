@@ -770,10 +770,39 @@ RESPONDA APENAS COM O JSON PURO!`;
         
         processedData = enhanceReferences(processedData);
         
-        // 6. Convert back to JSON string
+        // 6. Call validation agent to fix any errors
+        console.log('[Validation] Enviando para agente de validação...');
+        
+        try {
+          const validationResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/validate-formatted-content`, {
+            method: 'POST',
+            headers: {
+              'Authorization': req.headers.get('Authorization') || '',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ structuredContent: processedData }),
+          });
+
+          if (validationResponse.ok) {
+            const validationData = await validationResponse.json();
+            if (validationData.validatedContent) {
+              processedData = validationData.validatedContent;
+              console.log('[Validation] ✅ Conteúdo validado e corrigido pelo agente');
+            } else {
+              console.log('[Validation] ⚠️ Validação retornou null, usando dados processados originais');
+            }
+          } else {
+            console.error('[Validation] ⚠️ Erro na validação, continuando com dados processados');
+          }
+        } catch (validationError) {
+          console.error('[Validation] ⚠️ Erro ao chamar agente de validação:', validationError);
+          // Continue with processed data even if validation fails
+        }
+        
+        // 7. Convert back to JSON string
         formattedText = JSON.stringify(processedData);
         
-        console.log('[Post-Processing] ✅ Conversão concluída. Markdown → HTML aplicado.');
+        console.log('[Post-Processing] ✅ Conversão concluída. Markdown → HTML aplicado + Validação.');
         console.log(`[Post-Processing] Blocos processados: ${processedData.conteudo?.length || 0}`);
         console.log('[Post-Processing] Primeiros 3 blocos:', JSON.stringify(processedData.conteudo?.slice(0, 3), null, 2));
       } catch (parseError) {

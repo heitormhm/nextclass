@@ -162,6 +162,7 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
         );
       
       case 'referencias':
+        const referencesContent = bloco.itens || (bloco.texto ? [bloco.texto] : []);
         return (
           <div key={index} className="bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-900/50 dark:to-slate-800/50 border-l-4 border-slate-600 dark:border-slate-500 rounded-xl shadow-md my-8 mt-12">
             <div className="p-6 pb-0">
@@ -170,26 +171,29 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
               </h4>
             </div>
             <ScrollArea className="h-[400px] px-6 pb-6">
-              <div className="space-y-3 pr-4">
-                {(() => {
-                  // Handle both itens array and texto field for references
-                  const referencesContent = bloco.itens || (bloco.texto ? [bloco.texto] : []);
-                  return referencesContent.map((ref: string, i: number) => {
-                    // Handle escaped <br> tags in references
-                    const refHtml = ref
-                      .replace(/&lt;br&gt;/gi, '<br>')
-                      .replace(/&lt;br \/&gt;/gi, '<br>')
-                      .replace(/&lt;br\/&gt;/gi, '<br>');
-                    return (
-                      <div 
-                        key={i} 
-                        className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600 break-words"
-                        style={{ whiteSpace: 'normal', display: 'block' }}
-                        dangerouslySetInnerHTML={{ __html: refHtml }}
-                      />
-                    );
-                  });
-                })()}
+              <div className="space-y-4 pr-4">
+                {referencesContent.map((ref: string, i: number) => {
+                  // Limpar e processar HTML escapado + adicionar suporte para \n
+                  const refHtml = ref
+                    .replace(/&lt;br&gt;/gi, '<br>')
+                    .replace(/&lt;br \/&gt;/gi, '<br>')
+                    .replace(/&lt;br\/&gt;/gi, '<br>')
+                    .replace(/\\n/g, '<br>') // Add support for \n
+                    .replace(/\n/g, '<br>'); // Add support for actual newlines
+                  
+                  return (
+                    <div 
+                      key={i} 
+                      className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed pl-4 border-l-2 border-slate-400 dark:border-slate-600"
+                      style={{ 
+                        whiteSpace: 'normal',
+                        display: 'block',
+                        lineHeight: '1.7'
+                      }}
+                      dangerouslySetInnerHTML={{ __html: refHtml }}
+                    />
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>

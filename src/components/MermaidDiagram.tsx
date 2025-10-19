@@ -127,8 +127,9 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
       <h4 className="font-bold text-foreground mb-2 text-lg">{icon} {title}</h4>
       <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
       {error ? (
-        <div className="bg-destructive/10 border border-destructive/30 text-destructive px-4 py-3 rounded-lg">
-          ⚠️ {error}
+        <div className="flex flex-col items-center justify-center min-h-[200px] bg-muted/20 rounded-lg p-4">
+          <div className="text-4xl mb-2">{icon}</div>
+          <p className="text-sm text-muted-foreground">Diagrama em processamento</p>
         </div>
       ) : (
         <div ref={ref} className="flex justify-center items-center min-h-[200px] bg-white rounded-lg p-4" />

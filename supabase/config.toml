@@ -151,6 +151,9 @@ verify_jwt = true
 [functions.teacher-ai-text-formatting]
 verify_jwt = true
 
+[functions.validate-formatted-content]
+verify_jwt = true
+
 [functions.send-teacher-event-notification]
 verify_jwt = false
 

@@ -47,6 +47,7 @@ const TeacherAnnotationPage = () => {
   const [isLoadingAnnotation, setIsLoadingAnnotation] = useState(false);
   const [hasInitializedHistory, setHasInitializedHistory] = useState(false);
   const [preAIContent, setPreAIContent] = useState<string | null>(null);
+  const [originalInputContent, setOriginalInputContent] = useState<string>('');
   
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
@@ -146,6 +147,7 @@ const TeacherAnnotationPage = () => {
             console.log('[History] Capturing first paste:', currentContent.substring(0, 50));
             setHistory([currentContent]);
             setHistoryIndex(0);
+            setOriginalInputContent(currentContent); // Save as original input
             setHasInitializedHistory(true);
           }
         }, 0);
@@ -156,6 +158,7 @@ const TeacherAnnotationPage = () => {
           console.log('[History] Capturing first input:', currentContent.substring(0, 50));
           setHistory([currentContent]);
           setHistoryIndex(0);
+          setOriginalInputContent(currentContent); // Save as original input
           setHasInitializedHistory(true);
         }
       }
@@ -217,6 +220,18 @@ const TeacherAnnotationPage = () => {
       setIsUndoRedoAction(true);
       const previousContent = history[historyIndex - 1];
       setContent(previousContent);
+      
+      // If we're undoing back to position 0 and we have originalInputContent, use it
+      if (historyIndex === 1 && originalInputContent) {
+        console.log('[History] Undo to original input content');
+        setContent(originalInputContent);
+        if (editorRef.current) {
+          editorRef.current.innerHTML = originalInputContent;
+        }
+        setHistoryIndex(0);
+        setTimeout(() => setIsUndoRedoAction(false), 100);
+        return;
+      }
       
       // Try to parse as structured content
       try {
@@ -452,9 +467,15 @@ const TeacherAnnotationPage = () => {
       return;
     }
 
-    // Save original content before AI formatting
+    // Save BOTH preAI and original input content before AI formatting
     setPreAIContent(content);
     console.log('[AI] Saved original content before formatting');
+    
+    // If this is the first AI action and we have original input, preserve it
+    if (!originalInputContent && hasInitializedHistory && history.length > 0) {
+      console.log('[AI] Saving original input content for undo:', history[0].substring(0, 50));
+      setOriginalInputContent(history[0]);
+    }
 
     setIsProcessingAI(true);
     
