@@ -132,15 +132,15 @@ const TeacherAnnotationPage = () => {
   }, [location.state]);
 
   useEffect(() => {
-    // Initialize history with empty string for new annotations
-    if (id === 'new' && history.length === 0) {
-      setHistory(['']);
-      setHistoryIndex(0);
-    } else if (content && history.length === 0) {
-      setHistory([content]);
-      setHistoryIndex(0);
+    // Only initialize history when there's actual content to save
+    if (editorRef.current && history.length === 0) {
+      const currentContent = editorRef.current.innerHTML;
+      if (currentContent && currentContent.trim() !== '') {
+        setHistory([currentContent]);
+        setHistoryIndex(0);
+      }
     }
-  }, [id, content, history.length]);
+  }, [history.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

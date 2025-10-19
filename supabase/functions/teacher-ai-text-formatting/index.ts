@@ -674,8 +674,33 @@ RESPONDA APENAS COM O JSON PURO!`;
           for (const [key, value] of Object.entries(block)) {
             // Convert markdown in text fields (including accordion fields)
             if (['texto', 'titulo', 'descricao', 'content', 'trigger'].includes(key) && typeof value === 'string') {
-              processed[key] = convertMarkdownToHTML(value);
-            } 
+              let htmlValue = convertMarkdownToHTML(value);
+              
+              // Check if this text contains bibliographic references
+              if (htmlValue.match(/\[\d+\]/)) {
+                console.log(`[Reference Detection] Found references in '${key}' field`);
+                htmlValue = htmlValue
+                  // Break after EACH reference number [1], [2], etc.
+                  .replace(/(\[\d+\])\s*/g, '<br><br>$1 ')
+                  // Break before " - URL:"
+                  .replace(/\s*-\s*URL:/gi, '<br>- URL: ')
+                  // Break before " - Autor:"
+                  .replace(/\s*-\s*Autor:/gi, '<br>- Autor: ')
+                  // Break after (PDF)
+                  .replace(/(\(PDF\)|\[PDF\])/gi, '$1<br>')
+                  // Normalize multiple breaks
+                  .replace(/(<br\s*\/?>){3,}/gi, '<br><br>')
+                  // Ensure spacing after URLs before next reference
+                  .replace(/(https?:\/\/[^\s<]+)\s*(\[\d+\])/gi, '$1<br><br>$2')
+                  // Clean up any trailing breaks and leading breaks
+                  .replace(/(<br\s*\/?>)+$/gi, '')
+                  .replace(/^(<br\s*\/?>)+/, '');
+                
+                console.log(`[Reference Detection] Applied formatting, new length: ${htmlValue.length}`);
+              }
+              
+              processed[key] = htmlValue;
+            }
             // Special handling for 'itens' array (e.g., references, guidelines)
             else if (key === 'itens' && Array.isArray(value)) {
               console.log(`[Processing] Found 'itens' array with ${value.length} items`);
