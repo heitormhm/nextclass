@@ -421,7 +421,7 @@ const TeacherDashboard = () => {
       description: 'Capture sua aula com transcrição automática',
       gradientFrom: 'from-purple-500',
       gradientTo: 'to-purple-600',
-      onClick: () => navigate('/livelecture'),
+      onClick: () => setIsRecordSetupModalOpen(true),
       badge: 'IA',
     },
     {
