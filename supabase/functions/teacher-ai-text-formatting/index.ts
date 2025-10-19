@@ -676,6 +676,12 @@ RESPONDA APENAS COM O JSON PURO!`;
             if (['texto', 'titulo', 'descricao', 'content', 'trigger'].includes(key) && typeof value === 'string') {
               processed[key] = convertMarkdownToHTML(value);
             } 
+            // Special handling for 'itens' array (e.g., references, guidelines)
+            else if (key === 'itens' && Array.isArray(value)) {
+              processed[key] = value.map(item => 
+                typeof item === 'string' ? convertMarkdownToHTML(item) : processBlock(item)
+              );
+            }
             // Recursively process objects/arrays (including accordion items)
             else if (typeof value === 'object' && value !== null) {
               processed[key] = processBlock(value);
