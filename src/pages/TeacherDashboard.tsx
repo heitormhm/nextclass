@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap, MessageCircle, StickyNote } from 'lucide-react';
+import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap, MessageCircle, StickyNote, Calendar as CalendarIcon } from 'lucide-react';
+import { parseISO, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -45,27 +47,63 @@ const TeacherDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Fetch classes
+  // Dashboard statistics state
+  const [dashboardStats, setDashboardStats] = useState({
+    publishedLectures: 0,
+    activeStudents: 0,
+    classAverage: '0.0',
+    isLoading: true,
+  });
+
+  // Upcoming events state
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+
+  // Quick stats state
+  const [quickStats, setQuickStats] = useState({
+    attendanceRate: '85%',
+    materialsSent: 0,
+    pendingReviews: 0,
+    isLoading: true,
+  });
+
+  // Fetch turmas
   useEffect(() => {
     const fetchClasses = async () => {
-      const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .order('name');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      if (error) {
-        console.error('Error fetching classes:', error);
-        return;
-      }
+        const { data: accessData, error } = await supabase
+          .from('teacher_turma_access')
+          .select('turma_id, turmas(*)')
+          .eq('teacher_id', user.id);
 
-      setClasses(data || []);
-      if (data && data.length > 0) {
-        setSelectedClass(data[0].id);
+        if (error) throw error;
+
+        const transformedClasses = accessData?.map((access: any) => ({
+          id: access.turmas.id,
+          name: access.turmas.nome_turma,
+          course: access.turmas.curso,
+          period: access.turmas.periodo,
+        })) || [];
+
+        setClasses(transformedClasses);
+        if (transformedClasses.length > 0) {
+          setSelectedClass(transformedClasses[0].id);
+        }
+      } catch (error) {
+        console.error('Error fetching turmas:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar turmas",
+          description: "Não foi possível carregar suas turmas.",
+        });
       }
     };
 
     fetchClasses();
-  }, []);
+  }, [toast]);
 
   // Fetch insights when class changes
   useEffect(() => {
@@ -94,6 +132,202 @@ const TeacherDashboard = () => {
 
     fetchInsights();
   }, [selectedClass, toast]);
+
+  // Fetch dashboard stats when selectedClass changes
+  useEffect(() => {
+    if (!selectedClass) {
+      setDashboardStats({ publishedLectures: 0, activeStudents: 0, classAverage: '0.0', isLoading: false });
+      return;
+    }
+
+    const fetchDashboardStats = async () => {
+      setDashboardStats(prev => ({ ...prev, isLoading: true }));
+      
+      try {
+        // 1. Buscar número de alunos ativos
+        const { count: studentCount } = await supabase
+          .from('turma_enrollments')
+          .select('*', { count: 'exact', head: true })
+          .eq('turma_id', selectedClass);
+
+        // 2. Buscar disciplinas da turma para contar lectures
+        const { data: disciplinas } = await supabase
+          .from('disciplinas')
+          .select('id')
+          .eq('turma_id', selectedClass);
+
+        const disciplinaIds = disciplinas?.map(d => d.id) || [];
+
+        // 3. Buscar lectures publicadas
+        let lectureCount = 0;
+        if (disciplinaIds.length > 0) {
+          const { count } = await supabase
+            .from('lectures')
+            .select('*', { count: 'exact', head: true })
+            .in('class_id', disciplinaIds)
+            .eq('status', 'completed');
+          
+          lectureCount = count || 0;
+        }
+
+        // 4. Calcular média da turma
+        let averageGrade = '0.0';
+        if (disciplinaIds.length > 0) {
+          const { data: grades } = await supabase
+            .from('grades')
+            .select('grade')
+            .in('class_id', disciplinaIds);
+
+          if (grades && grades.length > 0) {
+            const sum = grades.reduce((acc, g) => acc + Number(g.grade), 0);
+            averageGrade = (sum / grades.length).toFixed(1);
+          }
+        }
+
+        setDashboardStats({
+          publishedLectures: lectureCount,
+          activeStudents: studentCount || 0,
+          classAverage: averageGrade,
+          isLoading: false,
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        setDashboardStats({ publishedLectures: 0, activeStudents: 0, classAverage: '0.0', isLoading: false });
+      }
+    };
+
+    fetchDashboardStats();
+  }, [selectedClass]);
+
+  // Fetch upcoming events when selectedClass changes
+  useEffect(() => {
+    if (!selectedClass) {
+      setUpcomingEvents([]);
+      setIsLoadingEvents(false);
+      return;
+    }
+
+    const fetchUpcomingEvents = async () => {
+      setIsLoadingEvents(true);
+      
+      try {
+        const now = new Date();
+        
+        const { data: events } = await supabase
+          .from('class_events')
+          .select('*')
+          .eq('class_id', selectedClass)
+          .gte('event_date', now.toISOString())
+          .order('event_date', { ascending: true })
+          .order('start_time', { ascending: true })
+          .limit(4);
+
+        setUpcomingEvents(events || []);
+      } catch (error) {
+        console.error('Error fetching upcoming events:', error);
+        setUpcomingEvents([]);
+      } finally {
+        setIsLoadingEvents(false);
+      }
+    };
+
+    fetchUpcomingEvents();
+  }, [selectedClass]);
+
+  // Fetch quick stats when selectedClass changes
+  useEffect(() => {
+    if (!selectedClass) {
+      setQuickStats({ attendanceRate: '0%', materialsSent: 0, pendingReviews: 0, isLoading: false });
+      return;
+    }
+
+    const fetchQuickStats = async () => {
+      setQuickStats(prev => ({ ...prev, isLoading: true }));
+      
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Não autenticado');
+
+        // 1. Materiais enviados nos últimos 30 dias
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { count: materialsCount } = await supabase
+          .from('library_materials')
+          .select('*', { count: 'exact', head: true })
+          .eq('class_id', selectedClass)
+          .eq('teacher_id', user.id)
+          .gte('created_at', thirtyDaysAgo.toISOString());
+
+        // 2. Anotações do professor
+        const { count: annotationsCount } = await supabase
+          .from('annotations')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        setQuickStats({
+          attendanceRate: '85%',
+          materialsSent: materialsCount || 0,
+          pendingReviews: annotationsCount || 0,
+          isLoading: false,
+        });
+      } catch (error) {
+        console.error('Error fetching quick stats:', error);
+        setQuickStats({ attendanceRate: '0%', materialsSent: 0, pendingReviews: 0, isLoading: false });
+      }
+    };
+
+    fetchQuickStats();
+  }, [selectedClass]);
+
+  // Helper: Formatar data de evento
+  const formatEventDate = (dateString: string): string => {
+    try {
+      const date = parseISO(dateString);
+      return format(date, "dd MMM", { locale: ptBR });
+    } catch {
+      return "Data inválida";
+    }
+  };
+
+  // Helper: Mapear tipo de evento
+  const mapEventType = (eventType: string): 'lecture' | 'deadline' | 'lab' | 'meeting' => {
+    const typeMap: { [key: string]: 'lecture' | 'deadline' | 'lab' | 'meeting' } = {
+      'aula': 'lecture',
+      'prova': 'deadline',
+      'avaliacao': 'deadline',
+      'laboratorio': 'lab',
+      'evento': 'meeting',
+      'seminario': 'meeting',
+      'reuniao': 'meeting',
+    };
+    return typeMap[eventType?.toLowerCase()] || 'lecture';
+  };
+
+  // Helper: Mapear prioridade baseado em categoria
+  const mapPriority = (category: string | null): 'urgent' | 'normal' => {
+    if (!category) return 'normal';
+    const urgentCategories = ['prova', 'avaliacao', 'entrega'];
+    return urgentCategories.some(cat => category.toLowerCase().includes(cat)) ? 'urgent' : 'normal';
+  };
+
+  // Empty state for no classes
+  if (classes.length === 0 && !dashboardStats.isLoading) {
+    return (
+      <MainLayout>
+        <BackgroundRippleEffect className="fixed inset-0 -z-10" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <Users className="w-24 h-24 text-gray-300 mb-4" />
+          <h2 className="text-2xl font-bold text-gray-700 mb-2">
+            Nenhuma Turma Cadastrada
+          </h2>
+          <p className="text-gray-500 max-w-md">
+            Você ainda não tem turmas vinculadas. Entre em contato com a coordenação para ter acesso às suas turmas.
+          </p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   const actionCards = [
     {
@@ -148,42 +382,6 @@ const TeacherDashboard = () => {
     },
   ];
 
-  const statCards = [
-    {
-      title: 'Aulas Publicadas',
-      value: 28,
-      icon: BookOpen,
-      trend: { value: 0, direction: 'neutral' as const },
-      gradientFrom: 'from-blue-500',
-      gradientTo: 'to-blue-600',
-      iconColor: 'text-blue-500',
-    },
-    {
-      title: 'Alunos Ativos',
-      value: 152,
-      icon: Users,
-      trend: { value: 3, direction: 'up' as const },
-      gradientFrom: 'from-green-500',
-      gradientTo: 'to-green-600',
-      iconColor: 'text-green-500',
-    },
-    {
-      title: 'Média da Turma',
-      value: '8.3',
-      icon: GraduationCap,
-      trend: { value: 2, direction: 'up' as const },
-      gradientFrom: 'from-purple-500',
-      gradientTo: 'to-purple-600',
-      iconColor: 'text-purple-500',
-    },
-  ];
-
-  const upcomingEvents = [
-    { date: '10 Jan', title: 'Aula: Termodinâmica Aplicada', time: '14:00', type: 'lecture' as const, priority: 'normal' as const },
-    { date: '12 Jan', title: 'Entrega de Projeto de Estruturas', time: '23:59', type: 'deadline' as const, priority: 'urgent' as const },
-    { date: '15 Jan', title: 'Laboratório de Circuitos Elétricos', time: '10:00', type: 'lab' as const, priority: 'normal' as const },
-    { date: '18 Jan', title: 'Reunião de Alinhamento de Projeto', time: '16:00', type: 'meeting' as const, priority: 'normal' as const },
-  ];
 
   return (
     <MainLayout>
@@ -227,11 +425,48 @@ const TeacherDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Stats Cards - Novo Design com Gradientes e Badges */}
+              {/* Stats Cards - Dados Reais com Loading */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {statCards.map((stat, index) => (
-                  <StatCard key={index} {...stat} index={index} />
-                ))}
+                {dashboardStats.isLoading ? (
+                  <>
+                    <Skeleton className="h-32 w-full rounded-xl" />
+                    <Skeleton className="h-32 w-full rounded-xl" />
+                    <Skeleton className="h-32 w-full rounded-xl" />
+                  </>
+                ) : (
+                  <>
+                    <StatCard
+                      icon={BookOpen}
+                      title="Aulas Publicadas"
+                      value={dashboardStats.publishedLectures.toString()}
+                      subtitle="Disponíveis na biblioteca"
+                      gradientFrom="from-blue-500"
+                      gradientTo="to-blue-600"
+                      iconColor="text-blue-500"
+                      index={0}
+                    />
+                    <StatCard
+                      icon={Users}
+                      title="Alunos Ativos"
+                      value={dashboardStats.activeStudents.toString()}
+                      subtitle={classes.find(c => c.id === selectedClass)?.name || 'Turma selecionada'}
+                      gradientFrom="from-green-500"
+                      gradientTo="to-green-600"
+                      iconColor="text-green-500"
+                      index={1}
+                    />
+                    <StatCard
+                      icon={GraduationCap}
+                      title="Média da Turma"
+                      value={dashboardStats.classAverage}
+                      subtitle="Geral do período"
+                      gradientFrom="from-purple-500"
+                      gradientTo="to-purple-600"
+                      iconColor="text-purple-500"
+                      index={2}
+                    />
+                  </>
+                )}
               </div>
 
               {/* Insights Panel with Tabs */}
@@ -339,9 +574,30 @@ const TeacherDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {upcomingEvents.map((event, index) => (
-                      <EventCard key={index} {...event} index={index} />
-                    ))}
+                    {isLoadingEvents ? (
+                      <>
+                        <Skeleton className="h-24 w-full rounded-lg" />
+                        <Skeleton className="h-24 w-full rounded-lg" />
+                        <Skeleton className="h-24 w-full rounded-lg" />
+                      </>
+                    ) : upcomingEvents.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <CalendarIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Nenhum evento agendado</p>
+                      </div>
+                    ) : (
+                      upcomingEvents.map((event, index) => (
+                        <EventCard
+                          key={event.id}
+                          date={formatEventDate(event.event_date)}
+                          title={event.title}
+                          time={`${event.start_time} - ${event.end_time}`}
+                          type={mapEventType(event.category || event.event_type)}
+                          priority={mapPriority(event.category)}
+                          index={index}
+                        />
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -352,24 +608,34 @@ const TeacherDashboard = () => {
                   <CardTitle className="text-gray-800 text-lg">Estatísticas Rápidas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <MiniStatCard
-                    label="Taxa de Presença"
-                    value="94%"
-                    trend="up"
-                    color="green"
-                  />
-                  <MiniStatCard
-                    label="Materiais Enviados"
-                    value="127"
-                    trend="neutral"
-                    color="blue"
-                  />
-                  <MiniStatCard
-                    label="Revisões Pendentes"
-                    value="8"
-                    trend="down"
-                    color="orange"
-                  />
+                  {quickStats.isLoading ? (
+                    <>
+                      <Skeleton className="h-16 w-full rounded-lg" />
+                      <Skeleton className="h-16 w-full rounded-lg" />
+                      <Skeleton className="h-16 w-full rounded-lg" />
+                    </>
+                  ) : (
+                    <>
+                      <MiniStatCard
+                        label="Taxa de Presença"
+                        value={quickStats.attendanceRate}
+                        trend="neutral"
+                        color="green"
+                      />
+                      <MiniStatCard
+                        label="Materiais Enviados"
+                        value={quickStats.materialsSent.toString()}
+                        trend={quickStats.materialsSent > 0 ? "up" : "neutral"}
+                        color="blue"
+                      />
+                      <MiniStatCard
+                        label="Anotações Salvas"
+                        value={quickStats.pendingReviews.toString()}
+                        trend="neutral"
+                        color="purple"
+                      />
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
