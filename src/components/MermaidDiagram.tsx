@@ -77,8 +77,10 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
     const renderDiagram = async () => {
       if (ref.current && code) {
         try {
+          // Configure Mermaid with error suppression
           mermaid.initialize({ 
             theme: 'default',
+            logLevel: 'fatal', // Only fatal logs - suppress error messages
             themeVariables: {
               primaryColor: '#3b82f6',
               primaryTextColor: '#fff',
@@ -96,6 +98,12 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
             fontFamily: 'system-ui, -apple-system, sans-serif'
           });
           
+          // Override global error handler to suppress toasts/notifications
+          mermaid.parseError = function(err: any) {
+            console.error('[Mermaid] Parse error silenciado (não exibido ao usuário):', err);
+            // DO NOT show anything visually - errors are logged only
+          };
+          
           const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           const sanitizedCode = sanitizeMermaidCode(code);
           
@@ -104,32 +112,18 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           console.log('[Mermaid] Original code:', code);
           console.log('[Mermaid] Sanitized code:', sanitizedCode);
           
-          // Create temporary hidden div to capture any rendering errors
-          const tempDiv = document.createElement('div');
-          tempDiv.style.display = 'none';
-          document.body.appendChild(tempDiv);
-          
           try {
             const { svg } = await mermaid.render(uniqueId, sanitizedCode);
             ref.current.innerHTML = svg;
             setError(null);
             console.log('[Mermaid] ✅ Rendered successfully');
-          } finally {
-            // Clean up temp div
-            if (document.body.contains(tempDiv)) {
-              document.body.removeChild(tempDiv);
-            }
+          } catch (renderErr) {
+            // Error already logged by parseError handler
+            setError('hidden');
+            console.error('[Mermaid] ❌ Render falhou, mostrando placeholder neutro');
           }
         } catch (err) {
-          // Log error details to console only - DO NOT show to user
-          console.error('[Mermaid] ❌ RENDER ERROR (hidden from user):', err);
-          console.error('[Mermaid] Original code:', code);
-          const sanitizedCode = sanitizeMermaidCode(code);
-          console.error('[Mermaid] Sanitized code:', sanitizedCode);
-          console.error('[Mermaid] Error message:', (err as Error).message);
-          console.error('[Mermaid] Full error stack:', (err as Error).stack);
-          
-          // Set error flag but don't expose technical details to user
+          console.error('[Mermaid] ❌ Erro geral:', err);
           setError('hidden');
         }
       }
