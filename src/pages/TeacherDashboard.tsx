@@ -15,6 +15,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { EventCard } from '@/components/dashboard/EventCard';
 import { MiniStatCard } from '@/components/dashboard/MiniStatCard';
 import { UploadMaterialModal } from '@/components/UploadMaterialModal';
+import { LessonPlanFloatingIndicator } from '@/components/LessonPlanFloatingIndicator';
 import AnnouncementModal from '@/components/AnnouncementModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -647,6 +648,8 @@ const TeacherDashboard = () => {
           onClose={() => setIsUploadModalOpen(false)}
           classes={classes}
         />
+        
+        <LessonPlanFloatingIndicator />
         
         <AnnouncementModal
           open={isAnnouncementModalOpen}

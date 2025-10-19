@@ -65,6 +65,12 @@ const LectureTranscriptionPage = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Lesson plan comparison state
+  const [lessonPlanText, setLessonPlanText] = useState('');
+  const [isComparingPlan, setIsComparingPlan] = useState(false);
+  const [comparisonResult, setComparisonResult] = useState<any>(null);
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
+
   // Student access state
   const [students, setStudents] = useState<Student[]>([]);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
@@ -232,6 +238,43 @@ const LectureTranscriptionPage = () => {
     setIsDragging(false);
     if (e.dataTransfer.files) {
       handleFileUpload(e.dataTransfer.files);
+    }
+  };
+
+  const handleCompareLessonPlan = async () => {
+    if (!lessonPlanText.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Plano de aula vazio',
+        description: 'Por favor, insira o plano de aula',
+      });
+      return;
+    }
+
+    try {
+      setIsComparingPlan(true);
+      const { data, error } = await supabase.functions.invoke('compare-with-lesson-plan', {
+        body: {
+          lessonPlan: lessonPlanText,
+          lectureContent: structuredContent,
+        },
+      });
+
+      if (error) throw error;
+      setComparisonResult(data.comparison);
+      toast({
+        title: 'Análise concluída',
+        description: 'Relatório de cobertura gerado',
+      });
+    } catch (error) {
+      console.error('Error comparing lesson plan:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro na comparação',
+        description: 'Não foi possível comparar com o plano de aula',
+      });
+    } finally {
+      setIsComparingPlan(false);
     }
   };
 
@@ -702,6 +745,77 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Lesson plan comparison */}
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="text-white text-sm">Análise da Aula</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Dialog open={isComparisonModalOpen} onOpenChange={setIsComparisonModalOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                          size="sm"
+                        >
+                          <FileText className="h-3 w-3 mr-1" />
+                          Comparar com Plano de Aula
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl bg-slate-900 border-slate-700">
+                        <DialogHeader>
+                          <DialogTitle className="text-white">Comparar com Plano de Aula</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label className="text-white mb-2">Cole o plano de aula</Label>
+                            <Textarea
+                              value={lessonPlanText}
+                              onChange={(e) => setLessonPlanText(e.target.value)}
+                              placeholder="Cole aqui o plano de aula..."
+                              className="min-h-[200px] bg-slate-800 border-slate-600 text-white"
+                            />
+                          </div>
+                          <Button
+                            onClick={handleCompareLessonPlan}
+                            disabled={isComparingPlan || !lessonPlanText.trim()}
+                            className="w-full bg-purple-600 hover:bg-purple-700"
+                          >
+                            {isComparingPlan ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Analisando...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Analisar Cobertura
+                              </>
+                            )}
+                          </Button>
+                          {comparisonResult && (
+                            <div className="mt-4 p-4 bg-slate-800 rounded-lg border border-slate-700">
+                              <h3 className="text-white font-semibold mb-2">
+                                Cobertura: {comparisonResult.coverage_percentage}%
+                              </h3>
+                              <div className="space-y-2 text-sm">
+                                {comparisonResult.missing_topics?.length > 0 && (
+                                  <div>
+                                    <p className="text-orange-400 font-medium">Tópicos não abordados:</p>
+                                    <ul className="text-slate-400 ml-4">
+                                      {comparisonResult.missing_topics.map((topic: any, i: number) => (
+                                        <li key={i}>• {topic.topic}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </CardContent>
+                </Card>
+
                 {/* Student access control */}
                 <Card className="bg-slate-800/50 border-slate-700">
                   <CardHeader>
