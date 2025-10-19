@@ -376,7 +376,7 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
           teacher_id: user.id,
           class_id: selectedTurma,
           disciplina_id: selectedDisciplina || null,
-          status: 'recording',
+          status: 'processing',
           raw_transcript: '',
           tags: tags,
           lesson_plan_url: lessonPlanUrl

@@ -11,6 +11,7 @@ import { AuthBackgroundRipple } from '@/components/ui/auth-background-ripple';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import nextclassLogo from '@/assets/nextclass-logo.svg';
 
 interface LoginFormData {
   email: string;
@@ -300,7 +301,7 @@ const AuthPage = () => {
             <div className="max-w-md">
               <div className="mb-6 drop-shadow-md group cursor-pointer">
                 <img 
-                  src="/src/assets/nextclass-logo.svg" 
+                  src={nextclassLogo} 
                   alt="NEXTCLASS" 
                   className="h-16 w-auto transition-all duration-300 ease-out group-hover:scale-110 group-hover:drop-shadow-xl"
                 />
