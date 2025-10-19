@@ -372,7 +372,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     const titleMaxWidth = pageWidth - titleX - margin;
     
     pdf.setFontSize(22);
-    pdf.setFont('Inter', 'bold');
+    setFont('bold');
     pdf.setTextColor(63, 45, 175); // Roxo escuro
     const titleLines = pdf.splitTextToSize(options.title, titleMaxWidth);
     pdf.text(titleLines, titleX, logoY + (logoHeight / 2), { align: 'left', baseline: 'middle' });
@@ -404,7 +404,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 
     // Subtítulo com data em rosa
     pdf.setFontSize(9);
-    pdf.setFont('Inter', 'normal');
+    setFont('normal');
     pdf.setTextColor(255, 70, 130); // Rosa
     const date = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -491,7 +491,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         }
       } else {
         // RENDERIZAR COMO TEXTO NATIVO
-        currentY = addTextBlockToPDF(pdf, bloco, currentY, margin, contentWidth, pageWidth, pageHeight);
+        currentY = addTextBlockToPDF(pdf, bloco, currentY, margin, contentWidth, pageWidth, pageHeight, useCustomFonts);
         stats.nativeTextBlocks++;
 
         // Verificar quebra de página após texto
@@ -533,7 +533,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       
       // Número da página (centro, roxo)
       pdf.setFontSize(9);
-      pdf.setFont('Inter', 'bold');
+      setFont('bold');
       pdf.setTextColor(63, 45, 175); // Roxo
       pdf.text(
         `Pagina ${i} de ${totalPages}`,
@@ -544,7 +544,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       
       // Nome do documento (esquerda, rosa)
       pdf.setFontSize(7);
-      pdf.setFont('Inter', 'normal');
+      setFont('normal');
       pdf.setTextColor(255, 70, 130); // Rosa
       const truncatedTitle = options.title.substring(0, 35) + (options.title.length > 35 ? '...' : '');
       pdf.text(truncatedTitle, margin, pageHeight - 10);
@@ -778,7 +778,8 @@ const addTextBlockToPDF = (
   margin: number,
   contentWidth: number,
   pageWidth: number,
-  pageHeight: number
+  pageHeight: number,
+  useCustomFonts: boolean = true
 ): number => {
   pdf.setTextColor(0, 0, 0);
 
@@ -788,7 +789,11 @@ const addTextBlockToPDF = (
   switch (processedBloco.tipo) {
     case 'h2':
       pdf.setFontSize(16);
-      pdf.setFont('Inter', 'bold');
+      if (useCustomFonts) {
+        pdf.setFont('Inter', 'bold');
+      } else {
+        pdf.setFont('helvetica', 'bold');
+      }
       pdf.setTextColor(63, 45, 175); // Roxo escuro
       const h2Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h2Lines, margin, currentY);
@@ -806,7 +811,11 @@ const addTextBlockToPDF = (
 
     case 'h3':
       pdf.setFontSize(13);
-      pdf.setFont('Inter', 'bold');
+      if (useCustomFonts) {
+        pdf.setFont('Inter', 'bold');
+      } else {
+        pdf.setFont('helvetica', 'bold');
+      }
       pdf.setTextColor(145, 127, 251); // Roxo claro
       const h3Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h3Lines, margin, currentY);
@@ -824,7 +833,11 @@ const addTextBlockToPDF = (
 
     case 'h4':
       pdf.setFontSize(11);
-      pdf.setFont('Inter', 'bold');
+      if (useCustomFonts) {
+        pdf.setFont('Inter', 'bold');
+      } else {
+        pdf.setFont('helvetica', 'bold');
+      }
       pdf.setTextColor(255, 113, 160); // Rosa claro
       const h4Lines = pdf.splitTextToSize(processedBloco.texto || '', contentWidth);
       pdf.text(h4Lines, margin, currentY);
@@ -861,14 +874,22 @@ const addTextBlockToPDF = (
         let lineY = currentY;
         segments.forEach(seg => {
           const lines = pdf.splitTextToSize(seg.text, contentWidth);
-          setFont(seg.bold ? 'bold' : 'normal');
+          if (useCustomFonts) {
+            pdf.setFont('Inter', seg.bold ? 'bold' : 'normal');
+          } else {
+            pdf.setFont('helvetica', seg.bold ? 'bold' : 'normal');
+          }
           pdf.text(lines, margin, lineY);
           lineY += lines.length * 6.5; // FASE 2: ANTES: 5, AGORA: 6.5mm
         });
         
         currentY = lineY + 5; // FASE 2: ANTES: 4, AGORA: 5mm
       } else {
-        setFont('normal');
+        if (useCustomFonts) {
+          pdf.setFont('Inter', 'normal');
+        } else {
+          pdf.setFont('helvetica', 'normal');
+        }
         const lines = pdf.splitTextToSize(sanitizedText, contentWidth);
         pdf.text(lines, margin, currentY);
         currentY += lines.length * 6.5 + 5; // FASE 2: ANTES: 5 + 4, AGORA: 6.5 + 5mm
@@ -884,7 +905,11 @@ const addTextBlockToPDF = (
       
       // Título com cor roxa
       pdf.setFontSize(14);
-      pdf.setFont('Inter', 'bold');
+      if (useCustomFonts) {
+        pdf.setFont('Inter', 'bold');
+      } else {
+        pdf.setFont('helvetica', 'bold');
+      }
       pdf.setTextColor(63, 45, 175); // Roxo
       pdf.text('Referencias Bibliograficas', margin, currentY);
       currentY += 8;
@@ -914,7 +939,11 @@ const addTextBlockToPDF = (
       
       // Lista de referências
       pdf.setFontSize(9);
-      setFont('normal');
+      if (useCustomFonts) {
+        pdf.setFont('Inter', 'normal');
+      } else {
+        pdf.setFont('helvetica', 'normal');
+      }
       pdf.setTextColor(60, 60, 60);
       
       bloco.itens?.forEach((ref: string, index: number) => {
@@ -925,12 +954,20 @@ const addTextBlockToPDF = (
         }
         
         // Número da referência em rosa
-        pdf.setFont('Inter', 'bold');
+        if (useCustomFonts) {
+          pdf.setFont('Inter', 'bold');
+        } else {
+          pdf.setFont('helvetica', 'bold');
+        }
         pdf.setTextColor(255, 70, 130); // Rosa
         pdf.text(`[${index + 1}]`, margin, currentY);
         
         // Texto da referência
-        pdf.setFont('Inter', 'normal');
+        if (useCustomFonts) {
+          pdf.setFont('Inter', 'normal');
+        } else {
+          pdf.setFont('helvetica', 'normal');
+        }
         pdf.setTextColor(60, 60, 60);
         const refLines = pdf.splitTextToSize(ref, contentWidth - 12);
         pdf.text(refLines, margin + 12, currentY);
