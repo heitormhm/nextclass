@@ -30,10 +30,9 @@ export const MultiStepLoader = ({
         {onClose && (
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="absolute right-4 top-4 px-4 py-2 rounded-md bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium transition-colors shadow-md"
           >
-            <X className="h-4 w-4 text-foreground" />
-            <span className="sr-only">Fechar</span>
+            Estou ciente, vou aguardar
           </button>
         )}
 
@@ -44,6 +43,9 @@ export const MultiStepLoader = ({
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Estamos a analisar conteúdo académico e a estruturar pedagogicamente...
+            </p>
+            <p className="text-xs text-pink-600 dark:text-pink-400 mt-2 font-medium">
+              💡 Pode fechar este aviso. O processamento continuará em background.
             </p>
           </div>
           

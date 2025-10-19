@@ -23,6 +23,18 @@ import { StructuredContentRenderer } from '@/components/StructuredContentRendere
 import { generateVisualPDF } from '@/utils/visualPdfGenerator';
 import { generateReportPDF } from '@/utils/pdfGenerator';
 import { structuredContentToMarkdown } from '@/utils/structuredContentToMarkdown';
+import { MultiStepLoader } from '@/components/ui/multi-step-loader';
+
+const lessonPlanLoadingStates = [
+  { text: "📚 A analisar conteúdo académico..." },
+  { text: "🎯 A identificar objetivos de aprendizagem..." },
+  { text: "🧩 A estruturar momentos pedagógicos..." },
+  { text: "🔍 A pesquisar recursos complementares..." },
+  { text: "✏️ A criar atividades práticas (PBL)..." },
+  { text: "📊 A gerar elementos visuais e gráficos..." },
+  { text: "✅ A validar estrutura pedagógica..." },
+  { text: "🎓 A finalizar plano de aula completo..." }
+];
 
 const TeacherAnnotationPage = () => {
   const navigate = useNavigate();
@@ -48,6 +60,11 @@ const TeacherAnnotationPage = () => {
   const [hasInitializedHistory, setHasInitializedHistory] = useState(false);
   const [preAIContent, setPreAIContent] = useState<string | null>(null);
   const [originalInputContent, setOriginalInputContent] = useState<string>('');
+  
+  // Lesson Plan Loader states
+  const [showLessonPlanLoader, setShowLessonPlanLoader] = useState(false);
+  const [lessonPlanLoadingStep, setLessonPlanLoadingStep] = useState(0);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
@@ -490,36 +507,67 @@ const TeacherAnnotationPage = () => {
     try {
       // Lógica especial para "Gerar Plano de Aula"
       if (actionType === 'format_lesson_plan') {
-        toast.info('🎓 Gerando plano de aula completo (3-4h)... Fase 1: Análise pedagógica... Fase 2: Verificação de conteúdo... Fase 3: Estruturação final...', { duration: 5000 });
+        // ✅ ATIVAR MultiStepLoader
+        setShowLessonPlanLoader(true);
+        setLessonPlanLoadingStep(0);
         
-        const { data, error } = await supabase.functions.invoke('generate-lesson-plan', {
-          body: { content }
-        });
-
-        if (error) throw error;
-
-        if (data?.structuredContent) {
-          console.log('[Plano de Aula] JSON estruturado recebido - SUBSTITUINDO conteúdo');
-          
-          // ✅ SUBSTITUIR completamente o conteúdo
-          const jsonContent = JSON.stringify(data.structuredContent);
-          setContent(jsonContent);
-          setStructuredContent(data.structuredContent);
-          setIsStructuredMode(true);
-          
-          // ✅ LIMPAR o editor HTML
-          if (editorRef.current) {
-            editorRef.current.innerHTML = '';
-          }
-          
-          saveToHistory(jsonContent);
-          
-          toast.success('Plano de aula gerado! 🎓', {
-            description: `${data.structuredContent.conteudo?.length || 0} blocos pedagógicos criados`,
-            duration: 5000,
+        // ✅ Simular progresso das etapas
+        progressIntervalRef.current = setInterval(() => {
+          setLessonPlanLoadingStep((prev) => {
+            if (prev < lessonPlanLoadingStates.length - 1) {
+              return prev + 1;
+            }
+            return prev;
           });
+        }, 15000); // Avançar a cada 15 segundos (total: ~2 minutos)
+        
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-lesson-plan', {
+            body: { content }
+          });
+
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+          }
+
+          if (error) throw error;
+
+          if (data?.structuredContent) {
+            console.log('[Plano de Aula] JSON estruturado recebido - SUBSTITUINDO conteúdo');
+            
+            // ✅ SUBSTITUIR completamente o conteúdo
+            const jsonContent = JSON.stringify(data.structuredContent);
+            setContent(jsonContent);
+            setStructuredContent(data.structuredContent);
+            setIsStructuredMode(true);
+            
+            // ✅ LIMPAR o editor HTML
+            if (editorRef.current) {
+              editorRef.current.innerHTML = '';
+            }
+            
+            saveToHistory(jsonContent);
+            
+            // ✅ FECHAR Loader e mostrar sucesso
+            setShowLessonPlanLoader(false);
+            setLessonPlanLoadingStep(0);
+            
+            toast.success('Plano de aula gerado! 🎓', {
+              description: `${data.structuredContent.conteudo?.length || 0} blocos pedagógicos criados`,
+              duration: 5000,
+            });
+            setIsProcessingAI(false);
+            return;
+          }
+        } catch (error) {
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+          }
+          setShowLessonPlanLoader(false);
+          console.error('[Plano de Aula] Erro:', error);
+          toast.error('Erro ao gerar plano de aula');
           setIsProcessingAI(false);
-          return;
+          throw error;
         }
       }
       
@@ -1433,6 +1481,21 @@ const TeacherAnnotationPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* MultiStepLoader para Geração de Plano de Aula */}
+        {showLessonPlanLoader && (
+          <MultiStepLoader
+            loadingStates={lessonPlanLoadingStates}
+            loading={showLessonPlanLoader}
+            currentState={lessonPlanLoadingStep}
+            onClose={() => {
+              setShowLessonPlanLoader(false);
+              toast.info('✅ Processamento continua em background. Aguarde a notificação de conclusão.', {
+                duration: 6000
+              });
+            }}
+          />
+        )}
       </div>
     </MainLayout>
   );
