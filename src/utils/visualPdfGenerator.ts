@@ -690,7 +690,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
           const spaceAvailable = pageHeight - margin - currentY;
           
           // PROTEÇÃO DE EMERGÊNCIA: Verificar se HÁ ESPAÇO REAL
-          const MINIMUM_SPACE_REQUIRED = 30; // 30mm mínimo (5 linhas de texto)
+          const MINIMUM_SPACE_REQUIRED = 20; // 20mm mínimo (3 linhas de texto)
           
           // Se não há nem 30mm de espaço, FORÇAR nova página
           if (spaceAvailable < MINIMUM_SPACE_REQUIRED) {
@@ -791,14 +791,10 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               margin
             );
             
-            // FASE 1: SEMPRE forçar nova página após full-page (ZERO aproveitamento de espaço)
-            pdf.addPage();
-            stats.totalPages++;
-            currentY = margin;
-            lastImageBottom = pageHeight; // FASE 3: Marcar que última imagem ocupou página inteira
+            // Marcar que último bloco foi full-page (nova página será adicionada no próximo loop)
             lastBlockWasFullPage = true;
             
-            console.log('✅ Full-page finalizado, forçando nova página para próximo bloco');
+            console.log('✅ Full-page finalizado, próximo bloco iniciará nova página');
             console.log('📊 Estatística: Imagem renderizada em Full-Page Mode');
             
           } else {
@@ -841,12 +837,12 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               imageHeight
             );
             
-            // FASE 2: Espaçamento MASSIVO após imagens inline (+40%)
-            let imageSpacing = 20; // AUMENTADO: 15mm → 20mm
+            // FASE 2: Espaçamento otimizado após imagens inline
+            let imageSpacing = 15; // Base: 15mm
             if (imageHeight > 100) {
-              imageSpacing = 35; // AUMENTADO: 25mm → 35mm
+              imageSpacing = 25; // Imagens grandes: 25mm
             } else if (imageHeight > 60) {
-              imageSpacing = 28; // AUMENTADO: 20mm → 28mm
+              imageSpacing = 20; // Imagens médias: 20mm
             }
             
             // Detectar diagramas técnicos e adicionar espaço extra
@@ -856,16 +852,16 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
                               (bloco.tipo === 'componente_react' && bloco.texto?.includes('mermaid'));
             
             if (isDiagram) {
-              imageSpacing += 15; // AUMENTADO: +10mm → +15mm
-              console.log('📊 Espaçamento extra aplicado: diagrama técnico (+15mm)');
+              imageSpacing += 10; // Diagramas: +10mm
+              console.log('📊 Espaçamento extra aplicado: diagrama técnico (+10mm)');
             }
             
             // Se imagem foi redimensionada, adicionar buffer extra
             const originalHeight = (imageData.height / imageData.width) * imageWidth;
             const wasResized = Math.abs(imageHeight - originalHeight) > 5;
             if (wasResized) {
-              imageSpacing += 10; // AUMENTADO: +8mm → +10mm
-              console.log('🔧 Espaçamento extra: imagem redimensionada (+10mm)');
+              imageSpacing += 8; // Redimensionadas: +8mm
+              console.log('🔧 Espaçamento extra: imagem redimensionada (+8mm)');
             }
             
             currentY += imageHeight + imageSpacing;
@@ -893,10 +889,12 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         // FASE 4: DETECÇÃO PROATIVA de colisão ANTES de renderizar texto
         const MINIMUM_DISTANCE_FROM_IMAGE = 25; // 25mm de buffer de segurança
         
-        if (lastBlockWasImage && lastImageBottom > 0) {
+        // Apenas verificar colisão se última imagem foi INLINE (não full-page)
+        if (lastBlockWasImage && !lastBlockWasFullPage && lastImageBottom > 0) {
           const distanceFromImage = currentY - lastImageBottom;
           
-          if (distanceFromImage < MINIMUM_DISTANCE_FROM_IMAGE) {
+          // Verificar se distância é POSITIVA e menor que mínimo
+          if (distanceFromImage >= 0 && distanceFromImage < MINIMUM_DISTANCE_FROM_IMAGE) {
             pdf.addPage();
             stats.totalPages++;
             currentY = margin;
