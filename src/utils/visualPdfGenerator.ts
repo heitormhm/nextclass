@@ -241,7 +241,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
     const contentWidth = pageWidth - (2 * margin);
     let currentY = margin;
 
-    // FASE 1: Função para detectar se imagem merece página dedicada
+    // FASE 1: Função para detectar se imagem merece página dedicada (OTIMIZADA)
     const shouldUseDedicatedPage = (
       imageHeight: number,
       aspectRatio: number,
@@ -250,42 +250,36 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       availableSpace: number
     ): boolean => {
       
-      const isLargeImage = imageHeight > 120; // REDUZIDO: 150mm → 120mm
-      const isMediumImage = imageHeight > 80; // NOVO: imagens médias
-      const isVerticalImage = aspectRatio > 1.3; // REDUZIDO: 1.5 → 1.3
+      const isLargeImage = imageHeight > 150;        // AUMENTADO: 120 → 150mm
+      const isMediumImage = imageHeight > 110;       // AUMENTADO: 80 → 110mm
+      const isVerticalImage = aspectRatio > 1.5;     // AUMENTADO: 1.3 → 1.5
       const isComplexDiagram = [
         'fluxograma',
         'mapa_mental',
-        'diagrama',
-        'grafico' // ADICIONADO: gráficos também
+        'diagrama'
+        // REMOVIDO: 'grafico' - gráficos podem ser inline
       ].includes(bloco.tipo) || !!bloco.definicao_mermaid;
       
-      // NOVO: Calcular ocupação percentual
+      // Calcular ocupação percentual
       const imageOccupancy = imageHeight / availableSpace;
-      const isHighOccupancy = imageOccupancy > 0.4; // > 40% do espaço
+      const isHighOccupancy = imageOccupancy > 0.65; // AUMENTADO: 0.4 → 0.65 (>65%)
       
-      // NOVA DECISÃO: MUITO MAIS AGRESSIVA
+      // DECISÃO MAIS RESTRITIVA
       const decision: boolean = (
-        // Critério 1: Imagem grande OU espaço limitado
+        // Critério 1: Imagem REALMENTE grande (>150mm)
         (isLargeImage) ||
         
-        // Critério 2: Imagem média + diagrama complexo
-        (isMediumImage && isComplexDiagram) ||
+        // Critério 2: Imagem média + diagrama complexo + pouco espaço
+        (isMediumImage && isComplexDiagram && availableSpace < 120) ||
         
         // Critério 3: Imagem muito vertical
         (isVerticalImage) ||
         
-        // Critério 4: NOVO - Alta ocupação (>40%)
-        (isHighOccupancy && imageHeight > 60) ||
-        
-        // Critério 5: NOVO - Pouco espaço disponível (<150mm)
-        (availableSpace < 150 && imageHeight > 70) ||
-        
-        // Critério 6: NOVO - Já estamos no meio/final da página
-        (currentY > 100 && imageHeight > 80)
+        // Critério 4: Alta ocupação (>65%) E já estamos no final da página
+        (isHighOccupancy && currentY > 120)
       );
       
-      console.log('🔍 Análise AGRESSIVA de imagem:', {
+      console.log('🔍 Análise OTIMIZADA de imagem:', {
         tipo: bloco.tipo,
         alturaImagem: `${imageHeight.toFixed(1)}mm`,
         espacoDisponivel: `${availableSpace.toFixed(1)}mm`,
@@ -298,7 +292,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
           isComplexDiagram,
           isVerticalImage,
           isHighOccupancy,
-          currentYPosition: currentY > 100
+          currentYPosition: currentY > 120
         },
         decisao: decision ? '📄 FULL-PAGE' : '📝 INLINE'
       });
@@ -636,16 +630,24 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
 
       console.log(`📦 [VisualPDF] Processando bloco ${i + 1}/${options.structuredData.conteudo.length}: ${bloco.tipo}`);
 
-      // FASE 1: Garantir espaço após full-page images
-      if (lastBlockWasFullPage && currentY < margin + 50) {
-        pdf.addPage();
-        stats.totalPages++;
-        currentY = margin;
+      // FASE 2: Aproveitar espaço após full-page images (OTIMIZADO)
+      if (lastBlockWasFullPage) {
+        const usableSpace = pageHeight - margin - currentY;
+        
+        if (usableSpace < 80) {
+          // Apenas adicionar página se NÃO houver espaço útil (>80mm)
+          pdf.addPage();
+          stats.totalPages++;
+          currentY = margin;
+          console.log(`📄 Nova página: pouco espaço após full-page (${usableSpace.toFixed(1)}mm)`);
+        } else {
+          console.log(`✅ Aproveitando ${usableSpace.toFixed(1)}mm após full-page`);
+        }
+        
         lastBlockWasFullPage = false;
-        console.log('✅ Full-page finalizado, forçando nova página para próximo bloco');
       }
 
-      // FASE 4: Keep-Together para Títulos + Parágrafos
+      // FASE 3: Keep-Together para Títulos + Parágrafos (OTIMIZADO)
       if (!strategy.renderAsImage && ['h2', 'h3', 'h4'].includes(bloco.tipo)) {
         // Lookahead: verificar se próximo bloco é parágrafo
         const nextBloco = options.structuredData.conteudo[i + 1];
@@ -655,13 +657,18 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
           const combinedHeight = titleHeight + paragraphHeight;
           const availableSpace = pageHeight - margin - currentY - 20;
           
-          if (combinedHeight > availableSpace) {
-            // Criar nova página para manter título + parágrafo juntos
+          // NOVO: Apenas forçar nova página se:
+          // 1. Não cabe DE VERDADE (espaço < combinedHeight)
+          // 2. E espaço disponível é MUITO pequeno (<60mm = "órfão visual")
+          if (combinedHeight > availableSpace && availableSpace < 60) {
             pdf.addPage();
             stats.totalPages++;
             currentY = margin;
             pageBreaksPreventedForText++;
-            console.log('📄 Keep-Together: Nova página para título + parágrafo');
+            console.log(`📄 Keep-Together: Nova página para título + parágrafo (espaço: ${availableSpace.toFixed(1)}mm)`);
+          } else if (combinedHeight > availableSpace) {
+            // Se não cabe mas há espaço razoável, renderizar título e quebrar parágrafo
+            console.log(`📝 Keep-Together: Título renderizado, parágrafo quebrado (espaço: ${availableSpace.toFixed(1)}mm)`);
           }
         }
       }
@@ -689,15 +696,23 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
           const estimatedImageHeight = (imageData.height / imageData.width) * contentWidth * 0.7;
           const spaceAvailable = pageHeight - margin - currentY;
           
-          // PROTEÇÃO DE EMERGÊNCIA: Verificar se HÁ ESPAÇO REAL
-          const MINIMUM_SPACE_REQUIRED = 20; // 20mm mínimo (3 linhas de texto)
+          // FASE 4: PROTEÇÃO DE EMERGÊNCIA INTELIGENTE (baseada no tamanho da imagem)
+          let MINIMUM_SPACE_REQUIRED = 15; // Base: 15mm
           
-          // Se não há nem 30mm de espaço, FORÇAR nova página
+          if (estimatedImageHeight < 30) {
+            MINIMUM_SPACE_REQUIRED = 15; // Imagens pequenas (post-its): 15mm
+          } else if (estimatedImageHeight < 60) {
+            MINIMUM_SPACE_REQUIRED = 20; // Imagens médias: 20mm
+          } else {
+            MINIMUM_SPACE_REQUIRED = 25; // Imagens grandes: 25mm
+          }
+          
+          // Se não há espaço mínimo, FORÇAR nova página
           if (spaceAvailable < MINIMUM_SPACE_REQUIRED) {
             pdf.addPage();
             stats.totalPages++;
             currentY = margin;
-            console.log(`🚨 EMERGÊNCIA: Nova página forçada (apenas ${spaceAvailable.toFixed(1)}mm disponível)`);
+            console.log(`🚨 EMERGÊNCIA: Nova página forçada (${spaceAvailable.toFixed(1)}mm < ${MINIMUM_SPACE_REQUIRED}mm necessários)`);
           }
           
           // DECISÃO: Full-Page ou Inline?
@@ -719,7 +734,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
             }
           } else {
             // INLINE: Verificar se REALMENTE cabe
-            const FOOTER_SAFE_ZONE = 25; // AUMENTADO: 20mm → 25mm
+            const FOOTER_SAFE_ZONE = 30; // FASE 5: AUMENTADO: 25mm → 30mm
             const actualSpace = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
             
             if (estimatedImageHeight > actualSpace && actualSpace < 80) {
@@ -800,8 +815,9 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
           } else {
             // MODO NORMAL: Renderizar na página atual
             
-            // FASE 5: Detecção inteligente de espaço para imagens
-            const maxImageHeight = pageHeight - margin - currentY - FOOTER_SAFE_ZONE;
+            // FASE 5: FOOTER_SAFE_ZONE aumentado para 30mm
+            const FOOTER_SAFE_ZONE_INLINE = 30; // AUMENTADO: 20mm → 30mm
+            const maxImageHeight = pageHeight - margin - currentY - FOOTER_SAFE_ZONE_INLINE;
             const needsNewPage = availableSpace < (imageHeight * 0.5); // < 50% da altura original
             
             if (needsNewPage && currentY > margin + 30) {
@@ -820,7 +836,7 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
             }
             
             // Verificar quebra de página final
-            if (currentY + imageHeight > pageHeight - margin - FOOTER_SAFE_ZONE) {
+            if (currentY + imageHeight > pageHeight - margin - FOOTER_SAFE_ZONE_INLINE) {
               pdf.addPage();
               stats.totalPages++;
               currentY = margin;
