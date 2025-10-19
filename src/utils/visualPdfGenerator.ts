@@ -250,8 +250,8 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       availableSpace: number
     ): boolean => {
       
-      const isLargeImage = imageHeight > 150;        // AUMENTADO: 120 → 150mm
-      const isMediumImage = imageHeight > 110;       // AUMENTADO: 80 → 110mm
+      const isLargeImage = imageHeight > 160;        // AUMENTADO: 120 → 160mm
+      const isMediumImage = imageHeight > 120;       // AUMENTADO: 80 → 120mm
       const isVerticalImage = aspectRatio > 1.5;     // AUMENTADO: 1.3 → 1.5
       const isComplexDiagram = [
         'fluxograma',
@@ -262,21 +262,21 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       
       // Calcular ocupação percentual
       const imageOccupancy = imageHeight / availableSpace;
-      const isHighOccupancy = imageOccupancy > 0.65; // AUMENTADO: 0.4 → 0.65 (>65%)
+      const isHighOccupancy = imageOccupancy > 0.70; // AUMENTADO: 0.65 → 0.70 (>70%)
       
       // DECISÃO MAIS RESTRITIVA
       const decision: boolean = (
-        // Critério 1: Imagem REALMENTE grande (>150mm)
+        // Critério 1: Imagem MUITO grande (>160mm)
         (isLargeImage) ||
         
-        // Critério 2: Imagem média + diagrama complexo + pouco espaço
-        (isMediumImage && isComplexDiagram && availableSpace < 120) ||
+        // Critério 2: Imagem média + diagrama complexo + MUITO pouco espaço
+        (isMediumImage && isComplexDiagram && availableSpace < 100) ||
         
         // Critério 3: Imagem muito vertical
         (isVerticalImage) ||
         
-        // Critério 4: Alta ocupação (>65%) E já estamos no final da página
-        (isHighOccupancy && currentY > 120)
+        // Critério 4: Alta ocupação (>70%) E já estamos MUITO no final
+        (isHighOccupancy && currentY > 140)
       );
       
       console.log('🔍 Análise OTIMIZADA de imagem:', {
@@ -634,14 +634,31 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
       if (lastBlockWasFullPage) {
         const usableSpace = pageHeight - margin - currentY;
         
-        if (usableSpace < 100) {
-          // Apenas adicionar página se NÃO houver espaço SIGNIFICATIVO (>100mm)
+        // NOVO: Verificar se PRÓXIMO bloco REALMENTE cabe
+        const nextBloco = options.structuredData.conteudo[i + 1];
+        let nextBlockEstimatedHeight = 0;
+        
+        if (nextBloco) {
+          if (nextBloco.tipo === 'paragrafo' || ['h2', 'h3', 'h4'].includes(nextBloco.tipo)) {
+            nextBlockEstimatedHeight = estimateTextBlockHeight(pdf, nextBloco, contentWidth);
+          } else {
+            // Estimar altura de imagem (assumir ~60mm para post-its, ~120mm para diagramas)
+            nextBlockEstimatedHeight = ['post_it', 'grafico'].includes(nextBloco.tipo) ? 60 : 120;
+          }
+        }
+        
+        // Adicionar página apenas se:
+        // 1. Espaço < 80mm OU
+        // 2. Próximo bloco NÃO cabe (nextBlockHeight + 30mm buffer > usableSpace)
+        const nextBlockFits = nextBlockEstimatedHeight + 30 <= usableSpace;
+        
+        if (usableSpace < 80 || !nextBlockFits) {
           pdf.addPage();
           stats.totalPages++;
           currentY = margin;
-          console.log(`📄 Nova página: pouco espaço após full-page (${usableSpace.toFixed(1)}mm)`);
+          console.log(`📄 Nova página: espaço ${usableSpace.toFixed(1)}mm insuficiente para próximo bloco (precisa ${nextBlockEstimatedHeight}mm)`);
         } else {
-          console.log(`✅ Aproveitando ${usableSpace.toFixed(1)}mm após full-page`);
+          console.log(`✅ Aproveitando ${usableSpace.toFixed(1)}mm após full-page (próximo bloco cabe)`);
         }
         
         lastBlockWasFullPage = false;
@@ -659,8 +676,8 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
           
           // NOVO: Apenas forçar nova página se:
           // 1. Não cabe DE VERDADE (espaço < combinedHeight)
-          // 2. E espaço disponível é MUITO pequeno (<40mm = "órfão real")
-          if (combinedHeight > availableSpace && availableSpace < 40) {
+          // 2. E espaço disponível é MUITO pequeno (<35mm = "órfão real")
+          if (combinedHeight > availableSpace && availableSpace < 35) {
             pdf.addPage();
             stats.totalPages++;
             currentY = margin;
@@ -853,16 +870,11 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               imageHeight
             );
             
-            // FASE 2: Espaçamento otimizado após imagens inline
-            let imageSpacing = 15; // Base: 15mm
-            if (imageHeight > 100) {
-              imageSpacing = 25; // Imagens grandes: 25mm
-            } else if (imageHeight > 60) {
-              imageSpacing = 20; // Imagens médias: 20mm
-            }
-            
-            // NOVO: Detectar se PRÓXIMO bloco é diagrama
+            // DETECÇÃO INTELIGENTE: Verificar próximo bloco E tipo atual
             const nextBloco = options.structuredData.conteudo[i + 1];
+            const isCurrentPostIt = bloco.tipo === 'post_it';
+            const isCurrentDiagram = ['fluxograma', 'diagrama', 'mapa_mental', 'grafico'].includes(bloco.tipo) ||
+                                     (bloco.tipo === 'componente_react' && bloco.texto?.includes('mermaid'));
             const nextIsDiagram = nextBloco && (
               nextBloco.tipo === 'fluxograma' || 
               nextBloco.tipo === 'diagrama' || 
@@ -871,33 +883,46 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               (nextBloco.tipo === 'componente_react' && nextBloco.texto?.includes('mermaid'))
             );
             
-            // Se ESTE bloco é post-it E PRÓXIMO é diagrama, adicionar buffer massivo
-            if (bloco.tipo === 'post_it' && nextIsDiagram) {
-              imageSpacing = 30; // CRÍTICO: Post-it + Diagrama = 30mm
-              console.log('🛡️ PROTEÇÃO: Post-it antes de diagrama (+30mm)');
+            // ESPAÇAMENTO BASE
+            let imageSpacing = 15; // Post-its: 15mm
+            if (imageHeight > 100) {
+              imageSpacing = 25; // Imagens grandes: 25mm
+            } else if (imageHeight > 60) {
+              imageSpacing = 20; // Imagens médias: 20mm
             }
             
-            // Detectar diagramas técnicos e adicionar espaço extra (APÓS)
-            const isDiagram = bloco.tipo === 'fluxograma' || 
-                              bloco.tipo === 'diagrama' || 
-                              bloco.tipo === 'mapa_mental' ||
-                              (bloco.tipo === 'componente_react' && bloco.texto?.includes('mermaid'));
+            // PROTEÇÃO 1: Post-it ANTES de diagrama
+            if (isCurrentPostIt && nextIsDiagram) {
+              imageSpacing = 35; // AUMENTADO: 30mm → 35mm
+              console.log('🛡️ PROTEÇÃO ATIVADA: Post-it antes de diagrama (+35mm)');
+            }
             
-            if (isDiagram) {
+            // PROTEÇÃO 2: Diagrama APÓS post-it (adicionar espaço NO TOPO do diagrama)
+            if (isCurrentDiagram && lastBlockWasImage) {
+              // Verificar se bloco anterior era post-it
+              const prevBloco = options.structuredData.conteudo[i - 1];
+              if (prevBloco && prevBloco.tipo === 'post_it') {
+                // Adicionar buffer ANTES de renderizar diagrama
+                currentY += 15; // Buffer extra NO TOPO do diagrama
+                console.log('🛡️ PROTEÇÃO ATIVADA: Buffer antes de diagrama (+15mm)');
+              }
               imageSpacing += 10; // Diagramas: +10mm APÓS
-              console.log('📊 Espaçamento extra aplicado: diagrama técnico (+10mm)');
+              console.log('📊 Espaçamento extra: diagrama técnico (+10mm)');
+            } else if (isCurrentDiagram) {
+              imageSpacing += 10; // Diagramas sem post-it antes: +10mm
             }
             
-            // Se imagem foi redimensionada, adicionar buffer extra
+            // Redimensionamento
             const originalHeight = (imageData.height / imageData.width) * imageWidth;
             const wasResized = Math.abs(imageHeight - originalHeight) > 5;
             if (wasResized) {
-              imageSpacing += 8; // Redimensionadas: +8mm
+              imageSpacing += 8;
               console.log('🔧 Espaçamento extra: imagem redimensionada (+8mm)');
             }
             
             currentY += imageHeight + imageSpacing;
-            lastImageBottom = currentY; // FASE 3: Registrar onde imagem terminou
+            lastImageBottom = currentY;
+            lastBlockWasImage = true;
             lastBlockWasImage = true;
             
             console.log(`✅ Imagem inline: ${imageWidth.toFixed(1)}mm x ${imageHeight.toFixed(1)}mm (espaçamento: ${imageSpacing}mm)`);
