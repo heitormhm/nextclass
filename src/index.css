@@ -172,14 +172,23 @@ All colors MUST be HSL. Design tokens for consistent theming.
   }
 
   /* Pulse Border Animation - Subtle */
-  @keyframes pulse-border-subtle {
-    0%, 100% { 
-      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); 
-    }
-    50% { 
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0); 
-    }
+@keyframes pulse-border-subtle {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); 
   }
+  50% { 
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0); 
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
 
   .animate-pulse-border-subtle {
     animation: pulse-border-subtle 2s ease-in-out infinite;

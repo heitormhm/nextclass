@@ -54,6 +54,9 @@ verify_jwt = true
 [functions.ai-text-formatting]
 verify_jwt = true
 
+[functions.analyze-lesson-plan]
+verify_jwt = true
+
 [api]
 enabled = true
 port = 54321

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Mic, FileText, Sparkles, Loader2, GraduationCap, BookOpen, X, CheckCircle2, Plus, ArrowRight } from 'lucide-react';
+import { Mic, FileText, Sparkles, Loader2, GraduationCap, BookOpen, X, CheckCircle2, Plus, ArrowRight, Paperclip, Trash2, CheckCircle, FileUp } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,6 +42,9 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
   const [newDisciplinaNome, setNewDisciplinaNome] = useState('');
   const [newDisciplinaCodigo, setNewDisciplinaCodigo] = useState('');
   const [newDisciplinaCargaHoraria, setNewDisciplinaCargaHoraria] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [lessonPlanAnalysis, setLessonPlanAnalysis] = useState<any | null>(null);
+  const [analyzingPlan, setAnalyzingPlan] = useState(false);
 
   const { isRecording, startRecording, stopRecording, onTranscriptionReceived } = useAudioRecorder();
 
@@ -164,6 +167,99 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
     } finally {
       setGeneratingTags(false);
     }
+  };
+
+  const analyzeLessonPlan = async (file: File) => {
+    setAnalyzingPlan(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('tema', theme);
+      
+      const { data, error } = await supabase.functions.invoke('analyze-lesson-plan', {
+        body: formData,
+      });
+
+      if (error) throw error;
+
+      setLessonPlanAnalysis(data);
+      
+      if (data.aligned) {
+        toast({
+          title: "✅ Plano de Aula Analisado",
+          description: `Alinhamento: ${data.completeness_score}%. O plano está adequado ao tema.`,
+        });
+      } else {
+        toast({
+          title: "⚠️ Plano Analisado com Ressalvas",
+          description: "O plano pode não estar totalmente alinhado ao tema. Veja sugestões abaixo.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error analyzing lesson plan:', error);
+      toast({
+        title: "Erro na Análise",
+        description: "Não foi possível analisar o plano. Ele será salvo normalmente.",
+        variant: "destructive",
+      });
+    } finally {
+      setAnalyzingPlan(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setLessonPlanFile(file);
+      await analyzeLessonPlan(file);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Formato inválido",
+        description: "Por favor, selecione um arquivo PDF.",
+      });
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setLessonPlanFile(file);
+      await analyzeLessonPlan(file);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Formato inválido",
+        description: "Por favor, arraste um arquivo PDF.",
+      });
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setLessonPlanFile(null);
+    setLessonPlanAnalysis(null);
   };
 
   const handleCreateDisciplina = async () => {
@@ -575,44 +671,109 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
                 )}
               </div>
 
-              {/* Advanced Resources - Collapsible - Glassmorphism */}
-              <Accordion type="single" collapsible value={showAdvanced ? "advanced" : ""} onValueChange={(val) => setShowAdvanced(val === "advanced")}>
-                <AccordionItem value="advanced" className="border-none">
-                  <AccordionTrigger className="backdrop-blur-sm bg-white/4 dark:bg-white/3 border border-white/8 hover:bg-white/6 rounded-lg px-4 py-3 hover:no-underline transition-colors">
-                    <span className="text-sm font-semibold">📂 Recursos Adicionais</span>
+              {/* Advanced Resources - Premium Glassmorphism Card */}
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="resources" className="border-border/50 backdrop-blur-sm bg-white/5 rounded-xl overflow-hidden">
+                  <AccordionTrigger className="text-sm font-medium hover:no-underline px-4 py-3 hover:bg-white/5 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="h-4 w-4 text-purple-500" />
+                      <span>Recursos Adicionais</span>
+                      <Badge variant="secondary" className="ml-2 text-xs">Opcional</Badge>
+                    </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pt-4 pb-0 space-y-4">
-                    {/* Lesson Plan Upload */}
-                    <div className="space-y-2">
-                      <Label className="text-sm flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Plano de Aula (PDF)
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        {!lessonPlanFile ? (
-                          <div className="flex-1">
-                            <Input
-                              type="file"
-                              accept=".pdf"
-                              onChange={(e) => setLessonPlanFile(e.target.files?.[0] || null)}
-                              className="cursor-pointer file:cursor-pointer"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex-1 flex items-center gap-2 px-3 py-2 border rounded-md bg-muted/50">
-                            <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                            <span className="text-sm flex-1 truncate">{lessonPlanFile.name}</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setLessonPlanFile(null)}
-                              className="h-6 w-6 p-0"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+                  <AccordionContent className="pt-4 pb-6 px-4">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="lesson-plan" className="text-sm font-medium flex items-center gap-2 mb-3">
+                          <FileUp className="h-4 w-4" />
+                          Anexar Plano de Aula (PDF)
+                        </Label>
+                        
+                        {/* Drag & Drop Zone */}
+                        <div
+                          onDragEnter={handleDragEnter}
+                          onDragLeave={handleDragLeave}
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                          className={cn(
+                            "relative mt-2 border-2 border-dashed rounded-xl p-6 transition-all duration-300",
+                            isDragging 
+                              ? 'border-purple-500 bg-purple-500/10 scale-[1.02]' 
+                              : 'border-border/50 bg-background/30 hover:border-border hover:bg-background/50'
+                          )}
+                        >
+                          {analyzingPlan ? (
+                            <div className="flex flex-col items-center gap-3 py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                              <p className="text-sm text-muted-foreground animate-pulse">Analisando plano de aula com IA...</p>
+                            </div>
+                          ) : lessonPlanFile ? (
+                            <div className="space-y-3">
+                              <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                                <FileText className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{lessonPlanFile.name}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {(lessonPlanFile.size / 1024).toFixed(1)} KB
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                    <CheckCircle className="h-3 w-3" />
+                                    Pronto
+                                  </Badge>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleRemoveFile}
+                                    className="h-7 w-7 p-0 hover:bg-destructive/20 hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              
+                              {lessonPlanAnalysis && (
+                                <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <Sparkles className="h-4 w-4 text-purple-500" />
+                                    <p className="text-xs font-medium">Análise da IA</p>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground space-y-1">
+                                    <p>• Alinhamento: {lessonPlanAnalysis.completeness_score}%</p>
+                                    {lessonPlanAnalysis.key_concepts?.length > 0 && (
+                                      <p>• Conceitos: {lessonPlanAnalysis.key_concepts.join(', ')}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <label htmlFor="lesson-plan-input" className="cursor-pointer block">
+                              <div className="flex flex-col items-center gap-3 py-2">
+                                <div className="relative">
+                                  <Paperclip className="h-8 w-8 text-muted-foreground" />
+                                  <Sparkles className="h-4 w-4 text-purple-500 absolute -top-1 -right-1" />
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-sm font-medium">Arraste seu plano aqui ou clique para selecionar</p>
+                                  <p className="text-xs text-muted-foreground mt-1">PDF (máx. 10MB)</p>
+                                </div>
+                                <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                  <Sparkles className="h-3 w-3" />
+                                  Será analisado pela IA
+                                </Badge>
+                              </div>
+                              <Input
+                                id="lesson-plan-input"
+                                type="file"
+                                accept=".pdf"
+                                onChange={handleFileChange}
+                                className="hidden"
+                              />
+                            </label>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </AccordionContent>
@@ -632,31 +793,37 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
 
         {/* Sticky Footer with Action Buttons */}
         {step === 'input' && (
-          <div className="sticky bottom-0 left-0 right-0 mt-4 pt-6 border-t backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 -mx-6 -mb-6 px-6 pb-6">
+          <div className="sticky bottom-0 left-0 right-0 mt-4 pt-6 border-t border-border/50 bg-gradient-to-t from-white/95 via-white/90 to-white/80 backdrop-blur-md shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)] -mx-6 -mb-6 px-6 pb-6">
             <div className="flex flex-col-reverse sm:flex-row gap-3 items-stretch sm:items-center sm:justify-end">
-              {/* Cancelar - Subtle, pushed left on desktop */}
+              {/* Cancelar - Outline, left on desktop */}
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={() => {
                   if (theme || selectedTurma || selectedDisciplina) {
                     if (!confirm('Descartar alterações e sair?')) return;
                   }
                   onOpenChange(false);
                 }}
-                className="sm:mr-auto text-muted-foreground hover:text-foreground"
+                className="sm:mr-auto border-2 border-border/50 hover:border-border hover:bg-muted/50 transition-all duration-200 px-6 py-3 flex items-center gap-2"
               >
+                <X className="h-4 w-4" />
                 Cancelar
               </Button>
               
-              {/* Iniciar Gravação - Hero Button, right side on desktop, top on mobile */}
+              {/* Iniciar Gravação - Hero Button with shimmer effect */}
               <Button
                 onClick={handleStartRecording}
                 disabled={!isFormValid || generatingTags || tags.length === 0}
-                className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 hover:from-purple-700 hover:via-pink-700 hover:to-red-600 text-white font-bold py-4 px-8 rounded-xl shadow-2xl hover:shadow-3xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 hover:from-purple-700 hover:via-pink-700 hover:to-red-600 text-white font-bold py-5 px-10 rounded-xl shadow-2xl hover:shadow-[0_20px_50px_-15px_rgba(168,85,247,0.5)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-2xl group"
               >
-                <Mic className="h-6 w-6 mr-3" />
-                <span className="text-lg">Iniciar Gravação</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 skew-x-12"></div>
+                <div className="relative flex items-center gap-3">
+                  <div className="p-1.5 rounded-full bg-white/20">
+                    <Mic className="h-5 w-5" />
+                  </div>
+                  <span className="text-lg">Iniciar Gravação</span>
+                </div>
               </Button>
             </div>
           </div>
