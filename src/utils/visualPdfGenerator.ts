@@ -654,6 +654,30 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
         const imageData = await captureBlockAsImage(bloco, contentWidth);
         
         if (imageData) {
+          // FASE 3: Prevenir órfão visual (texto isolado antes de imagem grande)
+          const estimatedImageHeight = (imageData.height / imageData.width) * contentWidth * 0.7;
+          
+          if (i > 0 && estimatedImageHeight > 80) {
+            const previousBlock = options.structuredData.conteudo[i - 1];
+            const linesOnCurrentPage = (currentY - margin) / 6.5;
+            
+            // Se apenas 1-2 linhas do parágrafo anterior estão nesta página
+            if (previousBlock.tipo === 'paragrafo' && linesOnCurrentPage < 3 && linesOnCurrentPage > 0.5) {
+              // Criar nova página e re-renderizar parágrafo
+              pdf.addPage();
+              stats.totalPages++;
+              const oldY = currentY;
+              currentY = margin;
+              
+              // Re-renderizar parágrafo anterior
+              currentY = addTextBlockToPDF(
+                pdf, previousBlock, currentY, margin, contentWidth, 
+                pageWidth, pageHeight, smartTextSplit, renderJustifiedLine
+              );
+              
+              console.log(`🛡️ Órfão visual evitado: ${linesOnCurrentPage.toFixed(1)} linhas movidas para nova página`);
+            }
+          }
           // FASE 2: Calcular dimensões otimizadas baseadas em aspectRatio
           const aspectRatio = imageData.height / imageData.width;
           let imageWidth: number;
@@ -752,8 +776,24 @@ export const generateVisualPDF = async (options: VisualPDFOptions): Promise<PDFR
               imageHeight
             );
             
-            currentY += imageHeight + 10;
-            console.log(`✅ Imagem normal: ${imageWidth.toFixed(1)}mm x ${imageHeight.toFixed(1)}mm`);
+            // FASE 2: Espaçamento inteligente adaptativo após imagens
+            let imageSpacing = 12; // Base: 12mm
+            if (imageHeight > 100) {
+              imageSpacing = 20;
+            } else if (imageHeight > 60) {
+              imageSpacing = 15;
+            }
+            
+            // Se imagem foi redimensionada, adicionar buffer extra
+            const originalHeight = (imageData.height / imageData.width) * imageWidth;
+            const wasResized = Math.abs(imageHeight - originalHeight) > 5;
+            if (wasResized) {
+              imageSpacing += 5;
+              console.log('🔧 Espaçamento extra: imagem foi redimensionada');
+            }
+            
+            currentY += imageHeight + imageSpacing;
+            console.log(`✅ Imagem normal: ${imageWidth.toFixed(1)}mm x ${imageHeight.toFixed(1)}mm (espaçamento: ${imageSpacing}mm)`);
           }
 
           stats.imagesCaptured++;
@@ -1183,6 +1223,14 @@ const addTextBlockToPDF = (
           const nextWidth = currentLineWidth + wordWidth + (currentLineWords.length > 0 ? spaceWidth : 0);
           
           if (nextWidth > contentWidth && currentLineWords.length > 0) {
+            // FASE 1: Verificação de rodapé ANTES de renderizar linha
+            const lineHeight = 6.5;
+            if (lineY + lineHeight + 20 > pageHeight - margin) {
+              pdf.addPage();
+              lineY = margin;
+              console.log('📄 Nova página: texto próximo ao rodapé (renderização inline)');
+            }
+            
             // Quebra de linha: renderizar linha atual
             let x = margin;
             currentLineWords.forEach((w) => {
@@ -1192,7 +1240,7 @@ const addTextBlockToPDF = (
             });
             
             // Nova linha
-            lineY += 6.5;
+            lineY += lineHeight;
             currentLineWords = [word];
             currentLineWidth = wordWidth;
           } else {
@@ -1203,6 +1251,14 @@ const addTextBlockToPDF = (
         
         // Renderizar última linha
         if (currentLineWords.length > 0) {
+          // FASE 1: Verificação de rodapé para última linha
+          const lineHeight = 6.5;
+          if (lineY + lineHeight + 20 > pageHeight - margin) {
+            pdf.addPage();
+            lineY = margin;
+            console.log('📄 Nova página: última linha próxima ao rodapé');
+          }
+          
           let x = margin;
           currentLineWords.forEach(w => {
             pdf.setFont('helvetica', w.bold ? 'bold' : 'normal');
@@ -1221,9 +1277,17 @@ const addTextBlockToPDF = (
         console.log('📏 Linha expandida para justificação (+5%)');
         
         lines.forEach((line, index) => {
+          // FASE 1: Verificação de rodapé ANTES de cada linha
+          const lineHeight = 6.5;
+          if (currentY + lineHeight + 20 > pageHeight - margin) {
+            pdf.addPage();
+            currentY = margin;
+            console.log('📄 Nova página: texto próximo ao rodapé (justificado)');
+          }
+          
           const isLastLine = index === lines.length - 1;
           renderJustifiedLine(pdf, line, margin, currentY, contentWidth, isLastLine);
-          currentY += 6.5;
+          currentY += lineHeight;
         });
         
         currentY += 5;
