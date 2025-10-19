@@ -412,6 +412,142 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
           </div>
         );
       
+      case 'questao_multipla_escolha':
+        return (
+          <div key={index} className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border-2 border-blue-300 dark:border-blue-700 p-6 rounded-xl shadow-md my-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                {bloco.numero}
+              </div>
+              <div className="flex-1">
+                <p className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3" dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(bloco.enunciado || '') }} />
+                
+                <div className="space-y-2">
+                  {bloco.alternativas && Object.entries(bloco.alternativas).map(([letra, texto]: [string, any]) => (
+                    <div key={letra} className="flex items-start gap-2 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <span className="font-bold text-blue-700 dark:text-blue-300 min-w-[24px]">{letra})</span>
+                      <span className="text-gray-800 dark:text-gray-200" dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(texto) }} />
+                    </div>
+                  ))}
+                </div>
+                
+                {bloco.gabarito && (
+                  <details className="mt-4 p-4 bg-green-50 dark:bg-green-950/30 border border-green-300 dark:border-green-700 rounded-lg">
+                    <summary className="cursor-pointer font-bold text-green-800 dark:text-green-200 mb-2">
+                      ✅ Ver Gabarito e Justificativa
+                    </summary>
+                    <div className="mt-3 space-y-3">
+                      <p className="text-green-900 dark:text-green-100">
+                        <strong>Resposta Correta:</strong> {bloco.gabarito.resposta_correta}
+                      </p>
+                      <p className="text-gray-800 dark:text-gray-200" dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(bloco.gabarito.justificativa || '') }} />
+                      
+                      {bloco.gabarito.analise_incorretas && (
+                        <div className="mt-3 pt-3 border-t border-green-300 dark:border-green-700">
+                          <p className="font-semibold text-green-800 dark:text-green-200 mb-2">Análise das Alternativas Incorretas:</p>
+                          <div className="space-y-2">
+                            {Object.entries(bloco.gabarito.analise_incorretas).map(([letra, analise]: [string, any]) => (
+                              <p key={letra} className="text-sm text-gray-700 dark:text-gray-300">
+                                <strong className="text-red-600 dark:text-red-400">{letra}:</strong> {analise}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                )}
+                
+                {bloco.competencia && (
+                  <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900/40 rounded-full">
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                      🎯 Competência: {bloco.competencia}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'questao_aberta':
+        return (
+          <div key={index} className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border-2 border-purple-300 dark:border-purple-700 p-6 rounded-xl shadow-md my-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                {bloco.numero}
+              </div>
+              <div className="flex-1">
+                <p className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-4" dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(bloco.enunciado || '') }} />
+                
+                <details className="mb-4 p-4 bg-purple-50 dark:bg-purple-950/30 border border-purple-300 dark:border-purple-700 rounded-lg">
+                  <summary className="cursor-pointer font-bold text-purple-800 dark:text-purple-200 mb-2">
+                    💡 Ver Resposta Esperada
+                  </summary>
+                  <div className="mt-3 text-gray-800 dark:text-gray-200" dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(bloco.resposta_esperada || '') }} />
+                </details>
+                
+                {bloco.rubrica && bloco.rubrica.criterios && (
+                  <details className="p-4 bg-white/60 dark:bg-gray-800/60 border border-purple-300 dark:border-purple-700 rounded-lg">
+                    <summary className="cursor-pointer font-bold text-purple-800 dark:text-purple-200 mb-2">
+                      📊 Rubrica de Avaliação
+                    </summary>
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="min-w-full border-collapse">
+                        <thead>
+                          <tr className="bg-purple-100 dark:bg-purple-900/50">
+                            <th className="border border-purple-300 dark:border-purple-700 px-3 py-2 text-left font-semibold text-purple-900 dark:text-purple-100">Critério</th>
+                            <th className="border border-purple-300 dark:border-purple-700 px-3 py-2 text-left font-semibold text-purple-900 dark:text-purple-100">Insuficiente (0-1)</th>
+                            <th className="border border-purple-300 dark:border-purple-700 px-3 py-2 text-left font-semibold text-purple-900 dark:text-purple-100">Suficiente (2-3)</th>
+                            <th className="border border-purple-300 dark:border-purple-700 px-3 py-2 text-left font-semibold text-purple-900 dark:text-purple-100">Excelente (4-5)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bloco.rubrica.criterios.map((criterio: any, i: number) => (
+                            <tr key={i} className="hover:bg-purple-50 dark:hover:bg-purple-900/20">
+                              <td className="border border-purple-300 dark:border-purple-700 px-3 py-2 font-medium text-gray-800 dark:text-gray-200">{criterio.nome}</td>
+                              <td className="border border-purple-300 dark:border-purple-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-300">{criterio.insuficiente}</td>
+                              <td className="border border-purple-300 dark:border-purple-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-300">{criterio.suficiente}</td>
+                              <td className="border border-purple-300 dark:border-purple-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-300">{criterio.excelente}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                )}
+                
+                {bloco.competencia && (
+                  <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-purple-100 dark:bg-purple-900/40 rounded-full">
+                    <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                      🎯 Competência: {bloco.competencia}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'componente_react':
+        return (
+          <details key={index} className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-4 rounded-lg my-4">
+            <summary className="cursor-pointer font-bold text-gray-800 dark:text-gray-200 mb-2">
+              💻 Exemplo de Componente: {bloco.nome}
+            </summary>
+            <div className="mt-3">
+              {bloco.descricao && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{bloco.descricao}</p>
+              )}
+              {bloco.codigo_jsx && (
+                <pre className="bg-gray-900 dark:bg-black text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
+                  <code>{bloco.codigo_jsx}</code>
+                </pre>
+              )}
+            </div>
+          </details>
+        );
+      
       default:
         console.warn(`[StructuredContentRenderer] Tipo de bloco não suportado: ${bloco.tipo}`);
         return null; // Não renderizar nada, evitar poluição visual

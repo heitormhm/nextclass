@@ -575,7 +575,7 @@ const TeacherAnnotationPage = () => {
       if (error) throw error;
       
       if (data?.formattedText) {
-        // Detectar se é JSON estruturado (Designer Instrucional)
+        // Detectar se é JSON estruturado (Designer Instrucional ou Atividade Avaliativa)
         let jsonString = data.formattedText.trim();
         
         // Remover blocos de código markdown se presentes
@@ -592,13 +592,13 @@ const TeacherAnnotationPage = () => {
           jsonString = jsonString.substring(firstBrace, lastBrace + 1);
         }
         
-        // Verificar se é improve_didactic e tentar parsear JSON estruturado
-        if (actionType === 'improve_didactic') {
+        // Verificar se é improve_didactic ou generate_activity e tentar parsear JSON estruturado
+        if (actionType === 'improve_didactic' || actionType === 'generate_activity') {
           try {
             const parsedContent = JSON.parse(jsonString);
             
             if (parsedContent.conteudo && Array.isArray(parsedContent.conteudo)) {
-              console.log('[Structured Content] JSON válido detectado - SUBSTITUINDO conteúdo');
+              console.log(`[Structured Content] JSON válido detectado para ${actionType} - SUBSTITUINDO conteúdo`);
               
               // ✅ SUBSTITUIR completamente o conteúdo
               const jsonContent = JSON.stringify(parsedContent);
@@ -614,10 +614,22 @@ const TeacherAnnotationPage = () => {
               // Salvar no histórico
               saveToHistory(jsonContent);
               
-              toast.success('Material didático gerado! 🎓', {
-                description: `${parsedContent.conteudo.length} blocos pedagógicos criados`,
-                duration: 5000,
-              });
+              // Toast específico para cada tipo
+              if (actionType === 'generate_activity') {
+                const questoesObjetivas = parsedContent.conteudo.filter((b: any) => b.tipo === 'questao_multipla_escolha').length;
+                const questoesAbertas = parsedContent.conteudo.filter((b: any) => b.tipo === 'questao_aberta').length;
+                
+                toast.success('Atividade Avaliativa gerada! 📝', {
+                  description: `${questoesObjetivas} questões objetivas + ${questoesAbertas} questões abertas`,
+                  duration: 5000,
+                });
+              } else {
+                toast.success('Material didático gerado! 🎓', {
+                  description: `${parsedContent.conteudo.length} blocos pedagógicos criados`,
+                  duration: 5000,
+                });
+              }
+              
               setIsProcessingAI(false);
               return; // ✅ IMPORTANTE: Return early para não continuar com lógica HTML
             }
@@ -1332,8 +1344,8 @@ const TeacherAnnotationPage = () => {
             <DropdownMenuItem onClick={() => handleAIAction('generate_activity')} className="cursor-pointer pl-6 py-2">
               <Lightbulb className="h-4 w-4 mr-2 text-orange-600" />
               <div className="flex flex-col">
-                <span className="font-medium">Gerar Roteiro de Atividade</span>
-                <span className="text-xs text-muted-foreground">Passo a passo prático</span>
+                <span className="font-medium">Gerar Atividade Avaliativa</span>
+                <span className="text-xs text-muted-foreground">10 questões objetivas + 10 abertas com rubricas</span>
               </div>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAIAction('improve_didactic')} className="cursor-pointer pl-6 py-2">
