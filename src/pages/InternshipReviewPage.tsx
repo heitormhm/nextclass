@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
+import { sanitizeHTML } from '@/utils/sanitize';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { generateReportPDF } from '@/utils/pdfGenerator';
@@ -362,7 +363,7 @@ const InternshipReviewPage = () => {
                   
                   <TabsContent value="report" className="mt-0">
                     <div
-                      dangerouslySetInnerHTML={{ __html: scenarioData.reportContent }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHTML(scenarioData.reportContent) }}
                       className="min-h-[600px] p-6 prose prose-gray max-w-none
                         [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-gray-800 [&_h3]:mb-2
                         [&_p]:text-gray-700 [&_p]:leading-relaxed [&_p]:mb-4"
@@ -371,7 +372,7 @@ const InternshipReviewPage = () => {
                   
                   <TabsContent value="transcription" className="mt-0">
                     <div
-                      dangerouslySetInnerHTML={{ __html: scenarioData.transcriptionContent }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHTML(scenarioData.transcriptionContent) }}
                       className="min-h-[600px] p-6 prose prose-gray max-w-none"
                     />
                   </TabsContent>

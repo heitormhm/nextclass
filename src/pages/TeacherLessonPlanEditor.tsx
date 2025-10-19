@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-
+import { sanitizeHTML } from "@/utils/sanitize";
 import { Sparkles, Send, Loader2, Copy, Download, ArrowLeft, Mic, MicOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -618,7 +618,7 @@ const TeacherLessonPlanEditor = () => {
                       {message.role === 'assistant' ? (
                         <div
                           className="prose prose-gray prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: message.content }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHTML(message.content) }}
                         />
                       ) : (
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>

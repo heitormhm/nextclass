@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { sanitizeHTML } from "@/utils/sanitize";
 import { Sparkles, Copy, Download, Loader2, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -302,7 +303,7 @@ export const LessonPlanModal = ({ isOpen, onClose }: LessonPlanModalProps) => {
                       {message.role === 'assistant' ? (
                         <div 
                           className="prose prose-invert prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: message.content }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHTML(message.content) }}
                         />
                       ) : (
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>

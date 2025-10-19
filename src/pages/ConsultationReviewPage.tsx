@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { sanitizeHTML } from '@/utils/sanitize';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { EngineeringConductModal } from '@/components/EngineeringConductModal';
@@ -388,7 +389,7 @@ const ProjectReviewPage = () => {
                   <TabsContent value="projeto" className="mt-6">
                     <div
                       contentEditable={isEditing}
-                      dangerouslySetInnerHTML={{ __html: projectContent }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHTML(projectContent) }}
                       className={cn(
                         "min-h-[600px] p-6 rounded-lg border",
                         isEditing 
@@ -408,7 +409,7 @@ const ProjectReviewPage = () => {
                   
                   <TabsContent value="transcricao" className="mt-6">
                     <div
-                      dangerouslySetInnerHTML={{ __html: transcriptionContent }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHTML(transcriptionContent) }}
                       className={cn(
                         "min-h-[600px] p-6 rounded-lg border border-gray-200 bg-gray-50/30",
                         "prose prose-gray max-w-none"

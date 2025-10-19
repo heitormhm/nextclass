@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
@@ -37,11 +38,65 @@ serve(async (req) => {
   }
 
   let lessonPlanId: string | undefined;
-
+  
   try {
+    // SECURITY: Verify JWT and authenticate user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Authentication error:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Authenticated user: ${user.id}`);
+
     const body = await req.json();
     lessonPlanId = body.lessonPlanId;
     const { topic, duration, notes, existingPlan, adjustmentInstruction } = body;
+
+    // SECURITY: Validate lesson plan ownership
+    if (lessonPlanId) {
+      const { data: plan, error: planError } = await supabaseClient
+        .from('lesson_plans')
+        .select('teacher_id')
+        .eq('id', lessonPlanId)
+        .single();
+      
+      if (planError || !plan) {
+        console.error('Lesson plan not found:', planError);
+        return new Response(
+          JSON.stringify({ error: 'Lesson plan not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (plan.teacher_id !== user.id) {
+        console.error(`Unauthorized access attempt: user ${user.id} tried to access lesson plan owned by ${plan.teacher_id}`);
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: You do not own this lesson plan' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Ownership validated for lesson plan: ${lessonPlanId}`);
+    }
 
     console.log('Planning lesson with Mia:', { topic, duration, hasExistingPlan: !!existingPlan });
 

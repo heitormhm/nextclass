@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import MainLayout from '@/components/MainLayout';
 import { FlashcardModal } from '@/components/FlashcardModal';
+import { sanitizeHTML } from '@/utils/sanitize';
 import { toast } from 'sonner';
 
 interface TranscriptItem {
@@ -484,7 +485,7 @@ Distúrbios do ritmo cardíaco que podem ser:
                             </h4>
                             <div 
                               className="text-sm"
-                              dangerouslySetInnerHTML={{ __html: materialAprimoradoContent }}
+                              dangerouslySetInnerHTML={{ __html: sanitizeHTML(materialAprimoradoContent) }}
                             />
                           </div>
                         </div>
