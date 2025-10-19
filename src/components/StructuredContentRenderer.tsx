@@ -86,6 +86,32 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
           </div>
         );
       
+      case 'checklist':
+        return (
+          <div key={index} className="bg-gradient-to-br from-emerald-50/80 to-emerald-100/80 dark:from-emerald-900/20 dark:to-emerald-800/20 border-l-4 border-emerald-600 dark:border-emerald-500 p-5 rounded-xl shadow-md my-6">
+            <h4 className="font-bold text-emerald-900 dark:text-emerald-100 mb-3 text-lg flex items-center gap-2">
+              {bloco.titulo || '✅ Checklist'}
+            </h4>
+            <ul className="space-y-2.5">
+              {bloco.itens?.map((item: string, i: number) => (
+                <li key={i} className="flex items-start gap-3 group">
+                  <input 
+                    type="checkbox" 
+                    className="mt-1 w-4 h-4 text-emerald-600 rounded border-emerald-400 focus:ring-emerald-500 cursor-pointer"
+                    id={`checklist-${index}-${i}`}
+                  />
+                  <label 
+                    htmlFor={`checklist-${index}-${i}`}
+                    className="text-emerald-800 dark:text-emerald-200 leading-relaxed cursor-pointer group-hover:text-emerald-900 dark:group-hover:text-emerald-100 transition-colors"
+                  >
+                    {item}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      
       case 'organograma':
       case 'fluxograma':
       case 'mapa_mental':

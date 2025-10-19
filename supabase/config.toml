@@ -127,6 +127,9 @@ verify_jwt = true
 [functions.upload-library-material]
 verify_jwt = true
 
+[functions.generate-lesson-plan]
+verify_jwt = true
+
 [functions.get-student-classes]
 verify_jwt = true
 

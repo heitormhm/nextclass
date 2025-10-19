@@ -488,6 +488,42 @@ const TeacherAnnotationPage = () => {
     setIsProcessingAI(true);
     
     try {
+      // Lógica especial para "Gerar Plano de Aula"
+      if (actionType === 'format_lesson_plan') {
+        toast.info('🎓 Analisando conteúdo pedagógico...', { duration: 3000 });
+        
+        const { data, error } = await supabase.functions.invoke('generate-lesson-plan', {
+          body: { content }
+        });
+
+        if (error) throw error;
+
+        if (data?.structuredContent) {
+          console.log('[Plano de Aula] JSON estruturado recebido - SUBSTITUINDO conteúdo');
+          
+          // ✅ SUBSTITUIR completamente o conteúdo
+          const jsonContent = JSON.stringify(data.structuredContent);
+          setContent(jsonContent);
+          setStructuredContent(data.structuredContent);
+          setIsStructuredMode(true);
+          
+          // ✅ LIMPAR o editor HTML
+          if (editorRef.current) {
+            editorRef.current.innerHTML = '';
+          }
+          
+          saveToHistory(jsonContent);
+          
+          toast.success('Plano de aula gerado! 🎓', {
+            description: `${data.structuredContent.conteudo?.length || 0} blocos pedagógicos criados`,
+            duration: 5000,
+          });
+          setIsProcessingAI(false);
+          return;
+        }
+      }
+      
+      // Para outras ações, usar a edge function padrão
       const { data, error } = await supabase.functions.invoke('teacher-ai-text-formatting', {
         body: { 
           content, 
@@ -568,7 +604,7 @@ const TeacherAnnotationPage = () => {
       setIsProcessingAI(false);
       
       // Se não for conteúdo estruturado, mas foi formatação de IA
-      if (actionType !== 'improve_didactic') {
+      if (actionType !== 'improve_didactic' && actionType !== 'format_lesson_plan') {
         setLastAIFormattedContent(data.formattedText);
         setShowPDFExportButton(true);
         
@@ -1248,8 +1284,8 @@ const TeacherAnnotationPage = () => {
             <DropdownMenuItem onClick={() => handleAIAction('format_lesson_plan')} className="cursor-pointer pl-6 py-2">
               <BookOpen className="h-4 w-4 mr-2 text-blue-600" />
               <div className="flex flex-col">
-                <span className="font-medium">Formatar como Plano de Aula</span>
-                <span className="text-xs text-muted-foreground">Estrutura pedagógica completa</span>
+                <span className="font-medium">Gerar Plano de Aula</span>
+                <span className="text-xs text-muted-foreground">Unidade de Aprendizagem Profunda e Estruturada</span>
               </div>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAIAction('generate_activity')} className="cursor-pointer pl-6 py-2">
