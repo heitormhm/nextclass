@@ -260,7 +260,22 @@ Com base no {JSON_ANALISE} e {TEXTO_BASE_ENRIQUECIDO}, crie um plano de aula pro
 - checklist
 - mapa_mental (Mermaid mindmap)
 - fluxograma (Mermaid graph)
-- grafico (barras, pizza, linha)
+- grafico (barras, pizza, linha) → **FORMATO OBRIGATÓRIO DOS DADOS**:
+  {
+    "tipo": "grafico",
+    "titulo": "string",
+    "descricao": "string",
+    "tipo_grafico": "barras" | "pizza" | "linha",
+    "dados": [
+      { "categoria": "string", "valor": number },
+      { "categoria": "string", "valor": number }
+    ]
+  }
+  ⚠️ **ATENÇÃO CRÍTICA**: Campo 'dados' OBRIGATORIAMENTE deve ter:
+  - **"categoria"** (string): Nome da categoria/eixo X
+  - **"valor"** (number): Valor numérico
+  ❌ **NÃO USE**: "x", "y", "nome", "quantidade", "porcentagem", "label"
+  ✅ **USE SEMPRE**: "categoria" e "valor"
 - referencias
 
 ### BLOCOS PROIBIDOS (NÃO USAR):
@@ -343,39 +358,48 @@ RETORNE APENAS JSON, SEM TEXTO ADICIONAL.
       throw new Error('Falha ao parsear conteúdo estruturado');
     }
 
-    // VALIDAÇÕES DE SEGURANÇA
-    console.log('🔒 Aplicando validações...');
-
-    if (structuredContent.conteudo && Array.isArray(structuredContent.conteudo)) {
-      structuredContent.conteudo = structuredContent.conteudo.map((bloco: any) => {
-        // Sanitizar Mermaid
-        if (bloco.definicao_mermaid) {
-          bloco.definicao_mermaid = bloco.definicao_mermaid
-            .replace(/→/g, '-->')
-            .replace(/\\\\n/g, '\\n')
-            .replace(/[\u2192\u21D2\u27A1]/g, '-->')
-            .trim();
-          
-          if (!bloco.definicao_mermaid.match(/^(graph|flowchart|gantt|mindmap|pie|journey)/)) {
-            console.warn('⚠️ Diagrama Mermaid inválido:', bloco.titulo);
-            delete bloco.definicao_mermaid;
-          }
+    // 🔒 Chamar Agente de Validação
+    console.log('🔒 Enviando para agente de validação...');
+    
+    try {
+      const validationResponse = await fetch(
+        `${Deno.env.get('SUPABASE_URL')}/functions/v1/validate-formatted-content`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': req.headers.get('Authorization') || '',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ structuredContent }),
         }
+      );
 
-        // Garantir <br><br> em referências
-        if (bloco.tipo === 'referencias' && bloco.itens) {
-          bloco.itens = bloco.itens.map((ref: string) => 
-            ref.endsWith('<br><br>') ? ref : ref + '<br><br>'
-          );
+      if (validationResponse.ok) {
+        const validationData = await validationResponse.json();
+        if (validationData.validatedContent) {
+          structuredContent = validationData.validatedContent;
+          console.log('✅ Conteúdo validado e corrigido pelo agente');
         }
-
-        // Limitar HTML
-        if (bloco.texto && typeof bloco.texto === 'string') {
-          bloco.texto = bloco.texto.replace(/<(?!\/?(?:strong|em|br|u)\b)[^>]+>/gi, '');
+      } else {
+        console.warn('⚠️ Agente de validação falhou, usando validações básicas');
+        
+        // Fallback: validações básicas
+        if (structuredContent.conteudo && Array.isArray(structuredContent.conteudo)) {
+          structuredContent.conteudo = structuredContent.conteudo.map((bloco: any) => {
+            // Sanitizar Mermaid
+            if (bloco.definicao_mermaid) {
+              bloco.definicao_mermaid = bloco.definicao_mermaid
+                .replace(/→/g, '-->')
+                .replace(/\\\\n/g, '\\n')
+                .replace(/[\u2192\u21D2\u27A1]/g, '-->')
+                .trim();
+            }
+            return bloco;
+          });
         }
-
-        return bloco;
-      });
+      }
+    } catch (validationError) {
+      console.warn('⚠️ Erro ao chamar agente de validação:', validationError);
     }
 
     // Adicionar metadata
