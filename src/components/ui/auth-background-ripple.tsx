@@ -19,9 +19,14 @@ export const AuthBackgroundRipple: React.FC<AuthBackgroundRippleProps> = ({ clas
     <BackgroundRippleEffect 
       className={className}
       colorPalette={AUTH_COLORS}
-      cellSize={50}     // Larger cells for cleaner look
-      numCells={12}     // Fewer cells for login screen
-      maxOpacity={0.4}  // Slightly softer
+      cellSize={60}           // Larger cells for ultra-smooth effect
+      numCells={6}            // Fewer cells (half) for imperceptible changes
+      maxOpacity={0.15}       // Much lower opacity
+      minOpacity={0.03}       // Almost invisible minimum
+      gridOpacity={0.08}      // Ultra-soft grid
+      appearDuration={8000}   // 8 seconds to appear (mega slow)
+      activeDuration={12000}  // 12 seconds stable (ultra long)
+      fadeDuration={8000}     // 8 seconds to fade (mega slow)
     />
   );
 };

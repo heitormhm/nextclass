@@ -205,9 +205,13 @@ const AuthPage = () => {
           {/* Content */}
           <div className="relative z-10 flex flex-col justify-center items-start p-12 text-slate-800 animate-fade-in">
             <div className="max-w-md">
-              <h1 className="text-6xl font-bold mb-6 drop-shadow-sm">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-purple-600">NEXTCLASS</span>
-              </h1>
+              <div className="mb-6 drop-shadow-lg">
+                <img 
+                  src="/src/assets/nextclass-logo.svg" 
+                  alt="NEXTCLASS" 
+                  className="h-16 w-auto"
+                />
+              </div>
               <p className="text-2xl font-medium mb-4 text-slate-800">
                 Bem-vindo à NEXTCLASS
               </p>

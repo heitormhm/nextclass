@@ -19,6 +19,9 @@ interface BackgroundRippleEffectProps {
   numCells?: number;
   maxOpacity?: number;
   minOpacity?: number;
+  appearDuration?: number;
+  activeDuration?: number;
+  fadeDuration?: number;
 }
 
 const DEFAULT_COLOR_PALETTE = [
@@ -55,6 +58,9 @@ const DivGrid: React.FC<BackgroundRippleEffectProps> = ({
   numCells = CONFIG.NUM_ANIMATED_CELLS,
   maxOpacity = CONFIG.MAX_OPACITY,
   minOpacity = CONFIG.MIN_OPACITY,
+  appearDuration = CONFIG.APPEAR_DURATION,
+  activeDuration = CONFIG.ACTIVE_DURATION,
+  fadeDuration = CONFIG.FADE_DURATION,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -168,7 +174,7 @@ const DivGrid: React.FC<BackgroundRippleEffectProps> = ({
 
           // State machine
           if (cell.state === 'appearing') {
-            const progress = Math.min(timeSinceStateStart / CONFIG.APPEAR_DURATION, 1);
+            const progress = Math.min(timeSinceStateStart / appearDuration, 1);
             newOpacity = easeInOutCubic(progress) * cell.targetOpacity;
 
             if (progress >= 1) {
@@ -178,12 +184,12 @@ const DivGrid: React.FC<BackgroundRippleEffectProps> = ({
           } else if (cell.state === 'active') {
             newOpacity = cell.targetOpacity;
 
-            if (timeSinceStateStart >= CONFIG.ACTIVE_DURATION) {
+            if (timeSinceStateStart >= activeDuration) {
               newState = 'fading';
               newStateStartTime = now;
             }
           } else if (cell.state === 'fading') {
-            const progress = Math.min(timeSinceStateStart / CONFIG.FADE_DURATION, 1);
+            const progress = Math.min(timeSinceStateStart / fadeDuration, 1);
             newOpacity = cell.targetOpacity * (1 - easeInOutCubic(progress));
 
             // Reset to new position after fading
