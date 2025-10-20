@@ -21,6 +21,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { generateVisualPDF } from "@/utils/visualPdfGenerator";
 import { validateAndNormalizeMarkdown } from "@/utils/sanitize";
+import { processInlineMarkdown } from "@/utils/markdownInlineProcessor";
 import { SmartMessageActions } from "@/components/teacher/SmartMessageActions";
 
 interface Message {
@@ -695,7 +696,7 @@ Markdown com:
       if (line.startsWith('# ') && !line.startsWith('## ')) {
         blocks.push({
           tipo: 'h1',
-          texto: line.replace(/^#\s+/, '')
+          texto: processInlineMarkdown(line.replace(/^#\s+/, ''))
         });
         i++;
       }
@@ -703,7 +704,7 @@ Markdown com:
       else if (line.startsWith('## ') && !line.startsWith('### ')) {
         blocks.push({
           tipo: 'h2',
-          texto: line.replace(/^##\s+/, '')
+          texto: processInlineMarkdown(line.replace(/^##\s+/, ''))
         });
         i++;
       }
@@ -711,7 +712,7 @@ Markdown com:
       else if (line.startsWith('### ')) {
         blocks.push({
           tipo: 'h3',
-          texto: line.replace(/^###\s+/, '')
+          texto: processInlineMarkdown(line.replace(/^###\s+/, ''))
         });
         i++;
       }
@@ -722,7 +723,7 @@ Markdown com:
         // Coletar itens consecutivos
         while (i < lines.length && /^(\d+\.|- |\* |• )\s+/.test(lines[i].trim())) {
           const item = lines[i].trim().replace(/^(\d+\.|- |\* |• )\s+/, '');
-          listItems.push(item);
+          listItems.push(processInlineMarkdown(item));
           i++;
         }
         
@@ -745,7 +746,7 @@ Markdown com:
         
         blocks.push({
           tipo: 'blockquote',
-          texto: quoteText
+          texto: processInlineMarkdown(quoteText)
         });
       }
       // ========== CODE BLOCKS ==========
@@ -787,7 +788,7 @@ Markdown com:
         
         blocks.push({
           tipo: 'paragrafo',
-          texto: paragraphText.trim()
+          texto: processInlineMarkdown(paragraphText.trim())
         });
       }
       // ========== LINHA VAZIA ==========
@@ -884,29 +885,30 @@ const handleExportPDF = async (messageContent: string): Promise<void> => {
         
         const { data, error } = await supabase.functions.invoke('mia-teacher-chat', {
           body: {
-            message: `Analise este conteúdo e sugira 3-5 melhorias práticas:\n\n${messageContent.substring(0, 800)}`,
-            conversationId: activeConversationId,
-            systemPrompt: `Você é Mia, assistente pedagógica direta e objetiva.
+            message: `Baseado no conteúdo abaixo, sugira entre 3 a 5 melhorias práticas e diretas que eu possa implementar. Seja objetiva e use formato de lista numerada.
 
-**Tarefa:** Gere 3-5 sugestões de melhoria para o conteúdo abaixo.
+CONTEÚDO:
+${messageContent.substring(0, 1000)}
 
-**Formato Obrigatório (resposta curta):**
-1. [Sugestão 1 em 1-2 linhas]
-2. [Sugestão 2 em 1-2 linhas]
-3. [Sugestão 3 em 1-2 linhas]
-4. [Sugestão 4 em 1-2 linhas - opcional]
-5. [Sugestão 5 em 1-2 linhas - opcional]
-
-Seja concisa e prática. Máximo 150 palavras no total.`
+INSTRUÇÕES:
+- Liste 3-5 sugestões numeradas
+- Cada sugestão em 1-2 linhas
+- Foco em ações práticas e aplicáveis
+- Máximo 150 palavras no total`,
+            conversationId: activeConversationId
           }
         });
         
         clearTimeout(timeoutId);
         
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Erro na edge function:', error);
+          throw error;
+        }
         
-        // ✅ Validar conteúdo da resposta
-        if (!data?.reply || data.reply.trim().length < 50) {
+        // ✅ Validação mais permissiva (20 chars ao invés de 50)
+        if (!data?.reply || data.reply.trim().length < 20) {
+          console.error('❌ Resposta inválida:', data);
           throw new Error('Resposta vazia ou muito curta');
         }
         

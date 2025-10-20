@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { markdownToHtml } from '@/utils/markdownInlineProcessor';
 
 interface VisualPDFOptions {
   structuredData: StructuredData;
@@ -88,22 +89,8 @@ const detectAndConvertMarkdown = (bloco: ContentBlock): ContentBlock => {
   return bloco;
 };
 
-// Função para converter Markdown básico para HTML (sincronizada com frontend)
-const convertMarkdownToHtml = (text: string): string => {
-  if (!text) return '';
-  
-  return text
-    // Negrito: **texto** → <strong>texto</strong>
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Itálico: *texto* → <em>texto</em>
-    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
-    // Quebras de linha
-    .replace(/&lt;br&gt;/gi, '<br>')
-    .replace(/&lt;br \/&gt;/gi, '<br>')
-    .replace(/&lt;br\/&gt;/gi, '<br>')
-    .replace(/\\n/g, '<br>')
-    .replace(/\n/g, '<br>');
-};
+// ✅ REMOVIDA: Função local substituída pela importada de markdownInlineProcessor
+// Usar: markdownToHtml() da biblioteca @/utils/markdownInlineProcessor
 
 // Função auxiliar para converter Blob para Base64
 const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -614,13 +601,13 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
   switch (bloco.tipo) {
     case 'post_it':
       const icon = '💡'; // Default icon for post-its
-      div.innerHTML = `<p style="font-size: 14px; line-height: 1.6; color: #000;">${icon} ${bloco.texto || ''}</p>`;
+      div.innerHTML = `<p style="font-size: 14px; line-height: 1.6; color: #000;">${icon} ${markdownToHtml(bloco.texto || '')}</p>`;
       break;
 
     case 'caixa_de_destaque':
       div.innerHTML = `
-        <h4 style="font-weight: bold; color: #92400e; margin-bottom: 12px; font-size: 16px;">📌 ${bloco.titulo}</h4>
-        <div style="color: #78350f; line-height: 1.6;">${bloco.texto || ''}</div>
+        <h4 style="font-weight: bold; color: #92400e; margin-bottom: 12px; font-size: 16px;">📌 ${markdownToHtml(bloco.titulo || '')}</h4>
+        <div style="color: #78350f; line-height: 1.6;">${markdownToHtml(bloco.texto || '')}</div>
       `;
       break;
 
@@ -692,7 +679,7 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
 
     case 'blockquote':
       div.style.cssText = 'background: linear-gradient(to bottom right, #f9fafb, #f3f4f6); border-left: 4px solid #6b7280; padding: 16px 20px; border-radius: 8px; font-family: Manrope, sans-serif; font-style: italic;';
-      div.innerHTML = `<p style="font-size: 14px; line-height: 1.6; color: #4b5563;">"${bloco.texto || ''}"</p>`;
+      div.innerHTML = `<p style="font-size: 14px; line-height: 1.6; color: #4b5563;">"${markdownToHtml(bloco.texto || '')}"</p>`;
       break;
 
     case 'code':
@@ -762,7 +749,7 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
           </div>
           <div style="flex: 1;">
             <p style="font-size: 15px; font-weight: 600; color: #1e3a8a; margin: 0 0 12px 0; line-height: 1.5;">
-              ${convertMarkdownToHtml(bloco.enunciado || '')}
+              ${markdownToHtml(bloco.enunciado || '')}
             </p>
           </div>
         </div>
@@ -775,7 +762,7 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
           questaoHTML += `
             <div style="display: flex; align-items: start; gap: 8px; padding: 12px; background: rgba(255,255,255,0.7); border: 1px solid #93c5fd; border-radius: 8px;">
               <span style="font-weight: bold; color: #1e40af; min-width: 24px;">${letra})</span>
-              <span style="color: #1f2937; font-size: 14px; line-height: 1.5;">${convertMarkdownToHtml(texto)}</span>
+              <span style="color: #1f2937; font-size: 14px; line-height: 1.5;">${markdownToHtml(texto)}</span>
             </div>
           `;
         });
@@ -791,7 +778,7 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
               <strong>Resposta Correta:</strong> ${bloco.gabarito.resposta_correta}
             </p>
             <p style="color: #064e3b; font-size: 13px; line-height: 1.6; margin: 0;">
-              ${convertMarkdownToHtml(bloco.gabarito.justificativa || '')}
+              ${markdownToHtml(bloco.gabarito.justificativa || '')}
             </p>
         `;
         
@@ -838,7 +825,7 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
           </div>
           <div style="flex: 1;">
             <p style="font-size: 15px; font-weight: 600; color: #581c87; margin: 0 0 16px 0; line-height: 1.5;">
-              ${convertMarkdownToHtml(bloco.enunciado || '')}
+              ${markdownToHtml(bloco.enunciado || '')}
             </p>
           </div>
         </div>
@@ -850,7 +837,7 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
           <div style="padding: 16px; background: rgba(249, 240, 255, 0.6); border: 1px solid #d8b4fe; border-radius: 8px; margin-bottom: 12px;">
             <p style="font-weight: bold; color: #6b21a8; margin: 0 0 8px 0; font-size: 14px;">💡 Resposta Esperada</p>
             <div style="color: #1f2937; font-size: 13px; line-height: 1.6;">
-              ${convertMarkdownToHtml(bloco.resposta_esperada)}
+              ${markdownToHtml(bloco.resposta_esperada)}
             </div>
           </div>
         `;
@@ -907,22 +894,22 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
 
     case 'h2':
       div.style.cssText = 'font-family: Manrope, sans-serif; padding: 16px 0;';
-      div.innerHTML = `<h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0; line-height: 1.3;">${bloco.texto || ''}</h2>`;
+      div.innerHTML = `<h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0; line-height: 1.3;">${markdownToHtml(bloco.texto || '')}</h2>`;
       break;
 
     case 'h3':
       div.style.cssText = 'font-family: Manrope, sans-serif; padding: 12px 0;';
-      div.innerHTML = `<h3 style="font-size: 20px; font-weight: bold; color: #374151; margin: 0; line-height: 1.3;">${bloco.texto || ''}</h3>`;
+      div.innerHTML = `<h3 style="font-size: 20px; font-weight: bold; color: #374151; margin: 0; line-height: 1.3;">${markdownToHtml(bloco.texto || '')}</h3>`;
       break;
 
     case 'h4':
       div.style.cssText = 'font-family: Manrope, sans-serif; padding: 8px 0;';
-      div.innerHTML = `<h4 style="font-size: 18px; font-weight: bold; color: #4b5563; margin: 0; line-height: 1.3;">${bloco.texto || ''}</h4>`;
+      div.innerHTML = `<h4 style="font-size: 18px; font-weight: bold; color: #4b5563; margin: 0; line-height: 1.3;">${markdownToHtml(bloco.texto || '')}</h4>`;
       break;
 
     case 'paragrafo':
       div.style.cssText = 'font-family: Manrope, sans-serif; padding: 8px 0;';
-      div.innerHTML = `<p style="font-size: 14px; line-height: 1.6; color: #1f2937; margin: 0;">${bloco.texto || ''}</p>`;
+      div.innerHTML = `<p style="font-size: 14px; line-height: 1.6; color: #1f2937; margin: 0;">${markdownToHtml(bloco.texto || '')}</p>`;
       break;
 
     case 'referencias':

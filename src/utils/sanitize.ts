@@ -51,12 +51,9 @@ export const sanitizeMarkdown = (markdown: string): string => {
   // 8. Corrigir links mal formatados
   sanitized = sanitized.replace(/\[([^\]]+)\]\s*\(([^)]+)\)/g, '[$1]($2)');
   
-  // 9. Garantir que negrito e itálico não comecem/terminem com espaço
+  // 9. Garantir que negrito/itálico não iniciem/terminem com espaço
   sanitized = sanitized.replace(/\*\*\s+([^*]+?)\s+\*\*/g, ' **$1** ');
   sanitized = sanitized.replace(/\*\s+([^*]+?)\s+\*/g, ' *$1* ');
-  
-  // 10. Remover apenas asteriscos completamente órfãos (preserva ** e ##)
-  sanitized = sanitized.replace(/(?<![\*#])\*(?![\*#\s])(?![^\s])/g, '');
   
   return sanitized.trim();
 };
