@@ -18,3 +18,64 @@ export const sanitizeHTML = (dirty: string): string => {
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
   });
 };
+
+/**
+ * Sanitiza e valida símbolos markdown para renderização correta
+ * Corrige formatação incorreta e garante consistência
+ */
+export const sanitizeMarkdown = (markdown: string): string => {
+  let sanitized = markdown;
+  
+  // 1. Corrigir espaçamento após cabeçalhos
+  sanitized = sanitized.replace(/^(#{1,6})([^\s#])/gm, '$1 $2');
+  
+  // 2. Corrigir negrito mal formatado (*** ou **** para **)
+  sanitized = sanitized.replace(/\*{3,}([^*]+)\*{3,}/g, '**$1**');
+  
+  // 3. Corrigir itálico mal formatado
+  sanitized = sanitized.replace(/\*\*\*([^*]+)\*\*\*/g, '*$1*');
+  
+  // 4. Corrigir espaçamento em listas
+  sanitized = sanitized.replace(/^(\d+\.)([^\s])/gm, '$1 $2');
+  sanitized = sanitized.replace(/^([-*])([^\s])/gm, '$1 $2');
+  
+  // 5. Normalizar quebras de linha (máximo 2 consecutivas)
+  sanitized = sanitized.replace(/\n{3,}/g, '\n\n');
+  
+  // 6. Corrigir code blocks sem linguagem
+  sanitized = sanitized.replace(/```\n/g, '```texto\n');
+  
+  // 7. Garantir espaço após blockquotes
+  sanitized = sanitized.replace(/^>([^\s])/gm, '> $1');
+  
+  // 8. Corrigir links mal formatados
+  sanitized = sanitized.replace(/\[([^\]]+)\]\s*\(([^)]+)\)/g, '[$1]($2)');
+  
+  // 9. Remover asteriscos órfãos (único asterisco sem par)
+  sanitized = sanitized.replace(/(?<!\*)\*(?!\*|\s)([^*\n]+?)(?<!\s)\*(?!\*)/g, '$1');
+  
+  // 10. Garantir que negrito e itálico não comecem/terminem com espaço
+  sanitized = sanitized.replace(/\*\*\s+([^*]+?)\s+\*\*/g, ' **$1** ');
+  sanitized = sanitized.replace(/\*\s+([^*]+?)\s+\*/g, ' *$1* ');
+  
+  return sanitized.trim();
+};
+
+/**
+ * Valida e normaliza markdown antes de processar para PDF ou anotações
+ */
+export const validateAndNormalizeMarkdown = (content: string): string => {
+  console.log('🔍 [Markdown Validator] Iniciando validação...');
+  
+  // Primeiro sanitiza HTML perigoso
+  const htmlSanitized = sanitizeHTML(content);
+  
+  // Depois normaliza markdown
+  const markdownSanitized = sanitizeMarkdown(htmlSanitized);
+  
+  console.log('✅ [Markdown Validator] Validação concluída');
+  console.log('📝 [Markdown Validator] Antes:', content.substring(0, 100));
+  console.log('📝 [Markdown Validator] Depois:', markdownSanitized.substring(0, 100));
+  
+  return markdownSanitized;
+};

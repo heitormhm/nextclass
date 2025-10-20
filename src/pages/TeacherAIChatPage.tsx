@@ -20,6 +20,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { generateVisualPDF } from "@/utils/visualPdfGenerator";
+import { validateAndNormalizeMarkdown } from "@/utils/sanitize";
 import { SmartMessageActions } from "@/components/teacher/SmartMessageActions";
 
 interface Message {
@@ -804,7 +805,11 @@ const handleExportPDF = async (messageContent: string): Promise<void> => {
       console.log('📄 [PDF Export] Iniciando exportação PDF...');
       console.log('📝 [PDF Export] Conteúdo original (primeiros 200 chars):', messageContent.substring(0, 200));
       
-      const structuredBlocks = parseMessageToBlocks(messageContent);
+      // Sanitizar e validar markdown antes de processar
+      const sanitizedContent = validateAndNormalizeMarkdown(messageContent);
+      console.log('🧼 [PDF Export] Conteúdo sanitizado (primeiros 200 chars):', sanitizedContent.substring(0, 200));
+      
+      const structuredBlocks = parseMessageToBlocks(sanitizedContent);
       console.log('🧩 [PDF Export] Blocos estruturados gerados:', structuredBlocks.length);
       console.log('📊 [PDF Export] Tipos de blocos:', structuredBlocks.map(b => b.tipo));
       
@@ -927,8 +932,12 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
           return;
         }
 
+        // Sanitizar e validar markdown antes de processar
+        const sanitizedContent = validateAndNormalizeMarkdown(messageContent);
+        console.log('🧼 [Annotations] Conteúdo sanitizado (primeiros 200 chars):', sanitizedContent.substring(0, 200));
+        
         // ✅ Parsear conteúdo em blocos estruturados
-        const structuredBlocks = parseMessageToBlocks(messageContent);
+        const structuredBlocks = parseMessageToBlocks(sanitizedContent);
         console.log('🧩 [Annotations] Blocos estruturados gerados:', structuredBlocks.length);
         console.log('📊 [Annotations] Tipos de blocos:', structuredBlocks.map(b => b.tipo));
         
@@ -938,7 +947,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
         });
 
         // Gerar título com IA usando preview
-        const preview = messageContent.substring(0, 300);
+        const preview = sanitizedContent.substring(0, 300);
         const { data: titleData } = await supabase.functions.invoke('generate-teacher-annotation-title', {
           body: { content: preview }
         });
@@ -2405,15 +2414,15 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
             <div 
               key={activeTag?.id || 'deep-search'}
               className="relative bg-gradient-to-br from-background via-card to-background/95 
-                         rounded-2xl md:rounded-3xl
-                         p-4 sm:p-5 md:p-6
-                         w-[85vw] sm:w-auto sm:min-w-[420px] md:min-w-[480px] lg:min-w-[540px]
-                         max-w-[90vw] sm:max-w-[500px] md:max-w-[560px] lg:max-w-[620px]
+                         rounded-xl md:rounded-2xl
+                         p-2 sm:p-2.5 md:p-3
+                         w-[75vw] sm:w-auto sm:min-w-[210px] md:min-w-[240px] lg:min-w-[270px]
+                         max-w-[85vw] sm:max-w-[250px] md:max-w-[280px] lg:max-w-[310px]
                          mx-auto
-                         shadow-xl md:shadow-2xl
+                         shadow-lg md:shadow-xl
                          border border-border/50"
             >
-              <div className="flex flex-col items-center space-y-8">
+              <div className="flex flex-col items-center space-y-4">
                 {/* Ícone central tri-camada */}
                 <div className="relative">
                   {/* Camada externa - ping */}
@@ -2424,31 +2433,31 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                   
                   {/* Camada média - spin */}
                   <div className={cn(
-                    "absolute inset-2 rounded-full animate-spin opacity-30 blur-sm",
+                    "absolute inset-1 rounded-full animate-spin opacity-30 blur-sm",
                     `bg-gradient-to-r ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                   )} style={{ animationDuration: '3s' }} />
                   
                   {/* Ícone interno dinâmico */}
                   <div className={cn(
-                    "relative p-6 md:p-8 rounded-full shadow-lg",
+                    "relative p-3 md:p-4 rounded-full shadow-lg",
                     `bg-gradient-to-br ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                   )}>
                     {(() => {
                       const currentStep = getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)];
                       const IconComponent = currentStep?.icon || Zap;
-                      return <IconComponent className="w-10 h-10 md:w-12 md:h-12 text-white animate-pulse" />;
+                      return <IconComponent className="w-5 h-5 md:w-6 md:h-6 text-white animate-pulse" />;
                     })()}
                   </div>
                 </div>
 
                 {/* Título dinâmico baseado em contexto */}
-                <div className="text-center space-y-3 relative">
+                <div className="text-center space-y-1.5 relative">
                   {/* 🎉 Overlay de sucesso quando completo */}
                   {isCompletionAnimating && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-3xl animate-pulse pointer-events-none -m-4" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl animate-pulse pointer-events-none -m-2" />
                   )}
                   
-                  <h2 className="text-2xl font-bold mb-2 relative z-10">
+                  <h2 className="text-base md:text-lg font-bold mb-1 relative z-10">
                     {activeTag ? (
                       <>
                         {activeTag.emoji} Gerando {activeTag.label}
@@ -2457,7 +2466,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                       <>🔍 Pesquisa Profunda em Andamento</>
                     )}
                   </h2>
-                  <p className="text-white/80 text-sm mb-4 relative z-10">
+                  <p className="text-white/80 text-xs mb-2 relative z-10">
                     {activeTag ? (
                       activeTag.id === 'study-material' ? 'Estruturando conteúdo educacional de alta qualidade...' :
                       activeTag.id === 'lesson-plan' ? 'Planejando aula com metodologias ativas...' :
@@ -2468,32 +2477,32 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                     )}
                   </p>
                   <h3 className={cn(
-                    "text-2xl font-bold bg-clip-text text-transparent animate-loader-pulse relative z-10",
+                    "text-base md:text-lg font-bold bg-clip-text text-transparent animate-loader-pulse relative z-10",
                     `bg-gradient-to-r ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                   )}>
                     {getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.text || "Processando..."}
                   </h3>
-                  <p className="text-muted-foreground text-base font-medium relative z-10">
+                  <p className="text-muted-foreground text-xs font-medium relative z-10">
                     {getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.subtext || "Aguarde..."}
                   </p>
                   
                   {/* 🎉 Confete quando completo */}
                   {isCompletionAnimating && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                      <div className="text-6xl animate-bounce">🎉</div>
+                      <div className="text-3xl animate-bounce">🎉</div>
                     </div>
                   )}
                 </div>
 
                 {/* Barra de progresso com shimmer */}
-                <div className="w-full space-y-3">
-                  <div className="flex justify-between text-sm font-medium">
+                <div className="w-full space-y-1.5">
+                  <div className="flex justify-between text-xs font-medium">
                     <span className="text-foreground/70">Progresso</span>
                     <span className="text-foreground font-bold">
                       {Math.round(((deepSearchProgress + 1) / getLoaderSteps(activeTag, isDeepSearch).length) * 100)}%
                     </span>
                   </div>
-                  <div className="relative w-full h-4 bg-muted rounded-full overflow-hidden shadow-inner">
+                  <div className="relative w-full h-2 bg-muted rounded-full overflow-hidden shadow-inner">
                     <div 
                       className={cn(
                         "h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden",
@@ -2508,31 +2517,31 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                 </div>
 
                 {/* Timeline horizontal de steps dinâmicos */}
-                <div className="flex justify-between items-center w-full px-2 sm:px-4">
+                <div className="flex justify-between items-center w-full px-1 sm:px-2">
                   {getLoaderSteps(activeTag, isDeepSearch).map((step, idx) => {
                     const IconComponent = step.icon;
                     return (
-                      <div key={step.id} className="flex flex-col items-center space-y-2 flex-1">
+                      <div key={step.id} className="flex flex-col items-center space-y-1 flex-1">
                         <div className={cn(
-                          "w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2",
+                          "w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5 rounded-full flex items-center justify-center transition-all duration-500 border",
                           idx < Math.floor(deepSearchProgress)
-                            ? `bg-gradient-to-br ${step.color} border-transparent shadow-lg scale-110`
+                            ? `bg-gradient-to-br ${step.color} border-transparent shadow-md scale-105`
                             : idx === Math.floor(deepSearchProgress)
-                            ? `bg-gradient-to-br ${step.color} border-white/50 animate-loader-pulse shadow-xl scale-125`
+                            ? `bg-gradient-to-br ${step.color} border-white/50 animate-loader-pulse shadow-lg scale-110`
                             : "bg-muted border-border scale-90"
                         )}>
                           {idx < Math.floor(deepSearchProgress) ? (
-                            <Check className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
+                            <Check className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-2.5 md:h-2.5 text-white" />
                           ) : idx === Math.floor(deepSearchProgress) ? (
-                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white animate-spin" />
+                            <Loader2 className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-2.5 md:h-2.5 text-white animate-spin" />
                           ) : (
-                            <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 md:w-2 md:h-2 rounded-full bg-muted-foreground/30" />
+                            <div className="w-0.5 h-0.5 sm:w-1 sm:h-1 md:w-1 md:h-1 rounded-full bg-muted-foreground/30" />
                           )}
                         </div>
                         {/* Linha conectora */}
                         {idx < getLoaderSteps(activeTag, isDeepSearch).length - 1 && (
                           <div className={cn(
-                            "absolute h-0.5 top-5 transition-all duration-500",
+                            "absolute h-0.5 top-2.5 transition-all duration-500",
                             idx < Math.floor(deepSearchProgress) ? "bg-primary" : "bg-border"
                           )} style={{
                             left: `${((idx + 0.5) / getLoaderSteps(activeTag, isDeepSearch).length) * 100}%`,
@@ -2545,21 +2554,21 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                 </div>
 
                 {/* Informações de contexto */}
-                <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    <span>Tempo estimado restante: ~{estimatedTimeRemaining}s</span>
+                <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    <span className="text-xs">Tempo estimado restante: ~{estimatedTimeRemaining}s</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    <span className="font-medium text-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3" />
+                    <span className="font-medium text-foreground text-xs">
                       {deepSearchJobId ? 'Job em execução...' : 'Inicializando...'}
                     </span>
                   </div>
                 </div>
 
                 {/* Mensagem motivacional contextual */}
-                <p className="text-center text-xs text-muted-foreground/70 italic max-w-md">
+                <p className="text-center text-[10px] text-muted-foreground/70 italic max-w-xs">
                   {activeTag ? (
                     `"Criando ${activeTag.label.toLowerCase()} com rigor pedagógico e qualidade acadêmica. Aguarde! 🚀"`
                   ) : (

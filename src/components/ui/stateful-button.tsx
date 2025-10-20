@@ -64,9 +64,25 @@ export const StatefulButton = ({ className, children, ...props }: ButtonProps) =
   };
 
   const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    await animateLoading();
-    await props.onClick?.(event);
-    await animateSuccess();
+    try {
+      await animateLoading();
+      await props.onClick?.(event);
+      await animateSuccess();
+    } catch (error) {
+      // Se houver erro, esconde o loader sem mostrar checkmark
+      await animate(
+        ".loader",
+        {
+          width: "0px",
+          scale: 0,
+          display: "none",
+        },
+        {
+          duration: 0.2,
+        },
+      );
+      console.error('StatefulButton error:', error);
+    }
   };
 
   const {
