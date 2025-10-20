@@ -859,9 +859,21 @@ const handleExportPDF = async (messageContent: string): Promise<void> => {
       try {
         setIsSuggestionsLoading(true);
         
+        // ✅ Adicionar mensagem placeholder
+        const placeholderId = crypto.randomUUID();
+        const placeholderMessage: Message = {
+          id: placeholderId,
+          content: "⏳ Gerando sugestões de melhoria...",
+          isUser: false,
+          timestamp: new Date(),
+          isSystemMessage: true
+        };
+        setMessages(prev => [...prev, placeholderMessage]);
+        
         // ✅ Timeout de segurança (30s)
         const timeoutId = setTimeout(() => {
           setIsSuggestionsLoading(false);
+          setMessages(prev => prev.filter(m => m.id !== placeholderId));
           toast({
             variant: "destructive",
             title: "Timeout",
@@ -872,12 +884,20 @@ const handleExportPDF = async (messageContent: string): Promise<void> => {
         
         const { data, error } = await supabase.functions.invoke('mia-teacher-chat', {
           body: {
-            message: `Com base neste conteúdo, sugira 3-5 melhorias ou extensões práticas:\n\n${messageContent.substring(0, 1000)}`,
+            message: `Analise este conteúdo e sugira 3-5 melhorias práticas:\n\n${messageContent.substring(0, 800)}`,
             conversationId: activeConversationId,
-            systemPrompt: `Você é Mia. Gere 3-5 sugestões práticas e diretas para melhorar ou estender este conteúdo educacional. 
+            systemPrompt: `Você é Mia, assistente pedagógica direta e objetiva.
 
-**Formato Obrigatório:**
-Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e prática.`
+**Tarefa:** Gere 3-5 sugestões de melhoria para o conteúdo abaixo.
+
+**Formato Obrigatório (resposta curta):**
+1. [Sugestão 1 em 1-2 linhas]
+2. [Sugestão 2 em 1-2 linhas]
+3. [Sugestão 3 em 1-2 linhas]
+4. [Sugestão 4 em 1-2 linhas - opcional]
+5. [Sugestão 5 em 1-2 linhas - opcional]
+
+Seja concisa e prática. Máximo 150 palavras no total.`
           }
         });
         
@@ -885,24 +905,30 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
         
         if (error) throw error;
         
-        const suggestionMessage: Message = {
-          id: crypto.randomUUID(),
-          content: data.reply,
-          isUser: false,
-          timestamp: new Date(),
-          isSystemMessage: true
-        };
+        // ✅ Validar conteúdo da resposta
+        if (!data?.reply || data.reply.trim().length < 50) {
+          throw new Error('Resposta vazia ou muito curta');
+        }
         
-        setMessages(prev => [...prev, suggestionMessage]);
+        // ✅ Substituir placeholder por conteúdo real
+        setMessages(prev => prev.map(m => 
+          m.id === placeholderId 
+            ? { ...m, content: data.reply, isSystemMessage: false }
+            : m
+        ));
         
         toast({
           title: "💡 Sugestões geradas",
           description: "Mia criou sugestões de melhoria para você.",
         });
         
-        resolve(); // ✅ Resolve Promise para animar checkmark
+        resolve()
       } catch (error) {
         console.error('Erro ao gerar sugestões:', error);
+        
+        // ✅ Remover placeholder em caso de erro
+        setMessages(prev => prev.filter(m => m.content !== "⏳ Gerando sugestões de melhoria..."));
+        
         toast({
           variant: "destructive",
           title: "Erro",
@@ -2416,8 +2442,8 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
               className="relative bg-gradient-to-br from-background via-card to-background/95 
                          rounded-xl md:rounded-2xl
                          p-2 sm:p-2.5 md:p-3
-                         w-[75vw] sm:w-auto sm:min-w-[210px] md:min-w-[240px] lg:min-w-[270px]
-                         max-w-[85vw] sm:max-w-[250px] md:max-w-[280px] lg:max-w-[310px]
+                         w-[85vw] sm:w-auto sm:min-w-[273px] md:min-w-[312px] lg:min-w-[351px]
+                         max-w-[90vw] sm:max-w-[325px] md:max-w-[364px] lg:max-w-[403px]
                          mx-auto
                          shadow-lg md:shadow-xl
                          border border-border/50"
@@ -2495,7 +2521,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                 </div>
 
                 {/* Barra de progresso com shimmer */}
-                <div className="w-full space-y-1.5">
+                <div className="w-full space-y-1.5 mt-6">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="text-foreground/70">Progresso</span>
                     <span className="text-foreground font-bold">
