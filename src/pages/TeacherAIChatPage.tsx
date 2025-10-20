@@ -243,6 +243,31 @@ const TeacherAIChatPage = () => {
     ];
   };
 
+  // ✅ FUNÇÃO: Calcular tempo mínimo de exibição baseado em contexto
+  const getMinimumDisplayTime = (tag: ActionTag | null, isDeepSearch: boolean): number => {
+    // Deep Search puro: 90s (95% do tempo médio de 95s)
+    if (isDeepSearch && !tag) {
+      return 90000; // 1 min 30s
+    }
+    
+    // Tags COM Deep Search
+    if (isDeepSearch && tag) {
+      if (tag.id === 'study-material') return 35000; // 35s (média: 35-40s)
+      if (tag.id === 'lesson-plan') return 30000;    // 30s (média: 30-35s)
+      if (tag.id === 'assessment') return 25000;     // 25s (média: 25-30s)
+    }
+    
+    // Tags SEM Deep Search (geração rápida)
+    if (tag && !isDeepSearch) {
+      if (tag.id === 'study-material') return 15000; // 15s (média: 15-20s)
+      if (tag.id === 'lesson-plan') return 12000;    // 12s (média: 12-18s)
+      if (tag.id === 'assessment') return 10000;     // 10s (média: 10-15s)
+    }
+    
+    // Fallback genérico: 10s
+    return 10000;
+  };
+
   const deepSearchIndicators = [
     'MATERIAL 1: ESTUDO DE CASO',
     'MATERIAL 2: NOTA TÉCNICA',
@@ -1019,9 +1044,15 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
     if (shouldShowLoader) {
       setIsDeepSearchLoading(true);
       setDeepSearchProgress(0);
-      setEstimatedTimeRemaining(activeTag ? 35 : 60); // Tags são mais rápidas
+      // ✅ Tempo estimado preciso baseado no contexto
+      const estimatedTime = Math.ceil(getMinimumDisplayTime(activeTag, isDeepSearch) / 1000);
+      setEstimatedTimeRemaining(estimatedTime);
+      console.log(`⏱️ Tempo estimado para este contexto: ${estimatedTime}s`);
       // ✅ Registrar tempo de início do loader (para garantir tempo mínimo de exibição)
       (window as any).__loaderStartTime = Date.now();
+      // ✅ Salvar contexto para cálculo correto do tempo mínimo
+      (window as any).__currentLoaderTag = activeTag;
+      (window as any).__wasDeepSearch = isDeepSearch;
     }
 
     try {
@@ -1267,21 +1298,30 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
       smoothProgressRef.current = null;
     }
     
-    // ✅ GARANTIR tempo mínimo de 10s para loader (evitar "flicker")
+    // ✅ GARANTIR tempo mínimo contextual para loader (evitar "flicker")
     const loaderStartTime = (window as any).__loaderStartTime || 0;
     const elapsed = Date.now() - loaderStartTime;
-    const minDisplayTime = 10000; // 10 segundos
+    const currentTag = (window as any).__currentLoaderTag || null;
+    const wasDeepSearch = (window as any).__wasDeepSearch || false;
+    const minDisplayTime = getMinimumDisplayTime(currentTag, wasDeepSearch);
+
+    console.log(`⏱️ Tempo mínimo para este contexto: ${minDisplayTime}ms (${currentTag ? `tag:${currentTag.id}` : 'deep-search'}, deep=${wasDeepSearch})`);
     
     if (elapsed < minDisplayTime) {
       const remainingTime = minDisplayTime - elapsed;
-      console.log(`⏳ Aguardando ${remainingTime}ms antes de fechar loader (tempo mínimo: ${minDisplayTime}ms)`);
+      console.log(`⏳ Aguardando ${remainingTime}ms antes de fechar loader`);
+      console.log(`   📊 Contexto: ${currentTag ? `${currentTag.emoji} ${currentTag.label}` : '🔍 Deep Search Puro'}`);
+      console.log(`   ⚡ Deep Search: ${wasDeepSearch ? 'SIM' : 'NÃO'}`);
+      console.log(`   ⏱️ Tempo mínimo: ${minDisplayTime}ms (${(minDisplayTime/1000).toFixed(0)}s)`);
+      console.log(`   🕐 Tempo decorrido: ${elapsed}ms (${(elapsed/1000).toFixed(1)}s)`);
+      
       setTimeout(() => {
         setIsDeepSearchLoading(false);
         setIsLoading(false);
         setDeepSearchJobId(null);
         setDeepSearchProgress(0);
         setEstimatedTimeRemaining(60);
-        console.log('⏹️ Polling interrompido (após tempo mínimo)');
+        console.log(`✅ Loader fechado após aguardar tempo mínimo contextual`);
       }, remainingTime);
     } else {
       setIsDeepSearchLoading(false);
