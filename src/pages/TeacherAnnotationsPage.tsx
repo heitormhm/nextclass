@@ -39,7 +39,7 @@ const TeacherAnnotationsPage = () => {
   const [filterBySource, setFilterBySource] = useState<'all' | 'lecture' | 'lesson_plan' | 'personal'>('all');
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null);
-  const [selectedAnnotationForAction, setSelectedAnnotationForAction] = useState<string>('');
+  
 
   useEffect(() => {
     const fetchAnnotations = async () => {
@@ -429,7 +429,7 @@ const TeacherAnnotationsPage = () => {
       </div>
 
       {/* Publish Material Modal */}
-      {showPublishModal && selectedAnnotation && (
+      {showPublishModal && (
         <PublishMaterialModal
           isOpen={showPublishModal}
           onClose={() => {

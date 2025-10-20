@@ -33,7 +33,7 @@ const teacherNavigationItems = [
   { label: "Gravar Aula", href: "__modal__", icon: Mic }, // Special handling for modal
   { label: "Calendário", href: "/teachercalendar", icon: Calendar },
   { label: "Anotações", href: "/teacher/annotations", icon: StickyNote },
-  { label: "Mia IA", href: "/teacher-aichat", icon: Sparkles },
+  { label: "Mia IA", href: "/teacher/ai-chat", icon: Sparkles },
 ];
 
 const Navbar = () => {

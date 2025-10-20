@@ -430,7 +430,7 @@ const TeacherDashboard = () => {
       description: 'Assistente pedagógica com IA',
       gradientFrom: 'from-blue-500',
       gradientTo: 'to-blue-600',
-      onClick: () => navigate('/teacher-aichat'),
+      onClick: () => navigate('/teacher/ai-chat'),
       badge: 'IA',
     },
     {
