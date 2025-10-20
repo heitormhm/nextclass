@@ -871,17 +871,17 @@ const handleExportPDF = async (messageContent: string): Promise<void> => {
         };
         setMessages(prev => [...prev, placeholderMessage]);
         
-        // ✅ Timeout de segurança (30s)
+        // ✅ Timeout de segurança (45s para Gemini Flash)
         const timeoutId = setTimeout(() => {
           setIsSuggestionsLoading(false);
           setMessages(prev => prev.filter(m => m.id !== placeholderId));
           toast({
             variant: "destructive",
-            title: "Timeout",
-            description: "A geração de sugestões demorou muito. Tente novamente.",
+            title: "⏱️ Timeout",
+            description: "A geração demorou mais que o esperado. Tente novamente ou simplifique o conteúdo.",
           });
           reject(new Error('Timeout'));
-        }, 30000);
+        }, 45000);
         
         const { data, error } = await supabase.functions.invoke('mia-teacher-chat', {
           body: {
@@ -895,19 +895,27 @@ INSTRUÇÕES:
 - Cada sugestão em 1-2 linhas
 - Foco em ações práticas e aplicáveis
 - Máximo 150 palavras no total`,
-            conversationId: activeConversationId
+            conversationId: activeConversationId,
+            skipAutoSuggestions: true // ✅ Evita job automático duplicado
           }
         });
         
         clearTimeout(timeoutId);
+        
+        // ✅ LOGS DETALHADOS PARA DEBUG
+        console.log('📊 [SUGGESTIONS] Raw response data:', data);
+        console.log('📊 [SUGGESTIONS] Response field:', data?.response);
+        console.log('📊 [SUGGESTIONS] Reply field (legacy):', data?.reply);
+        console.log('📊 [SUGGESTIONS] Error:', error);
         
         if (error) {
           console.error('❌ Erro na edge function:', error);
           throw error;
         }
         
-        // ✅ Validação mais permissiva (20 chars ao invés de 50)
-        if (!data?.reply || data.reply.trim().length < 20) {
+        // ✅ Edge function retorna "response", não "reply" - suportar ambos
+        const aiResponse = data?.response || data?.reply;
+        if (!aiResponse || aiResponse.trim().length < 20) {
           console.error('❌ Resposta inválida:', data);
           throw new Error('Resposta vazia ou muito curta');
         }
@@ -915,7 +923,7 @@ INSTRUÇÕES:
         // ✅ Substituir placeholder por conteúdo real
         setMessages(prev => prev.map(m => 
           m.id === placeholderId 
-            ? { ...m, content: data.reply, isSystemMessage: false }
+            ? { ...m, content: aiResponse, isSystemMessage: false }
             : m
         ));
         

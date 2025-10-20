@@ -13,8 +13,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, fileData, fileType, fileName, isDeepSearch, conversationId, action, context, systemPrompt, useAdvancedModel } = await req.json();
-    console.log('[TEACHER] Received request:', { message, fileType, fileName, isDeepSearch, conversationId, action, useAdvancedModel });
+    const { message, fileData, fileType, fileName, isDeepSearch, conversationId, action, context, systemPrompt, useAdvancedModel, skipAutoSuggestions } = await req.json();
+    console.log('[TEACHER] Received request:', { message, fileType, fileName, isDeepSearch, conversationId, action, useAdvancedModel, skipAutoSuggestions });
 
     // Get authenticated user
     const authHeader = req.headers.get('Authorization');
@@ -510,8 +510,8 @@ ${teacherContext}
       }).catch(err => console.error('[TEACHER] Error generating title:', err));
     }
 
-    // Auto-generate suggestions after chat response
-    if (activeConversationId && !isDeepSearch) {
+    // Auto-generate suggestions after chat response (apenas se não foi request manual)
+    if (activeConversationId && !isDeepSearch && !skipAutoSuggestions) {
       const { data: suggestionsJob, error: suggestionsError } = await supabaseAdmin
         .from('jobs')
         .insert({
