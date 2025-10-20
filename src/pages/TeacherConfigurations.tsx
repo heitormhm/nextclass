@@ -132,9 +132,9 @@ const TeacherConfigurations = () => {
               </Card>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Notification Settings */}
-              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+              <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] md:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bell className="h-5 w-5" />
@@ -170,37 +170,6 @@ const TeacherConfigurations = () => {
                     checked={settings.weeklyReport}
                     onCheckedChange={(value) => handleSwitchChange('weeklyReport', value)}
                   />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recording Settings */}
-            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Video className="h-5 w-5" />
-                  Gravação
-                </CardTitle>
-                <CardDescription>
-                  Configure as preferências padrão para gravação de aulas
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="video-quality">Qualidade de vídeo padrão</Label>
-                  <Select 
-                    value={settings.videoQuality} 
-                    onValueChange={(value) => handleSelectChange('videoQuality', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a qualidade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="720p">720p (HD)</SelectItem>
-                      <SelectItem value="1080p">1080p (Full HD)</SelectItem>
-                      <SelectItem value="4k">4K (Ultra HD)</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </CardContent>
             </Card>

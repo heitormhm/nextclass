@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, MicOff, Pause, Play, Square, Settings, Radio, Clock, MessageSquare, Activity } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -466,19 +467,31 @@ const LiveLecture = () => {
             )}
             
             {/* Frosted Glass Container */}
-            <div 
-              className={`
-                relative w-40 h-40 md:w-48 md:h-48 rounded-full 
-                backdrop-blur-2xl 
-                border-2 
-                transition-all duration-500
-                ${isRecording && !isPaused 
-                  ? 'bg-white/15 border-purple-300/40 shadow-2xl shadow-purple-500/50' 
-                  : 'bg-white/10 border-white/20 shadow-xl hover:shadow-2xl hover:scale-105 cursor-pointer'
-                }
-              `}
-              onClick={!isRecording ? handleStartRecording : undefined}
-            >
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div 
+                    className={`
+                      relative w-40 h-40 md:w-48 md:h-48 rounded-full 
+                      backdrop-blur-2xl 
+                      border-2 
+                      transition-all duration-500
+                      cursor-pointer
+                      ${isRecording && !isPaused 
+                        ? 'bg-white/15 border-purple-300/40 shadow-2xl shadow-purple-500/50' 
+                        : isPaused
+                        ? 'bg-white/10 border-yellow-300/40 shadow-2xl shadow-yellow-500/50'
+                        : 'bg-white/10 border-white/20 shadow-xl hover:shadow-2xl hover:scale-105'
+                      }
+                    `}
+                    onClick={() => {
+                      if (!isRecording) {
+                        handleStartRecording();
+                      } else {
+                        handlePauseRecording();
+                      }
+                    }}
+                  >
               {/* Rotating Shimmer Effect (quando gravando) */}
               {isRecording && !isPaused && (
                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-spin" style={{ animationDuration: '2s' }} />
@@ -501,13 +514,26 @@ const LiveLecture = () => {
                   {isRecording && !isPaused ? (
                     <Mic className="h-12 w-12 md:h-14 md:w-14 text-white animate-pulse" />
                   ) : isPaused ? (
-                    <Pause className="h-12 w-12 md:h-14 md:w-14 text-white" />
+                    <Play className="h-12 w-12 md:h-14 md:w-14 text-white" />
                   ) : (
                     <Mic className="h-12 w-12 md:h-14 md:w-14 text-gray-600" />
                   )}
                 </div>
               </div>
-            </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-white/95 backdrop-blur-xl border-purple-200">
+                  <p className="text-sm font-medium text-gray-700">
+                    {!isRecording 
+                      ? 'Clique para iniciar gravação' 
+                      : isPaused 
+                      ? 'Clique para continuar' 
+                      : 'Clique para pausar'
+                    }
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           {/* 3. WAVEFORM (standalone) */}
@@ -678,14 +704,14 @@ const LiveLecture = () => {
               {/* Desktop: Side Panel (right side) */}
               <div className="
                 hidden lg:block
-                fixed right-0 top-0 bottom-0 w-96
+                fixed right-0 top-16 bottom-0 w-96
                 bg-white/95 backdrop-blur-xl
                 border-l-4 border-purple-500/20
                 shadow-[-10px_0_40px_rgba(168,85,247,0.15)]
                 p-6
                 z-20
                 animate-slide-in-right
-                overflow-y-auto
+                overflow-y-auto scroll-smooth
               ">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -701,7 +727,7 @@ const LiveLecture = () => {
                 </div>
 
                 {/* Scroll Area */}
-                <div className="overflow-y-auto max-h-[calc(100vh-250px)] mb-4">
+                <div className="overflow-y-auto max-h-[calc(100vh-320px)] mb-4">
                   <LiveTranscriptViewer
                     segments={transcriptSegments}
                     currentWords={currentWords}
