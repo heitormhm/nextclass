@@ -1161,12 +1161,18 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
       clearInterval(pollingIntervalRef.current);
     }
 
-    // Iniciar contador de tempo
+    // ✅ Obter tempo estimado real baseado no contexto
+    const contextualSteps = getLoaderSteps(currentTag, isDeepSearch);
+    const estimatedDuration = contextualSteps.reduce((sum, step) => sum + (step.duration || 0), 0);
+
+    // Iniciar contador de tempo contextual
     let elapsedTime = 0;
     const timeInterval = setInterval(() => {
       elapsedTime += 3;
-      const remaining = Math.max(0, 60 - elapsedTime);
+      const remaining = Math.max(0, estimatedDuration - elapsedTime);
       setEstimatedTimeRemaining(remaining);
+      
+      console.log(`⏱️ Tempo decorrido: ${elapsedTime}s / ${estimatedDuration}s estimado`);
     }, 3000);
 
     const pollInterval = setInterval(async () => {
@@ -1193,35 +1199,27 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
         // ✅ MAPEAR STATUS DO BACKEND para índices de step contextuais
         let targetStepIndex = 0;
 
-        if (currentTag) {
-          // Lógica simplificada para tags (sem intermediate_data detalhado do backend)
-          if (job.status === 'PENDING') {
-            targetStepIndex = 0;
-          } else if (job.status === 'DECOMPOSING' || job.status === 'RESEARCHING') {
-            // Progresso gradual durante geração baseado no tempo decorrido
-            if (elapsedTime < 10) targetStepIndex = 1;
-            else if (elapsedTime < 20) targetStepIndex = 2;
-            else targetStepIndex = 3;
-          } else if (job.status === 'COMPLETED') {
-            targetStepIndex = maxStepIndex;
-          }
-        } else {
-          // Lógica original para Deep Search puro
-          if (job.status === 'PENDING' || (job.intermediate_data as any)?.step === '1') {
-            targetStepIndex = 0;
-          } else if (job.status === 'DECOMPOSING' || (job.intermediate_data as any)?.step === '2') {
-            targetStepIndex = 1;
-          } else if (job.status === 'RESEARCHING') {
-            const currentProgress = deepSearchProgress;
-            if (currentProgress < 2) targetStepIndex = 2;
-            else if (currentProgress < 3) targetStepIndex = 3;
-            else targetStepIndex = 4;
-          } else if (job.status === 'COMPLETED') {
-            targetStepIndex = maxStepIndex;
-          }
+        // ✅ Calcular progresso proporcional ao tempo estimado
+        const progressRatio = elapsedTime / estimatedDuration;
+        
+        if (job.status === 'PENDING') {
+          targetStepIndex = 0;
+        } else if (job.status === 'DECOMPOSING' || job.status === 'RESEARCHING') {
+          // Mapear linearmente o tempo para os steps intermediários
+          const totalIntermediateSteps = maxStepIndex - 1; // Excluir PENDING e COMPLETED
+          const intermediateProgress = Math.min(progressRatio, 0.95); // Máximo 95% até completar
+          targetStepIndex = Math.floor(1 + (intermediateProgress * totalIntermediateSteps));
+        } else if (job.status === 'COMPLETED') {
+          targetStepIndex = maxStepIndex;
         }
 
         updateProgressSmooth(targetStepIndex + 0.5);
+        
+        // ✅ Debug detalhado de progresso
+        console.log(`📊 Progresso mapeado: ${targetStepIndex}/${maxStepIndex} (${Math.round((targetStepIndex/maxStepIndex)*100)}%)`);
+        console.log(`   ⏱️ Tempo: ${elapsedTime}s / ${estimatedDuration}s (${Math.round((elapsedTime/estimatedDuration)*100)}%)`);
+        console.log(`   📌 Status backend: ${job.status}`);
+        console.log(`   🎯 Progresso visual: ${deepSearchProgress.toFixed(2)}`);
 
         if (job.status === 'COMPLETED') {
           // Limpar intervalos
@@ -1230,8 +1228,11 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
             clearInterval(smoothProgressRef.current);
           }
           
-          setDeepSearchProgress(maxStepIndex); // Último step: Completo
+          setDeepSearchProgress(maxStepIndex); // ✅ Forçar 100%
+          setEstimatedTimeRemaining(0); // ✅ Zerar contador
           setIsCompletionAnimating(true); // ✅ Ativar animação de sucesso
+          
+          console.log(`✅ Job concluído! Forçando progresso para ${maxStepIndex} (100%)`);
           
           // ✅ BUSCAR MENSAGEM FINAL
           console.log('✅ Job concluído! Buscando mensagem final...');
@@ -2227,7 +2228,13 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
 
             <div 
               key={activeTag?.id || 'deep-search'}
-              className="relative bg-gradient-to-br from-background via-card to-background/95 rounded-3xl p-10 max-w-xl w-full mx-4 shadow-2xl border border-border/50"
+              className="relative bg-gradient-to-br from-background via-card to-background/95 
+                         rounded-2xl md:rounded-3xl
+                         p-4 sm:p-6 md:p-8 lg:p-10
+                         max-w-[90vw] sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl
+                         w-full mx-2 sm:mx-4
+                         shadow-xl md:shadow-2xl
+                         border border-border/50"
             >
               <div className="flex flex-col items-center space-y-8">
                 {/* Ícone central tri-camada */}
@@ -2246,13 +2253,13 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                   
                   {/* Ícone interno dinâmico */}
                   <div className={cn(
-                    "relative p-8 rounded-full shadow-lg",
+                    "relative p-4 sm:p-6 md:p-8 rounded-full shadow-lg",
                     `bg-gradient-to-br ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                   )}>
                     {(() => {
                       const currentStep = getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)];
                       const IconComponent = currentStep?.icon || Zap;
-                      return <IconComponent className="w-14 h-14 text-white animate-pulse" />;
+                      return <IconComponent className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 text-white animate-pulse" />;
                     })()}
                   </div>
                 </div>
@@ -2324,13 +2331,13 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                 </div>
 
                 {/* Timeline horizontal de steps dinâmicos */}
-                <div className="flex justify-between items-center w-full px-4">
+                <div className="flex justify-between items-center w-full px-2 sm:px-4">
                   {getLoaderSteps(activeTag, isDeepSearch).map((step, idx) => {
                     const IconComponent = step.icon;
                     return (
                       <div key={step.id} className="flex flex-col items-center space-y-2 flex-1">
                         <div className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2",
+                          "w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2",
                           idx < Math.floor(deepSearchProgress)
                             ? `bg-gradient-to-br ${step.color} border-transparent shadow-lg scale-110`
                             : idx === Math.floor(deepSearchProgress)
@@ -2338,11 +2345,11 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                             : "bg-muted border-border scale-90"
                         )}>
                           {idx < Math.floor(deepSearchProgress) ? (
-                            <Check className="w-5 h-5 text-white" />
+                            <Check className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
                           ) : idx === Math.floor(deepSearchProgress) ? (
-                            <Loader2 className="w-5 h-5 text-white animate-spin" />
+                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white animate-spin" />
                           ) : (
-                            <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                            <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 md:w-2 md:h-2 rounded-full bg-muted-foreground/30" />
                           )}
                         </div>
                         {/* Linha conectora */}
