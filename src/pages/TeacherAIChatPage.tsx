@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import 'katex/dist/katex.min.css';
@@ -69,15 +69,65 @@ const TeacherAIChatPage = () => {
   const [activeTag, setActiveTag] = useState<ActionTag | null>(null);
   const [userInput, setUserInput] = useState("");
   const [deepSearchJobId, setDeepSearchJobId] = useState<string | null>(null);
+  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(60);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const smoothProgressRef = useRef<NodeJS.Timeout | null>(null);
 
   const deepSearchSteps = [
-    { text: "🔍 Iniciando pesquisa profunda..." },
-    { text: "📚 Analisando bases de dados acadêmicas..." },
-    { text: "🧠 Processando conteúdo com IA avançada..." },
-    { text: "📊 Compilando informações relevantes..." },
-    { text: "✨ Gerando relatório personalizado..." },
-    { text: "✅ Finalizando análise..." }
+    { 
+      id: 0,
+      status: 'PENDING',
+      text: "Iniciando pesquisa profunda",
+      subtext: "Conectando com bases de dados acadêmicas",
+      icon: "Search",
+      color: "from-blue-500 to-cyan-500",
+      duration: 3
+    },
+    { 
+      id: 1,
+      status: 'DECOMPOSING',
+      text: "Decomposição de consulta",
+      subtext: "Identificando tópicos e conceitos-chave",
+      icon: "GitBranch",
+      color: "from-purple-500 to-pink-500",
+      duration: 5
+    },
+    { 
+      id: 2,
+      status: 'RESEARCHING_START',
+      text: "Pesquisando fontes múltiplas",
+      subtext: "Coletando dados de artigos, livros e estudos",
+      icon: "BookOpen",
+      color: "from-orange-500 to-red-500",
+      duration: 20
+    },
+    { 
+      id: 3,
+      status: 'RESEARCHING_MID',
+      text: "Análise de conteúdo em profundidade",
+      subtext: "Processando e filtrando informações relevantes",
+      icon: "TrendingUp",
+      color: "from-green-500 to-emerald-500",
+      duration: 20
+    },
+    { 
+      id: 4,
+      status: 'RESEARCHING_END',
+      text: "Sintetizando conhecimento",
+      subtext: "Organizando insights pedagógicos",
+      icon: "FileText",
+      color: "from-pink-500 to-rose-500",
+      duration: 15
+    },
+    { 
+      id: 5,
+      status: 'COMPLETED',
+      text: "Relatório concluído",
+      subtext: "Análise pedagógica finalizada com sucesso",
+      icon: "CheckCircle",
+      color: "from-green-600 to-teal-600",
+      duration: 2
+    }
   ];
 
   const deepSearchIndicators = [
@@ -917,6 +967,28 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
   };
 
   // ✅ NOVA FUNÇÃO: Polling inteligente de status do job
+  // Função auxiliar para progresso fluido (anti-freeze)
+  const updateProgressSmooth = (targetStep: number) => {
+    // Limpar intervalo anterior
+    if (smoothProgressRef.current) {
+      clearInterval(smoothProgressRef.current);
+    }
+
+    const increment = 0.05;
+    const smoothInterval = setInterval(() => {
+      setDeepSearchProgress(prev => {
+        const next = prev + increment;
+        if (next >= targetStep) {
+          clearInterval(smoothInterval);
+          return targetStep;
+        }
+        return next;
+      });
+    }, 150); // Atualizar a cada 150ms para fluidez visual
+
+    smoothProgressRef.current = smoothInterval;
+  };
+
   const startPollingJobStatus = async (jobId: string, conversationId: string) => {
     console.log('📊 Polling iniciado para job:', jobId);
     
@@ -924,6 +996,14 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
     }
+
+    // Iniciar contador de tempo
+    let elapsedTime = 0;
+    const timeInterval = setInterval(() => {
+      elapsedTime += 3;
+      const remaining = Math.max(0, 60 - elapsedTime);
+      setEstimatedTimeRemaining(remaining);
+    }, 3000);
 
     const pollInterval = setInterval(async () => {
       try {
@@ -935,21 +1015,36 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
 
         if (error || !job) {
           console.error('❌ Erro ao consultar job:', error);
+          clearInterval(timeInterval);
           stopPolling();
           return;
         }
 
         console.log(`📊 Job status: ${job.status}, step: ${(job.intermediate_data as any)?.step || 'unknown'}`);
 
-        // Atualizar progresso baseado no status
+        // Atualizar progresso baseado no status com transições fluidas
         if (job.status === 'PENDING' || (job.intermediate_data as any)?.step === '1') {
-          setDeepSearchProgress(1); // 🔍 Iniciando pesquisa
+          setDeepSearchProgress(0.5); // Step 0: Iniciando
         } else if (job.status === 'DECOMPOSING' || (job.intermediate_data as any)?.step === '2') {
-          setDeepSearchProgress(2); // 📚 Analisando bases de dados
-        } else if (job.status === 'RESEARCHING' || (job.intermediate_data as any)?.step === '3') {
-          setDeepSearchProgress(4); // 📊 Compilando informações
+          updateProgressSmooth(1.5); // Step 1: Decomposição
+        } else if (job.status === 'RESEARCHING') {
+          // Progresso gradual durante pesquisa (20-50 segundos)
+          const currentProgress = deepSearchProgress;
+          if (currentProgress < 2) {
+            updateProgressSmooth(2.5); // Step 2: Início da pesquisa
+          } else if (currentProgress < 3) {
+            updateProgressSmooth(3.5); // Step 3: Meio da pesquisa
+          } else if (currentProgress < 4) {
+            updateProgressSmooth(4.5); // Step 4: Fim da pesquisa
+          }
         } else if (job.status === 'COMPLETED') {
-          setDeepSearchProgress(5); // ✅ Finalizando
+          // Limpar intervalos
+          clearInterval(timeInterval);
+          if (smoothProgressRef.current) {
+            clearInterval(smoothProgressRef.current);
+          }
+          
+          setDeepSearchProgress(5); // Step 5: Completo
           
           // ✅ BUSCAR MENSAGEM FINAL
           console.log('✅ Job concluído! Buscando mensagem final...');
@@ -980,6 +1075,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
 
           stopPolling();
         } else if (job.status === 'FAILED') {
+          clearInterval(timeInterval);
           console.error('❌ Job falhou:', job.error_log);
           
           toast({
@@ -1003,10 +1099,15 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }
+    if (smoothProgressRef.current) {
+      clearInterval(smoothProgressRef.current);
+      smoothProgressRef.current = null;
+    }
     setIsDeepSearchLoading(false);
     setIsLoading(false);
     setDeepSearchJobId(null);
     setDeepSearchProgress(0);
+    setEstimatedTimeRemaining(60);
     console.log('⏹️ Polling interrompido');
   };
 
@@ -1923,59 +2024,139 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
 
         {/* 🎯 MODAL DE PROGRESSO: Deep Search Loading */}
         {isDeepSearchLoading && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border-2 border-pink-200">
-              <div className="flex flex-col items-center space-y-6">
-                {/* Ícone animado */}
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 animate-fade-in">
+            {/* Partículas animadas de fundo */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(20)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-2 h-2 bg-primary/30 rounded-full animate-float"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 5}s`,
+                    animationDuration: `${10 + Math.random() * 10}s`,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="relative bg-gradient-to-br from-background via-card to-background/95 rounded-3xl p-10 max-w-xl w-full mx-4 shadow-2xl border border-border/50">
+              <div className="flex flex-col items-center space-y-8">
+                {/* Ícone central tri-camada */}
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full animate-ping opacity-20"></div>
-                  <div className="relative bg-gradient-to-r from-pink-500 to-purple-600 p-6 rounded-full">
-                    <Sparkles className="w-12 h-12 text-white animate-pulse" />
+                  {/* Camada externa - ping */}
+                  <div className={cn(
+                    "absolute inset-0 rounded-full animate-ping opacity-20",
+                    `bg-gradient-to-r ${deepSearchSteps[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
+                  )} />
+                  
+                  {/* Camada média - spin */}
+                  <div className={cn(
+                    "absolute inset-2 rounded-full animate-spin opacity-30 blur-sm",
+                    `bg-gradient-to-r ${deepSearchSteps[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
+                  )} style={{ animationDuration: '3s' }} />
+                  
+                  {/* Ícone interno dinâmico */}
+                  <div className={cn(
+                    "relative p-8 rounded-full shadow-lg",
+                    `bg-gradient-to-br ${deepSearchSteps[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
+                  )}>
+                    {Math.floor(deepSearchProgress) === 0 && <Search className="w-14 h-14 text-white animate-pulse" />}
+                    {Math.floor(deepSearchProgress) === 1 && <GitBranch className="w-14 h-14 text-white animate-pulse" />}
+                    {Math.floor(deepSearchProgress) === 2 && <BookOpen className="w-14 h-14 text-white animate-pulse" />}
+                    {Math.floor(deepSearchProgress) === 3 && <TrendingUp className="w-14 h-14 text-white animate-pulse" />}
+                    {Math.floor(deepSearchProgress) === 4 && <FileText className="w-14 h-14 text-white animate-pulse" />}
+                    {Math.floor(deepSearchProgress) === 5 && <CheckCircle className="w-14 h-14 text-white animate-pulse" />}
                   </div>
                 </div>
 
-                {/* Texto do step atual */}
-                <div className="text-center space-y-2">
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                    Pesquisa Profunda em Andamento
+                {/* Título e subtítulo dinâmicos */}
+                <div className="text-center space-y-3">
+                  <h3 className={cn(
+                    "text-3xl font-bold bg-clip-text text-transparent animate-loader-pulse",
+                    `bg-gradient-to-r ${deepSearchSteps[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
+                  )}>
+                    {deepSearchSteps[Math.floor(deepSearchProgress)]?.text || "Processando..."}
                   </h3>
-                  <p className="text-gray-600 text-lg font-medium">
-                    {deepSearchSteps[deepSearchProgress]?.text || "Processando..."}
+                  <p className="text-muted-foreground text-base font-medium">
+                    {deepSearchSteps[Math.floor(deepSearchProgress)]?.subtext || "Aguarde..."}
                   </p>
                 </div>
 
-                {/* Barra de progresso REAL baseada no status do job */}
-                <div className="w-full space-y-2">
-                  <div className="flex justify-between text-sm text-gray-500">
-                    <span>Progresso</span>
-                    <span>{Math.round(((deepSearchProgress + 1) / deepSearchSteps.length) * 100)}%</span>
+                {/* Barra de progresso com shimmer */}
+                <div className="w-full space-y-3">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span className="text-foreground/70">Progresso</span>
+                    <span className="text-foreground font-bold">
+                      {Math.round(((deepSearchProgress + 1) / deepSearchSteps.length) * 100)}%
+                    </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div className="relative w-full h-4 bg-muted rounded-full overflow-hidden shadow-inner">
                     <div 
-                      className="bg-gradient-to-r from-pink-500 to-purple-600 h-full rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${((deepSearchProgress + 1) / deepSearchSteps.length) * 100}%` }}
-                    />
+                      className={cn(
+                        "h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden",
+                        `bg-gradient-to-r ${deepSearchSteps[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
+                      )}
+                      style={{ width: `${Math.min(100, ((deepSearchProgress + 1) / deepSearchSteps.length) * 100)}%` }}
+                    >
+                      {/* Shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                    </div>
                   </div>
                 </div>
 
-                {/* Indicadores de steps */}
-                <div className="flex justify-center space-x-2">
-                  {deepSearchSteps.map((_, idx) => (
-                    <div 
-                      key={idx}
-                      className={cn(
-                        "w-2 h-2 rounded-full transition-all duration-300",
-                        idx <= deepSearchProgress 
-                          ? "bg-gradient-to-r from-pink-500 to-purple-600 scale-110" 
-                          : "bg-gray-300"
+                {/* Timeline horizontal de steps */}
+                <div className="flex justify-between items-center w-full px-4">
+                  {deepSearchSteps.map((step, idx) => (
+                    <div key={idx} className="flex flex-col items-center space-y-2 flex-1">
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2",
+                        idx < Math.floor(deepSearchProgress)
+                          ? `bg-gradient-to-br ${step.color} border-transparent shadow-lg scale-110`
+                          : idx === Math.floor(deepSearchProgress)
+                          ? `bg-gradient-to-br ${step.color} border-white/50 animate-loader-pulse shadow-xl scale-125`
+                          : "bg-muted border-border scale-90"
+                      )}>
+                        {idx < Math.floor(deepSearchProgress) ? (
+                          <Check className="w-5 h-5 text-white" />
+                        ) : idx === Math.floor(deepSearchProgress) ? (
+                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                        )}
+                      </div>
+                      {/* Linha conectora */}
+                      {idx < deepSearchSteps.length - 1 && (
+                        <div className={cn(
+                          "absolute h-0.5 top-5 transition-all duration-500",
+                          idx < Math.floor(deepSearchProgress) ? "bg-primary" : "bg-border"
+                        )} style={{
+                          left: `${((idx + 0.5) / deepSearchSteps.length) * 100}%`,
+                          width: `${(1 / deepSearchSteps.length) * 100}%`,
+                        }} />
                       )}
-                    />
+                    </div>
                   ))}
                 </div>
 
-                <p className="text-sm text-gray-500 text-center">
-                  ⏱️ Tempo estimado: 30-90 segundos<br/>
-                  📊 Status: {deepSearchJobId ? 'Processando...' : 'Iniciando...'}
+                {/* Informações de contexto */}
+                <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span>Tempo estimado restante: ~{estimatedTimeRemaining}s</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    <span className="font-medium text-foreground">
+                      {deepSearchJobId ? 'Job em execução...' : 'Inicializando pesquisa...'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Mensagem motivacional */}
+                <p className="text-center text-xs text-muted-foreground/70 italic max-w-md">
+                  "Estamos analisando múltiplas fontes acadêmicas para oferecer o melhor conteúdo pedagógico. 
+                  Sua paciência resultará em insights profundos! 🚀"
                 </p>
               </div>
             </div>

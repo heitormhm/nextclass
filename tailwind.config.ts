@@ -123,10 +123,26 @@ export default {
         },
         "float": {
           "0%, 100%": {
-            transform: "translateY(0px) translateX(0px)"
+            transform: "translateY(0) translateX(0)",
+            opacity: "0"
           },
-          "50%": {
-            transform: "translateY(-20px) translateX(10px)"
+          "10%": {
+            opacity: "1"
+          },
+          "90%": {
+            opacity: "1"
+          },
+          "100%": {
+            transform: "translateY(-100vh) translateX(20px)",
+            opacity: "0"
+          }
+        },
+        "shimmer": {
+          "0%": {
+            transform: "translateX(-100%)"
+          },
+          "100%": {
+            transform: "translateX(200%)"
           }
         },
         "gradient-xy": {
@@ -172,7 +188,8 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.5s ease-out",
         "draw-line": "draw-line 3s ease-in-out infinite",
-        "float": "float 6s ease-in-out infinite",
+        "float": "float linear infinite",
+        "shimmer": "shimmer 2s infinite",
         "gradient-xy": "gradient-xy 15s ease infinite",
         "loader-pulse": "loader-pulse 3s ease-in-out infinite",
         "loader-slide": "loader-slide 2.5s ease-in-out forwards",
