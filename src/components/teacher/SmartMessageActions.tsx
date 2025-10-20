@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
+import { StatefulButton } from "@/components/ui/stateful-button";
 import { FileDown, Lightbulb, FileEdit } from "lucide-react";
 
 interface SmartMessageActionsProps {
   messageContent: string;
   messageId: string;
-  onExportPDF: () => void;
+  onExportPDF: () => Promise<void>;
   onGenerateSuggestions: () => void;
-  onAddToAnnotations: () => void;
+  onAddToAnnotations: () => Promise<void>;
   isLoading?: boolean;
   isSuggestionsLoading?: boolean;
 }
@@ -25,17 +26,15 @@ export const SmartMessageActions = ({
 
   return (
     <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-purple-100">
-      {/* Export PDF Button - Always show for long messages */}
-      <Button
-        variant="outline"
-        size="sm"
+      {/* Export PDF Button with stateful animation */}
+      <StatefulButton
         onClick={onExportPDF}
         disabled={isLoading || isSuggestionsLoading}
-        className="text-xs bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border-purple-200"
+        className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 hover:ring-purple-400 border-0"
       >
-        <FileDown className="w-3 h-3 mr-1.5" />
+        <FileDown className="w-3 h-3" />
         Exportar PDF
-      </Button>
+      </StatefulButton>
 
       {/* Generate Suggestions Button */}
       <Button
@@ -49,17 +48,15 @@ export const SmartMessageActions = ({
         {isSuggestionsLoading ? 'Gerando...' : 'Sugestões de Melhoria'}
       </Button>
 
-      {/* Add to Annotations Button */}
-      <Button
-        variant="outline"
-        size="sm"
+      {/* Add to Annotations Button with stateful animation */}
+      <StatefulButton
         onClick={onAddToAnnotations}
         disabled={isLoading || isSuggestionsLoading}
-        className="text-xs bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border-green-200"
+        className="bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 hover:ring-green-400 border-0"
       >
-        <FileEdit className="w-3 h-3 mr-1.5" />
+        <FileEdit className="w-3 h-3" />
         Salvar em Anotações
-      </Button>
+      </StatefulButton>
     </div>
   );
 };

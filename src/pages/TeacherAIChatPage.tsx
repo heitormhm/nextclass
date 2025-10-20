@@ -745,7 +745,8 @@ Markdown com:
     return blocks;
   };
 
-  const handleExportPDF = async (messageContent: string) => {
+const handleExportPDF = async (messageContent: string): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
     try {
       const structuredBlocks = parseMessageToBlocks(messageContent);
       
@@ -761,6 +762,7 @@ Markdown com:
         title: "📄 PDF exportado com sucesso",
         description: "O documento foi salvo com formatação preservada.",
       });
+      resolve();
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
       toast({
@@ -768,8 +770,10 @@ Markdown com:
         title: "Erro ao exportar PDF",
         description: "Não foi possível gerar o documento.",
       });
+      reject(error);
     }
-  };
+  });
+};
 
   const handleGenerateSuggestions = async (messageContent: string) => {
     if (isSuggestionsLoading || isLoading || isDeepSearchLoading) {
@@ -834,51 +838,49 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
     }
   };
 
-  const handleAddToAnnotations = async (messageContent: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      
-      // ✅ PRESERVAR markdown essencial + melhorar legibilidade
-      const cleanContent = messageContent
-        // Converter H2 em títulos de seção legíveis
-        .replace(/^##\s+(.+)$/gm, '\n\n━━━━━ $1 ━━━━━\n')
-        // Converter H3 em subtítulos
-        .replace(/^###\s+(.+)$/gm, '\n▸ $1\n')
-        // Converter listas numeradas
-        .replace(/^\d+\.\s+(.+)$/gm, '  • $1')
-        // Manter negrito (preservar **)
-        // Manter itálico (preservar *)
-        // Converter quebras <br> em \n
-        .replace(/<br\s*\/?>/gi, '\n')
-        // Remover apenas tags HTML perigosas (não markdown)
-        .replace(/<script[^>]*>.*?<\/script>/gi, '')
-        .replace(/<style[^>]*>.*?<\/style>/gi, '')
-        .trim();
-      
-      // ✅ NOVO: Criar preview curto e atraente
-      const preview = cleanContent.substring(0, 300) + (cleanContent.length > 300 ? '...' : '');
-      
-      const { data: titleData } = await supabase.functions.invoke('generate-teacher-annotation-title', {
-        body: { content: preview }
-      });
-      
-      const { error } = await supabase
-        .from('annotations')
-        .insert({
-          user_id: user.id,
-          title: titleData?.title || 'Conteúdo da Mia',
-          content: cleanContent, // ✅ Conteúdo limpo e legível
-          source_type: 'mia_chat',
-          tags: ['mia', 'conteudo_gerado', new Date().toISOString().split('T')[0]]
+  const handleAddToAnnotations = async (messageContent: string): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Você precisa estar autenticado para salvar anotações.",
+          });
+          reject(new Error('Not authenticated'));
+          return;
+        }
+
+        // ✅ Parsear conteúdo em blocos estruturados
+        const structuredBlocks = parseMessageToBlocks(messageContent);
+        const contentToSave = JSON.stringify({
+          titulo_geral: `Anotação da Mia - ${new Date().toLocaleDateString('pt-BR')}`,
+          conteudo: structuredBlocks
         });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "✅ Salvo em Anotações",
-        description: "Conteúdo formatado e adicionado às suas anotações.",
-        action: (
+
+        // Gerar título com IA usando preview
+        const preview = messageContent.substring(0, 300);
+        const { data: titleData } = await supabase.functions.invoke('generate-teacher-annotation-title', {
+          body: { content: preview }
+        });
+
+        const { error } = await supabase
+          .from('annotations')
+          .insert({
+            user_id: user.id,
+            title: titleData?.title || 'Conteúdo da Mia',
+            content: contentToSave, // ✅ Conteúdo estruturado em JSON
+            source_type: 'mia_chat',
+            tags: ['mia', 'conteudo_gerado', new Date().toISOString().split('T')[0]]
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "✅ Salvo em Anotações",
+          description: "Conteúdo formatado e adicionado às suas anotações.",
+          action: (
           <Button
             variant="outline"
             size="sm"
@@ -888,6 +890,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
           </Button>
         ),
       });
+      resolve();
     } catch (error) {
       console.error('Erro ao salvar anotação:', error);
       toast({
@@ -895,8 +898,10 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
         title: "Erro ao salvar",
         description: "Não foi possível adicionar às anotações.",
       });
+      reject(error);
     }
-  };
+  });
+};
 
   const handleAction = async (jobType: string, payload: any) => {
     const contextKey = payload.context || payload.topic;
@@ -2320,12 +2325,12 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
             <div 
               key={activeTag?.id || 'deep-search'}
               className="relative bg-gradient-to-br from-background via-card to-background/95 
-                         rounded-2xl md:rounded-3xl
-                         p-3 sm:p-4 md:p-6 lg:p-8
-                         max-w-[95vw] sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl
-                         max-h-[85vh] overflow-y-auto
-                         w-full mx-2 sm:mx-4
-                         shadow-xl md:shadow-2xl
+                         rounded-lg md:rounded-xl
+                         p-4 md:p-5
+                         w-[90vw] max-w-[400px] md:max-w-[450px]
+                         max-h-[75vh] overflow-y-auto
+                         mx-auto
+                         shadow-xl
                          border border-border/50"
             >
               <div className="flex flex-col items-center space-y-8">
