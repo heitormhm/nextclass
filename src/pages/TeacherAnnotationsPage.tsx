@@ -12,6 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
+import { PublishMaterialModal } from "@/components/PublishMaterialModal";
+import { SmartAnnotationActions } from "@/components/SmartAnnotationActions";
 
 interface Annotation {
   id: string;
@@ -34,6 +36,8 @@ const TeacherAnnotationsPage = () => {
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'title'>('recent');
   const [showFilters, setShowFilters] = useState(false);
   const [filterBySource, setFilterBySource] = useState<'all' | 'lecture' | 'lesson_plan' | 'personal'>('all');
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null);
 
   useEffect(() => {
     const fetchAnnotations = async () => {
@@ -137,6 +141,34 @@ const TeacherAnnotationsPage = () => {
   };
 
   const allTags = Array.from(new Set(annotations.flatMap(a => a.tags || [])));
+
+  const handlePublishMaterial = (annotation: Annotation) => {
+    setSelectedAnnotation(annotation);
+    setShowPublishModal(true);
+  };
+
+  const handleNavigateToAIChat = (annotation: Annotation, actionType: string) => {
+    navigate('/teacher/ai-chat', {
+      state: {
+        context: annotation.content,
+        contextTitle: annotation.title,
+        actionType: actionType,
+        sourceAnnotationId: annotation.id
+      }
+    });
+  };
+
+  const handleCreateStudyMaterial = (annotation: Annotation) => {
+    handleNavigateToAIChat(annotation, 'study_material');
+  };
+
+  const handleCreateLessonPlan = (annotation: Annotation) => {
+    handleNavigateToAIChat(annotation, 'lesson_plan');
+  };
+
+  const handleCreateAssessment = (annotation: Annotation) => {
+    handleNavigateToAIChat(annotation, 'assessment');
+  };
 
   return (
     <MainLayout>
@@ -365,6 +397,15 @@ const TeacherAnnotationsPage = () => {
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+                  
+                  {/* Smart Actions */}
+                  <SmartAnnotationActions
+                    annotation={annotation}
+                    onPublish={handlePublishMaterial}
+                    onCreateStudyMaterial={handleCreateStudyMaterial}
+                    onCreateLessonPlan={handleCreateLessonPlan}
+                    onCreateAssessment={handleCreateAssessment}
+                  />
                 </Card>
               ))}
             </div>
@@ -399,6 +440,23 @@ const TeacherAnnotationsPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Publish Material Modal */}
+      {showPublishModal && selectedAnnotation && (
+        <PublishMaterialModal
+          isOpen={showPublishModal}
+          onClose={() => {
+            setShowPublishModal(false);
+            setSelectedAnnotation(null);
+          }}
+          annotation={selectedAnnotation}
+          onPublishSuccess={() => {
+            toast.success('Material publicado com sucesso!');
+            setShowPublishModal(false);
+            setSelectedAnnotation(null);
+          }}
+        />
+      )}
     </MainLayout>
   );
 };

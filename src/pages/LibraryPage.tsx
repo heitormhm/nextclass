@@ -20,8 +20,13 @@ interface LibraryMaterial {
   class_id: string;
   teacher_id: string;
   created_at: string;
+  description?: string;
   classes?: {
     name: string;
+  };
+  disciplinas?: {
+    nome: string;
+    codigo?: string;
   };
 }
 
@@ -70,7 +75,7 @@ const LibraryPage = () => {
         // 3. Buscar materiais das classes
         const { data: libraryData, error } = await supabase
           .from('library_materials')
-          .select('*, classes(name)')
+          .select('*, classes(name), disciplinas(nome, codigo)')
           .in('class_id', classIds)
           .order('created_at', { ascending: false });
         

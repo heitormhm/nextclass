@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
@@ -48,6 +49,7 @@ interface ActionTag {
 
 const TeacherAIChatPage = () => {
   const { toast } = useToast();
+  const location = useLocation();
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -1036,6 +1038,46 @@ Markdown com:
     }
   };
 
+  // Load context from annotation navigation
+  useEffect(() => {
+    if (location.state) {
+      const { context, contextTitle, actionType, sourceAnnotationId } = location.state as {
+        context?: string;
+        contextTitle?: string;
+        actionType?: string;
+        sourceAnnotationId?: string;
+      };
+      
+      if (context && actionType) {
+        // Strip HTML tags from content
+        const cleanContent = context.replace(/<[^>]*>/g, '').trim();
+        
+        // Set context in chat
+        setInputMessage(cleanContent);
+        
+        // Auto-activate appropriate action button
+        const actionMap: Record<string, string> = {
+          'study_material': 'Material de Estudo',
+          'lesson_plan': 'Roteiro de Aula',
+          'assessment': 'Atividade Avaliativa'
+        };
+        
+        const action = actionMap[actionType];
+        if (action) {
+          handleActionButtonClick(action);
+          
+          toast({
+            title: `Conteúdo carregado!`,
+            description: `Contexto de "${contextTitle}" pronto para gerar ${action}`,
+          });
+        }
+        
+        // Clear state to prevent re-triggering
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -1221,6 +1263,15 @@ Markdown com:
             );
             return null;
           })()}
+          
+          {/* Context Indicator from Annotation */}
+          {location.state?.contextTitle && (
+            <div className="relative z-10 mx-4 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg animate-in slide-in-from-top-2">
+              <p className="text-sm text-blue-700">
+                📚 Usando contexto de: <strong>{location.state.contextTitle}</strong>
+              </p>
+            </div>
+          )}
           
           <div className="relative z-10 flex-1 flex flex-col min-h-full">
             

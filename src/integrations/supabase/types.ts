@@ -783,6 +783,8 @@ export type Database = {
         Row: {
           class_id: string
           created_at: string | null
+          description: string | null
+          disciplina_id: string | null
           file_type: string
           file_url: string
           id: string
@@ -792,6 +794,8 @@ export type Database = {
         Insert: {
           class_id: string
           created_at?: string | null
+          description?: string | null
+          disciplina_id?: string | null
           file_type: string
           file_url: string
           id?: string
@@ -801,6 +805,8 @@ export type Database = {
         Update: {
           class_id?: string
           created_at?: string | null
+          description?: string | null
+          disciplina_id?: string | null
           file_type?: string
           file_url?: string
           id?: string
@@ -813,6 +819,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "library_materials_disciplina_id_fkey"
+            columns: ["disciplina_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinas"
             referencedColumns: ["id"]
           },
         ]
