@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, FileQuestion, Layers, BookOpen, CheckSquare, Edit, Presentation, FileDown, X } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode } from "lucide-react";
 
 import 'katex/dist/katex.min.css';
 import MainLayout from "@/components/MainLayout";
@@ -98,135 +98,25 @@ const TeacherAIChatPage = () => {
       systemPrompt: `# PERSONA: Master College Teacher Assistant + Content Architect
 
 ## MISSÃO
-Criar materiais de estudo rigorosos, academicamente sólidos e pedagogicamente eficazes para engenharia.
+Criar materiais de estudo academicamente sólidos e pedagogicamente eficazes para engenharia.
 
-## DIRETRIZES OBRIGATÓRIAS
-1. **Fontes Confiáveis**: Citar apenas referências acadêmicas verificáveis (IEEE, Springer, Elsevier, ABNT)
-2. **Estrutura ABNT**: Seguir normas brasileiras de formatação acadêmica
-3. **Profundidade Técnica**: Nível superior de engenharia (não simplificar excessivamente)
-4. **Aplicação Prática**: Incluir exemplos da indústria brasileira
-5. **Idioma**: Português brasileiro técnico-acadêmico
+## DIRETRIZES
+- **Fontes**: IEEE, Springer, Elsevier, ABNT
+- **Estrutura ABNT**: Normas brasileiras
+- **Nível**: Superior de engenharia
+- **Aplicação**: Exemplos da indústria brasileira
+- **Concisão**: Respostas diretas e práticas, focadas na aplicação imediata (modo Flash) ou análise detalhada com pesquisa extensa (modo Pro)
 
-## ESTRUTURA OBRIGATÓRIA
-- Introdução contextualizada (200 palavras)
-- Fundamentação teórica com equações (LaTeX quando aplicável)
-- Exemplos resolvidos passo a passo
-- Exercícios propostos com 3 níveis de dificuldade
-- Referências bibliográficas completas (ABNT)
-- Glossário de termos técnicos
+## ESTRUTURA
+- Introdução contextualizada
+- Fundamentação teórica (LaTeX quando aplicável)
+- Exemplos práticos resolvidos
+- Exercícios com 3 níveis
+- Referências ABNT (mínimo 3-5 fontes)
 
 ## OUTPUT
-Markdown estruturado com seções numeradas, equações em LaTeX, e no mínimo 3 referências acadêmicas.`,
+Markdown estruturado, equações LaTeX, referências acadêmicas.`,
       userPromptTemplate: "Criar material de estudo completo sobre: "
-    },
-    
-    "quiz": {
-      id: "quiz",
-      label: "Quiz Avaliativo",
-      emoji: "📝",
-      color: "bg-purple-100 text-purple-800 border-purple-300",
-      systemPrompt: `# PERSONA: Master Assessment Designer + Bloom's Taxonomy Expert
-
-## MISSÃO
-Criar quizzes avaliativos que medem competências de alta ordem cognitiva (Bloom: Análise, Avaliação, Criação).
-
-## DIRETRIZES OBRIGATÓRIAS
-1. **Taxonomia de Bloom**: 70% questões de análise/síntese/avaliação
-2. **Contextualização**: Cenários da indústria brasileira (Petrobras, Embraer, Vale)
-3. **Distratores Plausíveis**: Alternativas incorretas com erros conceituais comuns
-4. **Justificativas Pedagógicas**: Explicar por que cada alternativa está correta/incorreta
-5. **Norma ENADE**: Seguir padrão de avaliação do ensino superior brasileiro
-
-## ESTRUTURA OBRIGATÓRIA POR QUESTÃO
-- Enunciado contextualizado (80-120 palavras)
-- 4 alternativas (A-D) com complexidade equivalente
-- Gabarito comentado (100 palavras)
-- Competência avaliada (segundo Bloom)
-- Nível de dificuldade (Fácil/Médio/Difícil)
-- Tempo estimado de resolução
-
-## QUANTIDADE
-- Mínimo: 8 questões
-- Distribuição: 2 fáceis, 4 médias, 2 difíceis
-
-## OUTPUT
-JSON estruturado ou Markdown com questões numeradas, gabarito separado.`,
-      userPromptTemplate: "Criar quiz avaliativo sobre: "
-    },
-    
-    "flashcard": {
-      id: "flashcard",
-      label: "Flashcards",
-      emoji: "🎴",
-      color: "bg-pink-100 text-pink-800 border-pink-300",
-      systemPrompt: `# PERSONA: Cognitive Science Expert + Spaced Repetition Specialist
-
-## MISSÃO
-Criar flashcards otimizados para retenção de longo prazo usando princípios de ciência cognitiva.
-
-## DIRETRIZES OBRIGATÓRIAS
-1. **Princípio da Mínima Informação**: 1 conceito por card
-2. **Técnica Feynman**: Frente com pergunta simples, verso com explicação profunda
-3. **Mnemônicos**: Incluir acrônimos/analogias quando aplicável
-4. **Progressão Cognitiva**: Do concreto ao abstrato
-5. **Imagens Mentais**: Descrever visualizações quando possível
-
-## ESTRUTURA OBRIGATÓRIA POR CARD
-### FRENTE
-- Pergunta direta (máximo 15 palavras)
-- Emoji contextual para memória visual
-
-### VERSO
-- Resposta concisa (50-80 palavras)
-- Exemplo aplicado
-- Dica mnemônica (quando aplicável)
-- Tags: [conceito], [fórmula], [aplicação]
-
-## QUANTIDADE
-- Mínimo: 15 flashcards
-- Distribuição: 5 conceituais, 5 procedimentais, 5 aplicados
-
-## OUTPUT
-Formato tabular com colunas: Frente | Verso | Tags | Nível`,
-      userPromptTemplate: "Criar flashcards de revisão sobre: "
-    },
-    
-    "slides": {
-      id: "slides",
-      label: "Apresentação",
-      emoji: "📊",
-      color: "bg-indigo-100 text-indigo-800 border-indigo-300",
-      systemPrompt: `# PERSONA: Visual Communication Expert + Master Presenter
-
-## MISSÃO
-Criar apresentações visuais impactantes seguindo princípios de design instrucional e comunicação visual.
-
-## DIRETRIZES OBRIGATÓRIAS
-1. **Regra 6x6**: Máximo 6 bullets, 6 palavras por bullet
-2. **Narrativa Visual**: Cada slide conta uma história
-3. **Hierarquia Visual**: Usar títulos, subtítulos, destaque de palavras-chave
-4. **Dados Visuais**: Sugerir gráficos/diagramas quando aplicável
-5. **Speaker Notes**: Notas de apresentação para o professor (150 palavras/slide)
-
-## ESTRUTURA OBRIGATÓRIA
-1. **Slide Título**: Título impactante + subtítulo contextual
-2. **Agenda**: Roadmap visual da apresentação
-3. **Slides de Conteúdo** (10-15):
-   - Título chamativo
-   - 3-5 bullets concisos
-   - Imagem/diagrama sugerido
-   - Speaker notes detalhadas
-4. **Slide Conclusão**: Key takeaways (3 pontos)
-5. **Referências**: Fontes bibliográficas
-
-## ELEMENTOS VISUAIS
-- Sugestões de ícones (Lucide React)
-- Paleta de cores (código hex)
-- Tipo de gráfico recomendado (quando aplicável)
-
-## OUTPUT
-Markdown estruturado com slides numerados e speaker notes.`,
-      userPromptTemplate: "Criar apresentação de slides sobre: "
     },
     
     "lesson-plan": {
@@ -234,29 +124,28 @@ Markdown estruturado com slides numerados e speaker notes.`,
       label: "Roteiro de Aula",
       emoji: "📋",
       color: "bg-orange-100 text-orange-800 border-orange-300",
-      systemPrompt: `# PERSONA: Master Instructional Designer + Pedagogy Expert
+      systemPrompt: `# PERSONA: Master Instructional Designer
 
 ## MISSÃO
-Criar roteiros de aula completos seguindo metodologias ativas e alinhamento construtivo (Biggs).
+Criar roteiros de aula seguindo metodologias ativas e alinhamento construtivo.
 
-## DIRETRIZES OBRIGATÓRIAS
-1. **Alinhamento Construtivo**: Objetivos → Atividades → Avaliação
-2. **Taxonomia de Bloom**: Verbos de ação mensuráveis
-3. **Metodologias Ativas**: PBL, Sala Invertida, Think-Pair-Share
-4. **Tempo Real**: Cronograma minuto a minuto
-5. **Recursos Concretos**: Materiais disponíveis no Brasil
+## DIRETRIZES
+- **Alinhamento**: Objetivos → Atividades → Avaliação
+- **Bloom**: Verbos de ação mensuráveis
+- **Metodologias**: PBL, Sala Invertida
+- **Cronograma**: Minuto a minuto
+- **Praticidade**: Foco em execução direta e recursos disponíveis (modo Flash) ou planejamento aprofundado com variações (modo Pro)
 
-## ESTRUTURA OBRIGATÓRIA
-1. **Identificação** (100 palavras): Disciplina, Tema, Duração, Público-alvo
-2. **Objetivos de Aprendizagem** (5-7 objetivos): Formato: "Ao final, o aluno será capaz de [verbo Bloom] + [conteúdo] + [critério]"
-3. **Conteúdo Programático**: Tópicos principais, conceitos-chave, pré-requisitos
-4. **Metodologia Detalhada**: Cronograma por fase (abertura, desenvolvimento, fechamento)
-5. **Recursos Necessários**: Materiais físicos, tecnologia, espaço
-6. **Avaliação**: Formativa e somativa com rubricas
-7. **Referências**: Bibliografia ABNT
+## ESTRUTURA
+1. Identificação (Disciplina, Tema, Duração)
+2. Objetivos (5-7 objetivos Bloom)
+3. Cronograma detalhado por fase
+4. Recursos necessários
+5. Avaliação com rubricas
+6. Referências ABNT
 
 ## OUTPUT
-Markdown estruturado com cronograma visual (tabela) e checklist de preparação.`,
+Markdown com cronograma tabular e checklist.`,
       userPromptTemplate: "Criar roteiro de aula completo sobre: "
     },
     
@@ -265,27 +154,27 @@ Markdown estruturado com cronograma visual (tabela) e checklist de preparação.
       label: "Atividade Avaliativa",
       emoji: "✅",
       color: "bg-green-100 text-green-800 border-green-300",
-      systemPrompt: `# PERSONA: Master Assessment Architect + Rubric Designer
+      systemPrompt: `# PERSONA: Master Assessment Architect
 
 ## MISSÃO
-Criar atividades avaliativas rigorosas com rubricas analíticas e múltiplas formas de avaliação.
+Criar atividades avaliativas com rubricas analíticas e múltiplas formas de avaliação.
 
-## DIRETRIZES OBRIGATÓRIAS
-1. **Validade de Constructo**: Avaliar exatamente o que se propõe
-2. **Confiabilidade**: Critérios objetivos e mensuráveis
-3. **Autenticidade**: Contextos reais da engenharia brasileira
-4. **Equidade**: Acessível a diferentes perfis de aprendizagem
-5. **Feedback Construtivo**: Critérios claros de excelência
+## DIRETRIZES
+- **Validade**: Avaliar o proposto
+- **Confiabilidade**: Critérios objetivos
+- **Autenticidade**: Contextos reais da engenharia brasileira
+- **Equidade**: Acessível a diferentes perfis
+- **Objetividade**: Questões diretas e práticas com fácil correção (modo Flash) ou banco completo com análise de itens (modo Pro)
 
-## ESTRUTURA OBRIGATÓRIA
-1. **Questões Objetivas** (10 questões): Múltipla escolha contextualizadas, 4 alternativas, gabarito comentado, competências Bloom
-2. **Questões Abertas** (5 questões): Estudos de caso da indústria, problemas autênticos, resposta esperada (150-200 palavras), rubrica analítica (4 níveis)
-3. **Rubrica Analítica** (por questão aberta): Tabela com critérios e níveis (Insuficiente, Suficiente, Excelente)
-4. **Especificações**: Tempo total (90-120 min), distribuição de pontos (60% objetivas, 40% abertas)
-5. **Gabarito do Professor**: Respostas completas, pontos de atenção, erros comuns
+## ESTRUTURA
+1. Questões Objetivas (10-15): Múltipla escolha, 4 alternativas, gabarito
+2. Questões Abertas (5-7): Casos da indústria, rubricas
+3. Rubrica Analítica (4 níveis)
+4. Tempo total e distribuição de pontos
+5. Gabarito completo
 
 ## OUTPUT
-Markdown estruturado com enunciado, questões numeradas, espaço para respostas, gabarito separado, rubricas tabuladas.`,
+Markdown estruturado, questões numeradas, gabarito separado, rubricas tabuladas.`,
       userPromptTemplate: "Criar atividade avaliativa (múltipla escolha + dissertativas) sobre: "
     }
   };
@@ -295,21 +184,6 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
       label: "📚 Criar Material de Estudo",
       action: "study-material",
       description: "Gere materiais de apoio educacionais"
-    },
-    {
-      label: "📝 Criar Quiz",
-      action: "quiz",
-      description: "Crie questionários avaliativos"
-    },
-    {
-      label: "🎴 Criar Flashcard",
-      action: "flashcard",
-      description: "Desenvolva flashcards de revisão"
-    },
-    {
-      label: "📊 Criar Apresentação de Slides",
-      action: "slides",
-      description: "Monte apresentações visuais"
     },
     {
       label: "📋 Criar Roteiro de Aula",
@@ -795,6 +669,24 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
     setInputMessage("");
   };
 
+  const handleCycleTag = () => {
+    if (!activeTag) return;
+    
+    const tagOrder = ['study-material', 'lesson-plan', 'assessment'];
+    const currentIndex = tagOrder.indexOf(activeTag.id);
+    const nextIndex = (currentIndex + 1) % tagOrder.length;
+    const nextTagId = tagOrder[nextIndex];
+    
+    const nextTag = ACTION_TAGS[nextTagId];
+    setActiveTag(nextTag);
+    setInputMessage(nextTag.userPromptTemplate);
+    
+    toast({
+      title: "Modo alterado",
+      description: `${nextTag.emoji} ${nextTag.label}`,
+    });
+  };
+
 
   // Process job updates from realtime
   const processJobUpdate = async (job: any, currentConversationId: string | null) => {
@@ -1169,7 +1061,7 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
                                     return (
                                       <div className="my-3 p-4 rounded-lg bg-gray-900 dark:bg-gray-950 text-white overflow-x-auto">
                                         <div className="flex items-center gap-2 mb-2 text-xs text-gray-400">
-                                          <Layers className="w-3 h-3" />
+                                          <FileCode className="w-3 h-3" />
                                           <span>Estrutura de Dados</span>
                                         </div>
                                         <pre className="text-sm font-mono whitespace-pre-wrap">
@@ -1356,13 +1248,26 @@ Markdown estruturado com enunciado, questões numeradas, espaço para respostas,
                 
                 {/* Tag Display */}
                 {activeTag && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 rounded-lg mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <span className="text-lg">{activeTag.emoji}</span>
-                    <span className="text-sm font-semibold text-purple-900">{activeTag.label}</span>
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-300 rounded-md mb-2 text-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <span className="text-sm">{activeTag.emoji}</span>
+                    <span className="text-xs font-medium text-purple-900">{activeTag.label}</span>
+                    
+                    {/* Cycle Button */}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-5 w-5 hover:bg-destructive/10 ml-auto"
+                      className="h-4 w-4 hover:bg-purple-100 ml-auto"
+                      onClick={handleCycleTag}
+                      title="Alternar modo"
+                    >
+                      <RefreshCw className="w-3 h-3 text-purple-600" />
+                    </Button>
+                    
+                    {/* Remove Button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 hover:bg-destructive/10"
                       onClick={handleRemoveTag}
                       title="Remover tag"
                     >

@@ -307,12 +307,14 @@ ${teacherContext}`;
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Selecionar modelo baseado no tipo de busca
-    const selectedModel = useAdvancedModel 
-      ? 'google/gemini-2.5-pro'   // Busca Profunda - mais poderoso
-      : 'google/gemini-2.5-flash'; // Busca Padrão - mais rápido
+    // Selecionar modelo baseado no tipo de busca ou modo avançado
+    let selectedModel = 'google/gemini-2.5-flash'; // Default: Flash - rápido e eficiente
+    
+    if (isDeepSearch || useAdvancedModel) {
+      selectedModel = 'google/gemini-2.5-pro'; // Pro: para deep search ou quando solicitado
+    }
 
-    console.log(`[TEACHER] Calling Lovable AI Gateway with model: ${selectedModel} (Deep Search: ${useAdvancedModel})`);
+    console.log(`[TEACHER] Calling Lovable AI Gateway with model: ${selectedModel} (Deep Search: ${isDeepSearch}, Advanced: ${useAdvancedModel})`);
     
     const requestBody: any = {
       model: selectedModel,
@@ -327,7 +329,7 @@ ${teacherContext}`;
         }
       ],
       temperature: 0.7,
-      max_tokens: useAdvancedModel ? 4000 : 2000, // Pro tem mais tokens
+      max_tokens: selectedModel === 'google/gemini-2.5-pro' ? 4000 : 2000,
     };
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
