@@ -974,8 +974,8 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
     const tag = ACTION_TAGS[action];
     if (!tag) return;
     
-    // Preserve existing input text
-    const currentText = inputMessage.trim();
+    // ✅ CORRIGIDO: Ler do estado correto dependendo se já existe tag ativa
+    const currentText = activeTag ? userInput.trim() : inputMessage.trim();
     
     setActiveTag(tag);
     setUserInput(currentText); // Transfer to userInput
@@ -987,13 +987,19 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
   };
 
   const handleRemoveTag = () => {
+    // ✅ CORRIGIDO: Transferir texto de volta para inputMessage antes de limpar
+    if (userInput.trim()) {
+      setInputMessage(userInput);
+    }
     setActiveTag(null);
     setUserInput("");
-    setInputMessage("");
   };
 
   const handleCycleTag = () => {
     if (!activeTag) return;
+    
+    // ✅ CORRIGIDO: Preservar explicitamente o texto antes de trocar tag
+    const preservedText = userInput;
     
     const tagOrder = ['study-material', 'lesson-plan', 'assessment'];
     const currentIndex = tagOrder.indexOf(activeTag.id);
@@ -1002,9 +1008,8 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
     
     const nextTag = ACTION_TAGS[nextTagId];
     
-    // ✅ PRESERVAR userInput durante troca de tag (não sobrescrever)
     setActiveTag(nextTag);
-    // ❌ NÃO sobrescrever com template: setInputMessage(nextTag.userPromptTemplate);
+    setUserInput(preservedText); // Garantir que o texto seja mantido
     
     toast({
       title: "Modo alterado",
