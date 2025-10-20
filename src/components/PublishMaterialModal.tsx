@@ -21,7 +21,7 @@ interface Annotation {
 interface PublishMaterialModalProps {
   isOpen: boolean;
   onClose: () => void;
-  annotation: Annotation;
+  annotation?: Annotation | null;
   onPublishSuccess: () => void;
 }
 
@@ -48,7 +48,7 @@ export const PublishMaterialModal = ({
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [title, setTitle] = useState(annotation.title);
+  const [title, setTitle] = useState(annotation?.title || "");
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedTurmaId, setSelectedTurmaId] = useState("");
@@ -251,17 +251,6 @@ export const PublishMaterialModal = ({
     }
   };
 
-  const handleCreateMaterial = (type: 'study_material' | 'lesson_plan' | 'assessment') => {
-    navigate('/teacher/ai-chat', {
-      state: {
-        context: annotation.content,
-        contextTitle: annotation.title,
-        actionType: type,
-        sourceAnnotationId: annotation.id
-      }
-    });
-    onClose();
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -452,51 +441,6 @@ export const PublishMaterialModal = ({
                 </div>
               </Card>
             )}
-          </div>
-
-          {/* Divider */}
-          <div className="relative py-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-purple-200"></div>
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white px-4 text-sm text-muted-foreground">
-                Ou criar novo material com IA
-              </span>
-            </div>
-          </div>
-
-          {/* AI Creation Buttons */}
-          <div className="grid grid-cols-3 gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleCreateMaterial('study_material')}
-              className="bg-gradient-to-br from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border-blue-200 text-blue-700 hover:text-blue-800"
-            >
-              <BookOpen className="h-4 w-4 mr-2" />
-              Material Didático
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleCreateMaterial('lesson_plan')}
-              className="bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border-green-200 text-green-700 hover:text-green-800"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Plano de Aula
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleCreateMaterial('assessment')}
-              className="bg-gradient-to-br from-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100 border-orange-200 text-orange-700 hover:text-orange-800"
-            >
-              <ClipboardCheck className="h-4 w-4 mr-2" />
-              Atividade Avaliativa
-            </Button>
           </div>
 
           {/* Action Buttons */}

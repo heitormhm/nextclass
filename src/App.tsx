@@ -81,7 +81,7 @@ const App = () => (
           
           {/* Teacher-only routes */}
           <Route path="/teacherdashboard" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />
-          <Route path="/teacher-aichat" element={<ProtectedRoute role="teacher"><TeacherAIChatPage /></ProtectedRoute>} />
+          <Route path="/teacher/ai-chat" element={<ProtectedRoute role="teacher"><TeacherAIChatPage /></ProtectedRoute>} />
           <Route path="/teacher/lesson-plans" element={<ProtectedRoute role="teacher"><TeacherLessonPlans /></ProtectedRoute>} />
           <Route path="/teacher/lesson-plans/:id" element={<ProtectedRoute role="teacher"><TeacherLessonPlanEditor /></ProtectedRoute>} />
           <Route path="/livelecture" element={<ProtectedRoute role="teacher"><LiveLecture /></ProtectedRoute>} />

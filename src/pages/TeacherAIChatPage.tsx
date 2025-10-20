@@ -77,6 +77,32 @@ const TeacherAIChatPage = () => {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const smoothProgressRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Auto-ativação de tags quando navegando de QuickActionsCard
+  useEffect(() => {
+    if (location.state?.autoActivate && location.state?.actionType) {
+      const actionType = location.state.actionType;
+      
+      // Mapear actionType para tag correspondente
+      const tagMapping: Record<string, ActionTag> = {
+        'study_material': ACTION_TAGS['study-material'],
+        'lesson_plan': ACTION_TAGS['lesson-plan'],
+        'assessment': ACTION_TAGS['assessment']
+      };
+      
+      const matchingTag = tagMapping[actionType];
+      if (matchingTag) {
+        setActiveTag(matchingTag);
+        toast({
+          title: `🎯 Modo "${matchingTag.label}" ativado`,
+          description: "Digite sua solicitação e a Mia criará o conteúdo para você",
+        });
+      }
+      
+      // Limpar state após processar
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, toast]);
+
   // ✅ FUNÇÃO: Steps dinâmicos baseados em contexto (tag + deep search)
   const getLoaderSteps = (tag: ActionTag | null, isDeepSearch: boolean) => {
     // Deep Search puro (sem tag ativa)

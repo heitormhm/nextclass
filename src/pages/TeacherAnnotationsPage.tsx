@@ -144,36 +144,18 @@ const TeacherAnnotationsPage = () => {
 
   const allTags = Array.from(new Set(annotations.flatMap(a => a.tags || [])));
 
-  const handlePublishMaterial = (annotation: Annotation) => {
-    setSelectedAnnotation(annotation);
+  const handlePublishMaterial = () => {
+    setSelectedAnnotation(null);
     setShowPublishModal(true);
   };
 
-  const handleNavigateToAIChat = (annotation: Annotation, actionType: string) => {
+  const handleQuickActionNavigate = (actionType: string) => {
     navigate('/teacher/ai-chat', {
       state: {
-        context: annotation.content,
-        contextTitle: annotation.title,
         actionType: actionType,
-        sourceAnnotationId: annotation.id
+        autoActivate: true
       }
     });
-  };
-
-  const handleCreateStudyMaterial = (annotation: Annotation) => {
-    handleNavigateToAIChat(annotation, 'study_material');
-  };
-
-  const handleCreateLessonPlan = (annotation: Annotation) => {
-    handleNavigateToAIChat(annotation, 'lesson_plan');
-  };
-
-  const handleCreateAssessment = (annotation: Annotation) => {
-    handleNavigateToAIChat(annotation, 'assessment');
-  };
-
-  const handleQuickActionNavigate = (annotation: Annotation, actionType: string) => {
-    handleNavigateToAIChat(annotation, actionType);
   };
 
   return (
@@ -318,15 +300,13 @@ const TeacherAnnotationsPage = () => {
 
           {/* Quick Actions Card - Centralizado */}
           <QuickActionsCard
-            annotations={annotations}
-            selectedAnnotationId={selectedAnnotationForAction}
-            onAnnotationSelect={setSelectedAnnotationForAction}
             onPublish={handlePublishMaterial}
             onNavigateToAIChat={handleQuickActionNavigate}
           />
 
-          {/* Annotations Grid */}
-          {isLoading ? (
+        {/* Annotations Grid */}
+        <div className="flex-1">
+        {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map(i => (
                 <Card key={i} className="p-4 bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30">
@@ -427,10 +407,11 @@ const TeacherAnnotationsPage = () => {
                       : 'Tente ajustar o termo de pesquisa ou os filtros'}
                   </p>
                 </div>
-              </div>
             </div>
-          )}
           </div>
+        )}
+        </div>
+      </div>
 
           {/* Floating Action Button - Teacher Theme */}
           <Button
