@@ -681,74 +681,137 @@ Markdown com:
     }
   };
 
-  // ✅ Função para parsear messageContent em blocos estruturados
+  // ✅ Função REESCRITA para parsear messageContent em blocos estruturados com suporte robusto
   const parseMessageToBlocks = (content: string): any[] => {
-    const lines = content.split('\n');
     const blocks: any[] = [];
-    let currentParagraph: string[] = [];
+    const lines = content.split('\n');
+    let i = 0;
     
-    const flushParagraph = () => {
-      if (currentParagraph.length > 0) {
-        blocks.push({
-          tipo: 'paragrafo',
-          texto: currentParagraph.join(' ').trim()
-        });
-        currentParagraph = [];
-      }
-    };
-    
-    lines.forEach(line => {
-      const trimmed = line.trim();
+    while (i < lines.length) {
+      const line = lines[i].trim();
       
-      // H2
-      if (trimmed.startsWith('## ')) {
-        flushParagraph();
+      // ========== H1 ==========
+      if (line.startsWith('# ') && !line.startsWith('## ')) {
+        blocks.push({
+          tipo: 'h1',
+          texto: line.replace(/^#\s+/, '')
+        });
+        i++;
+      }
+      // ========== H2 ==========
+      else if (line.startsWith('## ') && !line.startsWith('### ')) {
         blocks.push({
           tipo: 'h2',
-          texto: trimmed.replace(/^##\s+/, '')
+          texto: line.replace(/^##\s+/, '')
         });
+        i++;
       }
-      // H3
-      else if (trimmed.startsWith('### ')) {
-        flushParagraph();
+      // ========== H3 ==========
+      else if (line.startsWith('### ')) {
         blocks.push({
           tipo: 'h3',
-          texto: trimmed.replace(/^###\s+/, '')
+          texto: line.replace(/^###\s+/, '')
+        });
+        i++;
+      }
+      // ========== LISTAS ==========
+      else if (/^(\d+\.|- |\* |• )\s+/.test(line)) {
+        const listItems: string[] = [];
+        
+        // Coletar itens consecutivos
+        while (i < lines.length && /^(\d+\.|- |\* |• )\s+/.test(lines[i].trim())) {
+          const item = lines[i].trim().replace(/^(\d+\.|- |\* |• )\s+/, '');
+          listItems.push(item);
+          i++;
+        }
+        
+        blocks.push({
+          tipo: 'lista',
+          itens: listItems
+        });
+        // Não incrementar i (já foi incrementado no loop)
+      }
+      // ========== BLOCKQUOTES ==========
+      else if (line.startsWith('> ')) {
+        let quoteText = line.replace(/^>\s+/, '');
+        i++;
+        
+        // Coletar linhas consecutivas de quote
+        while (i < lines.length && lines[i].trim().startsWith('> ')) {
+          quoteText += '\n' + lines[i].trim().replace(/^>\s+/, '');
+          i++;
+        }
+        
+        blocks.push({
+          tipo: 'blockquote',
+          texto: quoteText
         });
       }
-      // Lista numerada ou bullet
-      else if (/^\d+\.\s+/.test(trimmed) || trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
-        flushParagraph();
-        const listItem = trimmed.replace(/^\d+\.\s+|^[•\-]\s+/, '');
+      // ========== CODE BLOCKS ==========
+      else if (line.startsWith('```')) {
+        const language = line.replace(/^```/, '').trim();
+        let codeContent = '';
+        i++;
         
-        // Agrupar itens de lista consecutivos
-        if (blocks.length > 0 && blocks[blocks.length - 1].tipo === 'lista') {
-          blocks[blocks.length - 1].itens!.push(listItem);
-        } else {
-          blocks.push({
-            tipo: 'lista',
-            itens: [listItem]
-          });
+        while (i < lines.length && !lines[i].trim().startsWith('```')) {
+          codeContent += lines[i] + '\n';
+          i++;
         }
+        
+        blocks.push({
+          tipo: 'code',
+          linguagem: language || 'texto',
+          codigo: codeContent.trim()
+        });
+        i++; // Pular linha de fechamento ```
       }
-      // Linha vazia
-      else if (trimmed === '') {
-        flushParagraph();
+      // ========== PARÁGRAFO ==========
+      else if (line !== '') {
+        let paragraphText = line;
+        i++;
+        
+        // Coletar linhas consecutivas do parágrafo
+        while (i < lines.length) {
+          const nextLine = lines[i].trim();
+          
+          // Parar se encontrar linha vazia ou início de novo bloco
+          if (nextLine === '' || 
+              /^(#{1,3}\s|(\d+\.|- |\* |• )\s+|>\s|```)/.test(nextLine)) {
+            break;
+          }
+          
+          paragraphText += ' ' + nextLine;
+          i++;
+        }
+        
+        blocks.push({
+          tipo: 'paragrafo',
+          texto: paragraphText.trim()
+        });
       }
-      // Parágrafo normal
+      // ========== LINHA VAZIA ==========
       else {
-        currentParagraph.push(trimmed);
+        i++;
       }
-    });
+    }
     
-    flushParagraph();
     return blocks;
   };
 
 const handleExportPDF = async (messageContent: string): Promise<void> => {
   return new Promise(async (resolve, reject) => {
     try {
+      console.log('📄 [PDF Export] Iniciando exportação PDF...');
+      console.log('📝 [PDF Export] Conteúdo original (primeiros 200 chars):', messageContent.substring(0, 200));
+      
       const structuredBlocks = parseMessageToBlocks(messageContent);
+      console.log('🧩 [PDF Export] Blocos estruturados gerados:', structuredBlocks.length);
+      console.log('📊 [PDF Export] Tipos de blocos:', structuredBlocks.map(b => b.tipo));
+      
+      // Validar se há conteúdo
+      if (structuredBlocks.length === 0) {
+        throw new Error('Nenhum conteúdo estruturado foi gerado');
+      }
       
       await generateVisualPDF({
         structuredData: {
@@ -758,13 +821,15 @@ const handleExportPDF = async (messageContent: string): Promise<void> => {
         title: `Conteúdo da Mia - ${new Date().toLocaleDateString('pt-BR')}`
       });
       
+      console.log('✅ [PDF Export] PDF gerado com sucesso!');
+      
       toast({
         title: "📄 PDF exportado com sucesso",
         description: "O documento foi salvo com formatação preservada.",
       });
       resolve();
     } catch (error) {
-      console.error('Erro ao exportar PDF:', error);
+      console.error('❌ [PDF Export] Erro ao exportar PDF:', error);
       toast({
         variant: "destructive",
         title: "Erro ao exportar PDF",
@@ -775,72 +840,82 @@ const handleExportPDF = async (messageContent: string): Promise<void> => {
   });
 };
 
-  const handleGenerateSuggestions = async (messageContent: string) => {
-    if (isSuggestionsLoading || isLoading || isDeepSearchLoading) {
-      toast({
-        title: "Aguarde",
-        description: "Já existe um processamento em andamento.",
-      });
-      return;
-    }
-    
-    try {
-      setIsSuggestionsLoading(true);
-      
-      // ✅ Timeout de segurança (30s)
-      const timeoutId = setTimeout(() => {
-        setIsSuggestionsLoading(false);
+  const handleGenerateSuggestions = async (messageContent: string): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+      if (isSuggestionsLoading || isLoading || isDeepSearchLoading) {
         toast({
-          variant: "destructive",
-          title: "Timeout",
-          description: "A geração de sugestões demorou muito. Tente novamente.",
+          title: "Aguarde",
+          description: "Já existe um processamento em andamento.",
         });
-      }, 30000);
+        reject(new Error('Already processing'));
+        return;
+      }
       
-      const { data, error } = await supabase.functions.invoke('mia-teacher-chat', {
-        body: {
-          message: `Com base neste conteúdo, sugira 3-5 melhorias ou extensões práticas:\n\n${messageContent.substring(0, 1000)}`,
-          conversationId: activeConversationId,
-          systemPrompt: `Você é Mia. Gere 3-5 sugestões práticas e diretas para melhorar ou estender este conteúdo educacional. 
+      try {
+        setIsSuggestionsLoading(true);
+        
+        // ✅ Timeout de segurança (30s)
+        const timeoutId = setTimeout(() => {
+          setIsSuggestionsLoading(false);
+          toast({
+            variant: "destructive",
+            title: "Timeout",
+            description: "A geração de sugestões demorou muito. Tente novamente.",
+          });
+          reject(new Error('Timeout'));
+        }, 30000);
+        
+        const { data, error } = await supabase.functions.invoke('mia-teacher-chat', {
+          body: {
+            message: `Com base neste conteúdo, sugira 3-5 melhorias ou extensões práticas:\n\n${messageContent.substring(0, 1000)}`,
+            conversationId: activeConversationId,
+            systemPrompt: `Você é Mia. Gere 3-5 sugestões práticas e diretas para melhorar ou estender este conteúdo educacional. 
 
 **Formato Obrigatório:**
 Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e prática.`
-        }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (error) throw error;
-      
-      const suggestionMessage: Message = {
-        id: crypto.randomUUID(),
-        content: data.reply,
-        isUser: false,
-        timestamp: new Date(),
-        isSystemMessage: true
-      };
-      
-      setMessages(prev => [...prev, suggestionMessage]);
-      
-      toast({
-        title: "💡 Sugestões geradas",
-        description: "Mia criou sugestões de melhoria para você.",
-      });
-    } catch (error) {
-      console.error('Erro ao gerar sugestões:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível gerar sugestões.",
-      });
-    } finally {
-      setIsSuggestionsLoading(false);
-    }
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (error) throw error;
+        
+        const suggestionMessage: Message = {
+          id: crypto.randomUUID(),
+          content: data.reply,
+          isUser: false,
+          timestamp: new Date(),
+          isSystemMessage: true
+        };
+        
+        setMessages(prev => [...prev, suggestionMessage]);
+        
+        toast({
+          title: "💡 Sugestões geradas",
+          description: "Mia criou sugestões de melhoria para você.",
+        });
+        
+        resolve(); // ✅ Resolve Promise para animar checkmark
+      } catch (error) {
+        console.error('Erro ao gerar sugestões:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não foi possível gerar sugestões.",
+        });
+        reject(error);
+      } finally {
+        setIsSuggestionsLoading(false);
+      }
+    });
   };
 
   const handleAddToAnnotations = async (messageContent: string): Promise<void> => {
     return new Promise(async (resolve, reject) => {
       try {
+        console.log('📝 [Annotations] Iniciando salvamento em anotações...');
+        console.log('📄 [Annotations] Conteúdo original (primeiros 200 chars):', messageContent.substring(0, 200));
+        
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           toast({
@@ -854,6 +929,9 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
 
         // ✅ Parsear conteúdo em blocos estruturados
         const structuredBlocks = parseMessageToBlocks(messageContent);
+        console.log('🧩 [Annotations] Blocos estruturados gerados:', structuredBlocks.length);
+        console.log('📊 [Annotations] Tipos de blocos:', structuredBlocks.map(b => b.tipo));
+        
         const contentToSave = JSON.stringify({
           titulo_geral: `Anotação da Mia - ${new Date().toLocaleDateString('pt-BR')}`,
           conteudo: structuredBlocks
@@ -877,6 +955,8 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
 
         if (error) throw error;
 
+        console.log('✅ [Annotations] Anotação salva com sucesso!');
+        
         toast({
           title: "✅ Salvo em Anotações",
           description: "Conteúdo formatado e adicionado às suas anotações.",
@@ -892,7 +972,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
       });
       resolve();
     } catch (error) {
-      console.error('Erro ao salvar anotação:', error);
+      console.error('❌ [Annotations] Erro ao salvar anotação:', error);
       toast({
         variant: "destructive",
         title: "Erro ao salvar",
@@ -2325,12 +2405,12 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
             <div 
               key={activeTag?.id || 'deep-search'}
               className="relative bg-gradient-to-br from-background via-card to-background/95 
-                         rounded-lg md:rounded-xl
-                         p-4 md:p-5
-                         w-[90vw] max-w-[400px] md:max-w-[450px]
-                         max-h-[75vh] overflow-y-auto
+                         rounded-2xl md:rounded-3xl
+                         p-4 sm:p-5 md:p-6
+                         w-[85vw] sm:w-auto sm:min-w-[420px] md:min-w-[480px] lg:min-w-[540px]
+                         max-w-[90vw] sm:max-w-[500px] md:max-w-[560px] lg:max-w-[620px]
                          mx-auto
-                         shadow-xl
+                         shadow-xl md:shadow-2xl
                          border border-border/50"
             >
               <div className="flex flex-col items-center space-y-8">
@@ -2350,13 +2430,13 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                   
                   {/* Ícone interno dinâmico */}
                   <div className={cn(
-                    "relative p-4 sm:p-6 md:p-8 rounded-full shadow-lg",
+                    "relative p-6 md:p-8 rounded-full shadow-lg",
                     `bg-gradient-to-br ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                   )}>
                     {(() => {
                       const currentStep = getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)];
                       const IconComponent = currentStep?.icon || Zap;
-                      return <IconComponent className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 text-white animate-pulse" />;
+                      return <IconComponent className="w-10 h-10 md:w-12 md:h-12 text-white animate-pulse" />;
                     })()}
                   </div>
                 </div>

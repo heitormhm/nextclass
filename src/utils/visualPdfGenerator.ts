@@ -690,6 +690,21 @@ const renderBlockToElement = async (bloco: ContentBlock): Promise<HTMLElement> =
       }
       break;
 
+    case 'blockquote':
+      div.style.cssText = 'background: linear-gradient(to bottom right, #f9fafb, #f3f4f6); border-left: 4px solid #6b7280; padding: 16px 20px; border-radius: 8px; font-family: Manrope, sans-serif; font-style: italic;';
+      div.innerHTML = `<p style="font-size: 14px; line-height: 1.6; color: #4b5563;">"${bloco.texto || ''}"</p>`;
+      break;
+
+    case 'code':
+      div.style.cssText = 'background: #1f2937; border: 2px solid #374151; padding: 16px; border-radius: 8px; font-family: "Courier New", monospace; overflow-x: auto;';
+      div.innerHTML = `
+        <div style="margin-bottom: 8px;">
+          <span style="font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase;">${bloco.linguagem || 'code'}</span>
+        </div>
+        <pre style="margin: 0; color: #e5e7eb; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-all;"><code>${bloco.codigo || ''}</code></pre>
+      `;
+      break;
+
     case 'componente_react':
       // Suporte para estrutura antiga (Accordion)
       if (bloco.componente === 'Accordion') {
