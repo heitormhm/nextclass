@@ -68,6 +68,8 @@ const TeacherAIChatPage = () => {
   const [deepSearchProgress, setDeepSearchProgress] = useState(0);
   const [activeTag, setActiveTag] = useState<ActionTag | null>(null);
   const [userInput, setUserInput] = useState("");
+  const [deepSearchJobId, setDeepSearchJobId] = useState<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const deepSearchSteps = [
     { text: "🔍 Iniciando pesquisa profunda..." },
@@ -873,6 +875,13 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
 
         if (functionError) throw functionError;
 
+        // ✅ INICIAR POLLING se for Deep Search e tiver jobId
+        if (isDeepSearch && functionData.jobId) {
+          console.log('🔄 Iniciando polling para job:', functionData.jobId);
+          setDeepSearchJobId(functionData.jobId);
+          startPollingJobStatus(functionData.jobId, conversationId!);
+        }
+
         // 🚫 NÃO adicionar mensagem de confirmação ao histórico em Deep Search
         if (!isDeepSearch) {
           const assistantMessage: Message = {
@@ -900,9 +909,105 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
         description: error.message || "Erro ao enviar mensagem",
       });
     } finally {
-      setIsLoading(false);
-      setDeepSearchProgress(0);
+      // ❌ NÃO limpar deepSearchProgress aqui se estiver em polling
+      if (!isDeepSearch) {
+        setIsLoading(false);
+      }
     }
+  };
+
+  // ✅ NOVA FUNÇÃO: Polling inteligente de status do job
+  const startPollingJobStatus = async (jobId: string, conversationId: string) => {
+    console.log('📊 Polling iniciado para job:', jobId);
+    
+    // Limpar polling anterior se existir
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data: job, error } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('id', jobId)
+          .single();
+
+        if (error || !job) {
+          console.error('❌ Erro ao consultar job:', error);
+          stopPolling();
+          return;
+        }
+
+        console.log(`📊 Job status: ${job.status}, step: ${(job.intermediate_data as any)?.step || 'unknown'}`);
+
+        // Atualizar progresso baseado no status
+        if (job.status === 'PENDING' || (job.intermediate_data as any)?.step === '1') {
+          setDeepSearchProgress(1); // 🔍 Iniciando pesquisa
+        } else if (job.status === 'DECOMPOSING' || (job.intermediate_data as any)?.step === '2') {
+          setDeepSearchProgress(2); // 📚 Analisando bases de dados
+        } else if (job.status === 'RESEARCHING' || (job.intermediate_data as any)?.step === '3') {
+          setDeepSearchProgress(4); // 📊 Compilando informações
+        } else if (job.status === 'COMPLETED') {
+          setDeepSearchProgress(5); // ✅ Finalizando
+          
+          // ✅ BUSCAR MENSAGEM FINAL
+          console.log('✅ Job concluído! Buscando mensagem final...');
+          
+          const { data: newMessages, error: messagesError } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (!messagesError && newMessages && newMessages.length > 0) {
+            const finalMessage = newMessages[0];
+            
+            // Adicionar mensagem ao histórico
+            setMessages(prev => [...prev, {
+              id: finalMessage.id,
+              content: finalMessage.content,
+              isUser: false,
+              timestamp: new Date(finalMessage.created_at),
+            }]);
+
+            toast({
+              title: "✨ Pesquisa Profunda Concluída!",
+              description: "Relatório pedagógico gerado com sucesso.",
+            });
+          }
+
+          stopPolling();
+        } else if (job.status === 'FAILED') {
+          console.error('❌ Job falhou:', job.error_log);
+          
+          toast({
+            variant: "destructive",
+            title: "Erro na Pesquisa Profunda",
+            description: job.error_log || "Ocorreu um erro durante a pesquisa.",
+          });
+
+          stopPolling();
+        }
+      } catch (error) {
+        console.error('❌ Erro no polling:', error);
+      }
+    }, 3000); // Consultar a cada 3 segundos
+
+    pollingIntervalRef.current = pollInterval;
+  };
+
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    setIsDeepSearchLoading(false);
+    setIsLoading(false);
+    setDeepSearchJobId(null);
+    setDeepSearchProgress(0);
+    console.log('⏹️ Polling interrompido');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -1166,6 +1271,20 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
       clearTimeout(closeTimer);
     };
   }, [isDeepSearchLoading, deepSearchSteps.length]);
+
+  // ✅ CLEANUP: Parar polling ao desmontar componente
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // ✅ CLEANUP: Parar polling ao trocar de conversa
+  useEffect(() => {
+    stopPolling();
+  }, [activeConversationId]);
 
   // Realtime subscription
   useEffect(() => {
@@ -1801,6 +1920,67 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
             </div>
           </SheetContent>
         </Sheet>
+
+        {/* 🎯 MODAL DE PROGRESSO: Deep Search Loading */}
+        {isDeepSearchLoading && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border-2 border-pink-200">
+              <div className="flex flex-col items-center space-y-6">
+                {/* Ícone animado */}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full animate-ping opacity-20"></div>
+                  <div className="relative bg-gradient-to-r from-pink-500 to-purple-600 p-6 rounded-full">
+                    <Sparkles className="w-12 h-12 text-white animate-pulse" />
+                  </div>
+                </div>
+
+                {/* Texto do step atual */}
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    Pesquisa Profunda em Andamento
+                  </h3>
+                  <p className="text-gray-600 text-lg font-medium">
+                    {deepSearchSteps[deepSearchProgress]?.text || "Processando..."}
+                  </p>
+                </div>
+
+                {/* Barra de progresso REAL baseada no status do job */}
+                <div className="w-full space-y-2">
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>Progresso</span>
+                    <span>{Math.round(((deepSearchProgress + 1) / deepSearchSteps.length) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-pink-500 to-purple-600 h-full rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${((deepSearchProgress + 1) / deepSearchSteps.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Indicadores de steps */}
+                <div className="flex justify-center space-x-2">
+                  {deepSearchSteps.map((_, idx) => (
+                    <div 
+                      key={idx}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-all duration-300",
+                        idx <= deepSearchProgress 
+                          ? "bg-gradient-to-r from-pink-500 to-purple-600 scale-110" 
+                          : "bg-gray-300"
+                      )}
+                    />
+                  ))}
+                </div>
+
+                <p className="text-sm text-gray-500 text-center">
+                  ⏱️ Tempo estimado: 30-90 segundos<br/>
+                  📊 Status: {deepSearchJobId ? 'Processando...' : 'Iniciando...'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </MainLayout>

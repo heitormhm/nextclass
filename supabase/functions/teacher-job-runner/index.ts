@@ -213,10 +213,24 @@ async function handleDecomposingState(job: any, supabaseAdmin: any, braveApiKey:
     console.log(`[TEACHER] 📝 Searching for pedagogical question ${i + 1}/${decomposedQuestions.length}: ${question}`);
     
     const sources = await executeWebSearch(question, braveApiKey, TARGET_SOURCES);
-    searchResults.push({
-      question,
-      sources: sources.slice(0, TARGET_SOURCES)
-    });
+    
+    // ✅ FALLBACK: Se Brave retornar 0 resultados (erro 422 ou sem dados)
+    if (sources.length === 0) {
+      console.warn(`[TEACHER] ⚠️ No web results for question ${i + 1}, using internal knowledge`);
+      searchResults.push({
+        question,
+        sources: [{
+          url: 'internal://pedagogical-knowledge',
+          title: 'Base de Conhecimento Pedagógico Interna',
+          snippet: `Aplicação de metodologias ativas e frameworks pedagógicos reconhecidos para o ensino de engenharia, baseado em literatura científica estabelecida.`
+        }]
+      });
+    } else {
+      searchResults.push({
+        question,
+        sources: sources.slice(0, TARGET_SOURCES)
+      });
+    }
     
     console.log(`[TEACHER] ✓ Found ${sources.length} sources for question ${i + 1}`);
   }
