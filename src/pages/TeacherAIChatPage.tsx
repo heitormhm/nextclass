@@ -19,7 +19,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { generateReportPDF } from "@/utils/pdfGenerator";
+import { generateVisualPDF } from "@/utils/visualPdfGenerator";
 import { SmartMessageActions } from "@/components/teacher/SmartMessageActions";
 
 interface Message {
@@ -492,16 +492,26 @@ Markdown com:
 
   const handleExportPDF = async (messageContent: string) => {
     try {
-      await generateReportPDF({
-        content: messageContent,
+      // ✅ NOVO: Usar visualPdfGenerator com melhor formatação
+      await generateVisualPDF({
+        structuredData: {
+          titulo_geral: `Conteúdo da Mia - ${new Date().toLocaleDateString('pt-BR')}`,
+          conteudo: [
+            {
+              tipo: 'paragrafo',
+              texto: messageContent
+            }
+          ]
+        },
         title: `Conteúdo da Mia - ${new Date().toLocaleDateString('pt-BR')}`
       });
       
       toast({
-        title: "PDF exportado com sucesso",
-        description: "O documento foi salvo em seus downloads.",
+        title: "📄 PDF exportado com sucesso",
+        description: "O documento foi salvo em seus downloads com formatação aprimorada.",
       });
     } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
       toast({
         variant: "destructive",
         title: "Erro ao exportar PDF",
@@ -518,23 +528,28 @@ Markdown com:
         body: {
           message: `Com base neste conteúdo, sugira 3-5 melhorias ou extensões práticas:\n\n${messageContent.substring(0, 1000)}`,
           conversationId: activeConversationId,
-          systemPrompt: `Você é Mia. Gere 3-5 sugestões práticas e diretas para melhorar ou estender este conteúdo educacional. Seja concisa.`
+          systemPrompt: `Você é Mia. Gere 3-5 sugestões práticas e diretas para melhorar ou estender este conteúdo educacional. 
+
+**Formato Obrigatório:**
+Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e prática.`
         }
       });
       
       if (error) throw error;
       
+      // ✅ NOVO: Marcar como mensagem de sistema para não mostrar botões de ação
       const suggestionMessage: Message = {
         id: crypto.randomUUID(),
         content: data.reply,
         isUser: false,
         timestamp: new Date(),
+        isSystemMessage: true // Não mostra botões de ação em sugestões
       };
       
       setMessages(prev => [...prev, suggestionMessage]);
       
       toast({
-        title: "Sugestões geradas",
+        title: "💡 Sugestões geradas",
         description: "Mia criou sugestões de melhoria para você.",
       });
     } catch (error) {
@@ -553,8 +568,20 @@ Markdown com:
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       
+      // ✅ NOVO: Limpar markdown excessivo e formatar melhor
+      const cleanContent = messageContent
+        .replace(/^###\s+/gm, '• ') // H3 vira bullet
+        .replace(/^##\s+/gm, '\n\n') // H2 vira quebra de seção
+        .replace(/^#\s+/gm, '') // H1 removido
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove negrito markdown
+        .replace(/\*(.*?)\*/g, '$1') // Remove itálico
+        .trim();
+      
+      // ✅ NOVO: Criar preview curto e atraente
+      const preview = cleanContent.substring(0, 300) + (cleanContent.length > 300 ? '...' : '');
+      
       const { data: titleData } = await supabase.functions.invoke('generate-teacher-annotation-title', {
-        body: { content: messageContent.substring(0, 500) }
+        body: { content: preview }
       });
       
       const { error } = await supabase
@@ -562,27 +589,28 @@ Markdown com:
         .insert({
           user_id: user.id,
           title: titleData?.title || 'Conteúdo da Mia',
-          content: messageContent,
+          content: cleanContent, // ✅ Conteúdo limpo e legível
           source_type: 'mia_chat',
-          tags: ['mia', 'conteudo_gerado']
+          tags: ['mia', 'conteudo_gerado', new Date().toISOString().split('T')[0]]
         });
       
       if (error) throw error;
       
       toast({
-        title: "Salvo em Anotações",
-        description: "Conteúdo adicionado às suas anotações.",
+        title: "✅ Salvo em Anotações",
+        description: "Conteúdo formatado e adicionado às suas anotações.",
         action: (
           <Button
             variant="outline"
             size="sm"
             onClick={() => window.open('/teacher-annotations', '_blank')}
           >
-            Ver Anotações
+            Ver Anotação
           </Button>
         ),
       });
     } catch (error) {
+      console.error('Erro ao salvar anotação:', error);
       toast({
         variant: "destructive",
         title: "Erro ao salvar",
@@ -973,8 +1001,10 @@ Markdown com:
     const nextTagId = tagOrder[nextIndex];
     
     const nextTag = ACTION_TAGS[nextTagId];
+    
+    // ✅ PRESERVAR userInput durante troca de tag (não sobrescrever)
     setActiveTag(nextTag);
-    setInputMessage(nextTag.userPromptTemplate);
+    // ❌ NÃO sobrescrever com template: setInputMessage(nextTag.userPromptTemplate);
     
     toast({
       title: "Modo alterado",
