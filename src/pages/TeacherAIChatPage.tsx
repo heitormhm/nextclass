@@ -70,6 +70,7 @@ const TeacherAIChatPage = () => {
   const [userInput, setUserInput] = useState("");
   const [deepSearchJobId, setDeepSearchJobId] = useState<string | null>(null);
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(60);
+  const [isCompletionAnimating, setIsCompletionAnimating] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const smoothProgressRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1019,6 +1020,8 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
       setIsDeepSearchLoading(true);
       setDeepSearchProgress(0);
       setEstimatedTimeRemaining(activeTag ? 35 : 60); // Tags são mais rápidas
+      // ✅ Registrar tempo de início do loader (para garantir tempo mínimo de exibição)
+      (window as any).__loaderStartTime = Date.now();
     }
 
     try {
@@ -1077,9 +1080,16 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
         description: error.message || "Erro ao enviar mensagem",
       });
     } finally {
-      // ❌ NÃO limpar deepSearchProgress aqui se estiver em polling
-      if (!isDeepSearch) {
+      // ✅ NÃO limpar isLoading se houver job assíncrono em andamento
+      const hasAsyncJob = (isDeepSearch || activeTag) && deepSearchJobId;
+      
+      if (!hasAsyncJob) {
         setIsLoading(false);
+        // Apenas limpar loader se não houver job assíncrono
+        const shouldShowLoader = isDeepSearch || (activeTag !== null);
+        if (!shouldShowLoader) {
+          setIsDeepSearchLoading(false);
+        }
       }
     }
   };
@@ -1113,6 +1123,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
     currentTag: ActionTag | null = null
   ) => {
     console.log(`📊 Polling iniciado para job: ${jobId} (tag: ${currentTag?.id || 'none'})`);
+    console.log(`⏱️ Estado inicial: isDeepSearchLoading=${isDeepSearchLoading}, deepSearchProgress=${deepSearchProgress}`);
     
     // Limpar polling anterior se existir
     if (pollingIntervalRef.current) {
@@ -1142,7 +1153,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
           return;
         }
 
-        console.log(`📊 Job status: ${job.status}, step: ${(job.intermediate_data as any)?.step || 'unknown'}`);
+        console.log(`📊 Job status: ${job.status}, step: ${(job.intermediate_data as any)?.step || 'unknown'}, progress: ${deepSearchProgress}`);
 
         // ✅ OBTER STEPS CONTEXTUAIS baseados em tag/deep search
         const contextualSteps = getLoaderSteps(currentTag, isDeepSearch);
@@ -1189,6 +1200,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
           }
           
           setDeepSearchProgress(maxStepIndex); // Último step: Completo
+          setIsCompletionAnimating(true); // ✅ Ativar animação de sucesso
           
           // ✅ BUSCAR MENSAGEM FINAL
           console.log('✅ Job concluído! Buscando mensagem final...');
@@ -1212,12 +1224,16 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
             }]);
 
             toast({
-              title: "✨ Pesquisa Profunda Concluída!",
-              description: "Relatório pedagógico gerado com sucesso.",
+              title: currentTag ? `✨ ${currentTag.label} Concluído!` : "✨ Pesquisa Profunda Concluída!",
+              description: currentTag ? `${currentTag.label} gerado com sucesso.` : "Relatório pedagógico gerado com sucesso.",
             });
           }
 
-          stopPolling();
+          // ✅ AGUARDAR 2.5s PARA MOSTRAR ANIMAÇÃO DE SUCESSO antes de fechar
+          setTimeout(() => {
+            setIsCompletionAnimating(false);
+            stopPolling();
+          }, 2500);
         } else if (job.status === 'FAILED') {
           clearInterval(timeInterval);
           console.error('❌ Job falhou:', job.error_log);
@@ -1250,12 +1266,31 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
       clearInterval(smoothProgressRef.current);
       smoothProgressRef.current = null;
     }
-    setIsDeepSearchLoading(false);
-    setIsLoading(false);
-    setDeepSearchJobId(null);
-    setDeepSearchProgress(0);
-    setEstimatedTimeRemaining(60);
-    console.log('⏹️ Polling interrompido');
+    
+    // ✅ GARANTIR tempo mínimo de 10s para loader (evitar "flicker")
+    const loaderStartTime = (window as any).__loaderStartTime || 0;
+    const elapsed = Date.now() - loaderStartTime;
+    const minDisplayTime = 10000; // 10 segundos
+    
+    if (elapsed < minDisplayTime) {
+      const remainingTime = minDisplayTime - elapsed;
+      console.log(`⏳ Aguardando ${remainingTime}ms antes de fechar loader (tempo mínimo: ${minDisplayTime}ms)`);
+      setTimeout(() => {
+        setIsDeepSearchLoading(false);
+        setIsLoading(false);
+        setDeepSearchJobId(null);
+        setDeepSearchProgress(0);
+        setEstimatedTimeRemaining(60);
+        console.log('⏹️ Polling interrompido (após tempo mínimo)');
+      }, remainingTime);
+    } else {
+      setIsDeepSearchLoading(false);
+      setIsLoading(false);
+      setDeepSearchJobId(null);
+      setDeepSearchProgress(0);
+      setEstimatedTimeRemaining(60);
+      console.log('⏹️ Polling interrompido');
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -2183,8 +2218,13 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                 </div>
 
                 {/* Título dinâmico baseado em contexto */}
-                <div className="text-center space-y-3">
-                  <h2 className="text-2xl font-bold mb-2">
+                <div className="text-center space-y-3 relative">
+                  {/* 🎉 Overlay de sucesso quando completo */}
+                  {isCompletionAnimating && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-3xl animate-pulse pointer-events-none -m-4" />
+                  )}
+                  
+                  <h2 className="text-2xl font-bold mb-2 relative z-10">
                     {activeTag ? (
                       <>
                         {activeTag.emoji} Gerando {activeTag.label}
@@ -2193,7 +2233,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                       <>🔍 Pesquisa Profunda em Andamento</>
                     )}
                   </h2>
-                  <p className="text-white/80 text-sm mb-4">
+                  <p className="text-white/80 text-sm mb-4 relative z-10">
                     {activeTag ? (
                       activeTag.id === 'study-material' ? 'Estruturando conteúdo educacional de alta qualidade...' :
                       activeTag.id === 'lesson-plan' ? 'Planejando aula com metodologias ativas...' :
@@ -2204,14 +2244,21 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                     )}
                   </p>
                   <h3 className={cn(
-                    "text-2xl font-bold bg-clip-text text-transparent animate-loader-pulse",
+                    "text-2xl font-bold bg-clip-text text-transparent animate-loader-pulse relative z-10",
                     `bg-gradient-to-r ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                   )}>
                     {getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.text || "Processando..."}
                   </h3>
-                  <p className="text-muted-foreground text-base font-medium">
+                  <p className="text-muted-foreground text-base font-medium relative z-10">
                     {getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.subtext || "Aguarde..."}
                   </p>
+                  
+                  {/* 🎉 Confete quando completo */}
+                  {isCompletionAnimating && (
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                      <div className="text-6xl animate-bounce">🎉</div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Barra de progresso com shimmer */}
