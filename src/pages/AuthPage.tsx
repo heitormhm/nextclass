@@ -323,8 +323,12 @@ const AuthPage = () => {
           {/* Content acima do overlay */}
           <div className="relative z-10 w-full max-w-md space-y-6 sm:space-y-8">
             {/* Mobile Header */}
-            <div className="text-center lg:hidden py-4">
-              <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">NEXTCLASS</h1>
+            <div className="text-center lg:hidden py-4 flex flex-col items-center">
+              <img 
+                src="/nextclass-logo.svg" 
+                alt="NEXTCLASS" 
+                className="h-10 sm:h-12 w-auto mb-3 drop-shadow-md"
+              />
               <p className="text-sm sm:text-base text-foreground-muted">Plataforma de engenharia com IA</p>
             </div>
 
