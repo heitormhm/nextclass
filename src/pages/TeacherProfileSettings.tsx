@@ -19,10 +19,7 @@ const TeacherProfileSettings = () => {
   const [uploading, setUploading] = useState(false);
   const [profileData, setProfileData] = useState({
     fullName: '',
-    email: '',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    email: ''
   });
   const [profileImage, setProfileImage] = useState('');
 
@@ -39,10 +36,7 @@ const TeacherProfileSettings = () => {
       if (data) {
         setProfileData({
           fullName: data.full_name || '',
-          email: data.email || '',
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
+          email: data.email || ''
         });
         setProfileImage(data.avatar_url || '');
       }
@@ -149,25 +143,6 @@ const TeacherProfileSettings = () => {
       return;
     }
     
-    // Validate passwords
-    if (profileData.newPassword && profileData.newPassword !== profileData.confirmPassword) {
-      toast({
-        title: "Erro",
-        description: "As senhas não coincidem.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (profileData.newPassword && profileData.newPassword.length < 8) {
-      toast({
-        title: "Erro",
-        description: "A senha deve ter no mínimo 8 caracteres.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     setSaving(true);
     
     try {
@@ -182,27 +157,10 @@ const TeacherProfileSettings = () => {
       
       if (profileError) throw profileError;
       
-      // Update password if provided
-      if (profileData.newPassword) {
-        const { error: passwordError } = await supabase.auth.updateUser({
-          password: profileData.newPassword
-        });
-        
-        if (passwordError) throw passwordError;
-      }
-      
       toast({
         title: "Sucesso",
         description: "Perfil atualizado com sucesso!",
       });
-      
-      // Clear password fields
-      setProfileData(prev => ({
-        ...prev,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      }));
     } catch (error: any) {
       console.error('Save error:', error);
       toast({
@@ -339,47 +297,11 @@ const TeacherProfileSettings = () => {
                         placeholder="Digite seu email"
                       />
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Password Change */}
-                <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Lock className="h-5 w-5" />
-                      Alterar Senha
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="currentPassword">Senha Atual</Label>
-                      <Input
-                        id="currentPassword"
-                        type="password"
-                        value={profileData.currentPassword}
-                        onChange={(e) => handleInputChange('currentPassword', e.target.value)}
-                        placeholder="Digite sua senha atual"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="newPassword">Nova Senha</Label>
-                      <Input
-                        id="newPassword"
-                        type="password"
-                        value={profileData.newPassword}
-                        onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                        placeholder="Digite a nova senha (mín. 8 caracteres)"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={profileData.confirmPassword}
-                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                        placeholder="Confirme a nova senha"
-                      />
+                    <div className="rounded-lg bg-muted/50 p-4 border border-border mt-4">
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Lock className="w-4 h-4" />
+                        Para alterar sua senha, acesse a página de <span className="font-medium text-foreground">Configurações</span>
+                      </p>
                     </div>
                   </CardContent>
                 </Card>

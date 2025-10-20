@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Bell, Video, Globe, Save } from 'lucide-react';
+import { Bell, Globe, Save, Lock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { toast } from '@/hooks/use-toast';
@@ -21,6 +23,11 @@ const TeacherConfigurations = () => {
     weeklyReport: false,
     videoQuality: '1080p',
     transcriptionLanguage: 'pt-BR'
+  });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
 
   useEffect(() => {
@@ -57,10 +64,50 @@ const TeacherConfigurations = () => {
 
   const handleSave = async () => {
     if (!user?.id) return;
+
+    // Validate password fields if any are filled
+    if (passwordData.currentPassword || passwordData.newPassword || passwordData.confirmPassword) {
+      if (!passwordData.currentPassword) {
+        toast({
+          title: "Erro de validação",
+          description: "Por favor, insira sua senha atual.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!passwordData.newPassword) {
+        toast({
+          title: "Erro de validação",
+          description: "Por favor, insira uma nova senha.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (passwordData.newPassword.length < 6) {
+        toast({
+          title: "Erro de validação",
+          description: "A nova senha deve ter pelo menos 6 caracteres.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        toast({
+          title: "Erro de validação",
+          description: "As senhas não coincidem.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     
     setSaving(true);
     
     try {
+      // Update settings
       const { error } = await supabase
         .from('users')
         .update({
@@ -72,11 +119,32 @@ const TeacherConfigurations = () => {
         .eq('id', user.id);
       
       if (error) throw error;
-      
-      toast({
-        title: "Sucesso",
-        description: "Configurações salvas com sucesso!",
-      });
+
+      // Update password if provided
+      if (passwordData.newPassword) {
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: passwordData.newPassword
+        });
+
+        if (passwordError) throw passwordError;
+
+        // Clear password fields after successful update
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+
+        toast({
+          title: "Sucesso",
+          description: "Configurações e senha atualizadas com sucesso!",
+        });
+      } else {
+        toast({
+          title: "Sucesso",
+          description: "Configurações salvas com sucesso!",
+        });
+      }
     } catch (error: any) {
       console.error('Save error:', error);
       toast({
@@ -133,11 +201,11 @@ const TeacherConfigurations = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Notification Settings */}
+              {/* Notification Settings - Full Width */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] md:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-5 w-5 text-primary" />
                   Notificações
                 </CardTitle>
                 <CardDescription>
@@ -148,7 +216,7 @@ const TeacherConfigurations = () => {
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <Label htmlFor="email-notifications">Receber email sobre novas avaliações</Label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Seja notificado quando novos quizzes ou avaliações forem submetidos
                     </p>
                   </div>
@@ -161,7 +229,7 @@ const TeacherConfigurations = () => {
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <Label htmlFor="weekly-report">Resumo semanal de desempenho da turma</Label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Receba um relatório semanal com estatísticas da turma
                     </p>
                   </div>
@@ -174,11 +242,56 @@ const TeacherConfigurations = () => {
               </CardContent>
             </Card>
 
+            {/* Security Settings */}
+            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5 text-primary" />
+                  Segurança
+                </CardTitle>
+                <CardDescription>
+                  Altere sua senha de acesso
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="current-password">Senha Atual</Label>
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    placeholder="Digite sua senha atual"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">Nova Senha</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    placeholder="Digite sua nova senha"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    placeholder="Confirme sua nova senha"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Language Settings */}
             <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
+                  <Globe className="h-5 w-5 text-primary" />
                   Idioma
                 </CardTitle>
                 <CardDescription>
@@ -205,16 +318,17 @@ const TeacherConfigurations = () => {
               </CardContent>
             </Card>
 
-              {/* Save Button */}
-              <div className="flex justify-end">
+              {/* Save Button - Full Width Bottom */}
+              <div className="md:col-span-2 flex justify-end">
                 <Button 
                   onClick={handleSave}
                   disabled={saving}
+                  size="lg"
                   className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2"
                 >
                   {saving ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Salvando...
                     </>
                   ) : (
