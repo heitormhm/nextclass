@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock, Target, Lightbulb, Brain, CheckCircle2, Scale, Zap, BarChart } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import 'katex/dist/katex.min.css';
@@ -73,62 +73,174 @@ const TeacherAIChatPage = () => {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const smoothProgressRef = useRef<NodeJS.Timeout | null>(null);
 
-  const deepSearchSteps = [
-    { 
-      id: 0,
-      status: 'PENDING',
-      text: "Iniciando pesquisa profunda",
-      subtext: "Conectando com bases de dados acadêmicas",
-      icon: "Search",
-      color: "from-blue-500 to-cyan-500",
-      duration: 3
-    },
-    { 
-      id: 1,
-      status: 'DECOMPOSING',
-      text: "Decomposição de consulta",
-      subtext: "Identificando tópicos e conceitos-chave",
-      icon: "GitBranch",
-      color: "from-purple-500 to-pink-500",
-      duration: 5
-    },
-    { 
-      id: 2,
-      status: 'RESEARCHING_START',
-      text: "Pesquisando fontes múltiplas",
-      subtext: "Coletando dados de artigos, livros e estudos",
-      icon: "BookOpen",
-      color: "from-orange-500 to-red-500",
-      duration: 20
-    },
-    { 
-      id: 3,
-      status: 'RESEARCHING_MID',
-      text: "Análise de conteúdo em profundidade",
-      subtext: "Processando e filtrando informações relevantes",
-      icon: "TrendingUp",
-      color: "from-green-500 to-emerald-500",
-      duration: 20
-    },
-    { 
-      id: 4,
-      status: 'RESEARCHING_END',
-      text: "Sintetizando conhecimento",
-      subtext: "Organizando insights pedagógicos",
-      icon: "FileText",
-      color: "from-pink-500 to-rose-500",
-      duration: 15
-    },
-    { 
-      id: 5,
-      status: 'COMPLETED',
-      text: "Relatório concluído",
-      subtext: "Análise pedagógica finalizada com sucesso",
-      icon: "CheckCircle",
-      color: "from-green-600 to-teal-600",
-      duration: 2
+  // ✅ FUNÇÃO: Steps dinâmicos baseados em contexto (tag + deep search)
+  const getLoaderSteps = (tag: ActionTag | null, isDeepSearch: boolean) => {
+    // Deep Search puro (sem tag ativa)
+    if (isDeepSearch && !tag) {
+      return [
+        { 
+          id: 0, status: 'PENDING', 
+          text: "Iniciando pesquisa profunda",
+          subtext: "Conectando com bases de dados acadêmicas",
+          icon: Search, color: "from-blue-500 to-cyan-500", duration: 3 
+        },
+        { 
+          id: 1, status: 'DECOMPOSING',
+          text: "Decomposição de consulta",
+          subtext: "Identificando tópicos e conceitos-chave",
+          icon: GitBranch, color: "from-purple-500 to-pink-500", duration: 5
+        },
+        { 
+          id: 2, status: 'RESEARCHING_START',
+          text: "Pesquisando fontes múltiplas",
+          subtext: "Coletando dados de artigos, livros e estudos",
+          icon: BookOpen, color: "from-orange-500 to-red-500", duration: 20
+        },
+        { 
+          id: 3, status: 'RESEARCHING_MID',
+          text: "Análise de conteúdo em profundidade",
+          subtext: "Processando e filtrando informações relevantes",
+          icon: TrendingUp, color: "from-green-500 to-emerald-500", duration: 20
+        },
+        { 
+          id: 4, status: 'RESEARCHING_END',
+          text: "Sintetizando conhecimento",
+          subtext: "Organizando insights pedagógicos",
+          icon: FileText, color: "from-pink-500 to-rose-500", duration: 15
+        },
+        { 
+          id: 5, status: 'COMPLETED',
+          text: "Relatório concluído",
+          subtext: "Análise pedagógica finalizada com sucesso",
+          icon: CheckCircle, color: "from-green-600 to-teal-600", duration: 2
+        }
+      ];
     }
-  ];
+    
+    // Material de Estudo (com ou sem Deep Search)
+    if (tag?.id === 'study-material') {
+      return [
+        { 
+          id: 0, status: 'PENDING',
+          text: "📚 Estruturando material...",
+          subtext: "Organizando conteúdo pedagógico",
+          icon: BookOpen, color: "from-blue-500 to-indigo-500", duration: 5
+        },
+        { 
+          id: 1, status: 'RESEARCHING',
+          text: "🔬 Pesquisando referências...",
+          subtext: "Buscando fontes acadêmicas",
+          icon: Search, color: "from-purple-500 to-pink-500", duration: 15
+        },
+        { 
+          id: 2, status: 'GENERATING',
+          text: "✍️ Criando exemplos práticos...",
+          subtext: "Desenvolvendo aplicações reais",
+          icon: Lightbulb, color: "from-amber-500 to-orange-500", duration: 10
+        },
+        { 
+          id: 3, status: 'FORMATTING',
+          text: "🎨 Formatando conteúdo...",
+          subtext: "Aplicando estrutura Markdown",
+          icon: FileText, color: "from-green-500 to-emerald-500", duration: 5
+        },
+        { 
+          id: 4, status: 'COMPLETED',
+          text: "✅ Material completo!",
+          subtext: "Pronto para uso",
+          icon: CheckCircle, color: "from-teal-500 to-cyan-500", duration: 2
+        }
+      ];
+    }
+    
+    // Roteiro de Aula (com ou sem Deep Search)
+    if (tag?.id === 'lesson-plan') {
+      return [
+        { 
+          id: 0, status: 'PENDING',
+          text: "📋 Definindo objetivos...",
+          subtext: "Alinhando com Taxonomia de Bloom",
+          icon: Target, color: "from-violet-500 to-purple-500", duration: 4
+        },
+        { 
+          id: 1, status: 'RESEARCHING',
+          text: "🎯 Pesquisando metodologias...",
+          subtext: "PBL, Flipped Classroom, TBL",
+          icon: GitBranch, color: "from-fuchsia-500 to-pink-500", duration: 12
+        },
+        { 
+          id: 2, status: 'GENERATING',
+          text: "⏱️ Criando cronograma...",
+          subtext: "Detalhamento minuto a minuto",
+          icon: Clock, color: "from-rose-500 to-red-500", duration: 10
+        },
+        { 
+          id: 3, status: 'FORMATTING',
+          text: "📊 Gerando rubricas...",
+          subtext: "Critérios de avaliação",
+          icon: BarChart, color: "from-orange-500 to-amber-500", duration: 6
+        },
+        { 
+          id: 4, status: 'COMPLETED',
+          text: "✅ Roteiro pronto!",
+          subtext: "Aplicável imediatamente",
+          icon: CheckCircle, color: "from-lime-500 to-green-500", duration: 2
+        }
+      ];
+    }
+    
+    // Atividade Avaliativa (com ou sem Deep Search)
+    if (tag?.id === 'assessment') {
+      return [
+        { 
+          id: 0, status: 'PENDING',
+          text: "✅ Analisando conteúdo...",
+          subtext: "Identificando conceitos-chave",
+          icon: Brain, color: "from-emerald-500 to-teal-500", duration: 4
+        },
+        { 
+          id: 1, status: 'RESEARCHING',
+          text: "📝 Criando questões...",
+          subtext: "Múltipla escolha e dissertativas",
+          icon: Edit, color: "from-cyan-500 to-blue-500", duration: 15
+        },
+        { 
+          id: 2, status: 'GENERATING',
+          text: "🎯 Elaborando gabarito...",
+          subtext: "Justificativas pedagógicas",
+          icon: CheckCircle2, color: "from-indigo-500 to-violet-500", duration: 8
+        },
+        { 
+          id: 3, status: 'FORMATTING',
+          text: "⚖️ Ajustando dificuldade...",
+          subtext: "Calibragem Bloom",
+          icon: Scale, color: "from-purple-500 to-fuchsia-500", duration: 5
+        },
+        { 
+          id: 4, status: 'COMPLETED',
+          text: "✅ Atividade concluída!",
+          subtext: "Pronta para aplicação",
+          icon: CheckCircle, color: "from-pink-500 to-rose-500", duration: 2
+        }
+      ];
+    }
+    
+    // Fallback: Loading genérico
+    return [
+      { 
+        id: 0, status: 'PENDING',
+        text: "⚡ Processando...",
+        subtext: "Gerando conteúdo",
+        icon: Zap, color: "from-gray-500 to-slate-500", duration: 10
+      },
+      { 
+        id: 1, status: 'COMPLETED',
+        text: "✅ Concluído!",
+        subtext: "Resposta pronta",
+        icon: CheckCircle, color: "from-green-500 to-emerald-500", duration: 2
+      }
+    ];
+  };
 
   const deepSearchIndicators = [
     'MATERIAL 1: ESTUDO DE CASO',
@@ -900,9 +1012,13 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    if (isDeepSearch) {
+    // ✅ ATIVAR LOADER para qualquer fluxo de geração assíncrona
+    const shouldShowLoader = isDeepSearch || (activeTag !== null);
+
+    if (shouldShowLoader) {
       setIsDeepSearchLoading(true);
       setDeepSearchProgress(0);
+      setEstimatedTimeRemaining(activeTag ? 35 : 60); // Tags são mais rápidas
     }
 
     try {
@@ -925,11 +1041,13 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
 
         if (functionError) throw functionError;
 
-        // ✅ INICIAR POLLING se for Deep Search e tiver jobId
-        if (isDeepSearch && functionData.jobId) {
-          console.log('🔄 Iniciando polling para job:', functionData.jobId);
+        // ✅ INICIAR POLLING para Deep Search OU tags com jobId
+        const hasAsyncJob = (isDeepSearch || activeTag) && functionData.jobId;
+
+        if (hasAsyncJob) {
+          console.log(`🔄 Iniciando polling para ${activeTag ? `tag:${activeTag.id}` : 'deep-search'}`, functionData.jobId);
           setDeepSearchJobId(functionData.jobId);
-          startPollingJobStatus(functionData.jobId, conversationId!);
+          startPollingJobStatus(functionData.jobId, conversationId!, activeTag);
         }
 
         // 🚫 NÃO adicionar mensagem de confirmação ao histórico em Deep Search
@@ -989,8 +1107,12 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
     smoothProgressRef.current = smoothInterval;
   };
 
-  const startPollingJobStatus = async (jobId: string, conversationId: string) => {
-    console.log('📊 Polling iniciado para job:', jobId);
+  const startPollingJobStatus = async (
+    jobId: string, 
+    conversationId: string, 
+    currentTag: ActionTag | null = null
+  ) => {
+    console.log(`📊 Polling iniciado para job: ${jobId} (tag: ${currentTag?.id || 'none'})`);
     
     // Limpar polling anterior se existir
     if (pollingIntervalRef.current) {
@@ -1022,29 +1144,51 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
 
         console.log(`📊 Job status: ${job.status}, step: ${(job.intermediate_data as any)?.step || 'unknown'}`);
 
-        // Atualizar progresso baseado no status com transições fluidas
-        if (job.status === 'PENDING' || (job.intermediate_data as any)?.step === '1') {
-          setDeepSearchProgress(0.5); // Step 0: Iniciando
-        } else if (job.status === 'DECOMPOSING' || (job.intermediate_data as any)?.step === '2') {
-          updateProgressSmooth(1.5); // Step 1: Decomposição
-        } else if (job.status === 'RESEARCHING') {
-          // Progresso gradual durante pesquisa (20-50 segundos)
-          const currentProgress = deepSearchProgress;
-          if (currentProgress < 2) {
-            updateProgressSmooth(2.5); // Step 2: Início da pesquisa
-          } else if (currentProgress < 3) {
-            updateProgressSmooth(3.5); // Step 3: Meio da pesquisa
-          } else if (currentProgress < 4) {
-            updateProgressSmooth(4.5); // Step 4: Fim da pesquisa
+        // ✅ OBTER STEPS CONTEXTUAIS baseados em tag/deep search
+        const contextualSteps = getLoaderSteps(currentTag, isDeepSearch);
+        const maxStepIndex = contextualSteps.length - 1;
+
+        // ✅ MAPEAR STATUS DO BACKEND para índices de step contextuais
+        let targetStepIndex = 0;
+
+        if (currentTag) {
+          // Lógica simplificada para tags (sem intermediate_data detalhado do backend)
+          if (job.status === 'PENDING') {
+            targetStepIndex = 0;
+          } else if (job.status === 'DECOMPOSING' || job.status === 'RESEARCHING') {
+            // Progresso gradual durante geração baseado no tempo decorrido
+            if (elapsedTime < 10) targetStepIndex = 1;
+            else if (elapsedTime < 20) targetStepIndex = 2;
+            else targetStepIndex = 3;
+          } else if (job.status === 'COMPLETED') {
+            targetStepIndex = maxStepIndex;
           }
-        } else if (job.status === 'COMPLETED') {
+        } else {
+          // Lógica original para Deep Search puro
+          if (job.status === 'PENDING' || (job.intermediate_data as any)?.step === '1') {
+            targetStepIndex = 0;
+          } else if (job.status === 'DECOMPOSING' || (job.intermediate_data as any)?.step === '2') {
+            targetStepIndex = 1;
+          } else if (job.status === 'RESEARCHING') {
+            const currentProgress = deepSearchProgress;
+            if (currentProgress < 2) targetStepIndex = 2;
+            else if (currentProgress < 3) targetStepIndex = 3;
+            else targetStepIndex = 4;
+          } else if (job.status === 'COMPLETED') {
+            targetStepIndex = maxStepIndex;
+          }
+        }
+
+        updateProgressSmooth(targetStepIndex + 0.5);
+
+        if (job.status === 'COMPLETED') {
           // Limpar intervalos
           clearInterval(timeInterval);
           if (smoothProgressRef.current) {
             clearInterval(smoothProgressRef.current);
           }
           
-          setDeepSearchProgress(5); // Step 5: Completo
+          setDeepSearchProgress(maxStepIndex); // Último step: Completo
           
           // ✅ BUSCAR MENSAGEM FINAL
           console.log('✅ Job concluído! Buscando mensagem final...');
@@ -1080,8 +1224,11 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
           
           toast({
             variant: "destructive",
-            title: "Erro na Pesquisa Profunda",
-            description: job.error_log || "Ocorreu um erro durante a pesquisa.",
+            title: currentTag ? `Erro ao Gerar ${currentTag.label}` : "Erro na Pesquisa Profunda",
+            description: job.error_log || (
+              currentTag ? `Não foi possível criar ${currentTag.label.toLowerCase()}. Tente novamente.` :
+              "Ocorreu um erro durante a pesquisa."
+            ),
           });
 
           stopPolling();
@@ -1335,43 +1482,6 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
   useEffect(() => {
     localStorage.setItem('teacher-deep-search-mode', String(isDeepSearch));
   }, [isDeepSearch]);
-
-  useEffect(() => {
-    if (!isDeepSearchLoading) {
-      setDeepSearchProgress(0);
-      return;
-    }
-    
-    const startTime = Date.now();
-    const totalDuration = 15000; // ✅ EXATAMENTE 15 segundos
-    const stepsCount = deepSearchSteps.length;
-    const stepDuration = totalDuration / stepsCount; // ~2.5s por step
-    
-    let currentStep = 0;
-    setDeepSearchProgress(0);
-    
-    // Timer para progressão dos steps
-    const interval = setInterval(() => {
-      currentStep++;
-      if (currentStep < stepsCount) {
-        setDeepSearchProgress(currentStep);
-      } else {
-        setDeepSearchProgress(stepsCount - 1);
-      }
-    }, stepDuration);
-    
-    // ✅ TIMER ABSOLUTO: Fechar após EXATAMENTE 15 segundos
-    const closeTimer = setTimeout(() => {
-      clearInterval(interval);
-      setIsDeepSearchLoading(false);
-      setDeepSearchProgress(0);
-    }, totalDuration);
-    
-    return () => {
-      clearInterval(interval);
-      clearTimeout(closeTimer);
-    };
-  }, [isDeepSearchLoading, deepSearchSteps.length]);
 
   // ✅ CLEANUP: Parar polling ao desmontar componente
   useEffect(() => {
@@ -2022,7 +2132,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
           </SheetContent>
         </Sheet>
 
-        {/* 🎯 MODAL DE PROGRESSO: Deep Search Loading */}
+        {/* 🎯 MODAL DE PROGRESSO: Loader Híbrido Contextual */}
         {isDeepSearchLoading && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 animate-fade-in">
             {/* Partículas animadas de fundo */}
@@ -2040,46 +2150,67 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
               ))}
             </div>
 
-            <div className="relative bg-gradient-to-br from-background via-card to-background/95 rounded-3xl p-10 max-w-xl w-full mx-4 shadow-2xl border border-border/50">
+            <div 
+              key={activeTag?.id || 'deep-search'}
+              className="relative bg-gradient-to-br from-background via-card to-background/95 rounded-3xl p-10 max-w-xl w-full mx-4 shadow-2xl border border-border/50"
+            >
               <div className="flex flex-col items-center space-y-8">
                 {/* Ícone central tri-camada */}
                 <div className="relative">
                   {/* Camada externa - ping */}
                   <div className={cn(
                     "absolute inset-0 rounded-full animate-ping opacity-20",
-                    `bg-gradient-to-r ${deepSearchSteps[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
+                    `bg-gradient-to-r ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                   )} />
                   
                   {/* Camada média - spin */}
                   <div className={cn(
                     "absolute inset-2 rounded-full animate-spin opacity-30 blur-sm",
-                    `bg-gradient-to-r ${deepSearchSteps[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
+                    `bg-gradient-to-r ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                   )} style={{ animationDuration: '3s' }} />
                   
                   {/* Ícone interno dinâmico */}
                   <div className={cn(
                     "relative p-8 rounded-full shadow-lg",
-                    `bg-gradient-to-br ${deepSearchSteps[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
+                    `bg-gradient-to-br ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                   )}>
-                    {Math.floor(deepSearchProgress) === 0 && <Search className="w-14 h-14 text-white animate-pulse" />}
-                    {Math.floor(deepSearchProgress) === 1 && <GitBranch className="w-14 h-14 text-white animate-pulse" />}
-                    {Math.floor(deepSearchProgress) === 2 && <BookOpen className="w-14 h-14 text-white animate-pulse" />}
-                    {Math.floor(deepSearchProgress) === 3 && <TrendingUp className="w-14 h-14 text-white animate-pulse" />}
-                    {Math.floor(deepSearchProgress) === 4 && <FileText className="w-14 h-14 text-white animate-pulse" />}
-                    {Math.floor(deepSearchProgress) === 5 && <CheckCircle className="w-14 h-14 text-white animate-pulse" />}
+                    {(() => {
+                      const currentStep = getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)];
+                      const IconComponent = currentStep?.icon || Zap;
+                      return <IconComponent className="w-14 h-14 text-white animate-pulse" />;
+                    })()}
                   </div>
                 </div>
 
-                {/* Título e subtítulo dinâmicos */}
+                {/* Título dinâmico baseado em contexto */}
                 <div className="text-center space-y-3">
+                  <h2 className="text-2xl font-bold mb-2">
+                    {activeTag ? (
+                      <>
+                        {activeTag.emoji} Gerando {activeTag.label}
+                      </>
+                    ) : (
+                      <>🔍 Pesquisa Profunda em Andamento</>
+                    )}
+                  </h2>
+                  <p className="text-white/80 text-sm mb-4">
+                    {activeTag ? (
+                      activeTag.id === 'study-material' ? 'Estruturando conteúdo educacional de alta qualidade...' :
+                      activeTag.id === 'lesson-plan' ? 'Planejando aula com metodologias ativas...' :
+                      activeTag.id === 'assessment' ? 'Criando atividade avaliativa alinhada à Bloom...' :
+                      'Gerando conteúdo pedagógico...'
+                    ) : (
+                      'Analisando múltiplas fontes pedagógicas...'
+                    )}
+                  </p>
                   <h3 className={cn(
-                    "text-3xl font-bold bg-clip-text text-transparent animate-loader-pulse",
-                    `bg-gradient-to-r ${deepSearchSteps[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
+                    "text-2xl font-bold bg-clip-text text-transparent animate-loader-pulse",
+                    `bg-gradient-to-r ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                   )}>
-                    {deepSearchSteps[Math.floor(deepSearchProgress)]?.text || "Processando..."}
+                    {getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.text || "Processando..."}
                   </h3>
                   <p className="text-muted-foreground text-base font-medium">
-                    {deepSearchSteps[Math.floor(deepSearchProgress)]?.subtext || "Aguarde..."}
+                    {getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.subtext || "Aguarde..."}
                   </p>
                 </div>
 
@@ -2088,16 +2219,16 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                   <div className="flex justify-between text-sm font-medium">
                     <span className="text-foreground/70">Progresso</span>
                     <span className="text-foreground font-bold">
-                      {Math.round(((deepSearchProgress + 1) / deepSearchSteps.length) * 100)}%
+                      {Math.round(((deepSearchProgress + 1) / getLoaderSteps(activeTag, isDeepSearch).length) * 100)}%
                     </span>
                   </div>
                   <div className="relative w-full h-4 bg-muted rounded-full overflow-hidden shadow-inner">
                     <div 
                       className={cn(
                         "h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden",
-                        `bg-gradient-to-r ${deepSearchSteps[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
+                        `bg-gradient-to-r ${getLoaderSteps(activeTag, isDeepSearch)[Math.floor(deepSearchProgress)]?.color || 'from-primary to-primary-glow'}`
                       )}
-                      style={{ width: `${Math.min(100, ((deepSearchProgress + 1) / deepSearchSteps.length) * 100)}%` }}
+                      style={{ width: `${Math.min(100, ((deepSearchProgress + 1) / getLoaderSteps(activeTag, isDeepSearch).length) * 100)}%` }}
                     >
                       {/* Shimmer effect */}
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
@@ -2105,38 +2236,41 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                   </div>
                 </div>
 
-                {/* Timeline horizontal de steps */}
+                {/* Timeline horizontal de steps dinâmicos */}
                 <div className="flex justify-between items-center w-full px-4">
-                  {deepSearchSteps.map((step, idx) => (
-                    <div key={idx} className="flex flex-col items-center space-y-2 flex-1">
-                      <div className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2",
-                        idx < Math.floor(deepSearchProgress)
-                          ? `bg-gradient-to-br ${step.color} border-transparent shadow-lg scale-110`
-                          : idx === Math.floor(deepSearchProgress)
-                          ? `bg-gradient-to-br ${step.color} border-white/50 animate-loader-pulse shadow-xl scale-125`
-                          : "bg-muted border-border scale-90"
-                      )}>
-                        {idx < Math.floor(deepSearchProgress) ? (
-                          <Check className="w-5 h-5 text-white" />
-                        ) : idx === Math.floor(deepSearchProgress) ? (
-                          <Loader2 className="w-5 h-5 text-white animate-spin" />
-                        ) : (
-                          <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                  {getLoaderSteps(activeTag, isDeepSearch).map((step, idx) => {
+                    const IconComponent = step.icon;
+                    return (
+                      <div key={step.id} className="flex flex-col items-center space-y-2 flex-1">
+                        <div className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2",
+                          idx < Math.floor(deepSearchProgress)
+                            ? `bg-gradient-to-br ${step.color} border-transparent shadow-lg scale-110`
+                            : idx === Math.floor(deepSearchProgress)
+                            ? `bg-gradient-to-br ${step.color} border-white/50 animate-loader-pulse shadow-xl scale-125`
+                            : "bg-muted border-border scale-90"
+                        )}>
+                          {idx < Math.floor(deepSearchProgress) ? (
+                            <Check className="w-5 h-5 text-white" />
+                          ) : idx === Math.floor(deepSearchProgress) ? (
+                            <Loader2 className="w-5 h-5 text-white animate-spin" />
+                          ) : (
+                            <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                          )}
+                        </div>
+                        {/* Linha conectora */}
+                        {idx < getLoaderSteps(activeTag, isDeepSearch).length - 1 && (
+                          <div className={cn(
+                            "absolute h-0.5 top-5 transition-all duration-500",
+                            idx < Math.floor(deepSearchProgress) ? "bg-primary" : "bg-border"
+                          )} style={{
+                            left: `${((idx + 0.5) / getLoaderSteps(activeTag, isDeepSearch).length) * 100}%`,
+                            width: `${(1 / getLoaderSteps(activeTag, isDeepSearch).length) * 100}%`,
+                          }} />
                         )}
                       </div>
-                      {/* Linha conectora */}
-                      {idx < deepSearchSteps.length - 1 && (
-                        <div className={cn(
-                          "absolute h-0.5 top-5 transition-all duration-500",
-                          idx < Math.floor(deepSearchProgress) ? "bg-primary" : "bg-border"
-                        )} style={{
-                          left: `${((idx + 0.5) / deepSearchSteps.length) * 100}%`,
-                          width: `${(1 / deepSearchSteps.length) * 100}%`,
-                        }} />
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Informações de contexto */}
@@ -2148,15 +2282,18 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
                     <span className="font-medium text-foreground">
-                      {deepSearchJobId ? 'Job em execução...' : 'Inicializando pesquisa...'}
+                      {deepSearchJobId ? 'Job em execução...' : 'Inicializando...'}
                     </span>
                   </div>
                 </div>
 
-                {/* Mensagem motivacional */}
+                {/* Mensagem motivacional contextual */}
                 <p className="text-center text-xs text-muted-foreground/70 italic max-w-md">
-                  "Estamos analisando múltiplas fontes acadêmicas para oferecer o melhor conteúdo pedagógico. 
-                  Sua paciência resultará em insights profundos! 🚀"
+                  {activeTag ? (
+                    `"Criando ${activeTag.label.toLowerCase()} com rigor pedagógico e qualidade acadêmica. Aguarde! 🚀"`
+                  ) : (
+                    "Estamos analisando múltiplas fontes acadêmicas para oferecer o melhor conteúdo pedagógico. Sua paciência resultará em insights profundos! 🚀"
+                  )}
                 </p>
               </div>
             </div>
