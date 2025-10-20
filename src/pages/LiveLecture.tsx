@@ -360,7 +360,7 @@ const LiveLecture = () => {
     setIsPaused(!isPaused);
   };
 
-  const handleStopRecording = async () => {
+    const handleStopRecording = async () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
@@ -370,41 +370,41 @@ const LiveLecture = () => {
     try {
       setIsSaving(true);
       
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      // Wait a bit for ondataavailable to finish
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Combine all segments into full transcript
       const fullTranscript = transcriptSegments
         .map(seg => `[${seg.speaker}] ${seg.text}`)
         .join('\n\n');
 
-      // Wait a bit for ondataavailable to finish
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
       // Upload full audio
       const audioUrl = await uploadFullAudio();
 
-      const { data: lectureData, error: lectureError } = await supabase
+      // Update existing lecture instead of creating new one
+      if (!lectureId) {
+        throw new Error('No lecture ID found');
+      }
+
+      const { error: updateError } = await supabase
         .from('lectures')
-        .insert({
-          teacher_id: user.id,
+        .update({
           raw_transcript: fullTranscript,
           audio_url: audioUrl,
           duration: recordingTime,
           status: 'processing'
         })
-        .select()
-        .single();
+        .eq('id', lectureId);
 
-      if (lectureError) throw lectureError;
+      if (updateError) throw updateError;
 
       toast({
         title: "Gravação finalizada com sucesso",
-        description: `Áudio de ${formatTime(recordingTime)} salvo e processado.`,
+        description: `Áudio de ${formatTime(recordingTime)} salvo. Processando com IA...`,
       });
 
       setTimeout(() => {
-        navigate(`/lecturetranscription/${lectureData.id}`);
+        navigate(`/lecturetranscription/${lectureId}`);
       }, 1000);
       
     } catch (error) {
@@ -701,17 +701,22 @@ const LiveLecture = () => {
           {/* 5. Transcription Panel - Responsive Layout */}
           {isRecording && (
             <>
-              {/* Desktop: Side Panel (right side) */}
+              {/* Desktop: Side Panel (right side) - In continuity with navbar */}
               <div className="
                 hidden lg:block
-                fixed right-0 top-16 bottom-0 w-96
+                fixed right-0 top-0 bottom-0 w-96
                 bg-white/95 backdrop-blur-xl
                 border-l-4 border-purple-500/20
                 shadow-[-10px_0_40px_rgba(168,85,247,0.15)]
-                p-6
+                pt-20 px-6 pb-6
                 z-20
                 animate-slide-in-right
                 overflow-y-auto scroll-smooth
+                [&::-webkit-scrollbar]:w-2
+                [&::-webkit-scrollbar-track]:bg-transparent
+                [&::-webkit-scrollbar-thumb]:bg-purple-200/50
+                [&::-webkit-scrollbar-thumb]:rounded-full
+                [&::-webkit-scrollbar-thumb]:hover:bg-purple-300/70
               ">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -727,7 +732,7 @@ const LiveLecture = () => {
                 </div>
 
                 {/* Scroll Area */}
-                <div className="overflow-y-auto max-h-[calc(100vh-320px)] mb-4">
+                <div className="flex-1 overflow-y-auto mb-4">
                   <LiveTranscriptViewer
                     segments={transcriptSegments}
                     currentWords={currentWords}

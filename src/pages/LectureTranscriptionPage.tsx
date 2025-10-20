@@ -448,13 +448,13 @@ const LectureTranscriptionPage = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+        <div className="relative min-h-screen bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%] flex items-center justify-center">
         <div className="absolute inset-0 z-0">
           <TeacherBackgroundRipple />
         </div>
           <div className="relative z-10 flex flex-col items-center gap-4">
-            <Loader2 className="h-12 w-12 text-purple-400 animate-spin" />
-            <p className="text-white text-lg">Carregando aula...</p>
+            <Loader2 className="h-12 w-12 text-white animate-spin drop-shadow-lg" />
+            <p className="text-white text-lg font-semibold drop-shadow-sm">Carregando aula...</p>
           </div>
         </div>
       </MainLayout>
@@ -463,26 +463,27 @@ const LectureTranscriptionPage = () => {
 
   return (
     <MainLayout>
-      <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <div className="relative min-h-screen bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         <div className="absolute inset-0 z-0">
           <TeacherBackgroundRipple />
         </div>
 
-        {/* Gradient Blobs */}
+        {/* Gradient Blobs for Depth */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-3xl" />
-          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
         <div className="relative z-10 container mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
-                <Sparkles className="h-8 w-8 text-purple-400" />
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+                <Sparkles className="h-8 w-8 text-purple-300 animate-pulse" />
                 Centro de Publicação Inteligente
               </h1>
-              <p className="text-slate-400">
+              <p className="text-white/80 text-base drop-shadow-sm">
                 Revise, edite e publique seu material didático gerado por IA
               </p>
             </div>
@@ -491,19 +492,29 @@ const LectureTranscriptionPage = () => {
               <Badge 
                 variant="outline" 
                 className={`
-                  ${lecture?.status === 'processing' ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' : ''}
-                  ${lecture?.status === 'ready' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : ''}
-                  ${lecture?.status === 'published' ? 'bg-green-500/20 text-green-300 border-green-500/30' : ''}
+                  backdrop-blur-xl shadow-lg
+                  ${lecture?.status === 'processing' ? 'bg-yellow-500/30 text-yellow-100 border-yellow-300/40' : ''}
+                  ${lecture?.status === 'ready' ? 'bg-blue-500/30 text-blue-100 border-blue-300/40' : ''}
+                  ${lecture?.status === 'published' ? 'bg-green-500/30 text-green-100 border-green-300/40' : ''}
                 `}
               >
-                {lecture?.status === 'processing' && 'Processando'}
-                {lecture?.status === 'ready' && 'Rascunho'}
-                {lecture?.status === 'published' && 'Publicado'}
+                {lecture?.status === 'processing' && '⏳ Processando'}
+                {lecture?.status === 'ready' && '✏️ Rascunho'}
+                {lecture?.status === 'published' && '✅ Publicado'}
               </Badge>
               <Button
                 onClick={handlePublish}
                 disabled={!selectedClassId || isPublishing || !structuredContent}
-                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                className="
+                  bg-gradient-to-r from-green-600 to-green-700 
+                  hover:from-green-700 hover:to-green-800
+                  text-white font-bold
+                  shadow-2xl shadow-green-500/30
+                  hover:scale-105 hover:shadow-green-500/50
+                  transition-all duration-300
+                  border-2 border-green-400/20
+                  disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+                "
               >
                 {isPublishing ? (
                   <>
@@ -522,14 +533,14 @@ const LectureTranscriptionPage = () => {
 
           {/* Processing state */}
           {isProcessing && (
-            <Card className="bg-slate-800/50 border-slate-700 mb-8">
+            <Card className="bg-white/10 backdrop-blur-xl border-white/20 mb-8 shadow-2xl">
               <CardContent className="flex items-center gap-4 py-6">
-                <Loader2 className="h-8 w-8 text-purple-400 animate-spin" />
+                <Loader2 className="h-8 w-8 text-purple-300 animate-spin" />
                 <div>
-                  <h3 className="text-white font-semibold mb-1">
-                    Processando com IA...
+                  <h3 className="text-white font-semibold mb-1 drop-shadow-sm">
+                    🤖 Processando com IA...
                   </h3>
-                  <p className="text-slate-400 text-sm">
+                  <p className="text-white/70 text-sm drop-shadow-sm">
                     A IA está analisando a transcrição e gerando material didático estruturado
                   </p>
                 </div>
