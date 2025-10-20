@@ -920,6 +920,16 @@ INSTRUÇÕES:
           throw new Error('Resposta vazia ou muito curta');
         }
         
+        // ✅ VALIDAÇÃO ANTI-LEAKAGE: Detectar se resposta contém o prompt técnico
+        const hasPromptLeakage = aiResponse.includes('CONTEÚDO:') || 
+                                  aiResponse.includes('INSTRUÇÕES:') ||
+                                  aiResponse.includes('Baseado no conteúdo abaixo');
+        
+        if (hasPromptLeakage) {
+          console.error('🚨 [SECURITY] Prompt leakage detectado na resposta:', aiResponse.substring(0, 200));
+          throw new Error('Resposta contém informações técnicas indevidas');
+        }
+        
         // ✅ Substituir placeholder por conteúdo real
         setMessages(prev => prev.map(m => 
           m.id === placeholderId 
