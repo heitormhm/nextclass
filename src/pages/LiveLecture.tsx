@@ -723,11 +723,10 @@ const LiveLecture = () => {
               {/* Desktop: Side Panel (right side) - Fixed and always visible */}
               <div className="
                 hidden lg:flex lg:flex-col
-                fixed right-0 top-0 bottom-0 w-96
+                fixed right-0 top-16 bottom-0 w-96
                 bg-white/95 backdrop-blur-xl
                 border-l-4 border-purple-500/20
                 shadow-[-10px_0_40px_rgba(168,85,247,0.15)]
-                pt-20
                 z-20
                 animate-slide-in-right
               ">
