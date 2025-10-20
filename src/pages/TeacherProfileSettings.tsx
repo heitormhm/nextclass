@@ -303,29 +303,30 @@ const TeacherProfileSettings = () => {
                         Para alterar sua senha, acesse a página de <span className="font-medium text-foreground">Configurações</span>
                       </p>
                     </div>
+                    
+                    {/* Save Button - Moved Inside Card */}
+                    <div className="pt-6 border-t border-border">
+                      <Button 
+                        onClick={handleSave}
+                        disabled={saving}
+                        size="lg"
+                        className="w-full bg-gradient-to-r from-primary to-pink-600 hover:from-primary/90 hover:to-pink-600/90 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                      >
+                        {saving ? (
+                          <>
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-5 w-5 mr-2" />
+                            Salvar Alterações
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
-
-                {/* Save Button */}
-                <div className="flex justify-end">
-                  <Button 
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2"
-                  >
-                    {saving ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4" />
-                        Salvar Alterações
-                      </>
-                    )}
-                  </Button>
-                </div>
               </div>
             </div>
           )}

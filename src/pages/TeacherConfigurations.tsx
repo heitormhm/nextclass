@@ -243,7 +243,7 @@ const TeacherConfigurations = () => {
             </Card>
 
             {/* Security Settings */}
-            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] flex flex-col min-h-[420px]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Lock className="h-5 w-5 text-primary" />
@@ -253,7 +253,7 @@ const TeacherConfigurations = () => {
                   Altere sua senha de acesso
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 flex-1">
                 <div className="space-y-2">
                   <Label htmlFor="current-password">Senha Atual</Label>
                   <Input
@@ -288,7 +288,7 @@ const TeacherConfigurations = () => {
             </Card>
 
             {/* Language Settings */}
-            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+            <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] flex flex-col min-h-[420px]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Globe className="h-5 w-5 text-primary" />
@@ -298,7 +298,7 @@ const TeacherConfigurations = () => {
                   Configure o idioma padrão para transcrições e interface
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 flex-1">
                 <div className="grid gap-2">
                   <Label htmlFor="transcription-language">Idioma padrão da transcrição</Label>
                   <Select 
@@ -315,25 +315,33 @@ const TeacherConfigurations = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {/* Spacer content to match Security card height */}
+                <div className="pt-8 pb-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    O idioma selecionado será usado como padrão para transcrições automáticas de aulas 
+                    e demais funcionalidades do sistema que envolvam processamento de linguagem natural.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
               {/* Save Button - Full Width Bottom */}
-              <div className="md:col-span-2 flex justify-end">
+              <div className="md:col-span-2 flex justify-end mt-2">
                 <Button 
                   onClick={handleSave}
                   disabled={saving}
                   size="lg"
-                  className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2"
+                  className="bg-gradient-to-r from-primary to-pink-600 hover:from-primary/90 hover:to-pink-600/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-8 py-6"
                 >
                   {saving ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Salvando...
                     </>
                   ) : (
                     <>
-                      <Save className="h-4 w-4" />
+                      <Save className="h-5 w-5 mr-2" />
                       Salvar Configurações
                     </>
                   )}
