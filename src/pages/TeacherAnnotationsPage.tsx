@@ -13,7 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { PublishMaterialModal } from "@/components/PublishMaterialModal";
-import { SmartAnnotationActions } from "@/components/SmartAnnotationActions";
+import { QuickActionsCard } from "@/components/QuickActionsCard";
+import { formatContentPreview } from "@/utils/contentPreviewFormatter";
 
 interface Annotation {
   id: string;
@@ -38,6 +39,7 @@ const TeacherAnnotationsPage = () => {
   const [filterBySource, setFilterBySource] = useState<'all' | 'lecture' | 'lesson_plan' | 'personal'>('all');
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null);
+  const [selectedAnnotationForAction, setSelectedAnnotationForAction] = useState<string>('');
 
   useEffect(() => {
     const fetchAnnotations = async () => {
@@ -168,6 +170,10 @@ const TeacherAnnotationsPage = () => {
 
   const handleCreateAssessment = (annotation: Annotation) => {
     handleNavigateToAIChat(annotation, 'assessment');
+  };
+
+  const handleQuickActionNavigate = (annotation: Annotation, actionType: string) => {
+    handleNavigateToAIChat(annotation, actionType);
   };
 
   return (
@@ -310,6 +316,15 @@ const TeacherAnnotationsPage = () => {
             </div>
           )}
 
+          {/* Quick Actions Card - Centralizado */}
+          <QuickActionsCard
+            annotations={annotations}
+            selectedAnnotationId={selectedAnnotationForAction}
+            onAnnotationSelect={setSelectedAnnotationForAction}
+            onPublish={handlePublishMaterial}
+            onNavigateToAIChat={handleQuickActionNavigate}
+          />
+
           {/* Annotations Grid */}
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -363,7 +378,7 @@ const TeacherAnnotationsPage = () => {
                   
                   {/* Preview */}
                   <p className="text-sm text-muted-foreground mb-2 line-clamp-5 leading-snug">
-                    {annotation.content.replace(/<[^>]*>/g, '').substring(0, 200)}...
+                    {formatContentPreview(annotation.content)}
                   </p>
                   
                   {/* Tags */}
@@ -397,15 +412,6 @@ const TeacherAnnotationsPage = () => {
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                  
-                  {/* Smart Actions */}
-                  <SmartAnnotationActions
-                    annotation={annotation}
-                    onPublish={handlePublishMaterial}
-                    onCreateStudyMaterial={handleCreateStudyMaterial}
-                    onCreateLessonPlan={handleCreateLessonPlan}
-                    onCreateAssessment={handleCreateAssessment}
-                  />
                 </Card>
               ))}
             </div>

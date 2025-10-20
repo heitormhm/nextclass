@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatContentPreview } from "@/utils/contentPreviewFormatter";
 
 interface Annotation {
   id: string;
@@ -304,7 +305,7 @@ const MyAnnotationsPage = () => {
                   
                   {/* Preview */}
                   <p className="text-sm text-muted-foreground mb-2 line-clamp-5 leading-snug">
-                    {annotation.content.replace(/<[^>]*>/g, '').substring(0, 200)}...
+                    {formatContentPreview(annotation.content)}
                   </p>
                   
                   {/* Tags */}
