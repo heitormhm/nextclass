@@ -7,6 +7,8 @@ interface SmartMessageActionsProps {
   onExportPDF: () => void;
   onGenerateSuggestions: () => void;
   onAddToAnnotations: () => void;
+  isLoading?: boolean;
+  isSuggestionsLoading?: boolean;
 }
 
 export const SmartMessageActions = ({
@@ -14,7 +16,9 @@ export const SmartMessageActions = ({
   messageId,
   onExportPDF,
   onGenerateSuggestions,
-  onAddToAnnotations
+  onAddToAnnotations,
+  isLoading = false,
+  isSuggestionsLoading = false
 }: SmartMessageActionsProps) => {
   // Don't show actions for short messages
   if (messageContent.length < 200) return null;
@@ -26,6 +30,7 @@ export const SmartMessageActions = ({
         variant="outline"
         size="sm"
         onClick={onExportPDF}
+        disabled={isLoading || isSuggestionsLoading}
         className="text-xs bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border-purple-200"
       >
         <FileDown className="w-3 h-3 mr-1.5" />
@@ -37,10 +42,11 @@ export const SmartMessageActions = ({
         variant="outline"
         size="sm"
         onClick={onGenerateSuggestions}
+        disabled={isLoading || isSuggestionsLoading}
         className="text-xs bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-blue-200"
       >
         <Lightbulb className="w-3 h-3 mr-1.5" />
-        Sugestões de Melhoria
+        {isSuggestionsLoading ? 'Gerando...' : 'Sugestões de Melhoria'}
       </Button>
 
       {/* Add to Annotations Button */}
@@ -48,6 +54,7 @@ export const SmartMessageActions = ({
         variant="outline"
         size="sm"
         onClick={onAddToAnnotations}
+        disabled={isLoading || isSuggestionsLoading}
         className="text-xs bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border-green-200"
       >
         <FileEdit className="w-3 h-3 mr-1.5" />

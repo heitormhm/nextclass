@@ -71,6 +71,7 @@ const TeacherAIChatPage = () => {
   const [deepSearchJobId, setDeepSearchJobId] = useState<string | null>(null);
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(60);
   const [isCompletionAnimating, setIsCompletionAnimating] = useState(false);
+  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const smoothProgressRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -680,25 +681,85 @@ Markdown com:
     }
   };
 
+  // ✅ Função para parsear messageContent em blocos estruturados
+  const parseMessageToBlocks = (content: string): any[] => {
+    const lines = content.split('\n');
+    const blocks: any[] = [];
+    let currentParagraph: string[] = [];
+    
+    const flushParagraph = () => {
+      if (currentParagraph.length > 0) {
+        blocks.push({
+          tipo: 'paragrafo',
+          texto: currentParagraph.join(' ').trim()
+        });
+        currentParagraph = [];
+      }
+    };
+    
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      
+      // H2
+      if (trimmed.startsWith('## ')) {
+        flushParagraph();
+        blocks.push({
+          tipo: 'h2',
+          texto: trimmed.replace(/^##\s+/, '')
+        });
+      }
+      // H3
+      else if (trimmed.startsWith('### ')) {
+        flushParagraph();
+        blocks.push({
+          tipo: 'h3',
+          texto: trimmed.replace(/^###\s+/, '')
+        });
+      }
+      // Lista numerada ou bullet
+      else if (/^\d+\.\s+/.test(trimmed) || trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
+        flushParagraph();
+        const listItem = trimmed.replace(/^\d+\.\s+|^[•\-]\s+/, '');
+        
+        // Agrupar itens de lista consecutivos
+        if (blocks.length > 0 && blocks[blocks.length - 1].tipo === 'lista') {
+          blocks[blocks.length - 1].itens!.push(listItem);
+        } else {
+          blocks.push({
+            tipo: 'lista',
+            itens: [listItem]
+          });
+        }
+      }
+      // Linha vazia
+      else if (trimmed === '') {
+        flushParagraph();
+      }
+      // Parágrafo normal
+      else {
+        currentParagraph.push(trimmed);
+      }
+    });
+    
+    flushParagraph();
+    return blocks;
+  };
+
   const handleExportPDF = async (messageContent: string) => {
     try {
-      // ✅ NOVO: Usar visualPdfGenerator com melhor formatação
+      const structuredBlocks = parseMessageToBlocks(messageContent);
+      
       await generateVisualPDF({
         structuredData: {
           titulo_geral: `Conteúdo da Mia - ${new Date().toLocaleDateString('pt-BR')}`,
-          conteudo: [
-            {
-              tipo: 'paragrafo',
-              texto: messageContent
-            }
-          ]
+          conteudo: structuredBlocks
         },
         title: `Conteúdo da Mia - ${new Date().toLocaleDateString('pt-BR')}`
       });
       
       toast({
         title: "📄 PDF exportado com sucesso",
-        description: "O documento foi salvo em seus downloads com formatação aprimorada.",
+        description: "O documento foi salvo com formatação preservada.",
       });
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
@@ -711,8 +772,26 @@ Markdown com:
   };
 
   const handleGenerateSuggestions = async (messageContent: string) => {
+    if (isSuggestionsLoading || isLoading || isDeepSearchLoading) {
+      toast({
+        title: "Aguarde",
+        description: "Já existe um processamento em andamento.",
+      });
+      return;
+    }
+    
     try {
-      setIsLoading(true);
+      setIsSuggestionsLoading(true);
+      
+      // ✅ Timeout de segurança (30s)
+      const timeoutId = setTimeout(() => {
+        setIsSuggestionsLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Timeout",
+          description: "A geração de sugestões demorou muito. Tente novamente.",
+        });
+      }, 30000);
       
       const { data, error } = await supabase.functions.invoke('mia-teacher-chat', {
         body: {
@@ -725,15 +804,16 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
         }
       });
       
+      clearTimeout(timeoutId);
+      
       if (error) throw error;
       
-      // ✅ NOVO: Marcar como mensagem de sistema para não mostrar botões de ação
       const suggestionMessage: Message = {
         id: crypto.randomUUID(),
         content: data.reply,
         isUser: false,
         timestamp: new Date(),
-        isSystemMessage: true // Não mostra botões de ação em sugestões
+        isSystemMessage: true
       };
       
       setMessages(prev => [...prev, suggestionMessage]);
@@ -743,13 +823,14 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
         description: "Mia criou sugestões de melhoria para você.",
       });
     } catch (error) {
+      console.error('Erro ao gerar sugestões:', error);
       toast({
         variant: "destructive",
         title: "Erro",
         description: "Não foi possível gerar sugestões.",
       });
     } finally {
-      setIsLoading(false);
+      setIsSuggestionsLoading(false);
     }
   };
 
@@ -758,13 +839,21 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       
-      // ✅ NOVO: Limpar markdown excessivo e formatar melhor
+      // ✅ PRESERVAR markdown essencial + melhorar legibilidade
       const cleanContent = messageContent
-        .replace(/^###\s+/gm, '• ') // H3 vira bullet
-        .replace(/^##\s+/gm, '\n\n') // H2 vira quebra de seção
-        .replace(/^#\s+/gm, '') // H1 removido
-        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove negrito markdown
-        .replace(/\*(.*?)\*/g, '$1') // Remove itálico
+        // Converter H2 em títulos de seção legíveis
+        .replace(/^##\s+(.+)$/gm, '\n\n━━━━━ $1 ━━━━━\n')
+        // Converter H3 em subtítulos
+        .replace(/^###\s+(.+)$/gm, '\n▸ $1\n')
+        // Converter listas numeradas
+        .replace(/^\d+\.\s+(.+)$/gm, '  • $1')
+        // Manter negrito (preservar **)
+        // Manter itálico (preservar *)
+        // Converter quebras <br> em \n
+        .replace(/<br\s*\/?>/gi, '\n')
+        // Remover apenas tags HTML perigosas (não markdown)
+        .replace(/<script[^>]*>.*?<\/script>/gi, '')
+        .replace(/<style[^>]*>.*?<\/style>/gi, '')
         .trim();
       
       // ✅ NOVO: Criar preview curto e atraente
@@ -793,7 +882,7 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open('/teacher-annotations', '_blank')}
+            onClick={() => window.location.href = '/teacher/annotations'}
           >
             Ver Anotação
           </Button>
@@ -1261,11 +1350,11 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
             });
           }
 
-          // ✅ AGUARDAR 2.5s PARA MOSTRAR ANIMAÇÃO DE SUCESSO antes de fechar
+          // ✅ AGUARDAR 3.5s PARA CONFETE + ANIMAÇÃO VERDE
           setTimeout(() => {
             setIsCompletionAnimating(false);
             stopPolling();
-          }, 2500);
+          }, 3500);
         } else if (job.status === 'FAILED') {
           clearInterval(timeInterval);
           console.error('❌ Job falhou:', job.error_log);
@@ -1929,6 +2018,8 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
                               onExportPDF={() => handleExportPDF(message.content)}
                               onGenerateSuggestions={() => handleGenerateSuggestions(message.content)}
                               onAddToAnnotations={() => handleAddToAnnotations(message.content)}
+                              isLoading={isLoading || isDeepSearchLoading}
+                              isSuggestionsLoading={isSuggestionsLoading}
                             />
                           )}
                           
@@ -2230,8 +2321,9 @@ Liste as sugestões numeradas de 1 a 5, cada uma em 1-2 linhas. Seja concisa e p
               key={activeTag?.id || 'deep-search'}
               className="relative bg-gradient-to-br from-background via-card to-background/95 
                          rounded-2xl md:rounded-3xl
-                         p-4 sm:p-6 md:p-8 lg:p-10
-                         max-w-[90vw] sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl
+                         p-3 sm:p-4 md:p-6 lg:p-8
+                         max-w-[95vw] sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl
+                         max-h-[85vh] overflow-y-auto
                          w-full mx-2 sm:mx-4
                          shadow-xl md:shadow-2xl
                          border border-border/50"
