@@ -1,113 +1,102 @@
 /**
- * Formata conteúdo estruturado para preview limpo
- * Remove JSON, HTML e processa markdown inline
+ * Formata preview de conteúdo estruturado (JSON, HTML, Markdown)
+ * para exibição em cards de anotações
  */
-
-interface ContentBlock {
-  tipo: string;
-  texto?: string;
-  conteudo?: string;
-  nivel?: number;
-  items?: string[];
-  [key: string]: any;
-}
-
-interface StructuredData {
-  content?: ContentBlock[];
-  [key: string]: any;
-}
 
 /**
- * Extrai texto limpo de blocos estruturados
+ * Extrai texto de estruturas JSON aninhadas recursivamente
  */
-const extractTextFromBlocks = (data: StructuredData): string => {
-  if (!data.content || !Array.isArray(data.content)) {
-    return '';
+const extractTextRecursive = (obj: any): string => {
+  let extractedText = "";
+
+  // Tipos primitivos
+  if (typeof obj === "string") {
+    return obj;
   }
 
-  return data.content
-    .map((block: ContentBlock) => {
-      // Extrair texto de diferentes tipos de blocos
-      if (block.texto) return block.texto;
-      if (block.conteudo) return block.conteudo;
-      if (block.tipo === 'lista' && block.items) {
-        return block.items.join(' ');
+  // Arrays
+  if (Array.isArray(obj)) {
+    return obj.map(extractTextRecursive).join(" ");
+  }
+
+  // Objetos
+  if (typeof obj === "object" && obj !== null) {
+    // Priorizar campos comuns de texto
+    const textFields = ["texto", "conteudo", "content", "title", "description", "label", "value"];
+    
+    for (const field of textFields) {
+      if (obj[field]) {
+        extractedText += extractTextRecursive(obj[field]) + " ";
       }
-      return '';
-    })
-    .filter(Boolean)
-    .join(' ');
-};
+    }
 
-/**
- * Remove tags HTML do texto
- */
-const stripHtml = (html: string): string => {
-  return html.replace(/<[^>]*>/g, '');
-};
+    // Processar items de listas
+    if (obj.items && Array.isArray(obj.items)) {
+      extractedText += obj.items.join(" ") + " ";
+    }
 
-/**
- * Processa markdown inline (negrito, itálico)
- */
-const processMarkdown = (text: string): string => {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '$1') // Negrito
-    .replace(/\*(.+?)\*/g, '$1')     // Itálico
-    .replace(/`(.+?)`/g, '$1')       // Code inline
-    .replace(/\[(.+?)\]\(.+?\)/g, '$1'); // Links
-};
+    // Processar recursivamente outros campos não capturados
+    for (const [key, value] of Object.entries(obj)) {
+      if (!textFields.includes(key) && key !== "items" && key !== "tipo" && key !== "type") {
+        if (typeof value === "object") {
+          extractedText += extractTextRecursive(value) + " ";
+        }
+      }
+    }
+  }
 
-/**
- * Limpa múltiplos espaços e quebras de linha
- */
-const cleanWhitespace = (text: string): string => {
-  return text
-    .replace(/\s+/g, ' ')    // Múltiplos espaços -> 1 espaço
-    .replace(/\n+/g, ' ')    // Quebras de linha -> espaço
-    .trim();
+  return extractedText;
 };
 
 /**
  * Formata conteúdo para preview (máx 200 caracteres)
- * Detecta e processa JSON estruturado, HTML e Markdown
  */
 export const formatContentPreview = (content: string, maxLength: number = 200): string => {
   if (!content || content.trim().length === 0) {
-    return 'Sem conteúdo';
+    return "Sem conteúdo disponível";
   }
 
   let cleanText = content;
 
-  // 1. DETECTAR JSON ESTRUTURADO
-  if (content.includes('"tipo"') || content.includes('"texto"')) {
+  // 1. PROCESSAR JSON ESTRUTURADO (StatefulButtons)
+  if (content.includes('"tipo"') || content.includes('"texto"') || content.includes('"content"')) {
     try {
       const parsed = JSON.parse(content);
-      cleanText = extractTextFromBlocks(parsed);
-      
-      // Se conseguiu extrair texto do JSON
-      if (cleanText.length > 0) {
-        cleanText = cleanWhitespace(cleanText);
-        return cleanText.substring(0, maxLength) + (cleanText.length > maxLength ? '...' : '');
+      let extractedText = extractTextRecursive(parsed).trim();
+
+      if (extractedText) {
+        // Limpar múltiplos espaços
+        extractedText = extractedText.replace(/\s+/g, " ");
+        return extractedText.substring(0, maxLength) + (extractedText.length > maxLength ? "..." : "");
       }
-    } catch (error) {
-      // Se falhar o parse, continua com outras estratégias
-      console.debug('Not valid JSON, trying other formats');
+    } catch (e) {
+      // Fallback para processamento normal
+      console.debug("Failed to parse JSON, continuing with HTML/Markdown processing");
     }
   }
 
-  // 2. REMOVER HTML
-  cleanText = stripHtml(cleanText);
+  // 2. REMOVER TAGS HTML
+  cleanText = cleanText.replace(/<[^>]*>/g, " ");
 
   // 3. PROCESSAR MARKDOWN INLINE
-  cleanText = processMarkdown(cleanText);
+  cleanText = cleanText
+    .replace(/\*\*(.+?)\*\*/g, "$1")      // Negrito
+    .replace(/\*(.+?)\*/g, "$1")          // Itálico
+    .replace(/`(.+?)`/g, "$1")            // Code inline
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Links [texto](url) → texto
+    .replace(/^#+\s+/gm, "")              // Headers
+    .replace(/^[-*]\s+/gm, "");           // Lista bullets
 
-  // 4. LIMPAR ESPAÇOS
-  cleanText = cleanWhitespace(cleanText);
+  // 4. LIMPAR MÚLTIPLOS ESPAÇOS E QUEBRAS DE LINHA
+  cleanText = cleanText
+    .replace(/\n+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  // 5. TRUNCAR
+  // 5. LIMITAR TAMANHO
   if (cleanText.length > maxLength) {
-    cleanText = cleanText.substring(0, maxLength) + '...';
+    return cleanText.substring(0, maxLength) + "...";
   }
 
-  return cleanText || 'Sem conteúdo disponível';
+  return cleanText || "Conteúdo não disponível";
 };

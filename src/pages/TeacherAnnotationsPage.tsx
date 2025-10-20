@@ -322,7 +322,12 @@ const TeacherAnnotationsPage = () => {
               ))}
             </div>
           ) : filteredAnnotations.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4
+              [&::-webkit-scrollbar]:w-2 
+              [&::-webkit-scrollbar-track]:bg-transparent 
+              [&::-webkit-scrollbar-thumb]:bg-purple-200/50 
+              [&::-webkit-scrollbar-thumb]:rounded-full 
+              [&::-webkit-scrollbar-thumb]:hover:bg-purple-300/70">
               {filteredAnnotations.map((annotation) => (
                 <Card 
                   key={annotation.id} 

@@ -20,7 +20,13 @@ export const QuickActionsCard = ({
   };
 
   return (
-    <Card className="mb-6 p-6 max-h-[400px] overflow-y-auto bg-gradient-to-br from-purple-50/80 via-pink-50/80 to-blue-50/80 border-2 border-purple-200/50 shadow-xl hover:shadow-2xl transition-all duration-300 backdrop-blur-sm">
+    <Card className="mb-6 p-6 max-h-[400px] overflow-y-auto bg-gradient-to-br from-purple-50/80 via-pink-50/80 to-blue-50/80 border-2 border-purple-200/50 shadow-xl hover:shadow-2xl transition-all duration-300 backdrop-blur-sm
+      [&::-webkit-scrollbar]:w-2 
+      [&::-webkit-scrollbar-track]:bg-transparent 
+      [&::-webkit-scrollbar-thumb]:bg-purple-200/50 
+      [&::-webkit-scrollbar-thumb]:rounded-full 
+      [&::-webkit-scrollbar-thumb]:hover:bg-purple-300/70
+      [&::-webkit-scrollbar-thumb]:transition-colors">
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
@@ -38,15 +44,15 @@ export const QuickActionsCard = ({
         </div>
 
         {/* Actions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 xl:gap-4">
           {/* Publicar Material */}
           <Button
             onClick={() => handleAction('publish')}
-            className="h-auto py-6 px-6 flex flex-col items-center gap-3 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="h-auto py-6 px-4 flex flex-col items-center gap-3 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg hover:shadow-2xl hover:scale-105 hover:ring-4 hover:ring-purple-400/30 transition-all duration-300 active:scale-95"
           >
             <Upload className="h-6 w-6" />
             <div className="text-center">
-              <p className="font-bold text-base">Publicar Material</p>
+              <p className="font-bold text-sm">Publicar Material</p>
               <p className="text-xs opacity-90">Compartilhar na biblioteca</p>
             </div>
           </Button>
@@ -54,11 +60,11 @@ export const QuickActionsCard = ({
           {/* Material Didático */}
           <Button
             onClick={() => handleAction('study_material')}
-            className="h-auto py-6 px-6 flex flex-col items-center gap-3 bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="h-auto py-6 px-4 flex flex-col items-center gap-3 bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0 shadow-lg hover:shadow-2xl hover:scale-105 hover:ring-4 hover:ring-blue-400/30 transition-all duration-300 active:scale-95"
           >
             <BookOpen className="h-6 w-6" />
             <div className="text-center">
-              <p className="font-bold text-base">Material Didático</p>
+              <p className="font-bold text-sm">Material Didático</p>
               <p className="text-xs opacity-90">Criar com Mia</p>
             </div>
           </Button>
@@ -66,11 +72,11 @@ export const QuickActionsCard = ({
           {/* Plano de Aula */}
           <Button
             onClick={() => handleAction('lesson_plan')}
-            className="h-auto py-6 px-6 flex flex-col items-center gap-3 bg-gradient-to-br from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="h-auto py-6 px-4 flex flex-col items-center gap-3 bg-gradient-to-br from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 shadow-lg hover:shadow-2xl hover:scale-105 hover:ring-4 hover:ring-green-400/30 transition-all duration-300 active:scale-95"
           >
             <FileText className="h-6 w-6" />
             <div className="text-center">
-              <p className="font-bold text-base">Plano de Aula</p>
+              <p className="font-bold text-sm">Plano de Aula</p>
               <p className="text-xs opacity-90">Criar com Mia</p>
             </div>
           </Button>
@@ -78,11 +84,11 @@ export const QuickActionsCard = ({
           {/* Atividade Avaliativa */}
           <Button
             onClick={() => handleAction('assessment')}
-            className="h-auto py-6 px-6 flex flex-col items-center gap-3 bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="h-auto py-6 px-4 flex flex-col items-center gap-3 bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0 shadow-lg hover:shadow-2xl hover:scale-105 hover:ring-4 hover:ring-orange-400/30 transition-all duration-300 active:scale-95"
           >
             <ClipboardCheck className="h-6 w-6" />
             <div className="text-center">
-              <p className="font-bold text-base">Atividade Avaliativa</p>
+              <p className="font-bold text-sm">Atividade Avaliativa</p>
               <p className="text-xs opacity-90">Criar com Mia</p>
             </div>
           </Button>

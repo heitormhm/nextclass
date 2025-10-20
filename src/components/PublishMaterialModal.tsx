@@ -254,10 +254,21 @@ export const PublishMaterialModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white/90 backdrop-blur-xl border-purple-100/30 shadow-[0_8px_30px_rgb(147,51,234,0.15)]">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white/90 backdrop-blur-xl border-purple-100/30 shadow-[0_8px_30px_rgb(147,51,234,0.15)]
+        [&::-webkit-scrollbar]:w-2 
+        [&::-webkit-scrollbar-track]:bg-transparent 
+        [&::-webkit-scrollbar-thumb]:bg-purple-200/50 
+        [&::-webkit-scrollbar-thumb]:rounded-full 
+        [&::-webkit-scrollbar-thumb]:hover:bg-purple-300/70
+        [&::-webkit-scrollbar-thumb]:transition-colors">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            📤 Publicar Material para Alunos
+          <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
+              <Upload className="h-6 w-6 text-white" />
+            </div>
+            <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Publicar Material para Alunos
+            </span>
           </DialogTitle>
         </DialogHeader>
 
