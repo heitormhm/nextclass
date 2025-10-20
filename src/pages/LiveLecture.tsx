@@ -263,7 +263,27 @@ const LiveLecture = () => {
           }
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error('[LiveLecture] Transcription error:', error);
+          
+          // Show error toast only if it's not a quota issue
+          if (error.message?.includes('quota') || error.message?.includes('insufficient_quota')) {
+            toast({
+              variant: 'destructive',
+              title: 'API sem créditos',
+              description: 'A API do OpenAI está sem créditos. Adicione créditos para ativar a transcrição ao vivo.',
+            });
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Erro na transcrição',
+              description: 'Falha ao processar áudio. Gravação continua normalmente.',
+            });
+          }
+          
+          setIsProcessing(false);
+          return;
+        }
         
         if (data?.text) {
           // Add segment with speaker
@@ -400,12 +420,11 @@ const LiveLecture = () => {
 
       toast({
         title: "Gravação finalizada com sucesso",
-        description: `Áudio de ${formatTime(recordingTime)} salvo. Processando com IA...`,
+        description: `Áudio de ${formatTime(recordingTime)} salvo. Redirecionando...`,
       });
 
-      setTimeout(() => {
-        navigate(`/lecturetranscription/${lectureId}`);
-      }, 1000);
+      // Navigate immediately after success
+      navigate(`/lecturetranscription/${lectureId}`);
       
     } catch (error) {
       console.error('Error saving lecture:', error);
@@ -701,25 +720,19 @@ const LiveLecture = () => {
           {/* 5. Transcription Panel - Responsive Layout */}
           {isRecording && (
             <>
-              {/* Desktop: Side Panel (right side) - In continuity with navbar */}
+              {/* Desktop: Side Panel (right side) - Fixed and always visible */}
               <div className="
-                hidden lg:block
+                hidden lg:flex lg:flex-col
                 fixed right-0 top-0 bottom-0 w-96
                 bg-white/95 backdrop-blur-xl
                 border-l-4 border-purple-500/20
                 shadow-[-10px_0_40px_rgba(168,85,247,0.15)]
-                pt-20 px-6 pb-6
+                pt-20
                 z-20
                 animate-slide-in-right
-                overflow-y-auto scroll-smooth
-                [&::-webkit-scrollbar]:w-2
-                [&::-webkit-scrollbar-track]:bg-transparent
-                [&::-webkit-scrollbar-thumb]:bg-purple-200/50
-                [&::-webkit-scrollbar-thumb]:rounded-full
-                [&::-webkit-scrollbar-thumb]:hover:bg-purple-300/70
               ">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
+                {/* Header - Fixed at top */}
+                <div className="flex items-center justify-between mb-4 px-6 pt-6 flex-shrink-0">
                   <h3 className="text-lg font-bold text-purple-600 flex items-center gap-2">
                     <Radio className="h-5 w-5 animate-pulse" />
                     Transcrição ao Vivo
@@ -731,8 +744,14 @@ const LiveLecture = () => {
                   </Badge>
                 </div>
 
-                {/* Scroll Area */}
-                <div className="flex-1 overflow-y-auto mb-4">
+                {/* Scroll Area - Takes remaining space */}
+                <div className="flex-1 overflow-y-auto px-6 scroll-smooth
+                  [&::-webkit-scrollbar]:w-2
+                  [&::-webkit-scrollbar-track]:bg-transparent
+                  [&::-webkit-scrollbar-thumb]:bg-purple-200/50
+                  [&::-webkit-scrollbar-thumb]:rounded-full
+                  [&::-webkit-scrollbar-thumb]:hover:bg-purple-300/70
+                ">
                   <LiveTranscriptViewer
                     segments={transcriptSegments}
                     currentWords={currentWords}
@@ -740,8 +759,8 @@ const LiveLecture = () => {
                   />
                 </div>
 
-                {/* Metrics - Always Visible */}
-                <div className="pt-4 border-t border-gray-200 bg-gray-50 -mx-6 px-6 -mb-6 pb-6">
+                {/* Metrics - Fixed at bottom */}
+                <div className="pt-4 border-t border-gray-200 bg-gray-50 px-6 pb-6 flex-shrink-0">
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div className="flex flex-col items-center">
                       <Clock className="h-4 w-4 text-purple-500 mb-1" />

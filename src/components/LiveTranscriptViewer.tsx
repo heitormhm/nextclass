@@ -42,6 +42,7 @@ export const LiveTranscriptViewer: React.FC<LiveTranscriptViewerProps> = ({
           <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p className="text-sm font-medium">Aguardando transcrição...</p>
           <p className="text-xs mt-1">Comece a falar para ver a transcrição aqui</p>
+          <p className="text-xs mt-2 text-amber-600 font-medium">⚠️ Requer créditos OpenAI para transcrição ao vivo</p>
         </div>
       )}
 
@@ -92,16 +93,18 @@ export const LiveTranscriptViewer: React.FC<LiveTranscriptViewerProps> = ({
       
       {/* Palavras sendo processadas em tempo real */}
       {currentWords.length > 0 && (
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2 animate-fade-in bg-purple-50/50 p-3 rounded-lg border border-purple-200">
           <GraduationCap className="h-4 w-4 text-purple-500 mt-0.5 animate-pulse" />
           <div className="flex flex-wrap gap-1">
             {currentWords.map((word, idx) => (
               <span
                 key={idx}
-                className="text-sm text-gray-600 animate-fade-in"
+                className="text-sm text-purple-900 font-medium transition-all duration-300"
                 style={{
-                  opacity: word.confidence,
-                  animationDelay: `${idx * 50}ms`
+                  opacity: Math.max(0.6, word.confidence),
+                  animationDelay: `${idx * 50}ms`,
+                  display: 'inline-block',
+                  animation: 'fadeInScale 0.3s ease-out'
                 }}
               >
                 {word.text}
