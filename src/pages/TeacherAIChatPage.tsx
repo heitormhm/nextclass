@@ -944,9 +944,12 @@ Markdown com:
     const tag = ACTION_TAGS[action];
     if (!tag) return;
     
+    // Preserve existing input text
+    const currentText = inputMessage.trim();
+    
     setActiveTag(tag);
-    setUserInput("");
-    setInputMessage("");
+    setUserInput(currentText); // Transfer to userInput
+    setInputMessage(""); // Clear main input
     
     setTimeout(() => {
       document.querySelector('textarea')?.focus();
@@ -1411,86 +1414,6 @@ Markdown com:
                         </ReactMarkdown>
                       </div>
 
-                      {/* Botão Exportar PDF para mensagens de Deep Search */}
-                      {!message.isUser && deepSearchIndicators.some(indicator => message.content.includes(indicator)) && (
-                        <div className="mt-4">
-                          <Button
-                            size="sm"
-                            onClick={async () => {
-                              console.log('🎯 Iniciando geração de PDF...');
-                              console.log('📄 Conteúdo:', message.content.substring(0, 200) + '...');
-                              console.log('📏 Tamanho do conteúdo:', message.content.length, 'caracteres');
-                              
-                              const result = await generateReportPDF({
-                                content: message.content,
-                                title: 'Relatório de Pesquisa Profunda',
-                                logoSvg: '',
-                              });
-                              
-                              if (result.success) {
-                                let description = "O relatório foi gerado e o download iniciou.";
-                                
-                                if (result.fixesApplied && result.fixesApplied.length > 0) {
-                                  description = "✅ PDF gerado com sucesso após correções automáticas!\n\n";
-                                  description += `🔧 Correções aplicadas:\n${result.fixesApplied.map(f => `• ${f}`).join('\n')}`;
-                                }
-                                
-                                if (result.stats) {
-                                  description += `\n\n📊 Estatísticas:\n`;
-                                  description += `• Conteúdo: ${result.stats.content.h1Count + result.stats.content.h2Count + result.stats.content.h3Count} títulos, ${result.stats.content.paragraphCount} parágrafos\n`;
-                                  if (result.stats.render) {
-                                    description += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
-                                  }
-                                  description += `• PDF: ${result.stats.pdf.pageCount} páginas geradas`;
-                                }
-                                
-                                if (result.warnings && result.warnings.length > 0) {
-                                  description += `\n\n⚠️ Avisos:\n${result.warnings.map(w => `• ${w}`).join('\n')}`;
-                                }
-                                
-                                toast({
-                                  title: result.fixesApplied ? "✅ PDF Gerado (Auto-Corrigido)" : "✅ PDF Gerado com Sucesso",
-                                  description,
-                                  duration: result.fixesApplied ? 8000 : 5000,
-                                });
-                              } else {
-                                let errorDescription = result.error || "Erro desconhecido";
-                                
-                                if (result.diagnostics && result.diagnostics.length > 0) {
-                                  errorDescription += `\n\n🔍 Problemas detectados:\n`;
-                                  errorDescription += result.diagnostics.map(d => `• ${d.issue}\n  Sugestão: ${d.suggestedFix}`).join('\n');
-                                }
-                                
-                                if (result.stats?.render) {
-                                  errorDescription += `\n\n📊 Debug Info:\n`;
-                                  errorDescription += `• Renderizado: ${result.stats.render.h1 + result.stats.render.h2 + result.stats.render.h3} títulos, ${result.stats.render.paragraphs} parágrafos\n`;
-                                  errorDescription += `• Páginas adicionadas: ${result.stats.render.pagesAdded}`;
-                                }
-                                
-                                toast({
-                                  title: "❌ Erro ao Gerar PDF",
-                                  description: errorDescription,
-                                  variant: "destructive",
-                                  duration: 10000,
-                                });
-                                
-                                console.error('❌ Falha na geração do PDF');
-                                console.error('Erro:', result.error);
-                                if (result.diagnostics) {
-                                  console.error('Diagnósticos:', result.diagnostics);
-                                }
-                                if (result.stats) {
-                                  console.error('Stats:', result.stats);
-                                }
-                              }
-                            }}
-                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all duration-300 px-4 py-2.5 rounded-xl"
-                          >
-                            <FileDown className="w-4 h-4 mr-2" />
-                            <span className="font-bold text-sm">Exportar PDF</span>
-                          </Button>
-                        </div>
-                      )}
                             
                           {!message.isUser && message.jobIds?.map((jobId) => {
                             const job = activeJobs.get(jobId);
@@ -1511,7 +1434,6 @@ Markdown com:
                             <SmartMessageActions
                               messageContent={message.content}
                               messageId={message.id}
-                              isDeepSearchResult={deepSearchIndicators.some(ind => message.content.includes(ind))}
                               onExportPDF={() => handleExportPDF(message.content)}
                               onGenerateSuggestions={() => handleGenerateSuggestions(message.content)}
                               onAddToAnnotations={() => handleAddToAnnotations(message.content)}

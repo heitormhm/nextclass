@@ -4,7 +4,6 @@ import { FileDown, Lightbulb, FileEdit } from "lucide-react";
 interface SmartMessageActionsProps {
   messageContent: string;
   messageId: string;
-  isDeepSearchResult: boolean;
   onExportPDF: () => void;
   onGenerateSuggestions: () => void;
   onAddToAnnotations: () => void;
@@ -13,7 +12,6 @@ interface SmartMessageActionsProps {
 export const SmartMessageActions = ({
   messageContent,
   messageId,
-  isDeepSearchResult,
   onExportPDF,
   onGenerateSuggestions,
   onAddToAnnotations
@@ -23,18 +21,16 @@ export const SmartMessageActions = ({
 
   return (
     <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-purple-100">
-      {/* Export PDF Button */}
-      {isDeepSearchResult && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onExportPDF}
-          className="text-xs bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border-purple-200"
-        >
-          <FileDown className="w-3 h-3 mr-1.5" />
-          Exportar PDF
-        </Button>
-      )}
+      {/* Export PDF Button - Always show for long messages */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onExportPDF}
+        className="text-xs bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border-purple-200"
+      >
+        <FileDown className="w-3 h-3 mr-1.5" />
+        Exportar PDF
+      </Button>
 
       {/* Generate Suggestions Button */}
       <Button
