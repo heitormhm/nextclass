@@ -149,13 +149,13 @@ const Navbar = () => {
               return (
                 <Tooltip key={item.label}>
                   <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setIsRecordModalOpen(true)}
-                    className="flex items-center text-foreground-muted hover:text-primary transition-colors"
-                    aria-label={item.label}
-                  >
-                    <item.icon className="h-5 w-5" />
-                  </button>
+              <button
+                onClick={() => setIsRecordModalOpen(true)}
+                className="flex items-center justify-center text-foreground-muted hover:text-primary transition-colors w-5 h-5"
+                aria-label={item.label}
+              >
+                <item.icon className="h-5 w-5" />
+              </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-xs">
                     {item.label}
@@ -188,7 +188,7 @@ const Navbar = () => {
                 <TooltipTrigger asChild>
                   <Link
                     to={item.href}
-                    className="flex items-center text-foreground-muted hover:text-primary transition-colors relative"
+                    className="flex items-center justify-center text-foreground-muted hover:text-primary transition-colors relative w-5 h-5"
                     aria-label={item.label}
                   >
                     <item.icon className="h-5 w-5" />
