@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }) => {
-  const { user, role: userRole, loading } = useAuth();
+  const { user, role: userRole, isValidated, loading } = useAuth();
 
   // Show loading spinner while auth state is being determined
   if (loading) {
@@ -25,6 +25,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }
   // Redirect to auth page if not authenticated
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Check if teacher needs validation (before role check)
+  if (userRole === 'teacher' && isValidated === false) {
+    // Allow access only to validation page
+    if (window.location.pathname !== '/teacher/validate') {
+      return <Navigate to="/teacher/validate" replace />;
+    }
   }
 
   // If a specific role is required, check if user has the correct role

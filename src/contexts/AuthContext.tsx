@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   role: UserRole;
+  isValidated: boolean | null;
   loading: boolean;
   firstName: string;
   signOut: () => Promise<void>;
@@ -19,6 +20,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<UserRole>(null);
+  const [isValidated, setIsValidated] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState<string>('');
 
@@ -41,6 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }, 0);
         } else {
           setRole(null);
+          setIsValidated(null);
           setFirstName('');
           setLoading(false);
         }
@@ -69,25 +72,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // Fetch role from user_roles table (secure, separate from profile data)
+      // Fetch role and validation status from user_roles table
       const { data, error } = await supabase
         .from('user_roles')
-        .select('role')
+        .select('role, is_validated')
         .eq('user_id', userId)
         .maybeSingle();
 
       if (error) {
         console.error('Error fetching user role:', error);
         setRole(null);
+        setIsValidated(null);
       } else if (data?.role) {
         setRole(data.role as UserRole);
+        setIsValidated(data.is_validated ?? null);
       } else {
         // User not found in user_roles table, default to student
         setRole('student');
+        setIsValidated(true);
       }
     } catch (error) {
       console.error('Error fetching user role:', error);
       setRole(null);
+      setIsValidated(null);
     } finally {
       setLoading(false);
     }
@@ -106,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setSession(null);
       setRole(null);
+      setIsValidated(null);
       setFirstName('');
     } catch (error) {
       console.error('Failed to sign out:', error);
@@ -117,6 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     role,
+    isValidated,
     loading,
     firstName,
     signOut,

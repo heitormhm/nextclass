@@ -259,6 +259,23 @@ const AuthPage = () => {
         }
       }
 
+      // Check if teacher needs validation
+      if (selectedRole === 'teacher' && authData.user) {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('is_validated')
+          .eq('user_id', authData.user.id)
+          .single();
+        
+        if (roleData && !roleData.is_validated) {
+          toast.success('Conta criada! Por favor, insira seu código de acesso de professor.');
+          setTimeout(() => {
+            navigate('/teacher/validate', { replace: true });
+          }, 1000);
+          return;
+        }
+      }
+
       toast.success('Cadastro realizado com sucesso! Redirecionando...');
       
       // Redirect based on selected role
