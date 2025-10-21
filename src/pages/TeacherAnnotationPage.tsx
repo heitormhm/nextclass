@@ -665,6 +665,12 @@ const TeacherAnnotationPage = () => {
             console.log(`[${actionType}] ✅ ${parsedContent.conteudo.length} blocos detectados`);
             console.log(`[${actionType}] Tipos de blocos:`, parsedContent.conteudo.map((b: any) => b.tipo).join(', '));
             
+            // Check for removed diagrams and show warning
+            const removedDiagrams = parsedContent.conteudo.filter((b: any) => 
+              b.tipo === 'paragrafo' && 
+              (b.texto?.includes('Diagrama removido') || b.texto?.includes('diagrama removido'))
+            ).length;
+            
             const jsonContent = JSON.stringify(parsedContent);
             
             // IMPORTANTE: Definir estados na ordem correta
@@ -683,6 +689,14 @@ const TeacherAnnotationPage = () => {
             // Limpar toast de progresso se existir
             if (progressToastId) {
               toast.dismiss(progressToastId);
+            }
+            
+            // Show warning if diagrams were removed
+            if (removedDiagrams > 0) {
+              toast.warning(`⚠️ ${removedDiagrams} diagrama(s) removido(s) por conter erros`, {
+                description: 'Diagramas com sintaxe inválida foram substituídos por texto. O restante do conteúdo foi gerado normalmente.',
+                duration: 8000,
+              });
             }
             
             // Toast específico para cada tipo

@@ -31,13 +31,23 @@ function applyManualSafetyValidations(data: any): any {
   console.log('[Manual Validation] Aplicando validações de segurança manuais...');
   
   const validatedContent = data.conteudo.map((bloco: any, index: number) => {
-    // 1. MERMAID: Remover caracteres especiais proibidos e simplificar
-    if (['fluxograma', 'mapa_mental', 'diagrama', 'organograma'].includes(bloco.tipo)) {
+    // 1. MERMAID: Validação rigorosa e sanitização agressiva
+    if (['fluxograma', 'mapa_mental', 'diagrama', 'organograma', 'cronograma_gantt'].includes(bloco.tipo)) {
       if (bloco.definicao_mermaid) {
         let sanitized = bloco.definicao_mermaid;
         const originalLength = sanitized.length;
         
-        // Substituir setas Unicode por sintaxe Mermaid válida
+        // ETAPA 1: Validar tipo de diagrama (safe list)
+        const validTypes = /^(graph|flowchart|mindmap|gantt)\s/m;
+        if (!sanitized.match(validTypes)) {
+          console.warn(`[Manual Validation] ⚠️ Bloco ${index}: Tipo Mermaid inválido - REMOVENDO`);
+          return {
+            tipo: 'paragrafo',
+            texto: '<em class="text-muted-foreground">⚠️ Diagrama removido (tipo inválido)</em>'
+          };
+        }
+        
+        // ETAPA 2: Substituir setas Unicode ANTES de processar brackets
         sanitized = sanitized
           .replace(/→/g, '-->')
           .replace(/←/g, '<--')
@@ -46,23 +56,48 @@ function applyManualSafetyValidations(data: any): any {
           .replace(/⇐/g, '<==')
           .replace(/⇔/g, '<==>');
         
-        // Remover parênteses dentro de labels que podem quebrar sintaxe
-        sanitized = sanitized.replace(/\[([^\]]*?)\(([^)]*?)\)([^\]]*?)\]/g, '[$1 - $2 $3]');
+        // ETAPA 3: Remover/substituir caracteres matemáticos complexos
+        sanitized = sanitized
+          // Símbolos matemáticos problemáticos
+          .replace(/[×÷±≈≠≤≥∞∫∂∑∏√]/g, ' ')
+          // Superscripts e subscripts
+          .replace(/[²³⁴⁵⁶⁷⁸⁹⁰]/g, '')
+          .replace(/[₀₁₂₃₄₅₆₇₈₉]/g, '');
         
-        // Simplificar fórmulas complexas em labels
-        sanitized = sanitized.replace(/\[([^\]]*?)(P\/γ|V²\/2g|ρgh)([^\]]*?)\]/g, '[Fórmula de energia]');
+        // ETAPA 4: Simplificar labels com parênteses e fórmulas
+        sanitized = sanitized
+          // Fórmulas complexas em labels
+          .replace(/\[([^\]]*?)(P\/γ|V²\/2g|ρgh|[A-Z]\/[A-Z]|²\/\d)([^\]]*?)\]/g, '[Fórmula]')
+          // Parênteses que podem quebrar sintaxe Mermaid
+          .replace(/\[([^\]]*?)\(([^)]*?)\)([^\]]*?)\]/g, '[$1 - $2 $3]')
+          // Frações numéricas
+          .replace(/\d+\/\d+/g, 'ratio');
+        
+        // ETAPA 5: Limpar espaços duplicados e caracteres de controle
+        sanitized = sanitized
+          .replace(/\s+/g, ' ')
+          .replace(/[\x00-\x1F\x7F]/g, '') // Remove caracteres de controle
+          .trim();
         
         if (sanitized.length !== originalLength) {
-          console.log(`[Manual Validation] Bloco ${index}: Mermaid sanitizado`);
+          console.log(`[Manual Validation] Bloco ${index}: Mermaid sanitizado (${originalLength} → ${sanitized.length} chars)`);
         }
         
-        // Se ainda tiver caracteres problemáticos, remover bloco
-        if (sanitized.match(/[→←↔⇒⇐⇔]/)) {
-          console.warn(`[Manual Validation] ⚠️ Bloco ${index}: Mermaid com erros graves - REMOVENDO`);
-          return {
-            tipo: 'paragrafo',
-            texto: '<em class="text-muted-foreground">⚠️ Diagrama removido por conter erros de sintaxe</em>'
-          };
+        // ETAPA 6: Verificação final - se ainda tiver problemas, remover
+        const problematicPatterns = [
+          /[→←↔⇒⇐⇔]/,  // Setas Unicode remanescentes
+          /[²³⁴⁵⁶⁷⁸⁹⁰₀₁₂₃₄₅₆₇₈₉]/,  // Super/subscripts remanescentes
+          /\[[^\]]*?\([^\)]*?\([^\)]*?\)/  // Parênteses aninhados em labels
+        ];
+        
+        for (const pattern of problematicPatterns) {
+          if (sanitized.match(pattern)) {
+            console.warn(`[Manual Validation] ⚠️ Bloco ${index}: Mermaid ainda com erros - REMOVENDO`);
+            return {
+              tipo: 'paragrafo',
+              texto: '<em class="text-muted-foreground">⚠️ Diagrama removido por conter sintaxe complexa incompatível</em>'
+            };
+          }
         }
         
         bloco.definicao_mermaid = sanitized;

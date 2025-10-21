@@ -112,12 +112,27 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           console.log('[Mermaid] Original code:', code);
           console.log('[Mermaid] Sanitized code:', sanitizedCode);
           
+          // PRE-RENDER VALIDATION: Check if diagram type is valid
+          if (!sanitizedCode.match(/^(graph|flowchart|mindmap|gantt)/m)) {
+            console.warn('[Mermaid] Invalid diagram type detected, skipping render');
+            setError('invalid');
+            return;
+          }
+          
+          // Add timeout protection to prevent hanging
+          const renderTimeout = setTimeout(() => {
+            console.error('[Mermaid] Render timeout after 5 seconds');
+            setError('timeout');
+          }, 5000);
+          
           try {
             const { svg } = await mermaid.render(uniqueId, sanitizedCode);
+            clearTimeout(renderTimeout);
             ref.current.innerHTML = svg;
             setError(null);
             console.log('[Mermaid] ✅ Rendered successfully');
           } catch (renderErr) {
+            clearTimeout(renderTimeout);
             // Error already logged by parseError handler
             setError('hidden');
             console.error('[Mermaid] ❌ Render falhou, mostrando placeholder neutro');

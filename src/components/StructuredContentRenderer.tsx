@@ -1,6 +1,7 @@
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { MermaidDiagram } from './MermaidDiagram';
+import { MermaidErrorBoundary } from './MermaidErrorBoundary';
 import { InteractiveChart } from './InteractiveChart';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -173,13 +174,14 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
       
       case 'cronograma_gantt':
         return (
-          <MermaidDiagram
-            key={index}
-            code={bloco.definicao_mermaid || ''}
-            title={bloco.titulo || '⏱️ Cronograma da Aula'}
-            description="Estrutura temporal e sequência de atividades"
-            icon="📅"
-          />
+          <MermaidErrorBoundary key={index}>
+            <MermaidDiagram
+              code={bloco.definicao_mermaid || ''}
+              title={bloco.titulo || '⏱️ Cronograma da Aula'}
+              description="Estrutura temporal e sequência de atividades"
+              icon="📅"
+            />
+          </MermaidErrorBoundary>
         );
 
       case 'momento_pedagogico':
@@ -306,13 +308,14 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
           organograma: '🏢' 
         };
         return (
-          <MermaidDiagram
-            key={index}
-            code={bloco.definicao_mermaid || ''}
-            title={bloco.titulo || ''}
-            description={bloco.descricao || ''}
-            icon={icons[bloco.tipo] || '📊'}
-          />
+          <MermaidErrorBoundary key={index}>
+            <MermaidDiagram
+              code={bloco.definicao_mermaid || ''}
+              title={bloco.titulo || ''}
+              description={bloco.descricao || ''}
+              icon={icons[bloco.tipo] || '📊'}
+            />
+          </MermaidErrorBoundary>
         );
       
       case 'grafico':
