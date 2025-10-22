@@ -1422,7 +1422,7 @@ export type Database = {
     }
     Functions: {
       get_available_turmas: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           cidade: string
           curso: string
@@ -1441,10 +1441,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "student" | "teacher" | "admin"
