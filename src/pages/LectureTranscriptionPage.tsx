@@ -983,7 +983,7 @@ const LectureTranscriptionPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="bg-white p-4 rounded-lg space-y-4">
-                      {structuredContent.topicos_principais.map((topico, index) => (
+                      {(structuredContent?.topicos_principais || []).map((topico, index) => (
                         <div key={index} className="border-l-2 border-purple-600 pl-4">
                           <h4 className="text-slate-900 font-semibold mb-2">
                             {topico.conceito}
@@ -1016,7 +1016,7 @@ const LectureTranscriptionPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {structuredContent.referencias_externas.map((ref, index) => (
+                      {(structuredContent?.referencias_externas || []).map((ref, index) => (
                         <a
                           key={index}
                           href={ref.url}
@@ -1041,7 +1041,7 @@ const LectureTranscriptionPage = () => {
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-slate-900 font-bold">
-                      Perguntas de Revisão ({generatedQuiz?.questions?.length || structuredContent.perguntas_revisao.length})
+                      Perguntas de Revisão ({generatedQuiz?.questions?.length || structuredContent?.perguntas_revisao?.length || 0})
                     </CardTitle>
                     <div className="flex gap-2">
                       {hasQuiz && generatedQuiz && (
@@ -1094,13 +1094,13 @@ const LectureTranscriptionPage = () => {
                   <CardContent>
                     <ScrollArea className="h-[400px] pr-4">
                       <div className="space-y-6">
-                        {(generatedQuiz?.questions || structuredContent.perguntas_revisao).map((pergunta, index) => (
+                        {(generatedQuiz?.questions || structuredContent?.perguntas_revisao || []).map((pergunta, index) => (
                           <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
                             <p className="text-slate-900 font-medium mb-3">
                               {index + 1}. {pergunta.pergunta}
                             </p>
                             <div className="space-y-2">
-                              {pergunta.opcoes.map((opcao, opIndex) => (
+                              {(pergunta?.opcoes || []).map((opcao, opIndex) => (
                                 <div
                                   key={opIndex}
                                   className={`p-3 rounded ${
@@ -1179,7 +1179,7 @@ const LectureTranscriptionPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(generatedFlashcards?.cards || structuredContent.flashcards).map((card, index) => (
+                      {(generatedFlashcards?.cards || structuredContent?.flashcards || []).map((card, index) => (
                         <div
                           key={index}
                           className="bg-white rounded-lg p-4 border border-slate-200"
