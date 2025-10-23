@@ -12,10 +12,34 @@ serve(async (req) => {
   }
 
   try {
+    console.group('[teacher-generate-flashcards-v2] 📥 Request received');
+    console.log('Method:', req.method);
+    console.log('Headers:', Object.fromEntries(req.headers.entries()));
+    console.groupEnd();
+
     const authHeader = req.headers.get('Authorization');
+    
+    console.log('[teacher-generate-flashcards-v2] 🔐 Auth header present:', !!authHeader);
+    console.log('[teacher-generate-flashcards-v2] 🔐 Auth header value (first 20 chars):', authHeader?.substring(0, 20));
+    
     if (!authHeader) {
-      console.error('[teacher-generate-flashcards-v2] No authorization header');
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+      console.error('[teacher-generate-flashcards-v2] ❌ No authorization header');
+      return new Response(JSON.stringify({ 
+        error: 'No authorization header',
+        hint: 'Make sure you are logged in and session is active'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Verificar formato do header
+    if (!authHeader.startsWith('Bearer ')) {
+      console.error('[teacher-generate-flashcards-v2] ❌ Invalid authorization header format');
+      return new Response(JSON.stringify({ 
+        error: 'Invalid authorization header format',
+        hint: 'Header must start with "Bearer "'
+      }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

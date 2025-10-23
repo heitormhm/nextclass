@@ -175,6 +175,8 @@ const LectureTranscriptionPage = () => {
     console.log('Setting up subscription to teacher_jobs table...');
     console.groupEnd();
 
+    let processingTimeoutId: NodeJS.Timeout | null = null;
+
     const channel = supabase
       .channel(`teacher-jobs-${id}`)
       .on(
@@ -189,10 +191,31 @@ const LectureTranscriptionPage = () => {
           console.group('📬 [Realtime] Job Update Received');
           console.log('Payload:', payload);
           console.groupEnd();
+
+          // Clear any existing timeout
+          if (processingTimeoutId) {
+            clearTimeout(processingTimeoutId);
+            processingTimeoutId = null;
+          }
           
           const job = payload.new as any;
           
           if (!job) return;
+
+          // Handle PROCESSING status - set timeout
+          if (job.status === 'PROCESSING') {
+            console.log('🔄 [Realtime] Job is being processed:', job.id);
+            
+            // Set timeout de 180 segundos (3 minutos)
+            processingTimeoutId = setTimeout(() => {
+              console.error('[Realtime] ⏱️ Job timeout - processing took too long');
+              toast({
+                variant: 'destructive',
+                title: 'Tempo esgotado',
+                description: 'A geração está demorando. Tente recarregar a página.',
+              });
+            }, 180000);
+          }
 
           // Handle COMPLETED jobs
           if (job.status === 'COMPLETED') {
@@ -262,6 +285,9 @@ const LectureTranscriptionPage = () => {
 
     return () => {
       console.log('🔌 [Realtime] Cleaning up subscription for lecture:', id);
+      if (processingTimeoutId) {
+        clearTimeout(processingTimeoutId);
+      }
       supabase.removeChannel(channel);
     };
   }, [id]);
@@ -274,62 +300,99 @@ const LectureTranscriptionPage = () => {
     functionName: 'teacher-generate-quiz-v2' | 'teacher-generate-flashcards-v2',
     lectureId: string
   ): Promise<{ success: boolean; jobId?: string; error?: string }> => {
-    try {
-      // 1. Validar sessão
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        console.error(`[${functionName}] ❌ Session error:`, sessionError);
-        return { 
-          success: false, 
-          error: 'Sessão expirada. Por favor, faça login novamente.' 
-        };
-      }
+    let retryCount = 0;
+    const maxRetries = 2;
 
-      console.log(`[${functionName}] ✅ Session valid, invoking function...`);
-
-      // 2. Invocar edge function COM Authorization header explícito
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: { lectureId },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`, // 🔑 CRÍTICO
-        }
-      });
-
-      // 3. Tratar erros de forma unificada
-      if (error) {
-        console.error(`[${functionName}] ❌ Function error:`, error);
+    while (retryCount <= maxRetries) {
+      try {
+        // 1. Validar sessão
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          return { success: false, error: 'Sessão expirada. Por favor, faça login novamente.' };
+        if (sessionError || !session) {
+          console.error(`[${functionName}] ❌ Session error:`, sessionError);
+          return { 
+            success: false, 
+            error: 'Sessão expirada. Por favor, faça login novamente.' 
+          };
         }
-        if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
-          return { success: false, error: 'Você não tem permissão para editar esta aula.' };
+
+        console.group(`📤 [${functionName}] Preparing request`);
+        console.log('Lecture ID:', lectureId);
+        console.log('Session exists:', !!session);
+        console.log('Access token exists:', !!session?.access_token);
+        console.log('Access token (first 20 chars):', session?.access_token?.substring(0, 20));
+        console.log('Retry attempt:', retryCount);
+        console.groupEnd();
+
+        // 2. Invocar edge function SEM Authorization header manual
+        // SDK adiciona automaticamente usando o session context
+        const { data, error } = await supabase.functions.invoke(functionName, {
+          body: { lectureId }
+          // ✅ SDK usa automaticamente o session do auth context
+        });
+
+        // 3. Tratar erros
+        if (error) {
+          console.error(`[${functionName}] ❌ Function error:`, error);
+          
+          const errorMsg = error.message || '';
+          
+          // Se erro 500 ou timeout, tentar novamente
+          if ((errorMsg.includes('500') || errorMsg.includes('timeout')) && retryCount < maxRetries) {
+            retryCount++;
+            console.log(`[${functionName}] ⚠️ Retry ${retryCount}/${maxRetries} após erro 500/timeout...`);
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
+            continue;
+          }
+          
+          if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+            return { success: false, error: 'Sessão expirada. Por favor, faça login novamente.' };
+          }
+          if (errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
+            return { success: false, error: 'Você não tem permissão para editar esta aula.' };
+          }
+          if (errorMsg.includes('404')) {
+            return { success: false, error: 'Aula não encontrada.' };
+          }
+          if (errorMsg.includes('500')) {
+            return { success: false, error: 'Erro no servidor. Tente novamente em alguns instantes.' };
+          }
+          
+          console.error(`[${functionName}] ❌ Full error object:`, JSON.stringify(error, null, 2));
+          
+          return { 
+            success: false, 
+            error: errorMsg || 'Erro ao iniciar geração' 
+          };
         }
-        if (error.message?.includes('404')) {
-          return { success: false, error: 'Aula não encontrada.' };
+
+        console.log(`[${functionName}] ✅ Function invoked successfully:`, data);
+
+        return { 
+          success: true, 
+          jobId: data?.jobId 
+        };
+
+      } catch (error) {
+        console.error(`[${functionName}] ❌ Unexpected error:`, error);
+        
+        retryCount++;
+        if (retryCount > maxRetries) {
+          return { 
+            success: false, 
+            error: error instanceof Error ? error.message : 'Erro inesperado' 
+          };
         }
         
-        return { 
-          success: false, 
-          error: error.message || 'Erro ao iniciar geração' 
-        };
+        console.log(`[${functionName}] ⚠️ Retry ${retryCount}/${maxRetries} após exceção...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
-
-      console.log(`[${functionName}] ✅ Function invoked successfully:`, data);
-
-      return { 
-        success: true, 
-        jobId: data?.jobId 
-      };
-
-    } catch (error) {
-      console.error(`[${functionName}] ❌ Unexpected error:`, error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Erro inesperado' 
-      };
     }
+
+    return { 
+      success: false, 
+      error: 'Número máximo de tentativas excedido' 
+    };
   };
 
   const loadLectureData = async () => {
