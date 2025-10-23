@@ -95,6 +95,10 @@ const LectureTranscriptionPage = () => {
   const [hasQuiz, setHasQuiz] = useState(false);
   const [hasFlashcards, setHasFlashcards] = useState(false);
   
+  // Job tracking state
+  const [currentQuizJob, setCurrentQuizJob] = useState<string | null>(null);
+  const [currentFlashcardsJob, setCurrentFlashcardsJob] = useState<string | null>(null);
+  
   // Generated materials state
   const [generatedQuiz, setGeneratedQuiz] = useState<{
     id: string;
@@ -445,8 +449,8 @@ const LectureTranscriptionPage = () => {
       
       toast({
         title: 'Gerando quiz...',
-        description: 'Isso pode levar até 60 segundos. Aguarde...',
-        duration: 60000,
+        description: 'A geração está em andamento. Você receberá uma notificação quando concluir.',
+        duration: 5000,
       });
 
       // Get authentication token
@@ -455,12 +459,11 @@ const LectureTranscriptionPage = () => {
         throw new Error('Usuário não autenticado');
       }
 
-      console.log('[Quiz] Invocando teacher-generate-quiz-v2 com:', { lectureId: id, title: lectureTitle });
+      console.log('[Quiz] Invocando teacher-generate-quiz-v2 com:', { lectureId: id });
 
       const { data, error } = await supabase.functions.invoke('teacher-generate-quiz-v2', {
         body: {
           lectureId: id,
-          title: lectureTitle,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`
@@ -469,18 +472,14 @@ const LectureTranscriptionPage = () => {
 
       if (error) {
         console.error('[Quiz] Erro retornado:', error);
+        setIsGeneratingQuiz(false);
         
-        // Mensagens específicas por tipo de erro
-        let errorMessage = 'Não foi possível gerar o quiz';
+        let errorMessage = 'Não foi possível iniciar a geração do quiz';
         
         if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
           errorMessage = 'Sessão expirada. Por favor, faça login novamente.';
         } else if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
           errorMessage = 'Você não tem permissão para editar esta aula.';
-        } else if (error.message?.includes('rate limit')) {
-          errorMessage = 'Limite de requisições atingido. Tente novamente em alguns instantes.';
-        } else if (error.message?.includes('timeout')) {
-          errorMessage = 'A geração está demorando mais que o esperado. Tente novamente.';
         }
         
         toast({
@@ -492,24 +491,20 @@ const LectureTranscriptionPage = () => {
         throw error;
       }
 
-      console.log('[Quiz] Quiz gerado com sucesso:', data);
+      console.log('[Quiz] Job criado com sucesso:', data);
       
-      // Reload quiz data
-      await loadQuizData();
+      if (data?.jobId) {
+        setCurrentQuizJob(data.jobId);
+      }
       
-      toast({
-        title: 'Quiz gerado!',
-        description: `${data?.questionCount || 'Várias'} questões foram criadas com sucesso`,
-      });
     } catch (error) {
       console.error('[Quiz] Error generating quiz:', error);
+      setIsGeneratingQuiz(false);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar quiz',
         description: error instanceof Error ? error.message : 'Não foi possível gerar o quiz',
       });
-    } finally {
-      setIsGeneratingQuiz(false);
     }
   };
 
@@ -529,8 +524,8 @@ const LectureTranscriptionPage = () => {
       
       toast({
         title: 'Gerando flashcards...',
-        description: 'Isso pode levar até 60 segundos. Aguarde...',
-        duration: 60000,
+        description: 'A geração está em andamento. Você receberá uma notificação quando concluir.',
+        duration: 5000,
       });
 
       // Get authentication token
@@ -539,12 +534,11 @@ const LectureTranscriptionPage = () => {
         throw new Error('Usuário não autenticado');
       }
 
-      console.log('[Flashcards] Invocando teacher-generate-flashcards-v2 com:', { lectureId: id, title: lectureTitle });
+      console.log('[Flashcards] Invocando teacher-generate-flashcards-v2 com:', { lectureId: id });
 
       const { data, error } = await supabase.functions.invoke('teacher-generate-flashcards-v2', {
         body: {
           lectureId: id,
-          title: lectureTitle,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`
@@ -553,18 +547,14 @@ const LectureTranscriptionPage = () => {
 
       if (error) {
         console.error('[Flashcards] Erro retornado:', error);
+        setIsGeneratingFlashcards(false);
         
-        // Mensagens específicas por tipo de erro
-        let errorMessage = 'Não foi possível gerar os flashcards';
+        let errorMessage = 'Não foi possível iniciar a geração dos flashcards';
         
         if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
           errorMessage = 'Sessão expirada. Por favor, faça login novamente.';
         } else if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
           errorMessage = 'Você não tem permissão para editar esta aula.';
-        } else if (error.message?.includes('rate limit')) {
-          errorMessage = 'Limite de requisições atingido. Tente novamente em alguns instantes.';
-        } else if (error.message?.includes('timeout')) {
-          errorMessage = 'A geração está demorando mais que o esperado. Tente novamente.';
         }
         
         toast({
@@ -576,24 +566,20 @@ const LectureTranscriptionPage = () => {
         throw error;
       }
 
-      console.log('[Flashcards] Flashcards gerados com sucesso:', data);
+      console.log('[Flashcards] Job criado com sucesso:', data);
       
-      // Reload flashcards data
-      await loadFlashcardsData();
+      if (data?.jobId) {
+        setCurrentFlashcardsJob(data.jobId);
+      }
       
-      toast({
-        title: 'Flashcards gerados!',
-        description: `${data?.cardCount || 'Vários'} flashcards criados com sucesso`,
-      });
     } catch (error) {
       console.error('[Flashcards] Error generating flashcards:', error);
+      setIsGeneratingFlashcards(false);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar flashcards',
         description: error instanceof Error ? error.message : 'Não foi possível gerar os flashcards',
       });
-    } finally {
-      setIsGeneratingFlashcards(false);
     }
   };
 

@@ -1218,6 +1218,53 @@ export type Database = {
           },
         ]
       }
+      teacher_jobs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          input_payload: Json | null
+          job_type: string
+          lecture_id: string
+          result_payload: Json | null
+          status: string
+          teacher_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_payload?: Json | null
+          job_type: string
+          lecture_id: string
+          result_payload?: Json | null
+          status?: string
+          teacher_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_payload?: Json | null
+          job_type?: string
+          lecture_id?: string
+          result_payload?: Json | null
+          status?: string
+          teacher_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_jobs_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_quizzes: {
         Row: {
           created_at: string | null
