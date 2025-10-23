@@ -1,3 +1,26 @@
+/**
+ * FLUXO DE GERAÇÃO DE QUIZ/FLASHCARDS (Job-Based Architecture)
+ * 
+ * 1. User clica "Gerar Novas" → handleGenerateQuiz() ou handleGenerateFlashcards()
+ * 2. Frontend obtém session.access_token via invokeGenerationFunction()
+ * 3. Frontend invoca edge function COM Authorization header explícito
+ * 4. Edge function valida JWT + lecture ownership (usando supabaseAuth)
+ * 5. Edge function cria job na tabela teacher_jobs com status PENDING (usando supabaseAdmin)
+ * 6. Edge function invoca teacher-job-runner de forma assíncrona
+ * 7. Edge function retorna jobId imediatamente ao frontend
+ * 8. Frontend seta isGenerating=true e salva currentJob
+ * 9. teacher-job-runner processa job em background (30-60s) chamando Lovable AI
+ * 10. teacher-job-runner atualiza job com status COMPLETED/FAILED
+ * 11. Realtime subscription detecta UPDATE na tabela teacher_jobs
+ * 12. Frontend recebe notificação via Realtime payload
+ * 13. Frontend chama loadQuizData() ou loadFlashcardsData()
+ * 14. Frontend seta isGenerating=false e limpa currentJob
+ * 15. Frontend mostra toast + botão "Visualizar" aparece
+ * 
+ * CRÍTICO: Authorization header DEVE ser passado explicitamente em supabase.functions.invoke()
+ * porque verify_jwt=true no config.toml NÃO adiciona header automaticamente!
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye } from 'lucide-react';
@@ -121,8 +144,8 @@ const LectureTranscriptionPage = () => {
       loadLectureData();
       loadClasses();
       checkExistingMaterials();
-      loadQuizData();
-      loadFlashcardsData();
+      // loadQuizData e loadFlashcardsData movidos para o Realtime useEffect
+      // para evitar race condition
     }
   }, [id]);
 
@@ -144,6 +167,11 @@ const LectureTranscriptionPage = () => {
 
     console.group('🔔 [Realtime Subscription Setup]');
     console.log('Lecture ID:', id);
+    
+    // 🔧 CORREÇÃO: Carregar dados ANTES de subscrever para evitar race condition
+    loadQuizData();
+    loadFlashcardsData();
+    
     console.log('Setting up subscription to teacher_jobs table...');
     console.groupEnd();
 
@@ -237,6 +265,72 @@ const LectureTranscriptionPage = () => {
       supabase.removeChannel(channel);
     };
   }, [id]);
+
+  /**
+   * Helper para invocar edge functions de geração com autenticação
+   * Padroniza: validação de sessão, headers, error handling
+   */
+  const invokeGenerationFunction = async (
+    functionName: 'teacher-generate-quiz-v2' | 'teacher-generate-flashcards-v2',
+    lectureId: string
+  ): Promise<{ success: boolean; jobId?: string; error?: string }> => {
+    try {
+      // 1. Validar sessão
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error(`[${functionName}] ❌ Session error:`, sessionError);
+        return { 
+          success: false, 
+          error: 'Sessão expirada. Por favor, faça login novamente.' 
+        };
+      }
+
+      console.log(`[${functionName}] ✅ Session valid, invoking function...`);
+
+      // 2. Invocar edge function COM Authorization header explícito
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: { lectureId },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`, // 🔑 CRÍTICO
+        }
+      });
+
+      // 3. Tratar erros de forma unificada
+      if (error) {
+        console.error(`[${functionName}] ❌ Function error:`, error);
+        
+        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+          return { success: false, error: 'Sessão expirada. Por favor, faça login novamente.' };
+        }
+        if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+          return { success: false, error: 'Você não tem permissão para editar esta aula.' };
+        }
+        if (error.message?.includes('404')) {
+          return { success: false, error: 'Aula não encontrada.' };
+        }
+        
+        return { 
+          success: false, 
+          error: error.message || 'Erro ao iniciar geração' 
+        };
+      }
+
+      console.log(`[${functionName}] ✅ Function invoked successfully:`, data);
+
+      return { 
+        success: true, 
+        jobId: data?.jobId 
+      };
+
+    } catch (error) {
+      console.error(`[${functionName}] ❌ Unexpected error:`, error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Erro inesperado' 
+      };
+    }
+  };
 
   const loadLectureData = async () => {
     try {
@@ -536,48 +630,50 @@ const LectureTranscriptionPage = () => {
   const handleGenerateQuiz = async () => {
     if (!id) return;
     
-    console.group('🎯 [handleGenerateQuiz] Starting');
-    console.log('State:', { isGeneratingQuiz, hasQuiz, currentQuizJob });
+    console.group('🎯 [handleGenerateQuiz] Iniciando');
+    console.log('Estado atual:', { isGeneratingQuiz, hasQuiz, currentQuizJob });
     console.groupEnd();
     
     if (isGeneratingQuiz) {
-      toast({ title: 'Geração em andamento', description: 'Aguarde a geração atual terminar' });
+      toast({ 
+        title: 'Geração em andamento', 
+        description: 'Aguarde a geração atual terminar' 
+      });
       return;
     }
     
-    try {
-      setIsGeneratingQuiz(true);
-      toast({
-        title: 'Gerando quiz...',
-        description: 'Você receberá uma notificação quando concluir (30-60s)',
-        duration: 5000,
-      });
+    setIsGeneratingQuiz(true);
+    
+    toast({
+      title: 'Gerando quiz...',
+      description: 'Você receberá uma notificação quando concluir (30-60s)',
+      duration: 5000,
+    });
 
-      const { data, error } = await supabase.functions.invoke('teacher-generate-quiz-v2', {
-        body: { lectureId: id }
-      });
-
-      if (error) throw error;
-      
-      console.log('✅ [Quiz] Job created:', data?.jobId);
-      if (data?.jobId) setCurrentQuizJob(data.jobId);
-      
-    } catch (error) {
-      console.error('❌ [Quiz] Error:', error);
+    // Usar helper unificado
+    const result = await invokeGenerationFunction('teacher-generate-quiz-v2', id);
+    
+    if (!result.success) {
       setIsGeneratingQuiz(false);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar quiz',
-        description: error instanceof Error ? error.message : 'Não foi possível gerar o quiz',
+        description: result.error,
       });
+      return;
+    }
+    
+    if (result.jobId) {
+      setCurrentQuizJob(result.jobId);
+      console.log('✅ [Quiz] Job ID saved:', result.jobId);
     }
   };
 
   const handleGenerateFlashcards = async () => {
     if (!id) return;
     
-    console.group('🎯 [handleGenerateFlashcards] Starting');
-    console.log('State:', { isGeneratingFlashcards, hasFlashcards, currentFlashcardsJob });
+    console.group('🎯 [handleGenerateFlashcards] Iniciando');
+    console.log('Estado atual:', { isGeneratingFlashcards, hasFlashcards, currentFlashcardsJob });
     console.groupEnd();
     
     if (isGeneratingFlashcards) {
@@ -588,67 +684,30 @@ const LectureTranscriptionPage = () => {
       return;
     }
     
-    try {
-      setIsGeneratingFlashcards(true);
-      
-      toast({
-        title: 'Gerando flashcards...',
-        description: 'A geração está em andamento. Você receberá uma notificação quando concluir.',
-        duration: 5000,
-      });
+    setIsGeneratingFlashcards(true);
+    
+    toast({
+      title: 'Gerando flashcards...',
+      description: 'Você receberá uma notificação quando concluir (30-60s)',
+      duration: 5000,
+    });
 
-      // Get authentication token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      console.log('[Flashcards] Invocando teacher-generate-flashcards-v2 com:', { lectureId: id });
-
-      const { data, error } = await supabase.functions.invoke('teacher-generate-flashcards-v2', {
-        body: {
-          lectureId: id,
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
-
-      if (error) {
-        console.error('[Flashcards] Erro retornado:', error);
-        setIsGeneratingFlashcards(false);
-        
-        let errorMessage = 'Não foi possível iniciar a geração dos flashcards';
-        
-        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          errorMessage = 'Sessão expirada. Por favor, faça login novamente.';
-        } else if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
-          errorMessage = 'Você não tem permissão para editar esta aula.';
-        }
-        
-        toast({
-          variant: 'destructive',
-          title: 'Erro ao gerar flashcards',
-          description: errorMessage,
-        });
-        
-        throw error;
-      }
-
-      console.log('[Flashcards] Job criado com sucesso:', data);
-      
-      if (data?.jobId) {
-        setCurrentFlashcardsJob(data.jobId);
-      }
-      
-    } catch (error) {
-      console.error('[Flashcards] Error generating flashcards:', error);
+    // Usar helper unificado
+    const result = await invokeGenerationFunction('teacher-generate-flashcards-v2', id);
+    
+    if (!result.success) {
       setIsGeneratingFlashcards(false);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar flashcards',
-        description: error instanceof Error ? error.message : 'Não foi possível gerar os flashcards',
+        description: result.error,
       });
+      return;
+    }
+    
+    if (result.jobId) {
+      setCurrentFlashcardsJob(result.jobId);
+      console.log('✅ [Flashcards] Job ID saved:', result.jobId);
     }
   };
 
