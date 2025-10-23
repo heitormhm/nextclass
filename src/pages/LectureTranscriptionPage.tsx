@@ -616,6 +616,8 @@ const LectureTranscriptionPage = () => {
                     <div className="flex gap-2">
                       <GenerateSummaryWithDeepSearch
                         lectureId={id || ''}
+                        lectureTitle={lectureTitle}
+                        tags={lecture?.tags || []}
                         currentSummary={structuredContent.resumo}
                         fullTranscript={lecture?.raw_transcript || ''}
                         onUpdate={(newSummary) => {

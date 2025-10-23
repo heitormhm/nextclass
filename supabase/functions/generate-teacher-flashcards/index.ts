@@ -111,7 +111,6 @@ Generate comprehensive flashcards following the requirements.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
       }),
     });
 

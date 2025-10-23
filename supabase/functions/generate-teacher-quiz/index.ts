@@ -114,7 +114,6 @@ Generate a comprehensive quiz following the requirements.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.8,
       }),
     });
 
