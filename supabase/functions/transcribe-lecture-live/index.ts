@@ -22,15 +22,33 @@ serve(async (req) => {
     // Convert base64 to binary using native decoding
     let binaryAudio: Uint8Array;
     try {
-      binaryAudio = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
+      const binaryString = atob(audio);
+      binaryAudio = new Uint8Array(binaryString.length);
+      
+      for (let i = 0; i < binaryString.length; i++) {
+        binaryAudio[i] = binaryString.charCodeAt(i);
+      }
       
       if (binaryAudio.length === 0) {
         throw new Error('Empty audio data after decoding');
       }
       
+      // Validate WebM header (EBML signature: 0x1A45DFA3)
+      const hasValidHeader = binaryAudio.length >= 4 && 
+                            binaryAudio[0] === 0x1A && 
+                            binaryAudio[1] === 0x45 && 
+                            binaryAudio[2] === 0xDF && 
+                            binaryAudio[3] === 0xA3;
+      
       console.log('[LIVE-TRANSCRIBE] Audio decoded:', {
-        size: (binaryAudio.length / 1024).toFixed(2) + ' KB'
+        size: (binaryAudio.length / 1024).toFixed(2) + ' KB',
+        hasValidWebMHeader: hasValidHeader,
+        firstBytes: Array.from(binaryAudio.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' ')
       });
+      
+      if (!hasValidHeader) {
+        console.warn('[LIVE-TRANSCRIBE] WARNING: Audio does not have valid WebM header');
+      }
     } catch (decodeError) {
       console.error('[LIVE-TRANSCRIBE] Base64 decode error:', decodeError);
       throw new Error('Failed to decode audio data');

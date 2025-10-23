@@ -282,9 +282,16 @@ const LiveLecture = () => {
         const reader = new FileReader();
         
         reader.onloadend = async () => {
-          const base64Audio = (reader.result as string).split(',')[1];
-          
-          const { data, error } = await supabase.functions.invoke('transcribe-lecture-live', {
+        const base64Audio = (reader.result as string).split(',')[1];
+        
+        // Log audio size for debugging
+        console.log('[LiveLecture] Sending audio to transcription:', {
+          chunks: chunks.length,
+          sizeKB: (audioBlob.size / 1024).toFixed(2),
+          base64Length: base64Audio.length
+        });
+        
+        const { data, error } = await supabase.functions.invoke('transcribe-lecture-live', {
             body: { 
               audio: base64Audio,
               previousContext: contextHistory.slice(-3).join(' ')
