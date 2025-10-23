@@ -23,7 +23,7 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    console.log('🔐 Auth header received:', authHeader ? 'YES' : 'NO');
+    console.log('🔐 Auth header:', authHeader ? `Present (length: ${authHeader.length})` : 'MISSING');
     
     if (!authHeader) {
       console.error('❌ No Authorization header provided');
@@ -35,17 +35,30 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    console.log('👤 User validation:', user ? `SUCCESS (${user.id})` : 'FAILED');
+    // Extrair token limpo (sem "Bearer ")
+    const token = authHeader.replace('Bearer ', '');
+    console.log('🔑 Token extracted (first 20 chars):', token.substring(0, 20) + '...');
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    console.log('👤 User validation:', user ? `✅ SUCCESS (ID: ${user.id}, Email: ${user.email})` : '❌ FAILED');
+    
+    if (userError) {
+      console.error('❌ User error details:', {
+        name: userError.name,
+        message: userError.message,
+        status: userError.status
+      });
+    }
     
     if (userError || !user) {
-      console.error('❌ Invalid token or user error:', userError);
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
+        JSON.stringify({ 
+          error: 'Invalid token',
+          details: userError?.message || 'User not found'
+        }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

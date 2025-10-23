@@ -455,6 +455,26 @@ const LectureTranscriptionPage = () => {
 
       if (error) {
         console.error('[Quiz] Erro retornado:', error);
+        
+        // Mensagens específicas por tipo de erro
+        let errorMessage = 'Não foi possível gerar o quiz';
+        
+        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+          errorMessage = 'Sessão expirada. Por favor, faça login novamente.';
+        } else if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+          errorMessage = 'Você não tem permissão para editar esta aula.';
+        } else if (error.message?.includes('rate limit')) {
+          errorMessage = 'Limite de requisições atingido. Tente novamente em alguns instantes.';
+        } else if (error.message?.includes('timeout')) {
+          errorMessage = 'A geração está demorando mais que o esperado. Tente novamente.';
+        }
+        
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao gerar quiz',
+          description: errorMessage,
+        });
+        
         throw error;
       }
 
@@ -509,6 +529,26 @@ const LectureTranscriptionPage = () => {
 
       if (error) {
         console.error('[Flashcards] Erro retornado:', error);
+        
+        // Mensagens específicas por tipo de erro
+        let errorMessage = 'Não foi possível gerar os flashcards';
+        
+        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+          errorMessage = 'Sessão expirada. Por favor, faça login novamente.';
+        } else if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+          errorMessage = 'Você não tem permissão para editar esta aula.';
+        } else if (error.message?.includes('rate limit')) {
+          errorMessage = 'Limite de requisições atingido. Tente novamente em alguns instantes.';
+        } else if (error.message?.includes('timeout')) {
+          errorMessage = 'A geração está demorando mais que o esperado. Tente novamente.';
+        }
+        
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao gerar flashcards',
+          description: errorMessage,
+        });
+        
         throw error;
       }
 
@@ -864,7 +904,7 @@ const LectureTranscriptionPage = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => setShowQuizModal(true)}
-                          className="bg-green-100 border-green-300 text-green-700 hover:bg-green-200"
+                          className="bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
                         >
                           <Eye className="h-3 w-3 mr-1" />
                           Visualizar
@@ -944,7 +984,7 @@ const LectureTranscriptionPage = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => setShowFlashcardsModal(true)}
-                          className="bg-green-100 border-green-300 text-green-700 hover:bg-green-200"
+                          className="bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100"
                         >
                           <Eye className="h-3 w-3 mr-1" />
                           Visualizar
