@@ -118,6 +118,11 @@ const LectureTranscriptionPage = () => {
 
       setLecture(data);
       setLectureTitle(data?.title || 'Nova Aula');
+      
+      // Pre-select turma if available
+      if (data?.class_id) {
+        setSelectedClassId(data.class_id);
+      }
 
       if (data?.structured_content) {
         setStructuredContent(data.structured_content as StructuredContent);
@@ -568,71 +573,6 @@ const LectureTranscriptionPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* AI Generation Actions */}
-                <Card className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-500/30">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-purple-400" />
-                      Materiais Complementares com IA
-                    </CardTitle>
-                    <CardDescription className="text-slate-300">
-                      Gere quizzes e flashcards baseados no conteúdo da aula
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Button
-                        onClick={handleGenerateQuiz}
-                        disabled={isGeneratingQuiz || hasQuiz}
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 h-auto py-4 flex-col items-start gap-2"
-                      >
-                        {isGeneratingQuiz ? (
-                          <>
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                            <span className="text-sm">Gerando Quiz...</span>
-                          </>
-                        ) : hasQuiz ? (
-                          <>
-                            <Check className="h-5 w-5" />
-                            <span className="text-sm font-semibold">Quiz Gerado</span>
-                            <span className="text-xs opacity-80">10 questões criadas</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckSquare className="h-5 w-5" />
-                            <span className="text-sm font-semibold">Gerar Quiz</span>
-                            <span className="text-xs opacity-80">10 questões com Bloom</span>
-                          </>
-                        )}
-                      </Button>
-
-                      <Button
-                        onClick={handleGenerateFlashcards}
-                        disabled={isGeneratingFlashcards || hasFlashcards}
-                        className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 h-auto py-4 flex-col items-start gap-2"
-                      >
-                        {isGeneratingFlashcards ? (
-                          <>
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                            <span className="text-sm">Gerando Flashcards...</span>
-                          </>
-                        ) : hasFlashcards ? (
-                          <>
-                            <Check className="h-5 w-5" />
-                            <span className="text-sm font-semibold">Flashcards Gerados</span>
-                            <span className="text-xs opacity-80">15-20 cartões criados</span>
-                          </>
-                        ) : (
-                          <>
-                            <BookOpen className="h-5 w-5" />
-                            <span className="text-sm font-semibold">Gerar Flashcards</span>
-                            <span className="text-xs opacity-80">15-20 cartões técnicos</span>
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
 
                 {/* Summary */}
                 <Card className="bg-slate-800/50 border-slate-700">
@@ -737,15 +677,31 @@ const LectureTranscriptionPage = () => {
                     <CardTitle className="text-white">
                       Perguntas de Revisão ({structuredContent.perguntas_revisao.length})
                     </CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditModal('Perguntas', { perguntas_revisao: structuredContent.perguntas_revisao })}
-                      className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Editar com IA
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateQuiz}
+                        disabled={isGeneratingQuiz || hasQuiz}
+                        className="bg-blue-600/20 border-blue-400/30 text-blue-100 hover:bg-blue-600/30"
+                      >
+                        {isGeneratingQuiz ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3 mr-1" />
+                        )}
+                        Gerar Novas
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditModal('Perguntas', { perguntas_revisao: structuredContent.perguntas_revisao })}
+                        className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Editar com IA
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[400px] pr-4">
@@ -785,15 +741,31 @@ const LectureTranscriptionPage = () => {
                     <CardTitle className="text-white">
                       Flashcards ({structuredContent.flashcards.length})
                     </CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditModal('Flashcards', { flashcards: structuredContent.flashcards })}
-                      className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Editar com IA
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateFlashcards}
+                        disabled={isGeneratingFlashcards || hasFlashcards}
+                        className="bg-purple-600/20 border-purple-400/30 text-purple-100 hover:bg-purple-600/30"
+                      >
+                        {isGeneratingFlashcards ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3 mr-1" />
+                        )}
+                        Gerar Novos
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditModal('Flashcards', { flashcards: structuredContent.flashcards })}
+                        className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Editar com IA
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -853,17 +825,83 @@ const LectureTranscriptionPage = () => {
                         <Sparkles className="h-3 w-3 mr-1" />
                         Gerar Outra
                       </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1 bg-slate-700 border-slate-600 hover:bg-slate-600"
-                        size="sm"
-                      >
-                        <Upload className="h-3 w-3 mr-1" />
-                        Upload
-                      </Button>
+                      <label htmlFor="thumbnail-upload" className="flex-1">
+                        <Input
+                          id="thumbnail-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            
+                            try {
+                              const { data: { user } } = await supabase.auth.getUser();
+                              if (!user) throw new Error('Not authenticated');
+                              
+                              const fileName = `${Date.now()}_${file.name}`;
+                              const { data: uploadData, error: uploadError } = await supabase.storage
+                                .from('lecture-audio')
+                                .upload(`thumbnails/${user.id}/${fileName}`, file);
+                              
+                              if (uploadError) throw uploadError;
+                              
+                              const { data: urlData } = supabase.storage
+                                .from('lecture-audio')
+                                .getPublicUrl(uploadData.path);
+                              
+                              setThumbnailUrl(urlData.publicUrl);
+                              
+                              toast({
+                                title: 'Thumbnail enviada',
+                                description: 'A imagem foi carregada com sucesso',
+                              });
+                            } catch (error) {
+                              console.error('Error uploading thumbnail:', error);
+                              toast({
+                                variant: 'destructive',
+                                title: 'Erro no upload',
+                                description: 'Não foi possível carregar a imagem',
+                              });
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          className="w-full bg-slate-700 border-slate-600 hover:bg-slate-600"
+                          size="sm"
+                          asChild
+                        >
+                          <span>
+                            <Upload className="h-3 w-3 mr-1" />
+                            Upload
+                          </span>
+                        </Button>
+                      </label>
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Audio Player */}
+                {lecture?.audio_url && (
+                  <Card className="bg-slate-800/50 border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white text-sm flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-purple-400" />
+                        Áudio Gravado
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <audio
+                        controls
+                        className="w-full"
+                        src={lecture.audio_url}
+                      >
+                        Seu navegador não suporta o elemento de áudio.
+                      </audio>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Materials panel */}
                 <Card className="bg-slate-800/50 border-slate-700">
@@ -874,38 +912,37 @@ const LectureTranscriptionPage = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div
+                    <Input
+                      type="file"
+                      multiple
+                      onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <label
+                      htmlFor="file-upload"
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
-                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                      className={`block border-2 border-dashed rounded-lg p-6 text-center transition-all cursor-pointer hover:border-purple-400 hover:bg-purple-500/5 ${
                         isDragging
                           ? 'border-purple-500 bg-purple-500/10'
                           : 'border-slate-600 bg-slate-900/50'
                       }`}
                     >
                       <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                      <p className="text-slate-400 text-sm mb-2">
+                      <p className="text-slate-400 text-sm mb-3">
                         Arraste arquivos ou clique para selecionar
                       </p>
-                      <Input
-                        type="file"
-                        multiple
-                        onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
-                        className="hidden"
-                        id="file-upload"
-                      />
-                      <label htmlFor="file-upload">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-slate-700 border-slate-600"
-                          asChild
-                        >
-                          <span>Selecionar Arquivos</span>
-                        </Button>
-                      </label>
-                    </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-purple-600/20 border-purple-400/30 text-purple-100 hover:bg-purple-600/30 pointer-events-none"
+                      >
+                        <FileUp className="h-3 w-3 mr-1" />
+                        Selecionar Arquivos
+                      </Button>
+                    </label>
                     {uploadedFiles.length > 0 && (
                       <ScrollArea className="h-32">
                         <div className="space-y-2">

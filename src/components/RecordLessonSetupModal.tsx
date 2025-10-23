@@ -374,7 +374,7 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
         .insert({
           title: generatedTitle || theme,
           teacher_id: user.id,
-          class_id: null,
+          class_id: selectedTurma,
           disciplina_id: selectedDisciplina || null,
           status: 'processing',
           raw_transcript: '',

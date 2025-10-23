@@ -6,6 +6,7 @@ import { Send, Loader2, Mic, MicOff, Sparkles } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -32,15 +33,38 @@ export const EditWithAIModal: React.FC<EditWithAIModalProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const { 
+    isRecording, 
+    startRecording, 
+    stopRecording, 
+    onTranscriptionReceived,
+    error: speechError 
+  } = useAudioRecorder();
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    onTranscriptionReceived((text: string) => {
+      setInput(prev => prev ? `${prev} ${text}` : text);
+    });
+  }, [onTranscriptionReceived]);
+
+  useEffect(() => {
+    if (speechError) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro no reconhecimento de voz',
+        description: speechError,
+      });
+    }
+  }, [speechError, toast]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -88,60 +112,31 @@ export const EditWithAIModal: React.FC<EditWithAIModalProps> = ({
     }
   };
 
-  const handleVoiceInput = async () => {
+  const handleVoiceInput = () => {
     if (isRecording) {
-      setIsRecording(false);
-      toast({
-        title: 'Gravação finalizada',
-        description: 'Processando áudio...',
-      });
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setIsRecording(true);
-      toast({
-        title: 'Gravando',
-        description: 'Fale sua instrução de edição',
-      });
-
-      // Simplified voice recording logic
-      setTimeout(() => {
-        stream.getTracks().forEach(track => track.stop());
-        setIsRecording(false);
-        toast({
-          title: 'Funcionalidade em desenvolvimento',
-          description: 'Use texto por enquanto',
-        });
-      }, 5000);
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro no microfone',
-        description: 'Não foi possível acessar o microfone',
-      });
+      stopRecording();
+    } else {
+      startRecording();
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[80vh] bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-3xl max-h-[80vh] bg-white/20 backdrop-blur-xl border-white/30 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-400" />
+          <DialogTitle className="text-slate-900 dark:text-white flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             Editar com Mia: {sectionTitle}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 h-[500px]">
+        <div className="flex flex-col gap-4 h-[500px] px-1">
           <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                  <Sparkles className="h-12 w-12 mx-auto mb-3 text-purple-400" />
-                  <p className="mb-2">Olá! Sou a Mia, sua assistente de IA.</p>
+                <div className="text-center py-8 text-slate-700 dark:text-slate-300">
+                  <Sparkles className="h-12 w-12 mx-auto mb-3 text-purple-600 dark:text-purple-400" />
+                  <p className="mb-2 font-medium">Olá! Sou a Mia, sua assistente de IA.</p>
                   <p className="text-sm">
                     Como posso ajudar a melhorar este conteúdo?
                   </p>
@@ -153,10 +148,10 @@ export const EditWithAIModal: React.FC<EditWithAIModalProps> = ({
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg p-3 ${
+                      className={`max-w-[80%] rounded-lg p-3 backdrop-blur-sm ${
                         msg.role === 'user'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-slate-800 text-slate-100'
+                          ? 'bg-purple-600/90 text-white shadow-lg'
+                          : 'bg-white/40 dark:bg-slate-800/40 text-slate-900 dark:text-slate-100 border border-white/20'
                       }`}
                     >
                       <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -166,60 +161,60 @@ export const EditWithAIModal: React.FC<EditWithAIModalProps> = ({
               )}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-slate-800 rounded-lg p-3">
-                    <Loader2 className="h-5 w-5 text-purple-400 animate-spin" />
+                  <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                    <Loader2 className="h-5 w-5 text-purple-600 dark:text-purple-400 animate-spin" />
                   </div>
                 </div>
               )}
             </div>
           </ScrollArea>
 
-          <div className="flex gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder="Digite sua instrução de edição ou use o microfone..."
-              className="flex-1 bg-slate-800 border-slate-600 text-white resize-none"
-              rows={3}
-              disabled={isLoading}
-            />
-            <div className="flex flex-col gap-2">
+          <div className="flex gap-2 items-end">
+            <div className="flex-1 relative">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder="Digite sua instrução de edição ou use o microfone..."
+                className="bg-white/40 dark:bg-slate-800/40 border-white/30 text-slate-900 dark:text-white resize-none backdrop-blur-sm pr-12"
+                rows={3}
+                disabled={isLoading}
+              />
               <Button
                 onClick={handleVoiceInput}
-                variant="outline"
+                variant="ghost"
                 size="icon"
-                className={`${
+                className={`absolute bottom-2 right-2 h-8 w-8 ${
                   isRecording
-                    ? 'bg-red-600 border-red-600 hover:bg-red-700'
-                    : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'hover:bg-white/20'
                 }`}
                 disabled={isLoading}
               >
                 {isRecording ? (
-                  <MicOff className="h-4 w-4 text-white" />
+                  <MicOff className="h-4 w-4" />
                 ) : (
-                  <Mic className="h-4 w-4 text-white" />
-                )}
-              </Button>
-              <Button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                className="bg-purple-600 hover:bg-purple-700"
-                size="icon"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
+                  <Mic className="h-4 w-4" />
                 )}
               </Button>
             </div>
+            <Button
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              className="bg-purple-600 hover:bg-purple-700 h-[88px]"
+              size="icon"
+            >
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
+            </Button>
           </div>
         </div>
       </DialogContent>
