@@ -183,18 +183,20 @@ const LiveLecture = () => {
 
   const handleStartRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
+          deviceId: selectedMicrophone ? { exact: selectedMicrophone } : undefined,
           channelCount: 1,
-          sampleRate: 24000,
+          sampleRate: 16000,
           echoCancellation: true,
           noiseSuppression: true,
-        } 
+          autoGainControl: true,
+        },
       });
-      
+
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm',
-        audioBitsPerSecond: 128000,
+        audioBitsPerSecond: 64000,
       });
       
       mediaRecorderRef.current = mediaRecorder;
@@ -246,83 +248,123 @@ const LiveLecture = () => {
     
     setIsProcessing(true);
     const chunks = [...audioChunksRef.current];
+    
+    // Validate chunks
+    const totalSize = chunks.reduce((acc, chunk) => acc + chunk.size, 0);
+    
+    if (totalSize < 1000) {
+      console.warn('[LiveLecture] Skipping tiny audio chunk:', totalSize, 'bytes');
+      audioChunksRef.current = [];
+      setIsProcessing(false);
+      return;
+    }
+    
+    if (totalSize > 25 * 1024 * 1024) {
+      console.warn('[LiveLecture] Chunk too large:', (totalSize / 1024 / 1024).toFixed(2), 'MB');
+      toast({
+        variant: 'destructive',
+        title: 'Chunk muito grande',
+        description: 'Reduzindo intervalo de processamento.',
+      });
+      audioChunksRef.current = [];
+      setIsProcessing(false);
+      return;
+    }
+    
     audioChunksRef.current = [];
     
-    try {
-      const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-      const reader = new FileReader();
-      
-      reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
+    const maxRetries = 2;
+    let attempt = 0;
+    
+    while (attempt < maxRetries) {
+      try {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        const reader = new FileReader();
         
-        // Call new edge function with context
-        const { data, error } = await supabase.functions.invoke('transcribe-lecture-live', {
-          body: { 
-            audio: base64Audio,
-            previousContext: contextHistory.slice(-3).join(' ')
-          }
-        });
-        
-        if (error) {
-          console.error('[LiveLecture] Transcription error:', error);
+        reader.onloadend = async () => {
+          const base64Audio = (reader.result as string).split(',')[1];
           
-          // Show error toast only if it's not a quota issue
-          if (error.message?.includes('quota') || error.message?.includes('insufficient_quota')) {
-            toast({
-              variant: 'destructive',
-              title: 'API sem créditos',
-              description: 'A API do OpenAI está sem créditos. Adicione créditos para ativar a transcrição ao vivo.',
-            });
-          } else {
-            toast({
-              variant: 'destructive',
-              title: 'Erro na transcrição',
-              description: 'Falha ao processar áudio. Gravação continua normalmente.',
+          const { data, error } = await supabase.functions.invoke('transcribe-lecture-live', {
+            body: { 
+              audio: base64Audio,
+              previousContext: contextHistory.slice(-3).join(' ')
+            }
+          });
+          
+          if (error) {
+            if (attempt < maxRetries - 1 && 
+                (error.message?.includes('network') || error.message?.includes('timeout'))) {
+              attempt++;
+              console.log(`[LiveLecture] Retry attempt ${attempt}/${maxRetries}`);
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+              return;
+            }
+            
+            console.error('[LiveLecture] Transcription error:', error);
+            
+            if (error.message?.includes('quota') || error.message?.includes('insufficient_quota')) {
+              toast({
+                variant: 'destructive',
+                title: 'API sem créditos',
+                description: 'A API do OpenAI está sem créditos.',
+              });
+            } else if (error.message?.includes('Invalid file format')) {
+              toast({
+                variant: 'destructive',
+                title: 'Erro de formato',
+                description: 'Áudio corrompido. Tente reiniciar a gravação.',
+              });
+            } else {
+              toast({
+                variant: 'destructive',
+                title: 'Erro na transcrição',
+                description: 'Falha ao processar áudio. Gravação continua.',
+              });
+            }
+            
+            setIsProcessing(false);
+            return;
+          }
+          
+          if (data?.text) {
+            const newSegment: TranscriptSegment = {
+              speaker: data.speaker || 'Professor',
+              text: data.text,
+              words: data.words || [],
+              timestamp: new Date()
+            };
+            
+            setTranscriptSegments(prev => [...prev, newSegment]);
+            setContextHistory(prev => [...prev, data.text].slice(-5));
+            setCurrentWords([]);
+            
+            console.log('[LiveLecture] New segment:', {
+              speaker: newSegment.speaker,
+              wordCount: newSegment.words.length
             });
           }
           
           setIsProcessing(false);
-          return;
-        }
+        };
         
-        if (data?.text) {
-          // Add segment with speaker
-          const newSegment: TranscriptSegment = {
-            speaker: data.speaker || 'Professor',
-            text: data.text,
-            words: data.words || [],
-            timestamp: new Date()
-          };
-          
-          setTranscriptSegments(prev => [...prev, newSegment]);
-          setContextHistory(prev => [...prev, data.text].slice(-5));
-          
-          // Show words live (fade in)
-          if (data.words && data.words.length > 0) {
-            for (let i = 0; i < data.words.length; i++) {
-              setTimeout(() => {
-                setCurrentWords(data.words.slice(0, i + 1));
-              }, i * 100);
-            }
-            
-            // Clear after showing all
-            setTimeout(() => {
-              setCurrentWords([]);
-            }, data.words.length * 100 + 500);
-          }
+        reader.readAsDataURL(audioBlob);
+        break;
+        
+      } catch (error) {
+        console.error(`[LiveLecture] Error on attempt ${attempt + 1}:`, error);
+        attempt++;
+        
+        if (attempt >= maxRetries) {
+          toast({
+            variant: "destructive",
+            title: "Erro ao processar áudio",
+            description: "Continuando gravação...",
+          });
+          setIsProcessing(false);
+        } else {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         }
-      };
-      
-      reader.readAsDataURL(audioBlob);
-    } catch (error) {
-      console.error('Error processing audio:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao processar áudio",
-        description: "Continuando gravação...",
-      });
-    } finally {
-      setIsProcessing(false);
+      }
     }
   };
 
