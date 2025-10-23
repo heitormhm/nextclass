@@ -15,6 +15,7 @@ import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { EditWithAIModal } from '@/components/EditWithAIModal';
 import { PublishLectureModal } from '@/components/PublishLectureModal';
+import { GenerateSummaryWithDeepSearch } from '@/components/GenerateSummaryWithDeepSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -619,7 +620,6 @@ const LectureTranscriptionPage = () => {
                         fullTranscript={lecture?.raw_transcript || ''}
                         onUpdate={(newSummary) => {
                           setStructuredContent({ ...structuredContent, resumo: newSummary });
-                          handleSaveContent({ ...structuredContent, resumo: newSummary });
                         }}
                       />
                       <Button
