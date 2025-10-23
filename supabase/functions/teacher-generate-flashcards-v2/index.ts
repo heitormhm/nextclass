@@ -92,8 +92,10 @@ serve(async (req) => {
     const contextText = lecture.raw_transcript?.substring(0, 3000) || '';
     const topicText = title || lecture.title || 'Conteúdo de Engenharia';
 
+    console.log('🎯 Starting flashcard generation process');
     console.log(`📝 Generating flashcards for lecture: ${lecture.title}`);
     console.log(`📚 Context length: ${contextText.length} chars`);
+    console.log(`🤖 Calling Lovable AI...`);
 
     const systemPrompt = `IDIOMA OBRIGATÓRIO: Todos os flashcards devem estar em PORTUGUÊS BRASILEIRO (pt-BR).
 
@@ -120,27 +122,45 @@ FORMATO JSON OBRIGATÓRIO:
 
 Gere 8-12 flashcards focados nos fundamentos essenciais DO CONTEÚDO FORNECIDO.`;
 
-    // Generate flashcards
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Tópico: ${topicText}\n\nConteúdo da aula:\n${contextText}` }
-        ],
-      }),
-    });
+    // Generate flashcards with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+    let response;
+    try {
+      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Tópico: ${topicText}\n\nConteúdo da aula:\n${contextText}` }
+          ],
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('❌ Timeout: AI generation took too long');
+        throw new Error('Timeout: A geração está demorando muito. Tente novamente com um conteúdo menor.');
+      }
+      throw error;
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Lovable AI error:', response.status, errorText);
       throw new Error(`AI service error: ${response.status}`);
     }
+    
+    console.log('✅ AI response received');
 
     const data = await response.json();
     const content_text = data.choices?.[0]?.message?.content;
@@ -150,6 +170,7 @@ Gere 8-12 flashcards focados nos fundamentos essenciais DO CONTEÚDO FORNECIDO.`
     }
 
     console.log('📄 Raw AI response (first 300 chars):', content_text.substring(0, 300));
+    console.log('🔍 Parsing JSON...');
 
     // Sanitize and extract JSON
     const sanitized = sanitizeJSON(content_text);
@@ -182,6 +203,8 @@ Gere 8-12 flashcards focados nos fundamentos essenciais DO CONTEÚDO FORNECIDO.`
       .delete()
       .eq('lecture_id', lectureId)
       .eq('teacher_id', user.id);
+    
+    console.log('💾 Inserting new flashcards...');
 
     // Insert new flashcards
     const { data: flashcards, error: insertError } = await supabaseClient
@@ -201,6 +224,7 @@ Gere 8-12 flashcards focados nos fundamentos essenciais DO CONTEÚDO FORNECIDO.`
     }
 
     console.log(`✅ Flashcards saved with ID: ${flashcards.id}, ${flashcardsData.cards.length} cards`);
+    console.log('🎉 Flashcard generation complete!');
 
     return new Response(
       JSON.stringify({ 

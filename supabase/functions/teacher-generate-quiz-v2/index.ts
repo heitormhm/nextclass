@@ -92,8 +92,10 @@ serve(async (req) => {
     const contextText = lecture.raw_transcript?.substring(0, 3000) || '';
     const topicText = title || lecture.title || 'Conteúdo de Engenharia';
 
+    console.log('🎯 Starting quiz generation process');
     console.log(`📝 Generating quiz for lecture: ${lecture.title}`);
     console.log(`📚 Context length: ${contextText.length} chars`);
+    console.log(`🤖 Calling Lovable AI...`);
 
     const systemPrompt = `🇧🇷 CRITICAL: You MUST generate ALL content in BRAZILIAN PORTUGUESE (pt-BR).
 
@@ -132,27 +134,45 @@ FORMATO JSON OBRIGATÓRIO:
   ]
 }`;
 
-    // Generate quiz
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Tópico: ${topicText}\n\nConteúdo da aula:\n${contextText}` }
-        ],
-      }),
-    });
+    // Generate quiz with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+    let response;
+    try {
+      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Tópico: ${topicText}\n\nConteúdo da aula:\n${contextText}` }
+          ],
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('❌ Timeout: AI generation took too long');
+        throw new Error('Timeout: A geração está demorando muito. Tente novamente com um conteúdo menor.');
+      }
+      throw error;
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Lovable AI error:', response.status, errorText);
       throw new Error(`AI service error: ${response.status}`);
     }
+    
+    console.log('✅ AI response received');
 
     const data = await response.json();
     const content_text = data.choices?.[0]?.message?.content;
@@ -162,6 +182,7 @@ FORMATO JSON OBRIGATÓRIO:
     }
 
     console.log('📄 Raw AI response (first 300 chars):', content_text.substring(0, 300));
+    console.log('🔍 Parsing JSON...');
 
     // Sanitize and extract JSON
     const sanitized = sanitizeJSON(content_text);
@@ -187,6 +208,7 @@ FORMATO JSON OBRIGATÓRIO:
     }
 
     console.log(`✅ Validated quiz with ${quizData.questions.length} questions`);
+    console.log('💾 Deleting old quiz (if exists)...');
 
     // Delete existing quiz (if any)
     await supabaseClient
@@ -194,6 +216,8 @@ FORMATO JSON OBRIGATÓRIO:
       .delete()
       .eq('lecture_id', lectureId)
       .eq('teacher_id', user.id);
+    
+    console.log('💾 Inserting new quiz...');
 
     // Insert new quiz
     const { data: quiz, error: insertError } = await supabaseClient
@@ -213,6 +237,7 @@ FORMATO JSON OBRIGATÓRIO:
     }
 
     console.log(`✅ Quiz saved with ID: ${quiz.id}, ${quizData.questions.length} questions`);
+    console.log('🎉 Quiz generation complete!');
 
     return new Response(
       JSON.stringify({ 

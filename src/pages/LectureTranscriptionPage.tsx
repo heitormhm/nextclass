@@ -379,21 +379,23 @@ const LectureTranscriptionPage = () => {
         .eq('lecture_id', id)
         .single();
 
-      if (error) {
-        console.error('[Quiz] Erro ao carregar:', error);
+      if (error || !quizData) {
+        console.log('[Quiz] Nenhum quiz encontrado');
+        setGeneratedQuiz(null);
+        setHasQuiz(false);
         return;
       }
 
-      if (quizData) {
-        setGeneratedQuiz({
-          ...quizData,
-          questions: quizData.questions as any[]
-        });
-        setHasQuiz(true);
-        console.log('[Quiz] Carregado com sucesso:', quizData);
-      }
+      setGeneratedQuiz({
+        ...quizData,
+        questions: quizData.questions as any[]
+      });
+      setHasQuiz(true);
+      console.log('[Quiz] Carregado com sucesso:', quizData);
     } catch (error) {
       console.error('[Quiz] Error loading quiz:', error);
+      setGeneratedQuiz(null);
+      setHasQuiz(false);
     }
   };
 
@@ -407,32 +409,44 @@ const LectureTranscriptionPage = () => {
         .eq('lecture_id', id)
         .single();
 
-      if (error) {
-        console.error('[Flashcards] Erro ao carregar:', error);
+      if (error || !flashcardsData) {
+        console.log('[Flashcards] Nenhum flashcard encontrado');
+        setGeneratedFlashcards(null);
+        setHasFlashcards(false);
         return;
       }
 
-      if (flashcardsData) {
-        setGeneratedFlashcards({
-          ...flashcardsData,
-          cards: flashcardsData.cards as any[]
-        });
-        setHasFlashcards(true);
-        console.log('[Flashcards] Carregados com sucesso:', flashcardsData);
-      }
+      setGeneratedFlashcards({
+        ...flashcardsData,
+        cards: flashcardsData.cards as any[]
+      });
+      setHasFlashcards(true);
+      console.log('[Flashcards] Carregados com sucesso:', flashcardsData);
     } catch (error) {
       console.error('[Flashcards] Error loading flashcards:', error);
+      setGeneratedFlashcards(null);
+      setHasFlashcards(false);
     }
   };
 
   const handleGenerateQuiz = async () => {
     if (!id) return;
     
+    if (isGeneratingQuiz) {
+      toast({
+        title: 'Geração em andamento',
+        description: 'Aguarde a geração atual terminar',
+      });
+      return;
+    }
+    
     try {
       setIsGeneratingQuiz(true);
+      
       toast({
         title: 'Gerando quiz...',
-        description: 'A IA está criando questões baseadas no conteúdo',
+        description: 'Isso pode levar até 60 segundos. Aguarde...',
+        duration: 60000,
       });
 
       // Get authentication token
@@ -502,11 +516,21 @@ const LectureTranscriptionPage = () => {
   const handleGenerateFlashcards = async () => {
     if (!id) return;
     
+    if (isGeneratingFlashcards) {
+      toast({
+        title: 'Geração em andamento',
+        description: 'Aguarde a geração atual terminar',
+      });
+      return;
+    }
+    
     try {
       setIsGeneratingFlashcards(true);
+      
       toast({
         title: 'Gerando flashcards...',
-        description: 'A IA está criando cartões de estudo',
+        description: 'Isso pode levar até 60 segundos. Aguarde...',
+        duration: 60000,
       });
 
       // Get authentication token
