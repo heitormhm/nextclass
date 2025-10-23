@@ -1,24 +1,25 @@
 /**
- * FLUXO DE GERAÇÃO DE QUIZ/FLASHCARDS (Job-Based Architecture)
+ * 🏗️ ARQUITETURA DE GERAÇÃO DE QUIZ/FLASHCARDS (Job-Based)
  * 
- * 1. User clica "Gerar Novas" → handleGenerateQuiz() ou handleGenerateFlashcards()
- * 2. Frontend obtém session.access_token via invokeGenerationFunction()
- * 3. Frontend invoca edge function COM Authorization header explícito
- * 4. Edge function valida JWT + lecture ownership (usando supabaseAuth)
- * 5. Edge function cria job na tabela teacher_jobs com status PENDING (usando supabaseAdmin)
- * 6. Edge function invoca teacher-job-runner de forma assíncrona
- * 7. Edge function retorna jobId imediatamente ao frontend
- * 8. Frontend seta isGenerating=true e salva currentJob
- * 9. teacher-job-runner processa job em background (30-60s) chamando Lovable AI
- * 10. teacher-job-runner atualiza job com status COMPLETED/FAILED
- * 11. Realtime subscription detecta UPDATE na tabela teacher_jobs
- * 12. Frontend recebe notificação via Realtime payload
- * 13. Frontend chama loadQuizData() ou loadFlashcardsData()
- * 14. Frontend seta isGenerating=false e limpa currentJob
- * 15. Frontend mostra toast + botão "Visualizar" aparece
+ * 1. Frontend: User clica "Gerar Novas" → valida session.access_token
+ * 2. Frontend: supabase.functions.invoke() → SDK passa JWT automaticamente
+ * 3. Edge Function: Valida JWT com supabaseAdmin.auth.getUser(token)
+ * 4. Edge Function: Verifica lecture ownership com supabaseAdmin
+ * 5. Edge Function: Cria job (status: PENDING) em teacher_jobs
+ * 6. Edge Function: Invoca teacher-job-runner assincronamente
+ * 7. Edge Function: Retorna { success: true, jobId } ao frontend
+ * 8. Frontend: Seta isGenerating=true, salva currentJob
+ * 9. Job Runner: Processa em background (30-60s), chama Lovable AI
+ * 10. Job Runner: Salva quiz/flashcards, atualiza job (status: COMPLETED)
+ * 11. Realtime: Detecta UPDATE em teacher_jobs, notifica frontend
+ * 12. Frontend: Recarrega dados via loadQuizData/loadFlashcardsData
+ * 13. Frontend: Seta isGenerating=false, mostra toast + botão "Visualizar"
  * 
- * CRÍTICO: Authorization header DEVE ser passado explicitamente em supabase.functions.invoke()
- * porque verify_jwt=true no config.toml NÃO adiciona header automaticamente!
+ * ✅ CORREÇÕES APLICADAS:
+ * - Edge functions usam supabaseAdmin.auth.getUser(token) para validar JWT
+ * - RLS policy "Service role full access" criada para teacher_jobs
+ * - Frontend simplificado, sem retry logic desnecessário
+ * - verify_jwt=false no config.toml (validação manual de JWT na edge function)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -300,99 +301,42 @@ const LectureTranscriptionPage = () => {
     functionName: 'teacher-generate-quiz-v2' | 'teacher-generate-flashcards-v2',
     lectureId: string
   ): Promise<{ success: boolean; jobId?: string; error?: string }> => {
-    let retryCount = 0;
-    const maxRetries = 2;
-
-    while (retryCount <= maxRetries) {
-      try {
-        // 1. Validar sessão
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session) {
-          console.error(`[${functionName}] ❌ Session error:`, sessionError);
-          return { 
-            success: false, 
-            error: 'Sessão expirada. Por favor, faça login novamente.' 
-          };
-        }
-
-        console.group(`📤 [${functionName}] Preparing request`);
-        console.log('Lecture ID:', lectureId);
-        console.log('Session exists:', !!session);
-        console.log('Access token exists:', !!session?.access_token);
-        console.log('Access token (first 20 chars):', session?.access_token?.substring(0, 20));
-        console.log('Retry attempt:', retryCount);
-        console.groupEnd();
-
-        // 2. Invocar edge function SEM Authorization header manual
-        // SDK adiciona automaticamente usando o session context
-        const { data, error } = await supabase.functions.invoke(functionName, {
-          body: { lectureId }
-          // ✅ SDK usa automaticamente o session do auth context
-        });
-
-        // 3. Tratar erros
-        if (error) {
-          console.error(`[${functionName}] ❌ Function error:`, error);
-          
-          const errorMsg = error.message || '';
-          
-          // Se erro 500 ou timeout, tentar novamente
-          if ((errorMsg.includes('500') || errorMsg.includes('timeout')) && retryCount < maxRetries) {
-            retryCount++;
-            console.log(`[${functionName}] ⚠️ Retry ${retryCount}/${maxRetries} após erro 500/timeout...`);
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
-            continue;
-          }
-          
-          if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
-            return { success: false, error: 'Sessão expirada. Por favor, faça login novamente.' };
-          }
-          if (errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
-            return { success: false, error: 'Você não tem permissão para editar esta aula.' };
-          }
-          if (errorMsg.includes('404')) {
-            return { success: false, error: 'Aula não encontrada.' };
-          }
-          if (errorMsg.includes('500')) {
-            return { success: false, error: 'Erro no servidor. Tente novamente em alguns instantes.' };
-          }
-          
-          console.error(`[${functionName}] ❌ Full error object:`, JSON.stringify(error, null, 2));
-          
-          return { 
-            success: false, 
-            error: errorMsg || 'Erro ao iniciar geração' 
-          };
-        }
-
-        console.log(`[${functionName}] ✅ Function invoked successfully:`, data);
-
+    try {
+      // Validar sessão localmente (para UX imediato)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
         return { 
-          success: true, 
-          jobId: data?.jobId 
+          success: false, 
+          error: 'Sessão expirada. Por favor, faça login novamente.' 
         };
-
-      } catch (error) {
-        console.error(`[${functionName}] ❌ Unexpected error:`, error);
-        
-        retryCount++;
-        if (retryCount > maxRetries) {
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro inesperado' 
-          };
-        }
-        
-        console.log(`[${functionName}] ⚠️ Retry ${retryCount}/${maxRetries} após exceção...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
       }
-    }
 
-    return { 
-      success: false, 
-      error: 'Número máximo de tentativas excedido' 
-    };
+      console.log(`[${functionName}] 📤 Invoking with JWT token`);
+
+      // Invocar edge function - SDK passa Authorization automaticamente
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: { lectureId }
+      });
+
+      if (error) {
+        console.error(`[${functionName}] ❌ Error:`, error);
+        return { 
+          success: false, 
+          error: error.message || 'Erro ao iniciar geração' 
+        };
+      }
+
+      console.log(`[${functionName}] ✅ Success, jobId:`, data?.jobId);
+      return { success: true, jobId: data?.jobId };
+
+    } catch (error) {
+      console.error(`[${functionName}] ❌ Exception:`, error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Erro inesperado' 
+      };
+    }
   };
 
   const loadLectureData = async () => {

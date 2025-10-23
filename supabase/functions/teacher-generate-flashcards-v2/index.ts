@@ -45,31 +45,32 @@ serve(async (req) => {
       });
     }
 
-    console.log('[teacher-generate-flashcards-v2] 🔐 Creating auth client for user validation...');
+    console.log('[teacher-generate-flashcards-v2] 🔐 Validating JWT token...');
 
-    // Client para autenticação do usuário (usa ANON_KEY)
-    const supabaseAuth = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    // Client para operações internas (usa SERVICE_ROLE_KEY)
+    // ✅ SOLUÇÃO: Usar SERVICE_ROLE_KEY + validar JWT manualmente
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+    // Extrair JWT token do Authorization header
+    const token = authHeader.replace('Bearer ', '');
+
+    // Validar JWT usando supabaseAdmin (tem privilégios para isso)
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
     if (userError || !user) {
-      console.error('[teacher-generate-flashcards-v2] ❌ User authentication failed:', userError);
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      console.error('[teacher-generate-flashcards-v2] ❌ JWT validation failed:', userError);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid or expired authentication token',
+        details: userError?.message 
+      }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('[teacher-generate-flashcards-v2] ✅ User validation: SUCCESS, user_id:', user.id);
+    console.log('[teacher-generate-flashcards-v2] ✅ JWT validated successfully, user_id:', user.id);
 
     const { lectureId } = await req.json();
     if (!lectureId) {
@@ -79,27 +80,22 @@ serve(async (req) => {
       });
     }
 
-    // Verificar ownership da lecture (usa client com auth do usuário)
+    // Verificar ownership da lecture usando supabaseAdmin
     console.log('[teacher-generate-flashcards-v2] 🔍 Verifying lecture ownership...');
     
-    const { data: lecture, error: lectureError } = await supabaseAuth
+    const { data: lecture, error: lectureError } = await supabaseAdmin
       .from('lectures')
       .select('id, teacher_id, title, raw_transcript')
       .eq('id', lectureId)
+      .eq('teacher_id', user.id) // ✅ Verificar ownership diretamente na query
       .single();
 
     if (lectureError || !lecture) {
-      console.error('[teacher-generate-flashcards-v2] ❌ Lecture not found:', lectureError);
-      return new Response(JSON.stringify({ error: 'Lecture not found' }), {
+      console.error('[teacher-generate-flashcards-v2] ❌ Lecture not found or unauthorized:', lectureError);
+      return new Response(JSON.stringify({ 
+        error: 'Lecture not found or you do not have permission to access it' 
+      }), {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (lecture.teacher_id !== user.id) {
-      console.error('[teacher-generate-flashcards-v2] ❌ Unauthorized: User does not own this lecture');
-      return new Response(JSON.stringify({ error: 'Unauthorized to access this lecture' }), {
-        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
