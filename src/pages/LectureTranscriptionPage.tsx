@@ -161,15 +161,31 @@ const LectureTranscriptionPage = () => {
   };
 
   const loadStudents = async (classId: string) => {
-    // Mock data - in production, fetch from database
-    const mockStudents: Student[] = [
-      { id: '1', name: 'Ana Silva', hasAccess: true },
-      { id: '2', name: 'Bruno Costa', hasAccess: true },
-      { id: '3', name: 'Carlos Mendes', hasAccess: true },
-      { id: '4', name: 'Diana Santos', hasAccess: false },
-      { id: '5', name: 'Eduardo Lima', hasAccess: true },
-    ];
-    setStudents(mockStudents);
+    try {
+      const { data, error } = await supabase
+        .from('turma_enrollments')
+        .select(`
+          aluno_id,
+          users!turma_enrollments_aluno_id_fkey (
+            id,
+            full_name
+          )
+        `)
+        .eq('turma_id', classId);
+
+      if (error) throw error;
+
+      const studentsData: Student[] = (data || []).map((enrollment: any) => ({
+        id: enrollment.aluno_id,
+        name: enrollment.users?.full_name || 'Aluno sem nome',
+        hasAccess: true, // All enrolled students have access by default
+      }));
+
+      setStudents(studentsData);
+    } catch (error) {
+      console.error('Error loading students:', error);
+      setStudents([]);
+    }
   };
 
   const processTranscript = async (transcript: string) => {
@@ -538,14 +554,14 @@ const LectureTranscriptionPage = () => {
 
           {/* Processing state */}
           {isProcessing && (
-            <Card className="bg-white/10 backdrop-blur-xl border-white/20 mb-8 shadow-2xl">
+            <Card className="bg-white/20 backdrop-blur-xl border-white/30 mb-8 shadow-2xl">
               <CardContent className="flex items-center gap-4 py-6">
-                <Loader2 className="h-8 w-8 text-purple-300 animate-spin" />
+                <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
                 <div>
-                  <h3 className="text-white font-semibold mb-1 drop-shadow-sm">
+                  <h3 className="text-slate-900 font-semibold mb-1 drop-shadow-sm">
                     🤖 Processando com IA...
                   </h3>
-                  <p className="text-white/70 text-sm drop-shadow-sm">
+                  <p className="text-slate-700 text-sm drop-shadow-sm">
                     A IA está analisando a transcrição e gerando material didático estruturado
                   </p>
                 </div>
@@ -559,15 +575,15 @@ const LectureTranscriptionPage = () => {
               {/* Left column - Generated content */}
               <div className="space-y-6">
                 {/* Title */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader>
-                    <CardTitle className="text-white">Título da Aula</CardTitle>
+                    <CardTitle className="text-slate-900 font-bold">Título da Aula</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Input
                       value={lectureTitle}
                       onChange={(e) => setLectureTitle(e.target.value)}
-                      className="bg-slate-900/50 border-slate-600 text-white"
+                      className="bg-white border-slate-300 text-slate-900"
                       placeholder="Digite o título da aula"
                     />
                   </CardContent>
@@ -575,54 +591,56 @@ const LectureTranscriptionPage = () => {
 
 
                 {/* Summary */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-purple-400" />
+                    <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-purple-600" />
                       Resumo da Aula
                     </CardTitle>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openEditModal('Resumo', { resumo: structuredContent.resumo })}
-                      className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
                     >
                       <Sparkles className="h-3 w-3 mr-1" />
                       Editar com IA
                     </Button>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-slate-300 leading-relaxed">
-                      {structuredContent.resumo}
-                    </p>
+                    <div className="bg-white p-4 rounded-lg">
+                      <p className="text-slate-900 leading-relaxed">
+                        {structuredContent.resumo}
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
 
                 {/* Main topics */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-purple-400" />
+                    <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-purple-600" />
                       Tópicos Principais
                     </CardTitle>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openEditModal('Tópicos', { topicos_principais: structuredContent.topicos_principais })}
-                      className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
                     >
                       <Sparkles className="h-3 w-3 mr-1" />
                       Editar com IA
                     </Button>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
+                    <div className="bg-white p-4 rounded-lg space-y-4">
                       {structuredContent.topicos_principais.map((topico, index) => (
-                        <div key={index} className="border-l-2 border-purple-500 pl-4">
-                          <h4 className="text-white font-semibold mb-2">
+                        <div key={index} className="border-l-2 border-purple-600 pl-4">
+                          <h4 className="text-slate-900 font-semibold mb-2">
                             {topico.conceito}
                           </h4>
-                          <p className="text-slate-400 text-sm">
+                          <p className="text-slate-700 text-sm">
                             {topico.definicao}
                           </p>
                         </div>
@@ -632,17 +650,17 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* References */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <ExternalLink className="h-5 w-5 text-purple-400" />
+                    <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
+                      <ExternalLink className="h-5 w-5 text-purple-600" />
                       Referências Externas
                     </CardTitle>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openEditModal('Referências', { referencias_externas: structuredContent.referencias_externas })}
-                      className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
                     >
                       <Sparkles className="h-3 w-3 mr-1" />
                       Editar com IA
@@ -656,12 +674,12 @@ const LectureTranscriptionPage = () => {
                           href={ref.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-start gap-3 p-4 bg-slate-900/50 rounded-lg hover:bg-slate-900/70 transition-colors border border-slate-700"
+                          className="flex items-start gap-3 p-4 bg-white rounded-lg hover:bg-white/80 transition-colors border border-slate-200"
                         >
-                          <ExternalLink className="h-5 w-5 text-purple-400 mt-1 shrink-0" />
+                          <ExternalLink className="h-5 w-5 text-purple-600 mt-1 shrink-0" />
                           <div className="flex-1">
-                            <p className="text-white font-medium mb-1">{ref.titulo}</p>
-                            <Badge variant="outline" className="text-xs bg-purple-500/20 text-purple-300 border-purple-500/30">
+                            <p className="text-slate-900 font-medium mb-1">{ref.titulo}</p>
+                            <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700 border-purple-300">
                               {ref.tipo}
                             </Badge>
                           </div>
@@ -672,18 +690,23 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Quiz questions */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-white">
+                    <CardTitle className="text-slate-900 font-bold">
                       Perguntas de Revisão ({structuredContent.perguntas_revisao.length})
                     </CardTitle>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleGenerateQuiz}
-                        disabled={isGeneratingQuiz || hasQuiz}
-                        className="bg-blue-600/20 border-blue-400/30 text-blue-100 hover:bg-blue-600/30"
+                        onClick={() => {
+                          if (hasQuiz && !window.confirm('Já existe um quiz. Deseja gerar um novo? Isso substituirá o anterior.')) {
+                            return;
+                          }
+                          handleGenerateQuiz();
+                        }}
+                        disabled={isGeneratingQuiz}
+                        className="bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200"
                       >
                         {isGeneratingQuiz ? (
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -696,7 +719,7 @@ const LectureTranscriptionPage = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => openEditModal('Perguntas', { perguntas_revisao: structuredContent.perguntas_revisao })}
-                        className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                        className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
                       >
                         <Sparkles className="h-3 w-3 mr-1" />
                         Editar com IA
@@ -707,8 +730,8 @@ const LectureTranscriptionPage = () => {
                     <ScrollArea className="h-[400px] pr-4">
                       <div className="space-y-6">
                         {structuredContent.perguntas_revisao.map((pergunta, index) => (
-                          <div key={index} className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                            <p className="text-white font-medium mb-3">
+                          <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
+                            <p className="text-slate-900 font-medium mb-3">
                               {index + 1}. {pergunta.pergunta}
                             </p>
                             <div className="space-y-2">
@@ -717,13 +740,13 @@ const LectureTranscriptionPage = () => {
                                   key={opIndex}
                                   className={`p-3 rounded ${
                                     opcao.startsWith(pergunta.resposta_correta)
-                                      ? 'bg-green-500/20 border border-green-500/30'
-                                      : 'bg-slate-800/50'
+                                      ? 'bg-green-100 border border-green-300'
+                                      : 'bg-slate-50'
                                   }`}
                                 >
-                                  <span className="text-slate-300 text-sm">{opcao}</span>
+                                  <span className="text-slate-900 text-sm">{opcao}</span>
                                   {opcao.startsWith(pergunta.resposta_correta) && (
-                                    <Check className="inline-block h-4 w-4 text-green-400 ml-2" />
+                                    <Check className="inline-block h-4 w-4 text-green-600 ml-2" />
                                   )}
                                 </div>
                               ))}
@@ -736,18 +759,23 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Flashcards */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-white">
+                    <CardTitle className="text-slate-900 font-bold">
                       Flashcards ({structuredContent.flashcards.length})
                     </CardTitle>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleGenerateFlashcards}
-                        disabled={isGeneratingFlashcards || hasFlashcards}
-                        className="bg-purple-600/20 border-purple-400/30 text-purple-100 hover:bg-purple-600/30"
+                        onClick={() => {
+                          if (hasFlashcards && !window.confirm('Já existem flashcards. Deseja gerar novos? Isso substituirá os anteriores.')) {
+                            return;
+                          }
+                          handleGenerateFlashcards();
+                        }}
+                        disabled={isGeneratingFlashcards}
+                        className="bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200"
                       >
                         {isGeneratingFlashcards ? (
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -760,7 +788,7 @@ const LectureTranscriptionPage = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => openEditModal('Flashcards', { flashcards: structuredContent.flashcards })}
-                        className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                        className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
                       >
                         <Sparkles className="h-3 w-3 mr-1" />
                         Editar com IA
@@ -772,12 +800,12 @@ const LectureTranscriptionPage = () => {
                       {structuredContent.flashcards.map((card, index) => (
                         <div
                           key={index}
-                          className="bg-slate-900/50 rounded-lg p-4 border border-slate-700"
+                          className="bg-white rounded-lg p-4 border border-slate-200"
                         >
-                          <h4 className="text-purple-400 font-semibold mb-2">
+                          <h4 className="text-purple-700 font-semibold mb-2">
                             {card.termo}
                           </h4>
-                          <p className="text-slate-300 text-sm">
+                          <p className="text-slate-900 text-sm">
                             {card.definicao}
                           </p>
                         </div>
@@ -790,20 +818,20 @@ const LectureTranscriptionPage = () => {
               {/* Right column - Tools and actions */}
               <div className="space-y-6">
                 {/* Thumbnail panel */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader>
-                    <CardTitle className="text-white text-sm flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4 text-purple-400" />
+                    <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-purple-600" />
                       Thumbnail da Aula
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {isGeneratingThumbnail ? (
-                      <div className="flex items-center justify-center h-40 bg-slate-900/50 rounded-lg border border-slate-700">
-                        <Loader2 className="h-8 w-8 text-purple-400 animate-spin" />
+                      <div className="flex items-center justify-center h-40 bg-white rounded-lg border border-slate-300">
+                        <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
                       </div>
                     ) : thumbnailUrl ? (
-                      <div className="relative rounded-lg overflow-hidden border border-slate-700">
+                      <div className="relative rounded-lg overflow-hidden border border-slate-300">
                         <img
                           src={thumbnailUrl}
                           alt="Thumbnail da aula"
@@ -811,15 +839,15 @@ const LectureTranscriptionPage = () => {
                         />
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center h-40 bg-slate-900/50 rounded-lg border border-dashed border-slate-600">
-                        <p className="text-slate-400 text-sm">Nenhuma thumbnail</p>
+                      <div className="flex items-center justify-center h-40 bg-white rounded-lg border border-dashed border-slate-400">
+                        <p className="text-slate-600 text-sm">Nenhuma thumbnail</p>
                       </div>
                     )}
                     <div className="flex gap-2">
                       <Button
                         onClick={() => generateThumbnail(lectureTitle)}
                         disabled={isGeneratingThumbnail}
-                        className="flex-1 bg-purple-600 hover:bg-purple-700"
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
                         size="sm"
                       >
                         <Sparkles className="h-3 w-3 mr-1" />
@@ -868,7 +896,7 @@ const LectureTranscriptionPage = () => {
                         />
                         <Button
                           variant="outline"
-                          className="w-full bg-slate-700 border-slate-600 hover:bg-slate-600"
+                          className="w-full bg-white border-slate-300 text-slate-900 hover:bg-white/80"
                           size="sm"
                           asChild
                         >
@@ -884,10 +912,10 @@ const LectureTranscriptionPage = () => {
 
                 {/* Audio Player */}
                 {lecture?.audio_url && (
-                  <Card className="bg-slate-800/50 border-slate-700">
+                  <Card className="bg-white/20 backdrop-blur-xl border-white/30 mt-4">
                     <CardHeader>
-                      <CardTitle className="text-white text-sm flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-purple-400" />
+                      <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-purple-600" />
                         Áudio Gravado
                       </CardTitle>
                     </CardHeader>
@@ -904,10 +932,10 @@ const LectureTranscriptionPage = () => {
                 )}
 
                 {/* Materials panel */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader>
-                    <CardTitle className="text-white text-sm flex items-center gap-2">
-                      <FileUp className="h-4 w-4 text-purple-400" />
+                    <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
+                      <FileUp className="h-4 w-4 text-purple-600" />
                       Materiais Suplementares
                     </CardTitle>
                   </CardHeader>
@@ -924,20 +952,20 @@ const LectureTranscriptionPage = () => {
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
-                      className={`block border-2 border-dashed rounded-lg p-6 text-center transition-all cursor-pointer hover:border-purple-400 hover:bg-purple-500/5 ${
+                      className={`block border-2 border-dashed rounded-lg p-6 text-center transition-all cursor-pointer hover:border-purple-600 hover:bg-purple-100/50 ${
                         isDragging
-                          ? 'border-purple-500 bg-purple-500/10'
-                          : 'border-slate-600 bg-slate-900/50'
+                          ? 'border-purple-600 bg-purple-100'
+                          : 'border-slate-300 bg-white'
                       }`}
                     >
-                      <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                      <p className="text-slate-400 text-sm mb-3">
+                      <Upload className="h-8 w-8 text-slate-600 mx-auto mb-2" />
+                      <p className="text-slate-700 text-sm mb-3">
                         Arraste arquivos ou clique para selecionar
                       </p>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="bg-purple-600/20 border-purple-400/30 text-purple-100 hover:bg-purple-600/30 pointer-events-none"
+                        className="bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200 pointer-events-none"
                       >
                         <FileUp className="h-3 w-3 mr-1" />
                         Selecionar Arquivos
@@ -949,10 +977,10 @@ const LectureTranscriptionPage = () => {
                           {uploadedFiles.map((file, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-2 p-2 bg-slate-900/50 rounded border border-slate-700"
+                              className="flex items-center gap-2 p-2 bg-white rounded border border-slate-300"
                             >
-                              <FileText className="h-4 w-4 text-purple-400 shrink-0" />
-                              <span className="text-slate-300 text-xs truncate flex-1">
+                              <FileText className="h-4 w-4 text-purple-600 shrink-0" />
+                              <span className="text-slate-900 text-xs truncate flex-1">
                                 {file.name}
                               </span>
                             </div>
@@ -964,39 +992,39 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Lesson plan comparison */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader>
-                    <CardTitle className="text-white text-sm">Análise da Aula</CardTitle>
+                    <CardTitle className="text-slate-900 font-bold text-sm">Análise da Aula</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Dialog open={isComparisonModalOpen} onOpenChange={setIsComparisonModalOpen}>
                       <DialogTrigger asChild>
                         <Button
-                          className="w-full bg-blue-600 hover:bg-blue-700"
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                           size="sm"
                         >
                           <FileText className="h-3 w-3 mr-1" />
                           Comparar com Plano de Aula
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl bg-slate-900 border-slate-700">
+                      <DialogContent className="max-w-2xl bg-white/20 backdrop-blur-xl border-white/30">
                         <DialogHeader>
-                          <DialogTitle className="text-white">Comparar com Plano de Aula</DialogTitle>
+                          <DialogTitle className="text-slate-900 font-bold">Comparar com Plano de Aula</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                           <div>
-                            <Label className="text-white mb-2">Cole o plano de aula</Label>
+                            <Label className="text-slate-900 font-semibold mb-2">Cole o plano de aula</Label>
                             <Textarea
                               value={lessonPlanText}
                               onChange={(e) => setLessonPlanText(e.target.value)}
                               placeholder="Cole aqui o plano de aula..."
-                              className="min-h-[200px] bg-slate-800 border-slate-600 text-white"
+                              className="min-h-[200px] bg-white border-slate-300 text-slate-900"
                             />
                           </div>
                           <Button
                             onClick={handleCompareLessonPlan}
                             disabled={isComparingPlan || !lessonPlanText.trim()}
-                            className="w-full bg-purple-600 hover:bg-purple-700"
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                           >
                             {isComparingPlan ? (
                               <>
@@ -1011,15 +1039,15 @@ const LectureTranscriptionPage = () => {
                             )}
                           </Button>
                           {comparisonResult && (
-                            <div className="mt-4 p-4 bg-slate-800 rounded-lg border border-slate-700">
-                              <h3 className="text-white font-semibold mb-2">
+                            <div className="mt-4 p-4 bg-white rounded-lg border border-slate-300">
+                              <h3 className="text-slate-900 font-semibold mb-2">
                                 Cobertura: {comparisonResult.coverage_percentage}%
                               </h3>
                               <div className="space-y-2 text-sm">
                                 {comparisonResult.missing_topics?.length > 0 && (
                                   <div>
-                                    <p className="text-orange-400 font-medium">Tópicos não abordados:</p>
-                                    <ul className="text-slate-400 ml-4">
+                                    <p className="text-orange-600 font-medium">Tópicos não abordados:</p>
+                                    <ul className="text-slate-700 ml-4">
                                       {comparisonResult.missing_topics.map((topic: any, i: number) => (
                                         <li key={i}>• {topic.topic}</li>
                                       ))}
@@ -1036,29 +1064,29 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Student access control */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader>
-                    <CardTitle className="text-white text-sm flex items-center gap-2">
-                      <Users className="h-4 w-4 text-purple-400" />
+                    <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
+                      <Users className="h-4 w-4 text-purple-600" />
                       Controle de Acesso
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-600" />
                       <Input
                         value={studentSearchQuery}
                         onChange={(e) => setStudentSearchQuery(e.target.value)}
                         placeholder="Buscar aluno..."
-                        className="pl-9 bg-slate-900/50 border-slate-600 text-white"
+                        className="pl-9 bg-white border-slate-300 text-slate-900"
                       />
                     </div>
                     <ScrollArea className="h-48">
                       <div className="space-y-2">
-                        {filteredStudents.map((student) => (
+                        {filteredStudents.length > 0 ? filteredStudents.map((student) => (
                           <div
                             key={student.id}
-                            className="flex items-center gap-2 p-2 bg-slate-900/50 rounded border border-slate-700"
+                            className="flex items-center gap-2 p-2 bg-white rounded border border-slate-300"
                           >
                             <Checkbox
                               checked={student.hasAccess}
@@ -1069,31 +1097,35 @@ const LectureTranscriptionPage = () => {
                                   )
                                 );
                               }}
-                              className="border-slate-600"
+                              className="border-slate-400"
                             />
-                            <span className="text-slate-300 text-sm">{student.name}</span>
+                            <span className="text-slate-900 text-sm">{student.name}</span>
                           </div>
-                        ))}
+                        )) : (
+                          <p className="text-slate-600 text-sm text-center py-4">
+                            {selectedClassId ? 'Nenhum aluno matriculado nesta turma' : 'Selecione uma turma primeiro'}
+                          </p>
+                        )}
                       </div>
                     </ScrollArea>
                   </CardContent>
                 </Card>
 
                 {/* Publication settings */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader>
-                    <CardTitle className="text-white text-sm">Configurações de Publicação</CardTitle>
+                    <CardTitle className="text-slate-900 font-bold text-sm">Configurações de Publicação</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <Label className="text-white text-xs mb-2">Turma</Label>
+                      <Label className="text-slate-900 font-semibold text-xs mb-2">Turma</Label>
                       <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                        <SelectTrigger className="bg-slate-900/50 border-slate-600 text-white">
+                        <SelectTrigger className="bg-white border-slate-300 text-slate-900">
                           <SelectValue placeholder="Selecione a turma" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectContent className="bg-white border-slate-300">
                           {classes.map((cls) => (
-                            <SelectItem key={cls.id} value={cls.id} className="text-white">
+                            <SelectItem key={cls.id} value={cls.id} className="text-slate-900">
                               {cls.name} - {cls.course}
                             </SelectItem>
                           ))}
@@ -1104,30 +1136,30 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Stats */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
                   <CardHeader>
-                    <CardTitle className="text-white text-sm">Estatísticas</CardTitle>
+                    <CardTitle className="text-slate-900 font-bold text-sm">Estatísticas</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Tópicos</span>
-                      <span className="text-white font-semibold">{structuredContent.topicos_principais.length}</span>
+                      <span className="text-slate-700">Tópicos</span>
+                      <span className="text-slate-900 font-semibold">{structuredContent.topicos_principais.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Perguntas</span>
-                      <span className="text-white font-semibold">{structuredContent.perguntas_revisao.length}</span>
+                      <span className="text-slate-700">Perguntas</span>
+                      <span className="text-slate-900 font-semibold">{structuredContent.perguntas_revisao.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Flashcards</span>
-                      <span className="text-white font-semibold">{structuredContent.flashcards.length}</span>
+                      <span className="text-slate-700">Flashcards</span>
+                      <span className="text-slate-900 font-semibold">{structuredContent.flashcards.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Referências</span>
-                      <span className="text-white font-semibold">{structuredContent.referencias_externas.length}</span>
+                      <span className="text-slate-700">Referências</span>
+                      <span className="text-slate-900 font-semibold">{structuredContent.referencias_externas.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Materiais</span>
-                      <span className="text-white font-semibold">{uploadedFiles.length}</span>
+                      <span className="text-slate-700">Materiais</span>
+                      <span className="text-slate-900 font-semibold">{uploadedFiles.length}</span>
                     </div>
                   </CardContent>
                 </Card>
