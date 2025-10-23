@@ -142,7 +142,10 @@ const LectureTranscriptionPage = () => {
   useEffect(() => {
     if (!id) return;
 
-    console.log('[Realtime] Setting up subscription for lecture:', id);
+    console.group('🔔 [Realtime Subscription Setup]');
+    console.log('Lecture ID:', id);
+    console.log('Setting up subscription to teacher_jobs table...');
+    console.groupEnd();
 
     const channel = supabase
       .channel(`teacher-jobs-${id}`)
@@ -155,7 +158,9 @@ const LectureTranscriptionPage = () => {
           filter: `lecture_id=eq.${id}`
         },
         async (payload) => {
-          console.log('[Realtime] Received job update:', payload);
+          console.group('📬 [Realtime] Job Update Received');
+          console.log('Payload:', payload);
+          console.groupEnd();
           
           const job = payload.new as any;
           
@@ -163,21 +168,29 @@ const LectureTranscriptionPage = () => {
 
           // Handle COMPLETED jobs
           if (job.status === 'COMPLETED') {
-            console.log(`[Realtime] Job ${job.job_type} completed!`);
+            console.group(`✅ [Realtime] Job ${job.job_type} COMPLETED`);
+            console.log('Job ID:', job.id);
+            console.log('Result Payload:', job.result_payload);
             
             if (job.job_type === 'GENERATE_QUIZ') {
+              console.log('🎯 Updating quiz state and reloading data...');
               setIsGeneratingQuiz(false);
               setCurrentQuizJob(null);
               await loadQuizData();
+              console.log('✅ Quiz data reloaded successfully');
+              console.groupEnd();
               
               toast({
                 title: 'Quiz gerado!',
                 description: 'Seu quiz foi gerado com sucesso',
               });
             } else if (job.job_type === 'GENERATE_FLASHCARDS') {
+              console.log('🎯 Updating flashcards state and reloading data...');
               setIsGeneratingFlashcards(false);
               setCurrentFlashcardsJob(null);
               await loadFlashcardsData();
+              console.log('✅ Flashcards data reloaded successfully');
+              console.groupEnd();
               
               toast({
                 title: 'Flashcards gerados!',
@@ -188,7 +201,10 @@ const LectureTranscriptionPage = () => {
           
           // Handle FAILED jobs
           if (job.status === 'FAILED') {
-            console.error(`[Realtime] Job ${job.job_type} failed:`, job.error_message);
+            console.group(`❌ [Realtime] Job ${job.job_type} FAILED`);
+            console.error('Job ID:', job.id);
+            console.error('Error Message:', job.error_message);
+            console.groupEnd();
             
             if (job.job_type === 'GENERATE_QUIZ') {
               setIsGeneratingQuiz(false);
@@ -213,11 +229,11 @@ const LectureTranscriptionPage = () => {
         }
       )
       .subscribe((status) => {
-        console.log('[Realtime] Subscription status:', status);
+        console.log('🔌 [Realtime] Subscription status:', status);
       });
 
     return () => {
-      console.log('[Realtime] Cleaning up subscription');
+      console.log('🔌 [Realtime] Cleaning up subscription for lecture:', id);
       supabase.removeChannel(channel);
     };
   }, [id]);
@@ -520,76 +536,34 @@ const LectureTranscriptionPage = () => {
   const handleGenerateQuiz = async () => {
     if (!id) return;
     
-    console.log('[handleGenerateQuiz] Starting generation...', {
-      lectureId: id,
-      isGeneratingQuiz,
-      hasQuiz,
-      currentQuizJob
-    });
+    console.group('🎯 [handleGenerateQuiz] Starting');
+    console.log('State:', { isGeneratingQuiz, hasQuiz, currentQuizJob });
+    console.groupEnd();
     
     if (isGeneratingQuiz) {
-      toast({
-        title: 'Geração em andamento',
-        description: 'Aguarde a geração atual terminar',
-      });
+      toast({ title: 'Geração em andamento', description: 'Aguarde a geração atual terminar' });
       return;
     }
     
     try {
       setIsGeneratingQuiz(true);
-      
       toast({
         title: 'Gerando quiz...',
-        description: 'A geração está em andamento. Você receberá uma notificação quando concluir.',
+        description: 'Você receberá uma notificação quando concluir (30-60s)',
         duration: 5000,
       });
 
-      // Get authentication token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      console.log('[Quiz] Invocando teacher-generate-quiz-v2 com:', { lectureId: id });
-
       const { data, error } = await supabase.functions.invoke('teacher-generate-quiz-v2', {
-        body: {
-          lectureId: id,
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
+        body: { lectureId: id }
       });
 
-      if (error) {
-        console.error('[Quiz] Erro retornado:', error);
-        setIsGeneratingQuiz(false);
-        
-        let errorMessage = 'Não foi possível iniciar a geração do quiz';
-        
-        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          errorMessage = 'Sessão expirada. Por favor, faça login novamente.';
-        } else if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
-          errorMessage = 'Você não tem permissão para editar esta aula.';
-        }
-        
-        toast({
-          variant: 'destructive',
-          title: 'Erro ao gerar quiz',
-          description: errorMessage,
-        });
-        
-        throw error;
-      }
-
-      console.log('[Quiz] Job criado com sucesso:', data);
+      if (error) throw error;
       
-      if (data?.jobId) {
-        setCurrentQuizJob(data.jobId);
-      }
+      console.log('✅ [Quiz] Job created:', data?.jobId);
+      if (data?.jobId) setCurrentQuizJob(data.jobId);
       
     } catch (error) {
-      console.error('[Quiz] Error generating quiz:', error);
+      console.error('❌ [Quiz] Error:', error);
       setIsGeneratingQuiz(false);
       toast({
         variant: 'destructive',
@@ -602,12 +576,9 @@ const LectureTranscriptionPage = () => {
   const handleGenerateFlashcards = async () => {
     if (!id) return;
     
-    console.log('[handleGenerateFlashcards] Starting generation...', {
-      lectureId: id,
-      isGeneratingFlashcards,
-      hasFlashcards,
-      currentFlashcardsJob
-    });
+    console.group('🎯 [handleGenerateFlashcards] Starting');
+    console.log('State:', { isGeneratingFlashcards, hasFlashcards, currentFlashcardsJob });
+    console.groupEnd();
     
     if (isGeneratingFlashcards) {
       toast({

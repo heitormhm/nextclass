@@ -14,29 +14,38 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('No authorization header');
+      console.error('[teacher-generate-quiz-v2] No authorization header');
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const supabaseClient = createClient(
+    console.log('[teacher-generate-quiz-v2] 🔐 Creating auth client for user validation...');
+
+    // Client para autenticação do usuário (usa ANON_KEY)
+    const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    // Client para operações internas (usa SERVICE_ROLE_KEY)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
-      console.error('User authentication failed:', userError);
+      console.error('[teacher-generate-quiz-v2] ❌ User authentication failed:', userError);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('✅ User validation: SUCCESS, user_id:', user.id);
+    console.log('[teacher-generate-quiz-v2] ✅ User validation: SUCCESS, user_id:', user.id);
 
     const { lectureId } = await req.json();
     if (!lectureId) {
@@ -46,15 +55,17 @@ serve(async (req) => {
       });
     }
 
-    // Verificar ownership da lecture
-    const { data: lecture, error: lectureError } = await supabaseClient
+    // Verificar ownership da lecture (usa client com auth do usuário)
+    console.log('[teacher-generate-quiz-v2] 🔍 Verifying lecture ownership...');
+    
+    const { data: lecture, error: lectureError } = await supabaseAuth
       .from('lectures')
       .select('id, teacher_id, title, raw_transcript')
       .eq('id', lectureId)
       .single();
 
     if (lectureError || !lecture) {
-      console.error('Lecture not found:', lectureError);
+      console.error('[teacher-generate-quiz-v2] ❌ Lecture not found:', lectureError);
       return new Response(JSON.stringify({ error: 'Lecture not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -62,17 +73,19 @@ serve(async (req) => {
     }
 
     if (lecture.teacher_id !== user.id) {
-      console.error('Unauthorized: User does not own this lecture');
+      console.error('[teacher-generate-quiz-v2] ❌ Unauthorized: User does not own this lecture');
       return new Response(JSON.stringify({ error: 'Unauthorized to access this lecture' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('✅ Lecture ownership verified, creating job...');
+    console.log('[teacher-generate-quiz-v2] ✅ Lecture ownership verified, creating job...');
 
-    // Criar job na tabela teacher_jobs
-    const { data: job, error: jobError } = await supabaseClient
+    // Criar job na tabela teacher_jobs (usa admin client com SERVICE_ROLE_KEY)
+    console.log('[teacher-generate-quiz-v2] 💾 Creating job in database...');
+    
+    const { data: job, error: jobError } = await supabaseAdmin
       .from('teacher_jobs')
       .insert({
         teacher_id: user.id,
@@ -88,23 +101,25 @@ serve(async (req) => {
       .single();
 
     if (jobError || !job) {
-      console.error('Failed to create job:', jobError);
+      console.error('[teacher-generate-quiz-v2] ❌ Failed to create job:', jobError);
       return new Response(JSON.stringify({ error: 'Failed to create generation job' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('✅ Job created successfully:', job.id);
+    console.log('[teacher-generate-quiz-v2] ✅ Job created successfully:', job.id);
 
-    // Invocar teacher-job-runner de forma assíncrona (fire-and-forget)
-    supabaseClient.functions.invoke('teacher-job-runner', {
+    // Invocar teacher-job-runner de forma assíncrona (usa admin client)
+    console.log('[teacher-generate-quiz-v2] 🚀 Invoking teacher-job-runner...');
+    
+    supabaseAdmin.functions.invoke('teacher-job-runner', {
       body: { jobId: job.id }
     }).catch(err => {
-      console.error('Error invoking job runner:', err);
+      console.error('[teacher-generate-quiz-v2] ⚠️ Error invoking job runner:', err);
     });
 
-    console.log('🚀 Job runner invoked for job:', job.id);
+    console.log('[teacher-generate-quiz-v2] 🎉 Job runner invoked for job:', job.id);
 
     return new Response(
       JSON.stringify({

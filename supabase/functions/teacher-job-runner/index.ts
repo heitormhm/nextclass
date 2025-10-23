@@ -29,7 +29,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('🔄 Processing job:', jobId);
+    console.log('[teacher-job-runner] 🔄 Processing job:', jobId);
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -51,7 +51,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('✅ Job found:', job.job_type, 'Status:', job.status);
+    console.log('[teacher-job-runner] ✅ Job found:', job.job_type, 'Status:', job.status, 'LectureID:', job.lecture_id);
 
     // Atualizar status para PROCESSING
     await supabaseAdmin
@@ -59,7 +59,7 @@ serve(async (req) => {
       .update({ status: 'PROCESSING', updated_at: new Date().toISOString() })
       .eq('id', jobId);
 
-    console.log('🔄 Job status updated to PROCESSING');
+    console.log('[teacher-job-runner] 🔄 Job status updated to PROCESSING');
 
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableApiKey) {
@@ -138,7 +138,11 @@ ${transcript}
 IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
     }
 
-    console.log('🤖 Calling Lovable AI with 120s timeout...');
+    console.log('[teacher-job-runner] 🤖 Calling Lovable AI with 120s timeout...', {
+      model: 'google/gemini-2.5-flash',
+      job_type: job.job_type,
+      transcript_length: transcript?.length || 0
+    });
 
     // Chamar Lovable AI com timeout de 120s
     const controller = new AbortController();
@@ -171,11 +175,11 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
       clearTimeout(timeoutId);
     }
 
-    console.log('✅ AI response status:', aiResponse.status);
+    console.log('[teacher-job-runner] ✅ AI response status:', aiResponse.status);
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
+      console.error('[teacher-job-runner] ❌ AI API error:', aiResponse.status, errorText);
       
       if (aiResponse.status === 429) {
         throw new Error('Rate limit exceeded. Please try again later.');
@@ -187,7 +191,7 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
     }
 
     const aiData = await aiResponse.json();
-    console.log('📦 AI response received, parsing content...');
+    console.log('[teacher-job-runner] 📦 AI response received, parsing content...');
 
     const content = aiData.choices?.[0]?.message?.content;
     if (!content) {
@@ -195,7 +199,7 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
     }
 
     const sanitized = sanitizeJSON(content);
-    console.log('🧹 Content sanitized, parsing JSON...');
+    console.log('[teacher-job-runner] 🧹 Content sanitized, parsing JSON...');
 
     const parsedData = JSON.parse(sanitized);
 
@@ -205,7 +209,7 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
         throw new Error('Invalid quiz structure: missing questions array');
       }
       
-      console.log(`✅ Quiz validated (${parsedData.questions.length} questions), saving to database...`);
+      console.log(`[teacher-job-runner] ✅ Quiz validated (${parsedData.questions.length} questions), saving to database...`);
 
       // Deletar quiz existente
       await supabaseAdmin
@@ -227,14 +231,14 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
         throw new Error(`Failed to save quiz: ${insertError.message}`);
       }
 
-      console.log('💾 Quiz saved successfully');
+      console.log('[teacher-job-runner] 💾 Quiz saved successfully to teacher_quizzes table');
 
     } else if (job.job_type === 'GENERATE_FLASHCARDS') {
       if (!parsedData.cards || !Array.isArray(parsedData.cards)) {
         throw new Error('Invalid flashcards structure: missing cards array');
       }
 
-      console.log(`✅ Flashcards validated (${parsedData.cards.length} cards), saving to database...`);
+      console.log(`[teacher-job-runner] ✅ Flashcards validated (${parsedData.cards.length} cards), saving to database...`);
 
       // Deletar flashcards existentes
       await supabaseAdmin
@@ -256,7 +260,7 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
         throw new Error(`Failed to save flashcards: ${insertError.message}`);
       }
 
-      console.log('💾 Flashcards saved successfully');
+      console.log('[teacher-job-runner] 💾 Flashcards saved successfully to teacher_flashcards table');
     }
 
     // Marcar job como COMPLETED
@@ -269,7 +273,7 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
       })
       .eq('id', jobId);
 
-    console.log('🎉 Job completed successfully:', jobId);
+    console.log('[teacher-job-runner] 🎉 Job completed successfully:', jobId, '- Updating status to COMPLETED');
 
     return new Response(
       JSON.stringify({ success: true, message: 'Job completed successfully' }),
