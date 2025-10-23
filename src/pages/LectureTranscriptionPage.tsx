@@ -138,6 +138,90 @@ const LectureTranscriptionPage = () => {
     }
   }, [selectedClassId]);
 
+  // Subscribe to teacher_jobs updates for this lecture
+  useEffect(() => {
+    if (!id) return;
+
+    console.log('[Realtime] Setting up subscription for lecture:', id);
+
+    const channel = supabase
+      .channel(`teacher-jobs-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'teacher_jobs',
+          filter: `lecture_id=eq.${id}`
+        },
+        async (payload) => {
+          console.log('[Realtime] Received job update:', payload);
+          
+          const job = payload.new as any;
+          
+          if (!job) return;
+
+          // Handle COMPLETED jobs
+          if (job.status === 'COMPLETED') {
+            console.log(`[Realtime] Job ${job.job_type} completed!`);
+            
+            if (job.job_type === 'GENERATE_QUIZ') {
+              setIsGeneratingQuiz(false);
+              setCurrentQuizJob(null);
+              await loadQuizData();
+              
+              toast({
+                title: 'Quiz gerado!',
+                description: 'Seu quiz foi gerado com sucesso',
+              });
+            } else if (job.job_type === 'GENERATE_FLASHCARDS') {
+              setIsGeneratingFlashcards(false);
+              setCurrentFlashcardsJob(null);
+              await loadFlashcardsData();
+              
+              toast({
+                title: 'Flashcards gerados!',
+                description: 'Seus flashcards foram gerados com sucesso',
+              });
+            }
+          }
+          
+          // Handle FAILED jobs
+          if (job.status === 'FAILED') {
+            console.error(`[Realtime] Job ${job.job_type} failed:`, job.error_message);
+            
+            if (job.job_type === 'GENERATE_QUIZ') {
+              setIsGeneratingQuiz(false);
+              setCurrentQuizJob(null);
+              
+              toast({
+                variant: 'destructive',
+                title: 'Erro ao gerar quiz',
+                description: job.error_message || 'Não foi possível gerar o quiz',
+              });
+            } else if (job.job_type === 'GENERATE_FLASHCARDS') {
+              setIsGeneratingFlashcards(false);
+              setCurrentFlashcardsJob(null);
+              
+              toast({
+                variant: 'destructive',
+                title: 'Erro ao gerar flashcards',
+                description: job.error_message || 'Não foi possível gerar os flashcards',
+              });
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Realtime] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('[Realtime] Cleaning up subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
   const loadLectureData = async () => {
     try {
       setIsLoading(true);
@@ -436,6 +520,13 @@ const LectureTranscriptionPage = () => {
   const handleGenerateQuiz = async () => {
     if (!id) return;
     
+    console.log('[handleGenerateQuiz] Starting generation...', {
+      lectureId: id,
+      isGeneratingQuiz,
+      hasQuiz,
+      currentQuizJob
+    });
+    
     if (isGeneratingQuiz) {
       toast({
         title: 'Geração em andamento',
@@ -510,6 +601,13 @@ const LectureTranscriptionPage = () => {
 
   const handleGenerateFlashcards = async () => {
     if (!id) return;
+    
+    console.log('[handleGenerateFlashcards] Starting generation...', {
+      lectureId: id,
+      isGeneratingFlashcards,
+      hasFlashcards,
+      currentFlashcardsJob
+    });
     
     if (isGeneratingFlashcards) {
       toast({
@@ -939,6 +1037,12 @@ const LectureTranscriptionPage = () => {
                         )}
                         Gerar Novas
                       </Button>
+                      {isGeneratingQuiz && (
+                        <Badge variant="outline" className="ml-2 animate-pulse bg-blue-50 border-blue-300 text-blue-700">
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Processando...
+                        </Badge>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -1019,6 +1123,12 @@ const LectureTranscriptionPage = () => {
                         )}
                         Gerar Novos
                       </Button>
+                      {isGeneratingFlashcards && (
+                        <Badge variant="outline" className="ml-2 animate-pulse bg-purple-50 border-purple-300 text-purple-700">
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Processando...
+                        </Badge>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
