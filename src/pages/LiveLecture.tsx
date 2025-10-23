@@ -12,6 +12,7 @@ import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripp
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LiveTranscriptViewer } from '@/components/LiveTranscriptViewer';
+import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 interface Word {
   text: string;
@@ -31,28 +32,30 @@ const LiveLecture = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const lectureId = new URLSearchParams(window.location.search).get('lectureId');
-  const [isRecording, setIsRecording] = useState(false);
+  
+  // Web Speech API hook
+  const {
+    startRecording: startSpeechRecording,
+    stopRecording: stopSpeechRecording,
+    pauseRecording: pauseSpeechRecording,
+    resumeRecording: resumeSpeechRecording,
+    isRecording: isSpeechRecording,
+    error: speechError,
+    onTranscriptionReceived
+  } = useAudioRecorder();
+  
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
   const [selectedMicrophone, setSelectedMicrophone] = useState('default');
   const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // New states for live transcription
-  const [fullAudioChunks, setFullAudioChunks] = useState<Blob[]>([]);
+  // Transcription states
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
   const [currentWords, setCurrentWords] = useState<Word[]>([]);
-  const [contextHistory, setContextHistory] = useState<string[]>([]);
   
-  // VAD (Voice Activity Detection) states
-  const [lastAudioLevel, setLastAudioLevel] = useState(0);
-  const [silenceCounter, setSilenceCounter] = useState(0);
-  const [chunkTimer, setChunkTimer] = useState(0);
-  
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const fullTranscriptRef = useRef<string>('');
 
   // Route Protection - Check for valid lectureId
   useEffect(() => {
@@ -92,73 +95,63 @@ const LiveLecture = () => {
     checkLectureAccess();
   }, [lectureId, navigate, toast]);
 
-  // Simulate recording timer
+  // Handle transcription callback from Web Speech API
+  useEffect(() => {
+    onTranscriptionReceived((text: string) => {
+      console.log('[LiveLecture] Transcription received:', text);
+      
+      const newSegment: TranscriptSegment = {
+        speaker: 'Professor', // Default to Professor, can be enhanced with speaker detection
+        text: text,
+        words: text.split(' ').map((word, idx) => ({
+          text: word,
+          confidence: 0.9,
+          start: idx,
+          end: idx + 1
+        })),
+        timestamp: new Date()
+      };
+      
+      setTranscriptSegments(prev => [...prev, newSegment]);
+      fullTranscriptRef.current += `[Professor] ${text}\n\n`;
+    });
+  }, [onTranscriptionReceived]);
+  
+  // Handle speech recognition errors
+  useEffect(() => {
+    if (speechError) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro no reconhecimento de voz',
+        description: speechError,
+      });
+    }
+  }, [speechError, toast]);
+
+  // Recording timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isRecording && !isPaused) {
+    if (isSpeechRecording && !isPaused) {
       interval = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isRecording, isPaused]);
+  }, [isSpeechRecording, isPaused]);
 
-  // Intelligent audio level monitoring with VAD (Voice Activity Detection)
+  // Simulate audio level for visualization
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isRecording && !isPaused) {
+    if (isSpeechRecording && !isPaused) {
       interval = setInterval(() => {
         const currentLevel = Math.random() * 100;
         setAudioLevel(currentLevel);
-        
-        // Detect silence (volume < 15% for >1.5s)
-        if (currentLevel < 15) {
-          setSilenceCounter(prev => prev + 1);
-          
-          // 15 iterations * 100ms = 1.5s of silence
-          if (silenceCounter >= 15 && audioChunksRef.current.length > 0) {
-            console.log('[VAD] Pause detected, processing audio...');
-            processAudioChunks();
-            setSilenceCounter(0);
-          }
-        } else {
-          setSilenceCounter(0);
-        }
-        
-        // Detect abrupt drop (>60% in 100ms) - indicates end of phrase
-        if (lastAudioLevel - currentLevel > 60 && audioChunksRef.current.length > 0) {
-          console.log('[VAD] Abrupt drop detected, processing audio...');
-          processAudioChunks();
-        }
-        
-        setLastAudioLevel(currentLevel);
       }, 100);
     } else {
       setAudioLevel(0);
-      setSilenceCounter(0);
-      setLastAudioLevel(0);
     }
     return () => clearInterval(interval);
-  }, [isRecording, isPaused, silenceCounter, lastAudioLevel]);
-
-  // Backup timer: process every 15s regardless
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRecording && !isPaused) {
-      interval = setInterval(() => {
-        setChunkTimer(prev => prev + 1);
-        
-        if (chunkTimer >= 15 && audioChunksRef.current.length > 0) {
-          console.log('[BACKUP] 15s timer reached, processing audio...');
-          processAudioChunks();
-          setChunkTimer(0);
-        }
-      }, 1000);
-    } else {
-      setChunkTimer(0);
-    }
-    return () => clearInterval(interval);
-  }, [isRecording, isPaused, chunkTimer]);
+  }, [isSpeechRecording, isPaused]);
 
   // Load available microphones
   useEffect(() => {
@@ -183,55 +176,19 @@ const LiveLecture = () => {
 
   const handleStartRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          deviceId: selectedMicrophone ? { exact: selectedMicrophone } : undefined,
-          channelCount: 1,
-          sampleRate: 16000,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
-        audioBitsPerSecond: 64000,
-      });
-      
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      setFullAudioChunks([]);
+      // Reset states
       setTranscriptSegments([]);
       setCurrentWords([]);
-      setContextHistory([]);
-      
-      // Collect audio chunks for both live transcription and full recording
-      mediaRecorder.ondataavailable = async (event) => {
-        if (event.data.size > 0) {
-          // Store ALL chunks for final audio
-          setFullAudioChunks(prev => [...prev, event.data]);
-          audioChunksRef.current.push(event.data);
-          // VAD system handles processing, no fixed chunk counter needed
-        }
-      };
-      
-      mediaRecorder.onstop = async () => {
-        // Process remaining chunks
-        if (audioChunksRef.current.length > 0) {
-          await processAudioChunks();
-        }
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      // Start recording with 1 second intervals
-      mediaRecorder.start(1000);
-      setIsRecording(true);
+      fullTranscriptRef.current = '';
+      setRecordingTime(0);
       setIsPaused(false);
+      
+      // Start Web Speech API recording
+      await startSpeechRecording();
       
       toast({
         title: "Gravação iniciada",
-        description: "A transcrição aparecerá em tempo real",
+        description: "Fale claramente para transcrição automática",
       });
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -243,214 +200,36 @@ const LiveLecture = () => {
     }
   };
 
-  const processAudioChunks = async () => {
-    if (audioChunksRef.current.length === 0 || isProcessing) return;
-    
-    setIsProcessing(true);
-    const chunks = [...audioChunksRef.current];
-    
-    // Validate chunks
-    const totalSize = chunks.reduce((acc, chunk) => acc + chunk.size, 0);
-    
-    if (totalSize < 1000) {
-      console.warn('[LiveLecture] Skipping tiny audio chunk:', totalSize, 'bytes');
-      audioChunksRef.current = [];
-      setIsProcessing(false);
-      return;
-    }
-    
-    if (totalSize > 25 * 1024 * 1024) {
-      console.warn('[LiveLecture] Chunk too large:', (totalSize / 1024 / 1024).toFixed(2), 'MB');
-      toast({
-        variant: 'destructive',
-        title: 'Chunk muito grande',
-        description: 'Reduzindo intervalo de processamento.',
-      });
-      audioChunksRef.current = [];
-      setIsProcessing(false);
-      return;
-    }
-    
-    audioChunksRef.current = [];
-    
-    const maxRetries = 2;
-    let attempt = 0;
-    
-    while (attempt < maxRetries) {
-      try {
-        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-        const reader = new FileReader();
-        
-        reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        
-        // Log audio size for debugging
-        console.log('[LiveLecture] Sending audio to transcription:', {
-          chunks: chunks.length,
-          sizeKB: (audioBlob.size / 1024).toFixed(2),
-          base64Length: base64Audio.length
-        });
-        
-        const { data, error } = await supabase.functions.invoke('transcribe-lecture-live', {
-            body: { 
-              audio: base64Audio,
-              previousContext: contextHistory.slice(-3).join(' ')
-            }
-          });
-          
-          if (error) {
-            if (attempt < maxRetries - 1 && 
-                (error.message?.includes('network') || error.message?.includes('timeout'))) {
-              attempt++;
-              console.log(`[LiveLecture] Retry attempt ${attempt}/${maxRetries}`);
-              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-              return;
-            }
-            
-            console.error('[LiveLecture] Transcription error:', error);
-            
-            if (error.message?.includes('quota') || error.message?.includes('insufficient_quota')) {
-              toast({
-                variant: 'destructive',
-                title: 'API sem créditos',
-                description: 'A API do OpenAI está sem créditos.',
-              });
-            } else if (error.message?.includes('Invalid file format')) {
-              toast({
-                variant: 'destructive',
-                title: 'Erro de formato',
-                description: 'Áudio corrompido. Tente reiniciar a gravação.',
-              });
-            } else {
-              toast({
-                variant: 'destructive',
-                title: 'Erro na transcrição',
-                description: 'Falha ao processar áudio. Gravação continua.',
-              });
-            }
-            
-            setIsProcessing(false);
-            return;
-          }
-          
-          if (data?.text) {
-            const newSegment: TranscriptSegment = {
-              speaker: data.speaker || 'Professor',
-              text: data.text,
-              words: data.words || [],
-              timestamp: new Date()
-            };
-            
-            setTranscriptSegments(prev => [...prev, newSegment]);
-            setContextHistory(prev => [...prev, data.text].slice(-5));
-            setCurrentWords([]);
-            
-            console.log('[LiveLecture] New segment:', {
-              speaker: newSegment.speaker,
-              wordCount: newSegment.words.length
-            });
-          }
-          
-          setIsProcessing(false);
-        };
-        
-        reader.readAsDataURL(audioBlob);
-        break;
-        
-      } catch (error) {
-        console.error(`[LiveLecture] Error on attempt ${attempt + 1}:`, error);
-        attempt++;
-        
-        if (attempt >= maxRetries) {
-          toast({
-            variant: "destructive",
-            title: "Erro ao processar áudio",
-            description: "Continuando gravação...",
-          });
-          setIsProcessing(false);
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-        }
-      }
-    }
-  };
-
-  const uploadFullAudio = async (): Promise<string | null> => {
-    if (fullAudioChunks.length === 0) return null;
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-      
-      // Create final audio file
-      const fullAudioBlob = new Blob(fullAudioChunks, { type: 'audio/webm' });
-      const fileName = `${user.id}/${Date.now()}.webm`;
-      
-      console.log('Uploading full audio:', {
-        size: (fullAudioBlob.size / 1024 / 1024).toFixed(2) + ' MB',
-        duration: recordingTime
-      });
-      
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('lecture-audio')
-        .upload(fileName, fullAudioBlob, {
-          contentType: 'audio/webm',
-          cacheControl: '3600',
-        });
-      
-      if (uploadError) throw uploadError;
-      
-      // Get signed URL (1 year)
-      const { data: urlData } = await supabase.storage
-        .from('lecture-audio')
-        .createSignedUrl(fileName, 31536000);
-      
-      return urlData?.signedUrl || null;
-    } catch (error) {
-      console.error('Error uploading full audio:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao salvar áudio",
-        description: "A transcrição foi salva, mas o áudio falhou.",
-      });
-      return null;
-    }
-  };
-
   const handlePauseRecording = () => {
-    if (!mediaRecorderRef.current) return;
-    
     if (isPaused) {
-      mediaRecorderRef.current.resume();
+      resumeSpeechRecording();
+      setIsPaused(false);
+      toast({
+        title: "Gravação retomada",
+      });
     } else {
-      mediaRecorderRef.current.pause();
+      pauseSpeechRecording();
+      setIsPaused(true);
+      toast({
+        title: "Gravação pausada",
+      });
     }
-    setIsPaused(!isPaused);
   };
 
-    const handleStopRecording = async () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    setIsRecording(false);
+  const handleStopRecording = async () => {
+    // Stop Web Speech API recording
+    stopSpeechRecording();
     setIsPaused(false);
     
     try {
       setIsSaving(true);
       
-      // Wait a bit for ondataavailable to finish
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Combine all segments into full transcript
-      const fullTranscript = transcriptSegments
+      // Use accumulated transcript from ref
+      const fullTranscript = fullTranscriptRef.current || transcriptSegments
         .map(seg => `[${seg.speaker}] ${seg.text}`)
         .join('\n\n');
 
-      // Upload full audio
-      const audioUrl = await uploadFullAudio();
-
-      // Update existing lecture instead of creating new one
+      // Update existing lecture
       if (!lectureId) {
         throw new Error('No lecture ID found');
       }
@@ -459,7 +238,7 @@ const LiveLecture = () => {
         .from('lectures')
         .update({
           raw_transcript: fullTranscript,
-          audio_url: audioUrl,
+          audio_url: null, // Web Speech API doesn't provide audio file
           duration: recordingTime,
           status: 'processing'
         })
@@ -469,7 +248,7 @@ const LiveLecture = () => {
 
       toast({
         title: "Gravação finalizada com sucesso",
-        description: `Áudio de ${formatTime(recordingTime)} salvo. Redirecionando...`,
+        description: `Transcrição de ${formatTime(recordingTime)} salva. Redirecionando...`,
       });
 
       // Navigate immediately after success
@@ -513,7 +292,7 @@ const LiveLecture = () => {
               </h1>
             </div>
             
-            {isRecording && (
+            {isSpeechRecording && (
               <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-300/40 rounded-full px-4 py-1.5 backdrop-blur-sm">
                 <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
                 <span className="text-white font-mono font-semibold drop-shadow-sm">
@@ -526,7 +305,7 @@ const LiveLecture = () => {
           {/* 2. FLOATING MICROPHONE ORB */}
           <div className="relative flex items-center justify-center">
             {/* Animated Rings (quando gravando) */}
-            {isRecording && !isPaused && (
+            {isSpeechRecording && !isPaused && (
               <>
                 <div className="absolute w-64 h-64 rounded-full border-2 border-purple-400/30 animate-ping" style={{ animationDuration: '3s' }} />
                 <div className="absolute w-56 h-56 rounded-full border-2 border-pink-400/40 animate-ping" style={{ animationDuration: '2s' }} />
@@ -545,7 +324,7 @@ const LiveLecture = () => {
                       border-2 
                       transition-all duration-500
                       cursor-pointer
-                      ${isRecording && !isPaused 
+                      ${isSpeechRecording && !isPaused 
                         ? 'bg-white/15 border-purple-300/40 shadow-2xl shadow-purple-500/50' 
                         : isPaused
                         ? 'bg-white/10 border-yellow-300/40 shadow-2xl shadow-yellow-500/50'
@@ -553,7 +332,7 @@ const LiveLecture = () => {
                       }
                     `}
                     onClick={() => {
-                      if (!isRecording) {
+                      if (!isSpeechRecording) {
                         handleStartRecording();
                       } else {
                         handlePauseRecording();
@@ -561,7 +340,7 @@ const LiveLecture = () => {
                     }}
                   >
               {/* Rotating Shimmer Effect (quando gravando) */}
-              {isRecording && !isPaused && (
+              {isSpeechRecording && !isPaused && (
                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-spin" style={{ animationDuration: '2s' }} />
               )}
               
@@ -571,7 +350,7 @@ const LiveLecture = () => {
                   w-28 h-28 md:w-32 md:h-32 rounded-full 
                   flex items-center justify-center
                   transition-all duration-500
-                  ${isRecording && !isPaused
+                  ${isSpeechRecording && !isPaused
                     ? 'bg-gradient-to-br from-purple-600 via-pink-500 to-rose-500 shadow-2xl shadow-pink-500/50'
                     : isPaused
                     ? 'bg-gradient-to-br from-yellow-500 to-orange-500 opacity-70'
@@ -579,7 +358,7 @@ const LiveLecture = () => {
                   }
                 `}>
                   {/* Icon */}
-                  {isRecording && !isPaused ? (
+                  {isSpeechRecording && !isPaused ? (
                     <Mic className="h-12 w-12 md:h-14 md:w-14 text-white animate-pulse" />
                   ) : isPaused ? (
                     <Play className="h-12 w-12 md:h-14 md:w-14 text-white" />
@@ -592,7 +371,7 @@ const LiveLecture = () => {
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="bg-white/95 backdrop-blur-xl border-purple-200">
                   <p className="text-sm font-medium text-gray-700">
-                    {!isRecording 
+                    {!isSpeechRecording 
                       ? 'Clique para iniciar gravação' 
                       : isPaused 
                       ? 'Clique para continuar' 
@@ -611,10 +390,10 @@ const LiveLecture = () => {
                 const distanceFromCenter = Math.abs(i - 20);
                 const normalizedDistance = distanceFromCenter / 20;
                 
-                const baseHeight = isRecording && !isPaused ? 64 : 15;
+                const baseHeight = isSpeechRecording && !isPaused ? 64 : 15;
                 const falloffMultiplier = 1 - (normalizedDistance * 0.4);
                 
-                const dynamicHeight = isRecording && !isPaused 
+                const dynamicHeight = isSpeechRecording && !isPaused 
                   ? baseHeight * falloffMultiplier * (0.4 + (audioLevel / 100) * 0.6) * (0.8 + Math.sin(Date.now() * 0.01 + i * 0.4) * 0.2)
                   : baseHeight * falloffMultiplier * 0.3;
                 
@@ -622,16 +401,16 @@ const LiveLecture = () => {
                   <div
                     key={i}
                     className={`rounded-t transition-all duration-100 ease-out w-1 ${
-                      isRecording && !isPaused 
+                      isSpeechRecording && !isPaused 
                         ? 'bg-gradient-to-t from-purple-500 to-pink-400' 
                         : 'bg-white/40'
                     }`}
                     style={{
                       height: `${Math.max(3, dynamicHeight)}px`,
-                      opacity: isRecording && !isPaused 
+                      opacity: isSpeechRecording && !isPaused 
                         ? 0.7 + (Math.sin(Date.now() * 0.008 + i * 0.3) * 0.3)
                         : 0.5,
-                      boxShadow: isRecording && !isPaused 
+                      boxShadow: isSpeechRecording && !isPaused 
                         ? '0 0 10px rgba(168, 85, 247, 0.5)' 
                         : 'none'
                     }}
@@ -643,19 +422,19 @@ const LiveLecture = () => {
             {/* Status indicator */}
             <div className="flex items-center justify-center gap-2">
               <div className={`w-2.5 h-2.5 rounded-full ${
-                isRecording && !isPaused 
+                isSpeechRecording && !isPaused 
                   ? 'bg-green-400 animate-pulse shadow-lg shadow-green-400/50' 
                   : 'bg-white/40'
               }`} />
               <p className="text-xs text-white/90 font-medium">
-                {isRecording && !isPaused ? 'Monitorando entrada de áudio' : 'Aguardando entrada de áudio'}
+                {isSpeechRecording && !isPaused ? 'Reconhecimento de voz ativo' : 'Aguardando entrada de áudio'}
               </p>
             </div>
           </div>
 
           {/* 4. CONTROL BUTTONS */}
           <div className="flex flex-wrap items-center justify-center gap-4">
-            {!isRecording ? (
+            {!isSpeechRecording ? (
               <Button
                 onClick={handleStartRecording}
                 className="
@@ -767,7 +546,7 @@ const LiveLecture = () => {
           </div>
 
           {/* 5. Transcription Panel - Responsive Layout */}
-          {isRecording && (
+          {isSpeechRecording && (
             <>
               {/* Desktop: Side Panel (right side) - Fixed and always visible */}
               <div className="
@@ -785,10 +564,8 @@ const LiveLecture = () => {
                     <Radio className="h-5 w-5 animate-pulse" />
                     Transcrição ao Vivo
                   </h3>
-                  <Badge variant="outline" className={`text-xs ${
-                    isProcessing ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-green-50 text-green-700 border-green-200'
-                  }`}>
-                    {isProcessing ? 'Processando' : 'Ativo'}
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                    Ativo
                   </Badge>
                 </div>
 
@@ -803,7 +580,7 @@ const LiveLecture = () => {
                   <LiveTranscriptViewer
                     segments={transcriptSegments}
                     currentWords={currentWords}
-                    isProcessing={isProcessing}
+                    isProcessing={false}
                   />
                 </div>
 
@@ -857,10 +634,8 @@ const LiveLecture = () => {
                       <Radio className="h-4 w-4 animate-pulse" />
                       Transcrição ao Vivo
                     </h3>
-                    <Badge variant="outline" className={`text-xs ${
-                      isProcessing ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-green-50 text-green-700 border-green-200'
-                    }`}>
-                      {isProcessing ? 'Processando' : 'Ativo'}
+                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                      Ativo
                     </Badge>
                   </div>
 
@@ -869,7 +644,7 @@ const LiveLecture = () => {
                     <LiveTranscriptViewer
                       segments={transcriptSegments}
                       currentWords={currentWords}
-                      isProcessing={isProcessing}
+                      isProcessing={false}
                     />
                   </div>
 
