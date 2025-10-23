@@ -728,6 +728,7 @@ export type Database = {
           tags: string[] | null
           teacher_id: string
           title: string
+          turma_id: string | null
           updated_at: string
         }
         Insert: {
@@ -744,6 +745,7 @@ export type Database = {
           tags?: string[] | null
           teacher_id: string
           title?: string
+          turma_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -760,6 +762,7 @@ export type Database = {
           tags?: string[] | null
           teacher_id?: string
           title?: string
+          turma_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -775,6 +778,13 @@ export type Database = {
             columns: ["disciplina_id"]
             isOneToOne: false
             referencedRelation: "disciplinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lectures_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
             referencedColumns: ["id"]
           },
         ]
