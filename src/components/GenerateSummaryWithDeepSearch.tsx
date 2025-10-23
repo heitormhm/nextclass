@@ -53,125 +53,166 @@ export const GenerateSummaryWithDeepSearch = ({
 
   const handleGenerate = async () => {
     if (!fullTranscript) {
-      toast.error("Transcrição não disponível");
+      toast.error("Nenhuma transcrição disponível");
       return;
     }
 
     setIsGenerating(true);
-    setProgressMessage("Iniciando pesquisa profunda...");
+    setProgressMessage("Criando sessão de pesquisa profunda...");
 
     try {
-      // Simulate progress steps for better UX
-      const progressSteps = [
-        { delay: 1000, message: "Analisando conteúdo da aula..." },
-        { delay: 3000, message: "Pesquisando fontes relevantes na web..." },
-        { delay: 5000, message: "Processando e analisando resultados..." },
-        { delay: 7000, message: "Sintetizando resumo detalhado..." },
-      ];
+      // Get authenticated user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
 
-      let currentStep = 0;
-      const progressInterval = setInterval(() => {
-        if (currentStep < progressSteps.length) {
-          setProgressMessage(progressSteps[currentStep].message);
-          currentStep++;
-        }
-      }, 2000);
+      // Create deep search session
+      const { data: session, error: sessionError } = await supabase
+        .from('deep_search_sessions')
+        .insert({
+          user_id: user.id,
+          query: `Resumo detalhado: ${lectureTitle}`,
+          status: 'pending',
+          search_type: 'lecture_summary'
+        })
+        .select()
+        .single();
 
-      // Create enriched prompt with deep search instructions
-      const enrichedPrompt = `
-# DEEP SEARCH MODE ATIVADO
+      if (sessionError) {
+        console.error('Session creation error:', sessionError);
+        throw new Error('Falha ao criar sessão de pesquisa');
+      }
 
-Você deve realizar uma pesquisa profunda e gerar um resumo detalhado e estruturado da aula abaixo.
+      console.log('Deep search session created:', session.id);
 
-## Contexto da Aula:
-**Título:** ${lectureTitle}
-**Tags:** ${tags.join(', ')}
-${additionalInstructions ? `\n**Instruções Adicionais:** ${additionalInstructions}\n` : ''}
+      // Build enriched query for deep search
+      const enrichedQuery = `# RESUMO DE AULA - PESQUISA PROFUNDA
 
-## Transcrição Completa:
-${fullTranscript.substring(0, 12000)}
+## Contexto:
+**Título:** ${lectureTitle || "Sem título"}
+**Tags:** ${tags.join(", ") || "Nenhuma"}
+${additionalInstructions ? `**Foco Especial:** ${additionalInstructions}` : ''}
 
----
+## Transcrição (resumida):
+${fullTranscript.substring(0, 15000)}
 
-## INSTRUÇÕES PARA DEEP SEARCH:
+## Tarefa:
+Pesquise na web informações atualizadas sobre os tópicos desta aula e gere um resumo estruturado incluindo:
 
-1. **Análise Profunda**: Identifique os conceitos-chave e tópicos principais da transcrição
-2. **Pesquisa Contextual**: Considere conhecimento atualizado sobre os temas abordados
-3. **Síntese Estruturada**: Organize as informações de forma hierárquica e clara
+### 1. INTRODUÇÃO E CONTEXTO
+- Visão geral do tema com informações atualizadas da web
+- Relevância no cenário atual da engenharia
 
-## ESTRUTURA DO RESUMO REQUERIDA:
+### 2. CONCEITOS FUNDAMENTAIS
+- Definições técnicas verificadas em fontes confiáveis
+- Princípios básicos com referências
 
-### 1. Introdução
-- Contexto geral da aula
-- Objetivos de aprendizagem
-- Relevância dos tópicos abordados
+### 3. DESENVOLVIMENTO TEÓRICO APROFUNDADO
+- Explicação detalhada enriquecida com pesquisas web
+- Exemplos de aplicações reais encontrados online
 
-### 2. Principais Tópicos Abordados
-- Liste e explique detalhadamente cada tópico principal
-- Inclua sub-tópicos quando aplicável
-- Use marcadores para clareza
+### 4. FÓRMULAS E EQUAÇÕES (se aplicável)
+- Fórmulas principais com explicação completa
+- Unidades e condições de aplicação
 
-### 3. Conceitos-Chave e Definições
-- Defina termos técnicos importantes
-- Explique suas aplicações práticas
-- Relacione com contexto da engenharia
+### 5. APLICAÇÕES PRÁTICAS
+- Casos de uso reais da indústria
+- Exemplos contemporâneos
 
-### 4. Fórmulas e Equações (se aplicável)
-- Liste fórmulas mencionadas
-- Explique variáveis e unidades
-- Demonstre aplicações
+### 6. PONTOS-CHAVE PARA REVISÃO
+- Conceitos essenciais resumidos
+- Dicas de fixação
 
-### 5. Exemplos Práticos e Aplicações
-- Casos reais mencionados
-- Problemas resolvidos
-- Aplicações em engenharia
+### 7. REFERÊNCIAS E FONTES
+- Cite as fontes web consultadas
+- Sugestões de leitura complementar
 
-### 6. Conclusões e Pontos de Atenção
-- Resumo dos aspectos mais importantes
-- Conexões entre conceitos
-- Dicas para estudo e revisão
+Use Markdown e LaTeX para fórmulas. Priorize clareza e rigor técnico.`;
 
-## REQUISITOS DE FORMATAÇÃO:
-- Use Markdown para organização hierárquica
-- Utilize **negrito** para termos-chave
-- Use listas numeradas e com marcadores
-- Inclua \`código inline\` para fórmulas simples
-- Use blocos de código para fórmulas complexas
-- Mantenha clareza e precisão técnica
-
-Gere um resumo completo, detalhado e bem estruturado seguindo todas as instruções acima.
-`;
-
-      const messages = [
-        {
-          role: "user",
-          content: enrichedPrompt
-        }
-      ];
-
-      const { data, error } = await supabase.functions.invoke('mia-teacher-chat', {
-        body: { 
-          messages,
-          useAdvancedModel: true, // Use advanced model for better results
+      // Start deep research agent (non-blocking)
+      setProgressMessage("Pesquisando fontes relevantes na web...");
+      
+      const { error: agentError } = await supabase.functions.invoke('mia-deep-research-agent', {
+        body: {
+          query: enrichedQuery,
+          deepSearchSessionId: session.id
         }
       });
 
-      clearInterval(progressInterval);
-
-      if (error) throw error;
-
-      if (data?.response) {
-        onUpdate(data.response);
-        toast.success("Resumo gerado com sucesso!");
-        setIsOpen(false);
-        setAdditionalInstructions("");
-      } else {
-        throw new Error('Resposta inválida da IA');
+      if (agentError) {
+        console.error('Agent invocation error:', agentError);
+        throw new Error('Falha ao iniciar pesquisa profunda');
       }
+
+      // Poll for progress
+      let attempts = 0;
+      const maxAttempts = 60; // 3 minutes timeout (3s * 60)
+      
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        
+        if (attempts > maxAttempts) {
+          clearInterval(pollInterval);
+          setIsGenerating(false);
+          toast.error('Timeout: Pesquisa demorou muito. Tente novamente.');
+          return;
+        }
+
+        const { data: sessionData, error: pollError } = await supabase
+          .from('deep_search_sessions')
+          .select('status, progress_step, result, error')
+          .eq('id', session.id)
+          .single();
+
+        if (pollError) {
+          console.error('Polling error:', pollError);
+          clearInterval(pollInterval);
+          setIsGenerating(false);
+          toast.error('Erro ao verificar progresso da pesquisa');
+          return;
+        }
+
+        // Update progress message based on step
+        switch (sessionData.progress_step) {
+          case 'analyzing_query':
+            setProgressMessage("Analisando conteúdo da aula...");
+            break;
+          case 'executing_searches':
+            setProgressMessage("Pesquisando fontes relevantes na web...");
+            break;
+          case 'processing_results':
+            setProgressMessage("Processando e analisando resultados...");
+            break;
+          case 'synthesizing':
+            setProgressMessage("Sintetizando resumo detalhado...");
+            break;
+        }
+
+        // Check completion
+        if (sessionData.status === 'completed') {
+          clearInterval(pollInterval);
+          setIsGenerating(false);
+          
+          if (sessionData.result) {
+            onUpdate(sessionData.result);
+            toast.success("Resumo gerado com pesquisa profunda na web!");
+            setIsOpen(false);
+            setAdditionalInstructions("");
+          } else {
+            toast.error('Nenhum resultado retornado pela pesquisa');
+          }
+        } else if (sessionData.status === 'failed') {
+          clearInterval(pollInterval);
+          setIsGenerating(false);
+          console.error('Deep search failed:', sessionData.error);
+          toast.error(`Erro na pesquisa: ${sessionData.error || 'Erro desconhecido'}`);
+        }
+      }, 3000); // Poll every 3 seconds
+
     } catch (error) {
       console.error("Error generating summary:", error);
-      toast.error("Erro ao gerar resumo. Tente novamente.");
-    } finally {
+      toast.error(error instanceof Error ? error.message : "Erro ao gerar resumo. Tente novamente.");
       setIsGenerating(false);
       setProgressMessage("");
     }
@@ -282,15 +323,21 @@ Gere um resumo completo, detalhado e bem estruturado seguindo todas as instruç�
 
             {/* Progress Indicator */}
             {isGenerating && (
-              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+              <div className="p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
                 <div className="flex items-center gap-3">
-                  <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                  <div className="relative">
+                    <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
+                    <Search className="h-3 w-3 text-purple-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                  </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-foreground">
                       {progressMessage || 'Processando...'}
                     </p>
-                    <div className="w-full bg-primary/20 rounded-full h-1.5 mt-2">
-                      <div className="bg-primary h-1.5 rounded-full transition-all duration-1000 animate-pulse w-3/4" />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Deep Search em andamento • Pode levar até 2 minutos
+                    </p>
+                    <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
+                      <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-1000 animate-pulse w-2/3" />
                     </div>
                   </div>
                 </div>

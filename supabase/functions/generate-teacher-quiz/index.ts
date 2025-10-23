@@ -130,16 +130,38 @@ Generate a comprehensive quiz following the requirements.`;
       throw new Error('No response from AI');
     }
 
-    // Parse quiz
+    // Parse quiz questions
     let quizData;
-    const jsonMatch = content_text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      quizData = JSON.parse(jsonMatch[0]);
-    } else {
-      quizData = JSON.parse(content_text);
+    try {
+      const jsonMatch = content_text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        quizData = JSON.parse(jsonMatch[0]);
+      } else {
+        quizData = JSON.parse(content_text);
+      }
+
+      if (!quizData.questions || !Array.isArray(quizData.questions)) {
+        throw new Error('Invalid quiz structure: missing questions array');
+      }
+
+      console.log(`Parsed ${quizData.questions.length} quiz questions`);
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError, 'Content:', content_text);
+      throw new Error('Failed to parse quiz JSON');
     }
 
-    // Save to database
+    // Delete existing quiz for this lecture (if any)
+    const { error: deleteError } = await supabaseClient
+      .from('teacher_quizzes')
+      .delete()
+      .eq('lecture_id', lectureId)
+      .eq('teacher_id', user.id);
+
+    if (deleteError) {
+      console.error('Error deleting existing quiz:', deleteError);
+    }
+
+    // Insert new quiz
     const { data: quiz, error: insertError } = await supabaseClient
       .from('teacher_quizzes')
       .insert({
@@ -153,7 +175,7 @@ Generate a comprehensive quiz following the requirements.`;
 
     if (insertError) {
       console.error('Database insert error:', insertError);
-      throw new Error('Failed to save quiz');
+      throw new Error(`Failed to save quiz: ${insertError.message}`);
     }
 
     return new Response(

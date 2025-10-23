@@ -129,14 +129,36 @@ Generate comprehensive flashcards following the requirements.`;
 
     // Parse flashcards
     let flashcardsData;
-    const jsonMatch = content_text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      flashcardsData = JSON.parse(jsonMatch[0]);
-    } else {
-      flashcardsData = JSON.parse(content_text);
+    try {
+      const jsonMatch = content_text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        flashcardsData = JSON.parse(jsonMatch[0]);
+      } else {
+        flashcardsData = JSON.parse(content_text);
+      }
+
+      if (!flashcardsData.cards || !Array.isArray(flashcardsData.cards)) {
+        throw new Error('Invalid flashcards structure: missing cards array');
+      }
+
+      console.log(`Parsed ${flashcardsData.cards.length} flashcards`);
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError, 'Content:', content_text);
+      throw new Error('Failed to parse flashcards JSON');
     }
 
-    // Save to database
+    // Delete existing flashcards for this lecture (if any)
+    const { error: deleteError } = await supabaseClient
+      .from('teacher_flashcards')
+      .delete()
+      .eq('lecture_id', lectureId)
+      .eq('teacher_id', user.id);
+
+    if (deleteError) {
+      console.error('Error deleting existing flashcards:', deleteError);
+    }
+
+    // Insert new flashcards
     const { data: flashcards, error: insertError } = await supabaseClient
       .from('teacher_flashcards')
       .insert({
@@ -150,7 +172,7 @@ Generate comprehensive flashcards following the requirements.`;
 
     if (insertError) {
       console.error('Database insert error:', insertError);
-      throw new Error('Failed to save flashcards');
+      throw new Error(`Failed to save flashcards: ${insertError.message}`);
     }
 
     return new Response(
