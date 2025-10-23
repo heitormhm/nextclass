@@ -19,31 +19,57 @@ const AnnouncementModal = ({ open, onOpenChange, classes }: AnnouncementModalPro
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        toast({
+          title: "Navegador não suportado",
+          description: "Use Chrome, Edge ou Safari para gravação de voz",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'pt-BR';
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      
+      recognition.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0].transcript)
+          .join(' ');
+        
+        setMessage(prev => prev + (prev ? ' ' : '') + transcript);
       };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await transcribeAudio(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
+      
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        toast({
+          title: "Erro na gravação",
+          description: "Não foi possível capturar o áudio",
+          variant: "destructive",
+        });
+        setIsRecording(false);
       };
-
-      mediaRecorder.start();
+      
+      recognition.onend = () => {
+        setIsRecording(false);
+        toast({
+          title: "Transcrição concluída",
+          description: "O texto foi adicionado ao campo de mensagem",
+        });
+      };
+      
+      recognitionRef.current = recognition;
+      recognition.start();
       setIsRecording(true);
+      
       toast({
         title: "Gravação iniciada",
         description: "Fale agora para transcrever sua mensagem",
@@ -59,42 +85,9 @@ const AnnouncementModal = ({ open, onOpenChange, classes }: AnnouncementModalPro
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop();
       setIsRecording(false);
-    }
-  };
-
-  const transcribeAudio = async (audioBlob: Blob) => {
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = async () => {
-        const base64Audio = reader.result?.toString().split(',')[1];
-        
-        if (!base64Audio) {
-          throw new Error('Failed to convert audio to base64');
-        }
-
-        const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-          body: { audio: base64Audio },
-        });
-
-        if (error) throw error;
-
-        setMessage(prev => prev + (prev ? ' ' : '') + data.text);
-        toast({
-          title: "Transcrição concluída",
-          description: "O texto foi adicionado ao campo de mensagem",
-        });
-      };
-    } catch (error) {
-      console.error('Error transcribing audio:', error);
-      toast({
-        title: "Erro na transcrição",
-        description: "Não foi possível transcrever o áudio",
-        variant: "destructive",
-      });
     }
   };
 

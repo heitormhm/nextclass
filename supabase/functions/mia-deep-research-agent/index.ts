@@ -105,31 +105,31 @@ async function processDeepResearch(
   const researchResults: ResearchResult[] = [];
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const BRAVE_API_KEY = Deno.env.get('BRAVE_SEARCH_API_KEY');
     
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY not configured');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
     if (!BRAVE_API_KEY) {
       throw new Error('BRAVE_SEARCH_API_KEY not configured');
     }
 
     // ====================================================================
-    // Step 1: Decompose the question with OpenAI GPT-5 + Function Calling
+    // Step 1: Decompose the question with Lovable AI (Gemini Flash) + Function Calling
     // ====================================================================
     await updateProgress("A decompor a pergunta em tópicos...");
-    console.log('\n=== Step 1: Decomposing question with OpenAI GPT-5 ===');
+    console.log('\n=== Step 1: Decomposing question with Lovable AI (Gemini Flash) ===');
 
     const decomposeResponse = await withTimeout(
-      fetch('https://api.openai.com/v1/chat/completions', {
+      fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-5',
+          model: 'google/gemini-2.5-flash',
           messages: [
             {
               role: 'system',
@@ -165,7 +165,7 @@ async function processDeepResearch(
           max_completion_tokens: 2000,
         }),
       }),
-      120000 // 120s timeout - increased for GPT-5 response time under load
+      120000 // 120s timeout
     );
 
     if (!decomposeResponse.ok) {
@@ -197,10 +197,10 @@ async function processDeepResearch(
     }
 
     // ====================================================================
-    // Step 2: Execute Web Searches with GPT-5 Agentic Researcher
+    // Step 2: Execute Web Searches with Lovable AI (Gemini Flash) Agentic Researcher
     // ====================================================================
     await updateProgress("A executar buscas na web...");
-    console.log('\n=== Step 2: Executing web searches with GPT-5 agent ===');
+    console.log('\n=== Step 2: Executing web searches with Lovable AI (Gemini Flash) agent ===');
 
     // Define the web search tool for GPT-5 function calling
     const webSearchTool = {
@@ -268,20 +268,20 @@ Be strategic about your searches - you have a limited number of iterations.`
         
         try {
           const agentResponse = await withTimeout(
-            fetch('https://api.openai.com/v1/chat/completions', {
+            fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Authorization': `Bearer ${LOVABLE_API_KEY}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                model: 'gpt-5',
+                model: 'google/gemini-2.5-flash',
                 messages: conversationHistory,
                 tools: [webSearchTool],
                 max_completion_tokens: 4000,
               }),
             }),
-            30000 // 30s timeout per GPT-5 call
+            30000 // 30s timeout
           );
           
           if (!agentResponse.ok) {

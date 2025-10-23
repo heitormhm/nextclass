@@ -99,10 +99,10 @@ async function generateReport(
       .eq('id', deepSearchSessionId);
 
     console.log('✓ Idempotency check passed, starting report generation');
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY not configured');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     // ====================================================================
@@ -134,10 +134,10 @@ async function generateReport(
     console.log(`✓ Loaded ${researchResults.length} research results`);
 
     // ====================================================================
-    // Generate Final Report with OpenAI GPT-5
+    // Generate Final Report with Lovable AI (Gemini Flash)
     // ====================================================================
     await updateProgress("A gerar relatório final...");
-    console.log('\n=== Generating final report with OpenAI GPT-5 ===');
+    console.log('\n=== Generating final report with Lovable AI (Gemini Flash) ===');
 
     // Compile all research results into a structured format
     const compiledResearch = researchResults
@@ -322,14 +322,14 @@ Agora, escreva o relatório final em Português, seguindo todas as diretrizes ac
     while (retryCount <= MAX_RETRIES) {
       try {
         reportResponse = await withTimeout(
-          fetch('https://api.openai.com/v1/chat/completions', {
+          fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'gpt-5',
+              model: 'google/gemini-2.5-flash',
               messages: [
                 {
                   role: 'user',
