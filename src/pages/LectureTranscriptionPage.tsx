@@ -344,7 +344,7 @@ const LectureTranscriptionPage = () => {
   };
 
   const handleGenerateQuiz = async () => {
-    if (!structuredContent) return;
+    if (!id) return;
     
     try {
       setIsGeneratingQuiz(true);
@@ -353,10 +353,9 @@ const LectureTranscriptionPage = () => {
         description: 'A IA está criando questões baseadas no conteúdo',
       });
 
-      const { data, error } = await supabase.functions.invoke('generate-teacher-quiz', {
+      const { data, error } = await supabase.functions.invoke('teacher-generate-quiz-v2', {
         body: {
           lectureId: id,
-          content: structuredContent,
           title: lectureTitle,
         },
       });
@@ -366,14 +365,14 @@ const LectureTranscriptionPage = () => {
       setHasQuiz(true);
       toast({
         title: 'Quiz gerado!',
-        description: '10 questões foram criadas com sucesso',
+        description: `${data.questionCount} questões foram criadas com sucesso`,
       });
     } catch (error) {
       console.error('Error generating quiz:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar quiz',
-        description: 'Não foi possível gerar o quiz',
+        description: error instanceof Error ? error.message : 'Não foi possível gerar o quiz',
       });
     } finally {
       setIsGeneratingQuiz(false);
@@ -381,7 +380,7 @@ const LectureTranscriptionPage = () => {
   };
 
   const handleGenerateFlashcards = async () => {
-    if (!structuredContent) return;
+    if (!id) return;
     
     try {
       setIsGeneratingFlashcards(true);
@@ -390,10 +389,9 @@ const LectureTranscriptionPage = () => {
         description: 'A IA está criando cartões de estudo',
       });
 
-      const { data, error } = await supabase.functions.invoke('generate-teacher-flashcards', {
+      const { data, error } = await supabase.functions.invoke('teacher-generate-flashcards-v2', {
         body: {
           lectureId: id,
-          content: structuredContent,
           title: lectureTitle,
         },
       });
@@ -403,14 +401,14 @@ const LectureTranscriptionPage = () => {
       setHasFlashcards(true);
       toast({
         title: 'Flashcards gerados!',
-        description: 'Cartões de estudo criados com sucesso',
+        description: `${data.cardCount} flashcards criados com sucesso`,
       });
     } catch (error) {
       console.error('Error generating flashcards:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar flashcards',
-        description: 'Não foi possível gerar os flashcards',
+        description: error instanceof Error ? error.message : 'Não foi possível gerar os flashcards',
       });
     } finally {
       setIsGeneratingFlashcards(false);

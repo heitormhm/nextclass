@@ -58,161 +58,87 @@ export const GenerateSummaryWithDeepSearch = ({
     }
 
     setIsGenerating(true);
-    setProgressMessage("Criando sessão de pesquisa profunda...");
+    setProgressMessage("Analisando conteúdo da aula...");
 
     try {
-      // Get authenticated user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('Usuário não autenticado');
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
 
-      // Create deep search session
-      const { data: session, error: sessionError } = await supabase
-        .from('deep_search_sessions')
-        .insert({
-          user_id: user.id,
-          query: `Resumo detalhado: ${lectureTitle}`,
-          status: 'pending',
-          search_type: 'lecture_summary'
-        })
-        .select()
-        .single();
-
-      if (sessionError) {
-        console.error('Session creation error:', sessionError);
-        throw new Error('Falha ao criar sessão de pesquisa');
-      }
-
-      console.log('Deep search session created:', session.id);
-
-      // Build enriched query for deep search
-      const enrichedQuery = `# RESUMO DE AULA - PESQUISA PROFUNDA
+      // Construct enriched prompt
+      const enrichedPrompt = `
+# TAREFA: GERAR RESUMO DETALHADO DA AULA
 
 ## Contexto:
-**Título:** ${lectureTitle || "Sem título"}
-**Tags:** ${tags.join(", ") || "Nenhuma"}
-${additionalInstructions ? `**Foco Especial:** ${additionalInstructions}` : ''}
+**Título da Aula:** ${lectureTitle}
+**Tags:** ${tags.join(', ')}
+${additionalInstructions ? `\n**Instruções Especiais:** ${additionalInstructions}\n` : ''}
 
-## Transcrição (resumida):
+## Transcrição Completa:
 ${fullTranscript.substring(0, 15000)}
 
-## Tarefa:
-Pesquise na web informações atualizadas sobre os tópicos desta aula e gere um resumo estruturado incluindo:
+## Objetivo:
+Gere um resumo estruturado e detalhado da aula em PORTUGUÊS BRASILEIRO, incluindo:
 
-### 1. INTRODUÇÃO E CONTEXTO
-- Visão geral do tema com informações atualizadas da web
-- Relevância no cenário atual da engenharia
+1. **Introdução e Contexto**
+   - Apresentação do tema
+   - Relevância e aplicações
 
-### 2. CONCEITOS FUNDAMENTAIS
-- Definições técnicas verificadas em fontes confiáveis
-- Princípios básicos com referências
+2. **Principais Tópicos**
+   - Conceitos fundamentais explicados
+   - Definições técnicas precisas
 
-### 3. DESENVOLVIMENTO TEÓRICO APROFUNDADO
-- Explicação detalhada enriquecida com pesquisas web
-- Exemplos de aplicações reais encontrados online
+3. **Fórmulas e Equações** (se aplicável)
+   - Com explicação de variáveis e unidades
 
-### 4. FÓRMULAS E EQUAÇÕES (se aplicável)
-- Fórmulas principais com explicação completa
-- Unidades e condições de aplicação
+4. **Exemplos Práticos**
+   - Aplicações reais do conteúdo
 
-### 5. APLICAÇÕES PRÁTICAS
-- Casos de uso reais da indústria
-- Exemplos contemporâneos
+5. **Conclusões e Pontos-Chave**
+   - Resumo dos conceitos essenciais
+   - Alertas e considerações importantes
 
-### 6. PONTOS-CHAVE PARA REVISÃO
-- Conceitos essenciais resumidos
-- Dicas de fixação
+**FORMATO:** Use Markdown com cabeçalhos (##), listas, **negrito** para conceitos-chave.
+**IDIOMA:** Português brasileiro APENAS.
+**EXTENSÃO:** Detalhado e completo (1500-2500 palavras).
+`;
 
-### 7. REFERÊNCIAS E FONTES
-- Cite as fontes web consultadas
-- Sugestões de leitura complementar
+      setProgressMessage("Gerando resumo com IA avançada...");
 
-Use Markdown e LaTeX para fórmulas. Priorize clareza e rigor técnico.`;
-
-      // Start deep research agent (non-blocking)
-      setProgressMessage("Pesquisando fontes relevantes na web...");
-      
-      const { error: agentError } = await supabase.functions.invoke('mia-deep-research-agent', {
+      // Call mia-teacher-chat with advanced model
+      const { data, error } = await supabase.functions.invoke('mia-teacher-chat', {
         body: {
-          query: enrichedQuery,
-          deepSearchSessionId: session.id
+          message: enrichedPrompt,
+          useAdvancedModel: true, // Use Gemini 2.5 Pro
+          context: {
+            lectureTitle,
+            tags,
+            additionalInstructions
+          }
         }
       });
 
-      if (agentError) {
-        console.error('Agent invocation error:', agentError);
-        throw new Error('Falha ao iniciar pesquisa profunda');
+      if (error) {
+        console.error('Teacher chat error:', error);
+        throw new Error('Falha ao gerar resumo');
       }
 
-      // Poll for progress
-      let attempts = 0;
-      const maxAttempts = 60; // 3 minutes timeout (3s * 60)
-      
-      const pollInterval = setInterval(async () => {
-        attempts++;
-        
-        if (attempts > maxAttempts) {
-          clearInterval(pollInterval);
-          setIsGenerating(false);
-          toast.error('Timeout: Pesquisa demorou muito. Tente novamente.');
-          return;
-        }
+      const generatedSummary = data?.response;
+      if (!generatedSummary) {
+        throw new Error('Nenhum resumo retornado pela IA');
+      }
 
-        const { data: sessionData, error: pollError } = await supabase
-          .from('deep_search_sessions')
-          .select('status, progress_step, result, error')
-          .eq('id', session.id)
-          .single();
+      setProgressMessage("Finalizando resumo...");
 
-        if (pollError) {
-          console.error('Polling error:', pollError);
-          clearInterval(pollInterval);
-          setIsGenerating(false);
-          toast.error('Erro ao verificar progresso da pesquisa');
-          return;
-        }
-
-        // Update progress message based on step
-        switch (sessionData.progress_step) {
-          case 'analyzing_query':
-            setProgressMessage("Analisando conteúdo da aula...");
-            break;
-          case 'executing_searches':
-            setProgressMessage("Pesquisando fontes relevantes na web...");
-            break;
-          case 'processing_results':
-            setProgressMessage("Processando e analisando resultados...");
-            break;
-          case 'synthesizing':
-            setProgressMessage("Sintetizando resumo detalhado...");
-            break;
-        }
-
-        // Check completion
-        if (sessionData.status === 'completed') {
-          clearInterval(pollInterval);
-          setIsGenerating(false);
-          
-          if (sessionData.result) {
-            onUpdate(sessionData.result);
-            toast.success("Resumo gerado com pesquisa profunda na web!");
-            setIsOpen(false);
-            setAdditionalInstructions("");
-          } else {
-            toast.error('Nenhum resultado retornado pela pesquisa');
-          }
-        } else if (sessionData.status === 'failed') {
-          clearInterval(pollInterval);
-          setIsGenerating(false);
-          console.error('Deep search failed:', sessionData.error);
-          toast.error(`Erro na pesquisa: ${sessionData.error || 'Erro desconhecido'}`);
-        }
-      }, 3000); // Poll every 3 seconds
+      // Update the content
+      onUpdate(generatedSummary);
+      toast.success("Resumo gerado com sucesso!");
+      setIsOpen(false);
+      setAdditionalInstructions("");
 
     } catch (error) {
       console.error("Error generating summary:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao gerar resumo. Tente novamente.");
+    } finally {
       setIsGenerating(false);
       setProgressMessage("");
     }
