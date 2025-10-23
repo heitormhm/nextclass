@@ -51,6 +51,7 @@ const LectureTranscriptionPage = () => {
   const [structuredContent, setStructuredContent] = useState<StructuredContent | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [derivedTurmaId, setDerivedTurmaId] = useState<string>('');
+  const [selectAllStudents, setSelectAllStudents] = useState(true);
   const [classes, setClasses] = useState<any[]>([]);
   const [lectureTitle, setLectureTitle] = useState('');
   
@@ -611,15 +612,26 @@ const LectureTranscriptionPage = () => {
                       <BookOpen className="h-5 w-5 text-purple-600" />
                       Resumo da Aula
                     </CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditModal('Resumo', { resumo: structuredContent.resumo })}
-                      className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Editar com IA
-                    </Button>
+                    <div className="flex gap-2">
+                      <GenerateSummaryWithDeepSearch
+                        lectureId={id || ''}
+                        currentSummary={structuredContent.resumo}
+                        fullTranscript={lecture?.raw_transcript || ''}
+                        onUpdate={(newSummary) => {
+                          setStructuredContent({ ...structuredContent, resumo: newSummary });
+                          handleSaveContent({ ...structuredContent, resumo: newSummary });
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditModal('Resumo', { resumo: structuredContent.resumo })}
+                        className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Editar com IA
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="bg-white p-4 rounded-lg">
@@ -1129,29 +1141,6 @@ const LectureTranscriptionPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Publication settings */}
-                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
-                  <CardHeader>
-                    <CardTitle className="text-slate-900 font-bold text-sm">Configurações de Publicação</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <Label className="text-slate-900 font-semibold text-xs mb-2">Turma</Label>
-                      <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                        <SelectTrigger className="bg-white border-slate-300 text-slate-900">
-                          <SelectValue placeholder="Selecione a turma" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border-slate-300">
-                          {classes.map((cls) => (
-                            <SelectItem key={cls.id} value={cls.id} className="text-slate-900">
-                              {cls.name} - {cls.course}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardContent>
-                </Card>
 
                 {/* Stats */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
