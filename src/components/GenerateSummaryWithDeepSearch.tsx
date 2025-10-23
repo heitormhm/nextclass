@@ -34,16 +34,16 @@ export const GenerateSummaryWithDeepSearch = ({
     isRecording,
     startRecording,
     stopRecording,
+    onTranscriptionReceived,
     error: recordingError,
   } = useAudioRecorder();
 
   // Setup transcription callback
   useEffect(() => {
-    const { onTranscriptionReceived } = useAudioRecorder();
     onTranscriptionReceived((transcribedText: string) => {
       setAdditionalInstructions(prev => prev ? `${prev} ${transcribedText}` : transcribedText);
     });
-  }, []);
+  }, [onTranscriptionReceived]);
 
   useEffect(() => {
     if (recordingError) {
