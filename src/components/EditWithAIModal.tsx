@@ -122,97 +122,83 @@ export const EditWithAIModal: React.FC<EditWithAIModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[80vh] bg-white/20 backdrop-blur-xl border-white/30 shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-slate-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            Editar com Mia: {sectionTitle}
+      <DialogContent className="max-w-3xl h-[85vh] flex flex-col bg-white/75 backdrop-blur-xl border-white/40 shadow-2xl">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="text-2xl font-bold text-slate-900">
+            Editar com IA: {sectionTitle}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 h-[500px] px-1">
-          <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
-            <div className="space-y-4">
-              {messages.length === 0 ? (
-                <div className="text-center py-8 text-slate-700 dark:text-slate-300">
-                  <Sparkles className="h-12 w-12 mx-auto mb-3 text-purple-600 dark:text-purple-400" />
-                  <p className="mb-2 font-medium">Olá! Sou a Mia, sua assistente de IA.</p>
-                  <p className="text-sm">
-                    Como posso ajudar a melhorar este conteúdo?
+        <ScrollArea className="flex-1 pr-4 my-4">
+          <div className="space-y-4">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] p-4 rounded-lg backdrop-blur-sm ${
+                    message.role === 'user'
+                      ? 'bg-blue-500/20 border border-blue-300/30'
+                      : 'bg-white/95 border border-slate-200/50'
+                  }`}
+                >
+                  <p className={`text-sm whitespace-pre-wrap ${
+                    message.role === 'user' ? 'text-slate-900 font-medium' : 'text-slate-800'
+                  }`}>
+                    {message.content}
                   </p>
                 </div>
-              ) : (
-                messages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg p-3 backdrop-blur-sm ${
-                        msg.role === 'user'
-                          ? 'bg-purple-600/90 text-white shadow-lg'
-                          : 'bg-white/40 dark:bg-slate-800/40 text-slate-900 dark:text-slate-100 border border-white/20'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                    <Loader2 className="h-5 w-5 text-purple-600 dark:text-purple-400 animate-spin" />
-                  </div>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+              </div>
+            )}
+          </div>
+        </ScrollArea>
 
-          <div className="flex gap-2 items-end">
-            <div className="flex-1 relative">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder="Digite sua instrução de edição ou use o microfone..."
-                className="bg-white/40 dark:bg-slate-800/40 border-white/30 text-slate-900 dark:text-white resize-none backdrop-blur-sm pr-12"
-                rows={3}
-                disabled={isLoading}
-              />
-              <Button
-                onClick={handleVoiceInput}
-                variant="ghost"
-                size="icon"
-                className={`absolute bottom-2 right-2 h-8 w-8 ${
-                  isRecording
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'hover:bg-white/20'
-                }`}
-                disabled={isLoading}
-              >
-                {isRecording ? (
-                  <MicOff className="h-4 w-4" />
-                ) : (
-                  <Mic className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+        <div className="flex-shrink-0 space-y-2 pt-4 border-t border-slate-300">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="Digite suas instruções para editar o conteúdo..."
+            className="min-h-[100px] bg-white border-slate-300 text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading}
+          />
+          <div className="flex gap-2 justify-end">
             <Button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              className="bg-purple-600 hover:bg-purple-700 h-[88px]"
+              onClick={handleVoiceInput}
+              variant={isRecording ? "destructive" : "outline"}
               size="icon"
+              disabled={isLoading}
+              className={isRecording ? "animate-pulse" : ""}
+            >
+              {isRecording ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+            </Button>
+            <Button 
+              onClick={handleSend} 
+              disabled={isLoading || !input.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Send className="h-5 w-5" />
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Enviar
+                </>
               )}
             </Button>
           </div>

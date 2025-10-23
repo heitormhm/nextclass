@@ -50,6 +50,7 @@ const LectureTranscriptionPage = () => {
   const [lecture, setLecture] = useState<any>(null);
   const [structuredContent, setStructuredContent] = useState<StructuredContent | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [derivedTurmaId, setDerivedTurmaId] = useState<string>('');
   const [classes, setClasses] = useState<any[]>([]);
   const [lectureTitle, setLectureTitle] = useState('');
   
@@ -119,9 +120,22 @@ const LectureTranscriptionPage = () => {
       setLecture(data);
       setLectureTitle(data?.title || 'Nova Aula');
       
-      // Pre-select turma if available
-      if (data?.class_id) {
+      // Derive turma_id from disciplina_id if class_id is not set
+      if (data?.disciplina_id && !data.class_id) {
+        const { data: disciplinaData } = await supabase
+          .from('disciplinas')
+          .select('turma_id')
+          .eq('id', data.disciplina_id)
+          .single();
+        
+        if (disciplinaData?.turma_id) {
+          setDerivedTurmaId(disciplinaData.turma_id);
+          setSelectedClassId(disciplinaData.turma_id);
+          loadStudents(disciplinaData.turma_id);
+        }
+      } else if (data?.class_id) {
         setSelectedClassId(data.class_id);
+        loadStudents(data.class_id);
       }
 
       if (data?.structured_content) {
@@ -554,7 +568,7 @@ const LectureTranscriptionPage = () => {
 
           {/* Processing state */}
           {isProcessing && (
-            <Card className="bg-white/20 backdrop-blur-xl border-white/30 mb-8 shadow-2xl">
+            <Card className="bg-white/75 backdrop-blur-xl border-white/40 mb-8 shadow-2xl">
               <CardContent className="flex items-center gap-4 py-6">
                 <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
                 <div>
@@ -575,7 +589,7 @@ const LectureTranscriptionPage = () => {
               {/* Left column - Generated content */}
               <div className="space-y-6">
                 {/* Title */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
                     <CardTitle className="text-slate-900 font-bold">Título da Aula</CardTitle>
                   </CardHeader>
@@ -591,7 +605,7 @@ const LectureTranscriptionPage = () => {
 
 
                 {/* Summary */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
                       <BookOpen className="h-5 w-5 text-purple-600" />
@@ -617,7 +631,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Main topics */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
                       <FileText className="h-5 w-5 text-purple-600" />
@@ -650,7 +664,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* References */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
                       <ExternalLink className="h-5 w-5 text-purple-600" />
@@ -690,7 +704,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Quiz questions */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-slate-900 font-bold">
                       Perguntas de Revisão ({structuredContent.perguntas_revisao.length})
@@ -759,7 +773,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Flashcards */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-slate-900 font-bold">
                       Flashcards ({structuredContent.flashcards.length})
@@ -818,7 +832,7 @@ const LectureTranscriptionPage = () => {
               {/* Right column - Tools and actions */}
               <div className="space-y-6">
                 {/* Thumbnail panel */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
                     <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
                       <ImageIcon className="h-4 w-4 text-purple-600" />
@@ -910,16 +924,16 @@ const LectureTranscriptionPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Audio Player */}
-                {lecture?.audio_url && (
-                  <Card className="bg-white/20 backdrop-blur-xl border-white/30 mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-purple-600" />
-                        Áudio Gravado
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                 {/* Audio Player */}
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl mt-4">
+                  <CardHeader>
+                    <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-purple-600" />
+                      Áudio da Aula
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {lecture?.audio_url ? (
                       <audio
                         controls
                         className="w-full"
@@ -927,12 +941,16 @@ const LectureTranscriptionPage = () => {
                       >
                         Seu navegador não suporta o elemento de áudio.
                       </audio>
-                    </CardContent>
-                  </Card>
-                )}
+                    ) : (
+                      <div className="bg-white p-4 rounded-lg text-center">
+                        <p className="text-slate-600 text-sm">Nenhum áudio disponível para esta aula.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Materials panel */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
                     <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
                       <FileUp className="h-4 w-4 text-purple-600" />
@@ -992,7 +1010,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Lesson plan comparison */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
                     <CardTitle className="text-slate-900 font-bold text-sm">Análise da Aula</CardTitle>
                   </CardHeader>
@@ -1064,7 +1082,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Student access control */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
                     <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
                       <Users className="h-4 w-4 text-purple-600" />
@@ -1112,7 +1130,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Publication settings */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
                     <CardTitle className="text-slate-900 font-bold text-sm">Configurações de Publicação</CardTitle>
                   </CardHeader>
@@ -1136,7 +1154,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Stats */}
-                <Card className="bg-white/20 backdrop-blur-xl border-white/30">
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
                     <CardTitle className="text-slate-900 font-bold text-sm">Estatísticas</CardTitle>
                   </CardHeader>
@@ -1184,7 +1202,7 @@ const LectureTranscriptionPage = () => {
           onOpenChange={setOpenPublishModal}
           lectureId={id || ''}
           initialTitle={lectureTitle}
-          initialTurmaId={selectedClassId}
+          initialTurmaId={lecture?.class_id || derivedTurmaId || selectedClassId}
           initialDisciplinaId={lecture?.disciplina_id || ''}
         />
       </div>
