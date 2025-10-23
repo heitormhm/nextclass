@@ -14,6 +14,7 @@ interface GenerateSummaryWithDeepSearchProps {
   tags: string[];
   currentSummary: string;
   fullTranscript: string;
+  mainTopics?: Array<{ conceito: string; definicao: string }>;
   onUpdate: (newSummary: string) => void;
 }
 
@@ -23,6 +24,7 @@ export const GenerateSummaryWithDeepSearch = ({
   tags,
   currentSummary,
   fullTranscript,
+  mainTopics,
   onUpdate,
 }: GenerateSummaryWithDeepSearchProps) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,16 +66,20 @@ export const GenerateSummaryWithDeepSearch = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Construct enriched prompt
+      // Construct enriched prompt with full context
       const enrichedPrompt = `
 # TAREFA: GERAR RESUMO DETALHADO DA AULA
 
-## Contexto:
-**Título da Aula:** ${lectureTitle}
+## Contexto da Aula:
+**Título:** ${lectureTitle}
 **Tags:** ${tags.join(', ')}
 ${additionalInstructions ? `\n**Instruções Especiais:** ${additionalInstructions}\n` : ''}
 
-## Transcrição Completa:
+${currentSummary ? `\n## Resumo Anterior (para referência):\n${currentSummary.substring(0, 500)}\n` : ''}
+
+${mainTopics && mainTopics.length > 0 ? `\n## Tópicos Principais Abordados:\n${mainTopics.map(t => `- **${t.conceito}**: ${t.definicao}`).join('\n')}\n` : ''}
+
+## Transcrição Completa da Aula:
 ${fullTranscript.substring(0, 15000)}
 
 ## Objetivo:
@@ -109,6 +115,7 @@ Gere um resumo estruturado e detalhado da aula em PORTUGUÊS BRASILEIRO, incluin
         body: {
           message: enrichedPrompt,
           useAdvancedModel: true, // Use Gemini 2.5 Pro
+          skipAutoSuggestions: true, // Skip history persistence for summary generation
           context: {
             lectureTitle,
             tags,

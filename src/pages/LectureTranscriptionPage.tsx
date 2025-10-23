@@ -18,6 +18,11 @@ import { PublishLectureModal } from '@/components/PublishLectureModal';
 import { GenerateSummaryWithDeepSearch } from '@/components/GenerateSummaryWithDeepSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 interface StructuredContent {
   titulo_aula: string;
@@ -353,6 +358,8 @@ const LectureTranscriptionPage = () => {
         description: 'A IA está criando questões baseadas no conteúdo',
       });
 
+      console.log('[Quiz] Invocando teacher-generate-quiz-v2 com:', { lectureId: id, title: lectureTitle });
+
       const { data, error } = await supabase.functions.invoke('teacher-generate-quiz-v2', {
         body: {
           lectureId: id,
@@ -360,15 +367,19 @@ const LectureTranscriptionPage = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Quiz] Erro retornado:', error);
+        throw error;
+      }
 
+      console.log('[Quiz] Quiz gerado com sucesso:', data);
       setHasQuiz(true);
       toast({
         title: 'Quiz gerado!',
-        description: `${data.questionCount} questões foram criadas com sucesso`,
+        description: `${data?.questionCount || 'Várias'} questões foram criadas com sucesso`,
       });
     } catch (error) {
-      console.error('Error generating quiz:', error);
+      console.error('[Quiz] Error generating quiz:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar quiz',
@@ -389,6 +400,8 @@ const LectureTranscriptionPage = () => {
         description: 'A IA está criando cartões de estudo',
       });
 
+      console.log('[Flashcards] Invocando teacher-generate-flashcards-v2 com:', { lectureId: id, title: lectureTitle });
+
       const { data, error } = await supabase.functions.invoke('teacher-generate-flashcards-v2', {
         body: {
           lectureId: id,
@@ -396,15 +409,19 @@ const LectureTranscriptionPage = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Flashcards] Erro retornado:', error);
+        throw error;
+      }
 
+      console.log('[Flashcards] Flashcards gerados com sucesso:', data);
       setHasFlashcards(true);
       toast({
         title: 'Flashcards gerados!',
-        description: `${data.cardCount} flashcards criados com sucesso`,
+        description: `${data?.cardCount || 'Vários'} flashcards criados com sucesso`,
       });
     } catch (error) {
-      console.error('Error generating flashcards:', error);
+      console.error('[Flashcards] Error generating flashcards:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar flashcards',
@@ -618,6 +635,7 @@ const LectureTranscriptionPage = () => {
                         tags={lecture?.tags || []}
                         currentSummary={structuredContent.resumo}
                         fullTranscript={lecture?.raw_transcript || ''}
+                        mainTopics={structuredContent.topicos_principais}
                         onUpdate={(newSummary) => {
                           setStructuredContent({ ...structuredContent, resumo: newSummary });
                         }}
@@ -634,10 +652,28 @@ const LectureTranscriptionPage = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="bg-white p-4 rounded-lg">
-                      <p className="text-slate-900 leading-relaxed">
+                    <div className="bg-white p-4 rounded-lg prose prose-sm max-w-none">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                        components={{
+                          h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
+                          h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
+                          h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1 text-slate-900" {...props} />,
+                          p: ({node, ...props}) => <p className="mb-2 text-slate-900 leading-relaxed" {...props} />,
+                          strong: ({node, ...props}) => <strong className="font-bold text-purple-700" {...props} />,
+                          ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
+                          ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
+                          li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
+                          code: ({node, inline, ...props}: any) => 
+                            inline ? 
+                            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props} /> :
+                            <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props} />,
+                          blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
+                        }}
+                      >
                         {structuredContent.resumo}
-                      </p>
+                      </ReactMarkdown>
                     </div>
                   </CardContent>
                 </Card>
