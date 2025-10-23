@@ -23,7 +23,10 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
+    console.log('🔐 Auth header received:', authHeader ? 'YES' : 'NO');
+    
     if (!authHeader) {
+      console.error('❌ No Authorization header provided');
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -37,7 +40,10 @@ serve(async (req) => {
     );
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    console.log('👤 User validation:', user ? `SUCCESS (${user.id})` : 'FAILED');
+    
     if (userError || !user) {
+      console.error('❌ Invalid token or user error:', userError);
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search } from 'lucide-react';
+import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,8 @@ import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripp
 import { EditWithAIModal } from '@/components/EditWithAIModal';
 import { PublishLectureModal } from '@/components/PublishLectureModal';
 import { GenerateSummaryWithDeepSearch } from '@/components/GenerateSummaryWithDeepSearch';
+import { QuizModal } from '@/components/QuizModal';
+import { FlashcardViewerModal } from '@/components/FlashcardViewerModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
@@ -92,12 +94,31 @@ const LectureTranscriptionPage = () => {
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
   const [hasQuiz, setHasQuiz] = useState(false);
   const [hasFlashcards, setHasFlashcards] = useState(false);
+  
+  // Generated materials state
+  const [generatedQuiz, setGeneratedQuiz] = useState<{
+    id: string;
+    title: string;
+    questions: any[];
+  } | null>(null);
+  
+  const [generatedFlashcards, setGeneratedFlashcards] = useState<{
+    id: string;
+    title: string;
+    cards: any[];
+  } | null>(null);
+  
+  // Modal state for viewing
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [showFlashcardsModal, setShowFlashcardsModal] = useState(false);
 
   useEffect(() => {
     if (id) {
       loadLectureData();
       loadClasses();
       checkExistingMaterials();
+      loadQuizData();
+      loadFlashcardsData();
     }
   }, [id]);
 
@@ -348,6 +369,62 @@ const LectureTranscriptionPage = () => {
     setOpenPublishModal(true);
   };
 
+  const loadQuizData = async () => {
+    if (!id) return;
+    
+    try {
+      const { data: quizData, error } = await supabase
+        .from('teacher_quizzes')
+        .select('id, title, questions')
+        .eq('lecture_id', id)
+        .single();
+
+      if (error) {
+        console.error('[Quiz] Erro ao carregar:', error);
+        return;
+      }
+
+      if (quizData) {
+        setGeneratedQuiz({
+          ...quizData,
+          questions: quizData.questions as any[]
+        });
+        setHasQuiz(true);
+        console.log('[Quiz] Carregado com sucesso:', quizData);
+      }
+    } catch (error) {
+      console.error('[Quiz] Error loading quiz:', error);
+    }
+  };
+
+  const loadFlashcardsData = async () => {
+    if (!id) return;
+    
+    try {
+      const { data: flashcardsData, error } = await supabase
+        .from('teacher_flashcards')
+        .select('id, title, cards')
+        .eq('lecture_id', id)
+        .single();
+
+      if (error) {
+        console.error('[Flashcards] Erro ao carregar:', error);
+        return;
+      }
+
+      if (flashcardsData) {
+        setGeneratedFlashcards({
+          ...flashcardsData,
+          cards: flashcardsData.cards as any[]
+        });
+        setHasFlashcards(true);
+        console.log('[Flashcards] Carregados com sucesso:', flashcardsData);
+      }
+    } catch (error) {
+      console.error('[Flashcards] Error loading flashcards:', error);
+    }
+  };
+
   const handleGenerateQuiz = async () => {
     if (!id) return;
     
@@ -358,6 +435,12 @@ const LectureTranscriptionPage = () => {
         description: 'A IA está criando questões baseadas no conteúdo',
       });
 
+      // Get authentication token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Usuário não autenticado');
+      }
+
       console.log('[Quiz] Invocando teacher-generate-quiz-v2 com:', { lectureId: id, title: lectureTitle });
 
       const { data, error } = await supabase.functions.invoke('teacher-generate-quiz-v2', {
@@ -365,6 +448,9 @@ const LectureTranscriptionPage = () => {
           lectureId: id,
           title: lectureTitle,
         },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
       if (error) {
@@ -373,7 +459,10 @@ const LectureTranscriptionPage = () => {
       }
 
       console.log('[Quiz] Quiz gerado com sucesso:', data);
-      setHasQuiz(true);
+      
+      // Reload quiz data
+      await loadQuizData();
+      
       toast({
         title: 'Quiz gerado!',
         description: `${data?.questionCount || 'Várias'} questões foram criadas com sucesso`,
@@ -400,6 +489,12 @@ const LectureTranscriptionPage = () => {
         description: 'A IA está criando cartões de estudo',
       });
 
+      // Get authentication token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Usuário não autenticado');
+      }
+
       console.log('[Flashcards] Invocando teacher-generate-flashcards-v2 com:', { lectureId: id, title: lectureTitle });
 
       const { data, error } = await supabase.functions.invoke('teacher-generate-flashcards-v2', {
@@ -407,6 +502,9 @@ const LectureTranscriptionPage = () => {
           lectureId: id,
           title: lectureTitle,
         },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
       if (error) {
@@ -415,7 +513,10 @@ const LectureTranscriptionPage = () => {
       }
 
       console.log('[Flashcards] Flashcards gerados com sucesso:', data);
-      setHasFlashcards(true);
+      
+      // Reload flashcards data
+      await loadFlashcardsData();
+      
       toast({
         title: 'Flashcards gerados!',
         description: `${data?.cardCount || 'Vários'} flashcards criados com sucesso`,
@@ -755,9 +856,20 @@ const LectureTranscriptionPage = () => {
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-slate-900 font-bold">
-                      Perguntas de Revisão ({structuredContent.perguntas_revisao.length})
+                      Perguntas de Revisão ({generatedQuiz?.questions?.length || structuredContent.perguntas_revisao.length})
                     </CardTitle>
                     <div className="flex gap-2">
+                      {hasQuiz && generatedQuiz && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowQuizModal(true)}
+                          className="bg-green-100 border-green-300 text-green-700 hover:bg-green-200"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          Visualizar
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -780,7 +892,7 @@ const LectureTranscriptionPage = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openEditModal('Perguntas', { perguntas_revisao: structuredContent.perguntas_revisao })}
+                        onClick={() => openEditModal('Perguntas', { perguntas_revisao: generatedQuiz?.questions || structuredContent.perguntas_revisao })}
                         className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
                       >
                         <Sparkles className="h-3 w-3 mr-1" />
@@ -791,7 +903,7 @@ const LectureTranscriptionPage = () => {
                   <CardContent>
                     <ScrollArea className="h-[400px] pr-4">
                       <div className="space-y-6">
-                        {structuredContent.perguntas_revisao.map((pergunta, index) => (
+                        {(generatedQuiz?.questions || structuredContent.perguntas_revisao).map((pergunta, index) => (
                           <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
                             <p className="text-slate-900 font-medium mb-3">
                               {index + 1}. {pergunta.pergunta}
@@ -824,9 +936,20 @@ const LectureTranscriptionPage = () => {
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-slate-900 font-bold">
-                      Flashcards ({structuredContent.flashcards.length})
+                      Flashcards ({generatedFlashcards?.cards?.length || structuredContent.flashcards.length})
                     </CardTitle>
                     <div className="flex gap-2">
+                      {hasFlashcards && generatedFlashcards && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowFlashcardsModal(true)}
+                          className="bg-green-100 border-green-300 text-green-700 hover:bg-green-200"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          Visualizar
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -849,7 +972,7 @@ const LectureTranscriptionPage = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openEditModal('Flashcards', { flashcards: structuredContent.flashcards })}
+                        onClick={() => openEditModal('Flashcards', { flashcards: generatedFlashcards?.cards || structuredContent.flashcards })}
                         className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
                       >
                         <Sparkles className="h-3 w-3 mr-1" />
@@ -859,16 +982,16 @@ const LectureTranscriptionPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {structuredContent.flashcards.map((card, index) => (
+                      {(generatedFlashcards?.cards || structuredContent.flashcards).map((card, index) => (
                         <div
                           key={index}
                           className="bg-white rounded-lg p-4 border border-slate-200"
                         >
                           <h4 className="text-purple-700 font-semibold mb-2">
-                            {card.termo}
+                            {card.front || card.termo}
                           </h4>
                           <p className="text-slate-900 text-sm">
-                            {card.definicao}
+                            {card.back || card.definicao}
                           </p>
                         </div>
                       ))}
@@ -1230,6 +1353,29 @@ const LectureTranscriptionPage = () => {
           initialTurmaId={lecture?.class_id || derivedTurmaId || selectedClassId}
           initialDisciplinaId={lecture?.disciplina_id || ''}
         />
+
+        {/* Quiz Viewer Modal */}
+        {showQuizModal && generatedQuiz && (
+          <QuizModal
+            open={showQuizModal}
+            onOpenChange={setShowQuizModal}
+            quizId={generatedQuiz.id}
+          />
+        )}
+
+        {/* Flashcards Viewer Modal */}
+        {showFlashcardsModal && generatedFlashcards && (
+          <FlashcardViewerModal
+            isOpen={showFlashcardsModal}
+            onClose={() => setShowFlashcardsModal(false)}
+            flashcardSet={{
+              id: generatedFlashcards.id,
+              title: generatedFlashcards.title,
+              topic: lectureTitle,
+              cards: generatedFlashcards.cards
+            }}
+          />
+        )}
       </div>
     </MainLayout>
   );
