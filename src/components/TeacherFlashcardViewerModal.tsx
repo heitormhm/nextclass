@@ -1,0 +1,166 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
+
+interface FlashcardSet {
+  id: string;
+  title: string;
+  cards: Array<{ 
+    front: string; 
+    back: string;
+    tags?: string[];
+  }>;
+}
+
+interface TeacherFlashcardViewerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  flashcardSet: FlashcardSet | null;
+}
+
+export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet }: TeacherFlashcardViewerModalProps) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  if (!flashcardSet || !flashcardSet.cards || flashcardSet.cards.length === 0) {
+    return null;
+  }
+
+  const currentCard = flashcardSet.cards[currentIndex];
+  const totalCards = flashcardSet.cards.length;
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      setIsFlipped(false);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < totalCards - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setIsFlipped(false);
+    }
+  };
+
+  const handleFlip = () => {
+    setIsFlipped(!isFlipped);
+  };
+
+  const handleClose = () => {
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Eye className="h-5 w-5 text-primary" />
+            {flashcardSet.title}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          <div className="text-center text-sm text-muted-foreground">
+            Card {currentIndex + 1} de {totalCards}
+          </div>
+
+          <div 
+            className="relative min-h-80 cursor-pointer perspective-1000"
+            onClick={handleFlip}
+          >
+            <div 
+              className={`flashcard-inner ${isFlipped ? 'flipped' : ''}`}
+            >
+              {/* Front */}
+              <div className="flashcard-face flashcard-front bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-8 flex flex-col items-center justify-center border-2 border-purple-400 shadow-lg">
+                {currentCard.tags && currentCard.tags.length > 0 && (
+                  <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                    {currentCard.tags.map((tag, idx) => (
+                      <Badge key={idx} variant="secondary" className="bg-purple-200 text-purple-900 border-purple-300">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <p className="text-3xl font-semibold text-center text-slate-900 mt-8">{currentCard.front}</p>
+                <p className="text-sm text-purple-700 mt-6 font-medium">Clique para ver a resposta</p>
+              </div>
+
+              {/* Back */}
+              <div className="flashcard-face flashcard-back bg-gradient-to-br from-emerald-100 to-teal-100 rounded-lg p-8 flex items-center justify-center border-2 border-emerald-400 shadow-lg">
+                <p className="text-2xl text-center text-slate-900 leading-relaxed">{currentCard.back}</p>
+              </div>
+            </div>
+          </div>
+
+          {!isFlipped && (
+            <div className="text-center">
+              <Button variant="outline" size="sm" onClick={handleFlip} className="bg-purple-50 border-purple-300 hover:bg-purple-100">
+                Mostrar Resposta
+              </Button>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-4">
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentIndex === 0}
+              className="flex-1"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Anterior
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={handleNext}
+              disabled={currentIndex === totalCards - 1}
+              className="flex-1"
+            >
+              Próximo
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+
+        <style>{`
+          .perspective-1000 {
+            perspective: 1000px;
+          }
+
+          .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+            transform-style: preserve-3d;
+          }
+
+          .flashcard-inner.flipped {
+            transform: rotateY(180deg);
+          }
+
+          .flashcard-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+          }
+
+          .flashcard-back {
+            transform: rotateY(180deg);
+          }
+        `}</style>
+      </DialogContent>
+    </Dialog>
+  );
+};

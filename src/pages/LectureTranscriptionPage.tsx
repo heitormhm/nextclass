@@ -40,8 +40,8 @@ import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripp
 import { EditWithAIModal } from '@/components/EditWithAIModal';
 import { PublishLectureModal } from '@/components/PublishLectureModal';
 import { GenerateSummaryWithDeepSearch } from '@/components/GenerateSummaryWithDeepSearch';
-import { QuizModal } from '@/components/QuizModal';
-import { FlashcardViewerModal } from '@/components/FlashcardViewerModal';
+import { TeacherQuizModal } from '@/components/TeacherQuizModal';
+import { TeacherFlashcardViewerModal } from '@/components/TeacherFlashcardViewerModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
@@ -1094,30 +1094,41 @@ const LectureTranscriptionPage = () => {
                   <CardContent>
                     <ScrollArea className="h-[400px] pr-4">
                       <div className="space-y-6">
-                        {(generatedQuiz?.questions || structuredContent?.perguntas_revisao || []).map((pergunta, index) => (
-                          <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
-                            <p className="text-slate-900 font-medium mb-3">
-                              {index + 1}. {pergunta.pergunta}
-                            </p>
-                            <div className="space-y-2">
-                              {(pergunta?.opcoes || []).map((opcao, opIndex) => (
-                                <div
-                                  key={opIndex}
-                                  className={`p-3 rounded ${
-                                    opcao.startsWith(pergunta.resposta_correta)
-                                      ? 'bg-green-100 border border-green-300'
-                                      : 'bg-slate-50'
-                                  }`}
-                                >
-                                  <span className="text-slate-900 text-sm">{opcao}</span>
-                                  {opcao.startsWith(pergunta.resposta_correta) && (
-                                    <Check className="inline-block h-4 w-4 text-green-600 ml-2" />
-                                  )}
+                        {(generatedQuiz?.questions || structuredContent?.perguntas_revisao || []).map((pergunta, index) => {
+                          const isTeacherQuiz = pergunta.options && typeof pergunta.options === 'object';
+                          
+                          if (isTeacherQuiz) {
+                            const opts = Object.entries(pergunta.options).map(([k, v]) => ({ letter: k, text: v as string }));
+                            return (
+                              <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
+                                {pergunta.bloomLevel && <Badge className="mb-2 bg-purple-50 text-purple-700">{pergunta.bloomLevel}</Badge>}
+                                <p className="text-slate-900 font-medium mb-3">{index + 1}. {pergunta.question}</p>
+                                <div className="space-y-2">
+                                  {opts.map(o => (
+                                    <div key={o.letter} className={`p-3 rounded ${o.letter === pergunta.correctAnswer ? 'bg-green-100 border border-green-300' : 'bg-slate-50'}`}>
+                                      <span className="text-slate-900 text-sm"><span className="font-semibold mr-2">{o.letter})</span>{o.text}</span>
+                                      {o.letter === pergunta.correctAnswer && <Check className="inline-block h-4 w-4 text-green-600 ml-2" />}
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
+                                {pergunta.explanation && <div className="mt-3 p-3 bg-blue-50 rounded"><p className="text-xs font-semibold text-blue-900">💡 Explicação:</p><p className="text-sm text-blue-800">{pergunta.explanation}</p></div>}
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
+                              <p className="text-slate-900 font-medium mb-3">{index + 1}. {pergunta.pergunta}</p>
+                              <div className="space-y-2">
+                                {(pergunta?.opcoes || []).map((opcao, opIndex) => (
+                                  <div key={opIndex} className={`p-3 rounded ${opcao.startsWith(pergunta.resposta_correta) ? 'bg-green-100 border border-green-300' : 'bg-slate-50'}`}>
+                                    <span className="text-slate-900 text-sm">{opcao}</span>
+                                    {opcao.startsWith(pergunta.resposta_correta) && <Check className="inline-block h-4 w-4 text-green-600 ml-2" />}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </ScrollArea>
                   </CardContent>
@@ -1180,16 +1191,14 @@ const LectureTranscriptionPage = () => {
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {(generatedFlashcards?.cards || structuredContent?.flashcards || []).map((card, index) => (
-                        <div
-                          key={index}
-                          className="bg-white rounded-lg p-4 border border-slate-200"
-                        >
-                          <h4 className="text-purple-700 font-semibold mb-2">
-                            {card.front || card.termo}
-                          </h4>
-                          <p className="text-slate-900 text-sm">
-                            {card.back || card.definicao}
-                          </p>
+                        <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
+                          {card.tags && card.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {card.tags.map((tag: string, i: number) => <Badge key={i} variant="secondary" className="text-xs">{tag}</Badge>)}
+                            </div>
+                          )}
+                          <h4 className="text-purple-700 font-semibold mb-2 text-base">{card.front || card.termo}</h4>
+                          <p className="text-slate-900 text-sm">{card.back || card.definicao}</p>
                         </div>
                       ))}
                     </div>
@@ -1553,23 +1562,26 @@ const LectureTranscriptionPage = () => {
 
         {/* Quiz Viewer Modal */}
         {showQuizModal && generatedQuiz && (
-          <QuizModal
+          <TeacherQuizModal
             open={showQuizModal}
             onOpenChange={setShowQuizModal}
-            quizId={generatedQuiz.id}
+            quizData={generatedQuiz}
           />
         )}
 
         {/* Flashcards Viewer Modal */}
         {showFlashcardsModal && generatedFlashcards && (
-          <FlashcardViewerModal
+          <TeacherFlashcardViewerModal
             isOpen={showFlashcardsModal}
             onClose={() => setShowFlashcardsModal(false)}
             flashcardSet={{
               id: generatedFlashcards.id,
               title: generatedFlashcards.title,
-              topic: lectureTitle,
-              cards: generatedFlashcards.cards
+              cards: generatedFlashcards.cards.map(card => ({
+                front: card.front || card.frente,
+                back: card.back || card.verso,
+                tags: card.tags || []
+              }))
             }}
           />
         )}

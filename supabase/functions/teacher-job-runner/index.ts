@@ -66,28 +66,39 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const { title, transcript } = job.input_payload;
+    const { title, transcript, tags } = job.input_payload;
 
     let systemPrompt = '';
     let userPrompt = '';
 
     if (job.job_type === 'GENERATE_QUIZ') {
+      const lectureTags = job.input_payload.tags || [];
+      const tagsText = lectureTags.length > 0 ? lectureTags.join(', ') : 'Não especificadas';
+      
       systemPrompt = `Você é um assistente especializado em criar questões de múltipla escolha para avaliação em cursos de engenharia, seguindo rigorosamente a Taxonomia de Bloom.
 
 INSTRUÇÕES CRÍTICAS:
-1. Use APENAS o conteúdo fornecido na transcrição
+1. **PRIORIZAÇÃO DE CONTEÚDO**: 
+   - 70% das questões devem focar no TÍTULO e TAGS da aula
+   - 30% podem usar detalhes complementares da transcrição
 2. Responda em português brasileiro
 3. Retorne APENAS JSON válido, sem markdown
 4. Crie 10 questões de múltipla escolha
 5. Cada questão deve ter 4 alternativas (A, B, C, D)
 6. Identifique corretamente a alternativa correta
-7. Classifique cada questão segundo Bloom (Conhecimento, Compreensão, Aplicação, Análise, Síntese, Avaliação)
+7. Classifique cada questão segundo Bloom
+
+NÍVEIS DE BLOOM (distribuição recomendada):
+- 3 questões: Conhecimento (definições, conceitos básicos do título)
+- 3 questões: Compreensão (explicações, interpretações das tags)
+- 2 questões: Aplicação (uso prático, exemplos)
+- 2 questões: Análise (comparações, relações)
 
 FORMATO JSON:
 {
   "questions": [
     {
-      "question": "Texto da pergunta",
+      "question": "Texto da pergunta clara e objetiva",
       "options": {
         "A": "Texto alternativa A",
         "B": "Texto alternativa B",
@@ -96,43 +107,68 @@ FORMATO JSON:
       },
       "correctAnswer": "A",
       "bloomLevel": "Aplicação",
-      "explanation": "Explicação detalhada"
+      "explanation": "Explicação detalhada (2-3 frases)"
     }
   ]
 }`;
 
-      userPrompt = `Baseado nesta aula de engenharia sobre "${title}", crie 10 questões de múltipla escolha:
+      userPrompt = `# CONTEXTO PRINCIPAL (PRIORIDADE MÁXIMA - 70% das questões)
+Título da Aula: "${title}"
+Tags da Aula: ${tagsText}
 
-Transcrição da aula:
+# INSTRUÇÕES
+Gere 10 questões focadas PRINCIPALMENTE no título e tags acima. Use a transcrição apenas para detalhes complementares.
+
+# TRANSCRIÇÃO DA AULA (usar apenas 30% para detalhes)
 ${transcript}
 
 IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
 
     } else if (job.job_type === 'GENERATE_FLASHCARDS') {
+      const lectureTags = job.input_payload.tags || [];
+      const tagsText = lectureTags.length > 0 ? lectureTags.join(', ') : 'Não especificadas';
+      
       systemPrompt = `Você é um assistente especializado em criar flashcards educacionais para cursos de engenharia.
 
 INSTRUÇÕES CRÍTICAS:
-1. Use APENAS o conteúdo fornecido na transcrição
+1. **PRIORIZAÇÃO DE CONTEÚDO**:
+   - 70% dos flashcards devem focar no TÍTULO e TAGS da aula
+   - 30% podem usar detalhes complementares da transcrição
 2. Responda em português brasileiro
 3. Retorne APENAS JSON válido, sem markdown
 4. Crie 15 flashcards
 5. Cada flashcard deve ter frente (pergunta/conceito) e verso (resposta/explicação)
-6. Inclua tags relevantes para organização
+6. Inclua tags relevantes para organização (usar tags da aula quando possível)
+
+TIPOS DE FLASHCARDS (distribuição recomendada):
+- 5 flashcards: Definições (conceitos-chave do título)
+- 5 flashcards: Explicações (relacionadas às tags)
+- 5 flashcards: Aplicações (exemplos práticos)
+
+REGRAS:
+- Front: Sempre uma pergunta direta (max 100 caracteres)
+- Back: Resposta concisa e objetiva (max 200 caracteres)
+- Tags: 2-3 tags por card (usar tags da aula quando possível)
 
 FORMATO JSON:
 {
   "cards": [
     {
-      "front": "Pergunta ou conceito",
-      "back": "Resposta ou explicação detalhada",
+      "front": "Pergunta clara e direta",
+      "back": "Resposta concisa e objetiva",
       "tags": ["tag1", "tag2"]
     }
   ]
 }`;
 
-      userPrompt = `Baseado nesta aula de engenharia sobre "${title}", crie 15 flashcards:
+      userPrompt = `# CONTEXTO PRINCIPAL (PRIORIDADE MÁXIMA - 70% dos flashcards)
+Título da Aula: "${title}"
+Tags da Aula: ${tagsText}
 
-Transcrição da aula:
+# INSTRUÇÕES
+Gere 15 flashcards focados PRINCIPALMENTE no título e tags acima. Use a transcrição apenas para detalhes complementares.
+
+# TRANSCRIÇÃO DA AULA (usar apenas 30% para detalhes)
 ${transcript}
 
 IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
