@@ -24,6 +24,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Trash2, Pencil, Plus } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -734,6 +735,144 @@ const LectureTranscriptionPage = () => {
     }
   };
 
+  // Individual Quiz Question Management
+  const handleDeleteQuizQuestion = async (index: number) => {
+    if (!generatedQuiz || !id) return;
+    
+    const confirmDelete = window.confirm('Deseja deletar esta pergunta? Esta ação não pode ser desfeita.');
+    if (!confirmDelete) return;
+
+    const updatedQuestions = generatedQuiz.questions.filter((_, i) => i !== index);
+    
+    try {
+      const { error } = await supabase
+        .from('teacher_quizzes')
+        .update({ questions: updatedQuestions })
+        .eq('lecture_id', id);
+
+      if (error) throw error;
+
+      setGeneratedQuiz({ ...generatedQuiz, questions: updatedQuestions });
+      toast({ title: '✅ Pergunta deletada', description: 'Quiz atualizado com sucesso' });
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      toast({ variant: 'destructive', title: 'Erro ao deletar', description: 'Tente novamente' });
+    }
+  };
+
+  const handleEditQuizQuestionWithAI = (index: number, question: any) => {
+    openEditModal('Pergunta Individual', { 
+      pergunta: question,
+      index: index,
+      onSave: async (updatedQuestion: any) => {
+        if (!generatedQuiz || !id) return;
+        
+        const updatedQuestions = [...generatedQuiz.questions];
+        updatedQuestions[index] = updatedQuestion;
+        
+        const { error } = await supabase
+          .from('teacher_quizzes')
+          .update({ questions: updatedQuestions })
+          .eq('lecture_id', id);
+
+        if (!error) {
+          setGeneratedQuiz({ ...generatedQuiz, questions: updatedQuestions });
+          toast({ title: '✅ Pergunta atualizada', description: 'Alterações salvas com sucesso' });
+        }
+      }
+    });
+  };
+
+  const handleAddQuizQuestion = () => {
+    openEditModal('Adicionar Pergunta', {
+      isNew: true,
+      onSave: async (newQuestion: any) => {
+        if (!generatedQuiz || !id) return;
+        
+        const updatedQuestions = [...generatedQuiz.questions, newQuestion];
+        
+        const { error } = await supabase
+          .from('teacher_quizzes')
+          .update({ questions: updatedQuestions })
+          .eq('lecture_id', id);
+
+        if (!error) {
+          setGeneratedQuiz({ ...generatedQuiz, questions: updatedQuestions });
+          toast({ title: '✅ Pergunta adicionada', description: 'Nova pergunta criada com sucesso' });
+        }
+      }
+    });
+  };
+
+  // Individual Flashcard Management
+  const handleDeleteFlashcard = async (index: number) => {
+    if (!generatedFlashcards || !id) return;
+    
+    const confirmDelete = window.confirm('Deseja deletar este flashcard? Esta ação não pode ser desfeita.');
+    if (!confirmDelete) return;
+
+    const updatedCards = generatedFlashcards.cards.filter((_, i) => i !== index);
+    
+    try {
+      const { error } = await supabase
+        .from('teacher_flashcards')
+        .update({ cards: updatedCards })
+        .eq('lecture_id', id);
+
+      if (error) throw error;
+
+      setGeneratedFlashcards({ ...generatedFlashcards, cards: updatedCards });
+      toast({ title: '✅ Flashcard deletado', description: 'Lista atualizada com sucesso' });
+    } catch (error) {
+      console.error('Error deleting flashcard:', error);
+      toast({ variant: 'destructive', title: 'Erro ao deletar', description: 'Tente novamente' });
+    }
+  };
+
+  const handleEditFlashcardWithAI = (index: number, card: any) => {
+    openEditModal('Flashcard Individual', {
+      card: card,
+      index: index,
+      onSave: async (updatedCard: any) => {
+        if (!generatedFlashcards || !id) return;
+        
+        const updatedCards = [...generatedFlashcards.cards];
+        updatedCards[index] = updatedCard;
+        
+        const { error } = await supabase
+          .from('teacher_flashcards')
+          .update({ cards: updatedCards })
+          .eq('lecture_id', id);
+
+        if (!error) {
+          setGeneratedFlashcards({ ...generatedFlashcards, cards: updatedCards });
+          toast({ title: '✅ Flashcard atualizado', description: 'Alterações salvas com sucesso' });
+        }
+      }
+    });
+  };
+
+  const handleAddFlashcard = () => {
+    openEditModal('Adicionar Flashcard', {
+      isNew: true,
+      onSave: async (newCard: any) => {
+        if (!generatedFlashcards || !id) return;
+        
+        const updatedCards = [...generatedFlashcards.cards, newCard];
+        
+        const { error } = await supabase
+          .from('teacher_flashcards')
+          .update({ cards: updatedCards })
+          .eq('lecture_id', id);
+
+        if (!error) {
+          setGeneratedFlashcards({ ...generatedFlashcards, cards: updatedCards });
+          toast({ title: '✅ Flashcard adicionado', description: 'Novo flashcard criado com sucesso' });
+        }
+      }
+    });
+  };
+
   const handlePublishConfirmed = async () => {
     if (!selectedClassId) {
       toast({
@@ -1100,9 +1239,29 @@ const LectureTranscriptionPage = () => {
                           if (isTeacherQuiz) {
                             const opts = Object.entries(pergunta.options).map(([k, v]) => ({ letter: k, text: v as string }));
                             return (
-                              <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
+                              <div key={index} className="bg-white rounded-lg p-4 border border-slate-200 relative group">
+                                {/* Action Buttons */}
+                                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 hover:bg-purple-100 text-purple-600 hover:text-purple-700"
+                                    onClick={() => handleEditQuizQuestionWithAI(index, pergunta)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5 animate-shimmer" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 hover:bg-red-100 text-red-500 hover:text-red-600"
+                                    onClick={() => handleDeleteQuizQuestion(index)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+
                                 {pergunta.bloomLevel && <Badge className="mb-2 bg-purple-50 text-purple-700">{pergunta.bloomLevel}</Badge>}
-                                <p className="text-slate-900 font-medium mb-3">{index + 1}. {pergunta.question}</p>
+                                <p className="text-slate-900 font-medium mb-3 pr-16">{index + 1}. {pergunta.question}</p>
                                 <div className="space-y-2">
                                   {opts.map(o => (
                                     <div key={o.letter} className={`p-3 rounded ${o.letter === pergunta.correctAnswer ? 'bg-green-100 border border-green-300' : 'bg-slate-50'}`}>
@@ -1129,6 +1288,16 @@ const LectureTranscriptionPage = () => {
                             </div>
                           );
                         })}
+                        
+                        {/* Add New Question Button */}
+                        <Button
+                          variant="outline"
+                          className="w-full border-2 border-dashed border-slate-300 hover:border-purple-400 hover:bg-purple-50 text-slate-600 hover:text-purple-700"
+                          onClick={handleAddQuizQuestion}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Adicionar Nova Pergunta
+                        </Button>
                       </div>
                     </ScrollArea>
                   </CardContent>
@@ -1191,16 +1360,46 @@ const LectureTranscriptionPage = () => {
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {(generatedFlashcards?.cards || structuredContent?.flashcards || []).map((card, index) => (
-                        <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
+                        <div key={index} className="bg-white rounded-lg p-4 border border-slate-200 relative group">
+                          {/* Action Buttons */}
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-purple-100 text-purple-600 hover:text-purple-700"
+                              onClick={() => handleEditFlashcardWithAI(index, card)}
+                            >
+                              <Pencil className="h-3 w-3 animate-shimmer" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-red-100 text-red-500 hover:text-red-600"
+                              onClick={() => handleDeleteFlashcard(index)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+
                           {card.tags && card.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-2">
                               {card.tags.map((tag: string, i: number) => <Badge key={i} variant="secondary" className="text-xs">{tag}</Badge>)}
                             </div>
                           )}
-                          <h4 className="text-purple-700 font-semibold mb-2 text-base">{card.front || card.termo}</h4>
-                          <p className="text-slate-900 text-sm">{card.back || card.definicao}</p>
+                          <h4 className="text-purple-700 font-semibold mb-2 text-base pr-14">{card.front || card.termo}</h4>
+                          <p className="text-slate-600 text-sm">{card.back || card.definicao}</p>
                         </div>
                       ))}
+                      
+                      {/* Add New Flashcard Button */}
+                      <Button
+                        variant="outline"
+                        className="h-full min-h-[120px] border-2 border-dashed border-slate-300 hover:border-purple-400 hover:bg-purple-50 text-slate-600 hover:text-purple-700"
+                        onClick={handleAddFlashcard}
+                      >
+                        <Plus className="h-5 w-5 mr-2" />
+                        Adicionar Novo Flashcard
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

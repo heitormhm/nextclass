@@ -20,6 +20,11 @@ interface EditWithAIModalProps {
   currentContent: any;
   onUpdate: (updatedContent: any) => void;
   lectureId: string;
+  additionalContext?: {
+    isIndividualItem?: boolean;
+    itemIndex?: number;
+    onSave?: (data: any) => void;
+  };
 }
 
 export const EditWithAIModal: React.FC<EditWithAIModalProps> = ({
@@ -29,6 +34,7 @@ export const EditWithAIModal: React.FC<EditWithAIModalProps> = ({
   currentContent,
   onUpdate,
   lectureId,
+  additionalContext,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -94,7 +100,12 @@ export const EditWithAIModal: React.FC<EditWithAIModalProps> = ({
       setMessages(prev => [...prev, assistantMessage]);
 
       if (data.updatedContent) {
-        onUpdate(data.updatedContent);
+        // Se for edição individual, chamar callback customizado
+        if (additionalContext?.onSave) {
+          additionalContext.onSave(data.updatedContent);
+        } else {
+          onUpdate(data.updatedContent);
+        }
         toast({
           title: 'Conteúdo atualizado',
           description: 'As alterações foram aplicadas com sucesso',
