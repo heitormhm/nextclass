@@ -25,7 +25,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Trash2, Pencil, Plus } from 'lucide-react';
-import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye } from 'lucide-react';
+import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -828,7 +828,7 @@ const LectureTranscriptionPage = () => {
   };
 
   const handleAddFlashcard = async () => {
-    if (!generatedFlashcards || !id || !lecture) return;
+    if (!id || !lecture) return;
     
     try {
       toast({
@@ -845,33 +845,72 @@ const LectureTranscriptionPage = () => {
 
       if (error) throw error;
 
-      const updatedCards = [...generatedFlashcards.cards, data.card];
-      
-      const { error: updateError } = await supabase
-        .from('teacher_flashcards')
-        .update({ cards: updatedCards })
-        .eq('lecture_id', id);
+      // Check if flashcards record exists
+      if (!generatedFlashcards) {
+        // Create new record (first flashcard)
+        const newFlashcards = {
+          lecture_id: id,
+          teacher_id: lecture.teacher_id,
+          title: `Flashcards - ${lecture.title}`,
+          cards: [data.card]
+        };
 
-      if (updateError) throw updateError;
+        const { data: insertedData, error: insertError } = await supabase
+          .from('teacher_flashcards')
+          .insert(newFlashcards)
+          .select()
+          .single();
 
-      setGeneratedFlashcards({ ...generatedFlashcards, cards: updatedCards });
-      
-      toast({
-        title: '✅ Flashcard adicionado',
-        description: 'Novo flashcard gerado automaticamente com IA',
-      });
+        if (insertError) throw insertError;
+
+        setGeneratedFlashcards({
+          id: insertedData.id,
+          title: insertedData.title,
+          cards: insertedData.cards as any[]
+        });
+        setHasFlashcards(true);
+        
+        toast({
+          title: '✅ Primeiro flashcard criado',
+          description: 'Conjunto de flashcards iniciado com sucesso',
+        });
+      } else {
+        // Update existing record
+        const updatedCards = [...generatedFlashcards.cards, data.card];
+        
+        const { error: updateError } = await supabase
+          .from('teacher_flashcards')
+          .update({ cards: updatedCards })
+          .eq('lecture_id', id);
+
+        if (updateError) throw updateError;
+
+        setGeneratedFlashcards({ ...generatedFlashcards, cards: updatedCards });
+        
+        toast({
+          title: '✅ Flashcard adicionado',
+          description: 'Novo flashcard gerado automaticamente com IA',
+        });
+      }
 
     } catch (error) {
       console.error('Error adding flashcard:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar flashcard',
-        description: 'Tente novamente',
+        description: error instanceof Error ? error.message : 'Tente novamente',
       });
     }
   };
   const handleDeleteFlashcard = async (index: number) => {
-    if (!generatedFlashcards || !id) return;
+    if (!generatedFlashcards || !id) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Nenhum flashcard disponível para deletar',
+      });
+      return;
+    }
     
     const confirmDelete = window.confirm('Deseja deletar este flashcard? Esta ação não pode ser desfeita.');
     if (!confirmDelete) return;
@@ -879,18 +918,45 @@ const LectureTranscriptionPage = () => {
     const updatedCards = generatedFlashcards.cards.filter((_, i) => i !== index);
     
     try {
-      const { error } = await supabase
-        .from('teacher_flashcards')
-        .update({ cards: updatedCards })
-        .eq('lecture_id', id);
+      // If deleting the last flashcard, remove the entire record
+      if (updatedCards.length === 0) {
+        const { error } = await supabase
+          .from('teacher_flashcards')
+          .delete()
+          .eq('lecture_id', id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setGeneratedFlashcards({ ...generatedFlashcards, cards: updatedCards });
-      toast({ title: '✅ Flashcard deletado', description: 'Lista atualizada com sucesso' });
+        setGeneratedFlashcards(null);
+        setHasFlashcards(false);
+        
+        toast({ 
+          title: '✅ Todos os flashcards deletados', 
+          description: 'Conjunto removido completamente' 
+        });
+      } else {
+        // Update with remaining cards
+        const { error } = await supabase
+          .from('teacher_flashcards')
+          .update({ cards: updatedCards })
+          .eq('lecture_id', id);
+
+        if (error) throw error;
+
+        setGeneratedFlashcards({ ...generatedFlashcards, cards: updatedCards });
+        
+        toast({ 
+          title: '✅ Flashcard deletado', 
+          description: `${updatedCards.length} flashcard(s) restante(s)` 
+        });
+      }
     } catch (error) {
       console.error('Error deleting flashcard:', error);
-      toast({ variant: 'destructive', title: 'Erro ao deletar', description: 'Tente novamente' });
+      toast({ 
+        variant: 'destructive', 
+        title: 'Erro ao deletar', 
+        description: error instanceof Error ? error.message : 'Tente novamente' 
+      });
     }
   };
 
@@ -1402,49 +1468,63 @@ const LectureTranscriptionPage = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(generatedFlashcards?.cards || structuredContent?.flashcards || []).map((card, index) => (
-                        <div key={index} className="bg-white rounded-lg p-4 border border-slate-200 relative group">
-                          {/* Action Buttons */}
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 hover:bg-purple-100 text-purple-600 hover:text-purple-700"
-                              onClick={() => handleEditFlashcardWithAI(index, card)}
-                            >
-                              <Pencil className="h-3 w-3 icon-shimmer" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 hover:bg-red-100 text-red-500 hover:text-red-600"
-                              onClick={() => handleDeleteFlashcard(index)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-
-                          {card.tags && card.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-2">
-                              {card.tags.map((tag: string, i: number) => <Badge key={i} variant="secondary" className="text-xs">{tag}</Badge>)}
+                    {generatedFlashcards && generatedFlashcards.cards.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {generatedFlashcards.cards.map((card, index) => (
+                          <div key={index} className="bg-white rounded-lg p-4 border border-slate-200 relative group">
+                            {/* Action Buttons */}
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 hover:bg-purple-100 text-purple-600 hover:text-purple-700"
+                                onClick={() => handleEditFlashcardWithAI(index, card)}
+                              >
+                                <Pencil className="h-3 w-3 icon-shimmer" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 hover:bg-red-100 text-red-500 hover:text-red-600"
+                                onClick={() => handleDeleteFlashcard(index)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
-                          )}
-                          <h4 className="text-purple-700 font-semibold mb-2 text-base pr-14">{card.front || card.termo}</h4>
-                          <p className="text-slate-600 text-sm">{card.back || card.definicao}</p>
-                        </div>
-                      ))}
-                      
-                      {/* Add New Flashcard Button */}
-                      <Button
-                        variant="outline"
-                        className="h-full min-h-[120px] border-2 border-dashed border-slate-300 hover:border-purple-400 hover:bg-purple-50 text-slate-600 hover:text-purple-700"
-                        onClick={handleAddFlashcard}
-                      >
-                        <Plus className="h-5 w-5 mr-2" />
-                        Adicionar Novo Flashcard
-                      </Button>
-                    </div>
+
+                            {card.tags && card.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {card.tags.map((tag: string, i: number) => <Badge key={i} variant="secondary" className="text-xs">{tag}</Badge>)}
+                              </div>
+                            )}
+                            <h4 className="text-purple-700 font-semibold mb-2 text-base pr-14">{card.front || card.termo}</h4>
+                            <p className="text-slate-600 text-sm">{card.back || card.definicao}</p>
+                          </div>
+                        ))}
+                        
+                        {/* Add New Flashcard Button */}
+                        <Button
+                          variant="outline"
+                          className="h-full min-h-[120px] border-2 border-dashed border-slate-300 hover:border-purple-400 hover:bg-purple-50 text-slate-600 hover:text-purple-700"
+                          onClick={handleAddFlashcard}
+                        >
+                          <Plus className="h-5 w-5 mr-2" />
+                          Adicionar Novo Flashcard
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Brain className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 mb-4">Nenhum flashcard gerado ainda</p>
+                        <Button
+                          onClick={handleAddFlashcard}
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Gerar Primeiro Flashcard com IA
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
