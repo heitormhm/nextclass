@@ -71,19 +71,45 @@ export const useAudioCapture = (options?: AudioCaptureOptions) => {
   const stopCapture = useCallback(async (): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       if (!mediaRecorderRef.current) {
+        console.error('[AudioCapture] ❌ No active MediaRecorder');
         reject(new Error('No active recording'));
         return;
       }
 
+      const currentState = mediaRecorderRef.current.state;
+      console.log('[AudioCapture] 🛑 Stopping capture (current state:', currentState, ')');
+
+      // Verificar estado antes de parar
+      if (currentState === 'inactive') {
+        console.warn('[AudioCapture] ⚠️ MediaRecorder already inactive');
+        reject(new Error('Recording already stopped'));
+        return;
+      }
+
       mediaRecorderRef.current.onstop = () => {
+        console.log('[AudioCapture] 📦 Processing', audioChunksRef.current.length, 'chunks');
+        
         // Combinar todos os chunks em um único Blob
         const audioBlob = new Blob(audioChunksRef.current, { 
           type: mediaRecorderRef.current?.mimeType || 'audio/webm'
         });
 
+        // Validar tamanho mínimo (100 KB = ~1 segundo de áudio)
+        const minSizeBytes = 100 * 1024;
+        if (audioBlob.size < minSizeBytes) {
+          console.warn('[AudioCapture] ⚠️ Audio blob too small:', audioBlob.size, 'bytes (min:', minSizeBytes, ')');
+        } else {
+          console.log('[AudioCapture] ✅ Audio blob size OK:', (audioBlob.size / 1024 / 1024).toFixed(2), 'MB');
+        }
+
         // Limpar stream
         if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
+          const tracks = streamRef.current.getTracks();
+          console.log('[AudioCapture] 🔇 Stopping', tracks.length, 'audio tracks');
+          tracks.forEach(track => {
+            track.stop();
+            console.log('[AudioCapture]   - Stopped track:', track.label);
+          });
           streamRef.current = null;
         }
 

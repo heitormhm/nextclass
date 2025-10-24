@@ -52,7 +52,12 @@ const LiveLecture = () => {
     resumeCapture: resumeAudioCapture,
     isCapturing,
     error: captureError
-  } = useAudioCapture();
+  } = useAudioCapture({
+    onAudioChunk: (chunk: Blob) => {
+      // Track audio size in real-time
+      setAudioSize(prev => prev + chunk.size);
+    }
+  });
   
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -60,6 +65,7 @@ const LiveLecture = () => {
   const [selectedMicrophone, setSelectedMicrophone] = useState('default');
   const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [audioSize, setAudioSize] = useState(0); // Track audio size in real-time
   
   // Transcription states
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
@@ -186,23 +192,27 @@ const LiveLecture = () => {
 
   const handleStartRecording = async () => {
     try {
+      console.log('[LiveLecture] 🎬 Iniciando gravação...');
       setTranscriptSegments([]);
       setCurrentWords([]);
       fullTranscriptRef.current = '';
       setRecordingTime(0);
+      setAudioSize(0);
       setIsPaused(false);
       
+      console.log('[LiveLecture] 🎙️ Starting Speech Recognition + Audio Capture');
       await Promise.all([
         startSpeechRecording(),
         startAudioCapture()
       ]);
       
+      console.log('[LiveLecture] ✅ Recording started successfully');
       toast({
         title: "Gravação iniciada",
         description: "Áudio e transcrição em tempo real",
       });
     } catch (error) {
-      console.error('Error starting recording:', error);
+      console.error('[LiveLecture] ❌ Error starting recording:', error);
       toast({
         variant: "destructive",
         title: "Erro ao iniciar gravação",
@@ -225,14 +235,82 @@ const LiveLecture = () => {
     }
   };
 
+  // Retry helper function
+  const uploadWithRetry = async (audioBlob: Blob, lectureId: string, maxRetries = 3): Promise<string | null> => {
+    const audioFileName = `${lectureId}-${Date.now()}.webm`;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[LiveLecture] 📤 Upload attempt ${attempt}/${maxRetries} (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB)`);
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('lecture-audio')
+          .upload(audioFileName, audioBlob, {
+            contentType: 'audio/webm',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error(`[LiveLecture] ❌ Upload attempt ${attempt} failed:`, uploadError);
+          
+          if (attempt < maxRetries) {
+            const delayMs = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+            console.log(`[LiveLecture] ⏳ Retrying in ${delayMs / 1000}s...`);
+            toast({
+              title: `Tentativa ${attempt}/${maxRetries} falhou`,
+              description: `Tentando novamente em ${delayMs / 1000}s...`,
+            });
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue;
+          }
+          
+          throw uploadError;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('lecture-audio')
+          .getPublicUrl(audioFileName);
+
+        const audioUrl = urlData.publicUrl;
+        console.log('[LiveLecture] ✅ Audio uploaded successfully:', audioUrl);
+        return audioUrl;
+        
+      } catch (error) {
+        if (attempt === maxRetries) {
+          console.error('[LiveLecture] ❌ All upload attempts failed');
+          throw error;
+        }
+      }
+    }
+    
+    return null;
+  };
+
   const handleStopRecording = async () => {
+    console.log('[LiveLecture] 🛑 Stopping recording...');
     stopSpeechRecording();
     
     let audioBlob: Blob | null = null;
     try {
       audioBlob = await stopAudioCapture();
+      console.log('[LiveLecture] 📦 Audio blob received:', audioBlob.size, 'bytes');
+      
+      // Validação crítica: verificar se blob não está vazio
+      if (audioBlob.size === 0) {
+        console.error('[LiveLecture] ❌ CRITICAL: Audio blob is empty!');
+        toast({
+          variant: 'destructive',
+          title: '⚠️ Áudio não capturado',
+          description: 'O áudio não foi gravado. Apenas a transcrição será salva.',
+        });
+      }
     } catch (error) {
-      console.error('Error stopping audio capture:', error);
+      console.error('[LiveLecture] ❌ Error stopping audio capture:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao parar áudio',
+        description: 'Não foi possível finalizar a gravação do áudio',
+      });
     }
     
     setIsPaused(false);
@@ -244,6 +322,8 @@ const LiveLecture = () => {
         .map(seg => `[${seg.speaker}] ${seg.text}`)
         .join('\n\n');
 
+      console.log('[LiveLecture] 📝 Transcript length:', fullTranscript.length, 'chars');
+
       if (!lectureId) {
         throw new Error('No lecture ID found');
       }
@@ -251,26 +331,22 @@ const LiveLecture = () => {
       let audioUrl: string | null = null;
 
       if (audioBlob && audioBlob.size > 0) {
-        const audioFileName = `${lectureId}-${Date.now()}.webm`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('lecture-audio')
-          .upload(audioFileName, audioBlob, {
-            contentType: 'audio/webm',
-            upsert: false
+        console.log('[LiveLecture] 🚀 Starting upload with retry logic...');
+        try {
+          audioUrl = await uploadWithRetry(audioBlob, lectureId);
+        } catch (uploadError) {
+          console.error('[LiveLecture] ❌ Upload failed after all retries:', uploadError);
+          toast({
+            variant: 'destructive',
+            title: 'Erro no upload do áudio',
+            description: 'O áudio não pôde ser enviado. Apenas a transcrição será salva.',
           });
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-        } else {
-          const { data: urlData } = supabase.storage
-            .from('lecture-audio')
-            .getPublicUrl(audioFileName);
-
-          audioUrl = urlData.publicUrl;
-          console.log('[AudioCapture] ✅ Audio uploaded:', audioUrl);
         }
+      } else {
+        console.warn('[LiveLecture] ⚠️ No audio blob to upload (size: 0 or null)');
       }
 
+      console.log('[LiveLecture] 💾 Saving to database...');
       const { error: updateError } = await supabase
         .from('lectures')
         .update({
@@ -283,15 +359,29 @@ const LiveLecture = () => {
 
       if (updateError) throw updateError;
 
+      // Validação final crítica
+      if (!audioUrl) {
+        console.error('[LiveLecture] ❌ ALERT: audio_url is NULL in database!');
+        toast({
+          variant: 'destructive',
+          title: '⚠️ Áudio não disponível',
+          description: 'A transcrição foi salva, mas o áudio não está disponível.',
+        });
+      } else {
+        console.log('[LiveLecture] ✅ Database updated with audio_url:', audioUrl);
+      }
+
       toast({
         title: "✅ Gravação finalizada com sucesso",
-        description: audioBlob ? `Áudio (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB) e transcrição salvos` : 'Transcrição salva',
+        description: audioBlob && audioUrl 
+          ? `Áudio (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB) e transcrição salvos` 
+          : 'Transcrição salva (áudio indisponível)',
       });
 
       navigate(`/lecturetranscription/${lectureId}`);
       
     } catch (error) {
-      console.error('Error saving lecture:', error);
+      console.error('[LiveLecture] ❌ Error saving lecture:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao salvar',
@@ -332,11 +422,18 @@ const LiveLecture = () => {
                 </div>
                 
                 {isSpeechRecording && (
-                  <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-300/40 rounded-full px-4 py-1.5 backdrop-blur-sm">
-                    <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
-                    <span className="text-white font-mono font-semibold drop-shadow-sm">
-                      {formatTime(recordingTime)}
-                    </span>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-300/40 rounded-full px-4 py-1.5 backdrop-blur-sm">
+                      <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                      <span className="text-white font-mono font-semibold drop-shadow-sm">
+                        {formatTime(recordingTime)}
+                      </span>
+                    </div>
+                    {isCapturing && (
+                      <Badge variant="destructive" className="bg-red-600/80 hover:bg-red-600 backdrop-blur-sm">
+                        🔴 Gravando Áudio {audioSize > 0 && `(${(audioSize / 1024 / 1024).toFixed(1)} MB)`}
+                      </Badge>
+                    )}
                   </div>
                 )}
               </div>
