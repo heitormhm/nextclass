@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LiveTranscriptViewer } from '@/components/LiveTranscriptViewer';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
+import { useAudioCapture } from '@/hooks/useAudioCapture';
 
 interface Word {
   text: string;
@@ -43,6 +44,15 @@ const LiveLecture = () => {
     error: speechError,
     onTranscriptionReceived
   } = useAudioRecorder();
+
+  const {
+    startCapture: startAudioCapture,
+    stopCapture: stopAudioCapture,
+    pauseCapture: pauseAudioCapture,
+    resumeCapture: resumeAudioCapture,
+    isCapturing,
+    error: captureError
+  } = useAudioCapture();
   
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -176,19 +186,20 @@ const LiveLecture = () => {
 
   const handleStartRecording = async () => {
     try {
-      // Reset states
       setTranscriptSegments([]);
       setCurrentWords([]);
       fullTranscriptRef.current = '';
       setRecordingTime(0);
       setIsPaused(false);
       
-      // Start Web Speech API recording
-      await startSpeechRecording();
+      await Promise.all([
+        startSpeechRecording(),
+        startAudioCapture()
+      ]);
       
       toast({
         title: "Gravação iniciada",
-        description: "Fale claramente para transcrição automática",
+        description: "Áudio e transcrição em tempo real",
       });
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -203,42 +214,68 @@ const LiveLecture = () => {
   const handlePauseRecording = () => {
     if (isPaused) {
       resumeSpeechRecording();
+      resumeAudioCapture();
       setIsPaused(false);
-      toast({
-        title: "Gravação retomada",
-      });
+      toast({ title: "Gravação retomada" });
     } else {
       pauseSpeechRecording();
+      pauseAudioCapture();
       setIsPaused(true);
-      toast({
-        title: "Gravação pausada",
-      });
+      toast({ title: "Gravação pausada" });
     }
   };
 
   const handleStopRecording = async () => {
-    // Stop Web Speech API recording
     stopSpeechRecording();
+    
+    let audioBlob: Blob | null = null;
+    try {
+      audioBlob = await stopAudioCapture();
+    } catch (error) {
+      console.error('Error stopping audio capture:', error);
+    }
+    
     setIsPaused(false);
     
     try {
       setIsSaving(true);
       
-      // Use accumulated transcript from ref
       const fullTranscript = fullTranscriptRef.current || transcriptSegments
         .map(seg => `[${seg.speaker}] ${seg.text}`)
         .join('\n\n');
 
-      // Update existing lecture
       if (!lectureId) {
         throw new Error('No lecture ID found');
+      }
+
+      let audioUrl: string | null = null;
+
+      if (audioBlob && audioBlob.size > 0) {
+        const audioFileName = `${lectureId}-${Date.now()}.webm`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('lecture-audio')
+          .upload(audioFileName, audioBlob, {
+            contentType: 'audio/webm',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+        } else {
+          const { data: urlData } = supabase.storage
+            .from('lecture-audio')
+            .getPublicUrl(audioFileName);
+
+          audioUrl = urlData.publicUrl;
+          console.log('[AudioCapture] ✅ Audio uploaded:', audioUrl);
+        }
       }
 
       const { error: updateError } = await supabase
         .from('lectures')
         .update({
           raw_transcript: fullTranscript,
-          audio_url: null, // Web Speech API doesn't provide audio file
+          audio_url: audioUrl,
           duration: recordingTime,
           status: 'processing'
         })
@@ -247,11 +284,10 @@ const LiveLecture = () => {
       if (updateError) throw updateError;
 
       toast({
-        title: "Gravação finalizada com sucesso",
-        description: `Transcrição de ${formatTime(recordingTime)} salva. Redirecionando...`,
+        title: "✅ Gravação finalizada com sucesso",
+        description: audioBlob ? `Áudio (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB) e transcrição salvos` : 'Transcrição salva',
       });
 
-      // Navigate immediately after success
       navigate(`/lecturetranscription/${lectureId}`);
       
     } catch (error) {

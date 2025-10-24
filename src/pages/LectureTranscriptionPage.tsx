@@ -783,28 +783,93 @@ const LectureTranscriptionPage = () => {
     });
   };
 
-  const handleAddQuizQuestion = () => {
-    openEditModal('Adicionar Pergunta', {
-      isNew: true,
-      onSave: async (newQuestion: any) => {
-        if (!generatedQuiz || !id) return;
-        
-        const updatedQuestions = [...generatedQuiz.questions, newQuestion];
-        
-        const { error } = await supabase
-          .from('teacher_quizzes')
-          .update({ questions: updatedQuestions })
-          .eq('lecture_id', id);
+  const handleAddQuizQuestion = async () => {
+    if (!generatedQuiz || !id || !lecture) return;
+    
+    try {
+      toast({
+        title: '🤖 Gerando nova pergunta...',
+        description: 'A IA está criando uma pergunta baseada no tema da aula',
+      });
 
-        if (!error) {
-          setGeneratedQuiz({ ...generatedQuiz, questions: updatedQuestions });
-          toast({ title: '✅ Pergunta adicionada', description: 'Nova pergunta criada com sucesso' });
+      const { data, error } = await supabase.functions.invoke('generate-single-quiz-question', {
+        body: {
+          title: lecture.title,
+          tags: lecture.tags || []
         }
-      }
-    });
+      });
+
+      if (error) throw error;
+
+      const updatedQuestions = [...generatedQuiz.questions, data.question];
+      
+      const { error: updateError } = await supabase
+        .from('teacher_quizzes')
+        .update({ questions: updatedQuestions })
+        .eq('lecture_id', id);
+
+      if (updateError) throw updateError;
+
+      setGeneratedQuiz({ ...generatedQuiz, questions: updatedQuestions });
+      
+      toast({
+        title: '✅ Pergunta adicionada',
+        description: 'Nova pergunta gerada automaticamente com IA',
+      });
+
+    } catch (error) {
+      console.error('Error adding question:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar pergunta',
+        description: 'Tente novamente',
+      });
+    }
   };
 
-  // Individual Flashcard Management
+  const handleAddFlashcard = async () => {
+    if (!generatedFlashcards || !id || !lecture) return;
+    
+    try {
+      toast({
+        title: '🤖 Gerando novo flashcard...',
+        description: 'A IA está criando um flashcard baseado no tema da aula',
+      });
+
+      const { data, error } = await supabase.functions.invoke('generate-single-flashcard', {
+        body: {
+          title: lecture.title,
+          tags: lecture.tags || []
+        }
+      });
+
+      if (error) throw error;
+
+      const updatedCards = [...generatedFlashcards.cards, data.card];
+      
+      const { error: updateError } = await supabase
+        .from('teacher_flashcards')
+        .update({ cards: updatedCards })
+        .eq('lecture_id', id);
+
+      if (updateError) throw updateError;
+
+      setGeneratedFlashcards({ ...generatedFlashcards, cards: updatedCards });
+      
+      toast({
+        title: '✅ Flashcard adicionado',
+        description: 'Novo flashcard gerado automaticamente com IA',
+      });
+
+    } catch (error) {
+      console.error('Error adding flashcard:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar flashcard',
+        description: 'Tente novamente',
+      });
+    }
+  };
   const handleDeleteFlashcard = async (index: number) => {
     if (!generatedFlashcards || !id) return;
     
@@ -847,27 +912,6 @@ const LectureTranscriptionPage = () => {
         if (!error) {
           setGeneratedFlashcards({ ...generatedFlashcards, cards: updatedCards });
           toast({ title: '✅ Flashcard atualizado', description: 'Alterações salvas com sucesso' });
-        }
-      }
-    });
-  };
-
-  const handleAddFlashcard = () => {
-    openEditModal('Adicionar Flashcard', {
-      isNew: true,
-      onSave: async (newCard: any) => {
-        if (!generatedFlashcards || !id) return;
-        
-        const updatedCards = [...generatedFlashcards.cards, newCard];
-        
-        const { error } = await supabase
-          .from('teacher_flashcards')
-          .update({ cards: updatedCards })
-          .eq('lecture_id', id);
-
-        if (!error) {
-          setGeneratedFlashcards({ ...generatedFlashcards, cards: updatedCards });
-          toast({ title: '✅ Flashcard adicionado', description: 'Novo flashcard criado com sucesso' });
         }
       }
     });
@@ -1248,7 +1292,7 @@ const LectureTranscriptionPage = () => {
                                     className="h-7 w-7 hover:bg-purple-100 text-purple-600 hover:text-purple-700"
                                     onClick={() => handleEditQuizQuestionWithAI(index, pergunta)}
                                   >
-                                    <Pencil className="h-3.5 w-3.5 animate-shimmer" />
+                                    <Pencil className="h-3.5 w-3.5 icon-shimmer" />
                                   </Button>
                                   <Button
                                     variant="ghost"
@@ -1369,7 +1413,7 @@ const LectureTranscriptionPage = () => {
                               className="h-6 w-6 hover:bg-purple-100 text-purple-600 hover:text-purple-700"
                               onClick={() => handleEditFlashcardWithAI(index, card)}
                             >
-                              <Pencil className="h-3 w-3 animate-shimmer" />
+                              <Pencil className="h-3 w-3 icon-shimmer" />
                             </Button>
                             <Button
                               variant="ghost"

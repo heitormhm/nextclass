@@ -356,6 +356,15 @@ All colors MUST be HSL. Design tokens for consistent theming.
   animation: gradient-xy 15s ease infinite;
 }
 
+@keyframes shimmer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.group:hover .icon-shimmer {
+  animation: shimmer-pulse 1.5s ease-in-out infinite;
+}
+
 /* Float Animation for Blobs */
 @keyframes float {
   0%, 100% {
