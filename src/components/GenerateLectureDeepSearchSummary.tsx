@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Brain, Loader2, Search, FileText, Check } from 'lucide-react';
@@ -33,82 +33,42 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState<string>('');
   const { toast } = useToast();
 
-  // Subscribe to session updates
+  // Subscribe to job updates via realtime
   useEffect(() => {
-    if (!sessionId) return;
+    if (!jobId) return;
 
-    console.log('🔔 [Deep Search Frontend] Subscribing to session:', sessionId);
+    console.log('🔔 [Deep Search] Subscribing to job:', jobId);
 
     const channel = supabase
-      .channel(`lecture-deep-search-${sessionId}`)
+      .channel(`teacher-jobs-${jobId}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'lecture_deep_search_sessions',
-          filter: `id=eq.${sessionId}`,
+          table: 'teacher_jobs',
+          filter: `id=eq.${jobId}`,
         },
-        async (payload) => {
-          console.log('📬 [Deep Search Frontend] Session update:', payload);
-          const session = payload.new as any;
+        (payload) => {
+          console.log('📬 [Deep Search] Job update:', payload);
+          const job = payload.new as any;
 
-          // Update progress message if available
-          if (session.progress_step) {
-            console.log('📋 [Deep Search Frontend] Progress:', session.progress_step);
-            setProgressMessage(session.progress_step);
+          // Map progress to steps (0-1 → 0-4)
+          const step = Math.floor((job.progress || 0) * 4);
+          setCurrentStep(step);
+          
+          if (job.progress_message) {
+            console.log('📋 [Deep Search] Progress:', job.progress_message);
+            setProgressMessage(job.progress_message);
           }
 
-          if (session.status === 'analyzing') {
-            console.log('📊 [Deep Search Frontend] Status: Analyzing...');
-            setCurrentStep(1);
-            setProgressMessage('Analisando conteúdo da aula...');
-          } else if (session.status === 'researched') {
-            console.log('📊 [Deep Search Frontend] Status: Research complete, generating report...');
-            setCurrentStep(2);
-            setProgressMessage('Pesquisa concluída. Iniciando geração de relatório...');
-            
-            // Call second edge function to generate report
-            try {
-              console.log('📝 [Deep Search Frontend] Calling generate-lecture-deep-report...');
-              const { error: reportError } = await supabase.functions.invoke(
-                'generate-lecture-deep-report',
-                {
-                  body: {
-                    sessionId: sessionId,
-                    lectureId: lectureId,
-                  },
-                }
-              );
-              
-              if (reportError) {
-                console.error('❌ [Deep Search Frontend] Report error:', reportError);
-                throw reportError;
-              }
-              
-              console.log('✅ [Deep Search Frontend] Report generation started');
-            } catch (error) {
-              console.error('❌ [Deep Search Frontend] Failed to start report generation:', error);
-              setError(error instanceof Error ? error.message : 'Erro ao gerar relatório');
-              setIsGenerating(false);
-              toast({
-                variant: 'destructive',
-                title: 'Erro ao gerar relatório',
-                description: error instanceof Error ? error.message : 'Erro desconhecido',
-              });
-            }
-            
-          } else if (session.status === 'generating') {
-            console.log('📊 [Deep Search Frontend] Status: Generating report...');
-            setCurrentStep(3);
-            setProgressMessage('Gerando material didático com IA...');
-          } else if (session.status === 'completed') {
-            console.log('✅ [Deep Search Frontend] Status: COMPLETED!');
+          if (job.status === 'COMPLETED') {
+            console.log('✅ [Deep Search] Job COMPLETED!');
             setCurrentStep(4);
             setProgressMessage('Concluído!');
             setTimeout(() => {
@@ -116,119 +76,108 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
               setIsOpen(false);
               onUpdate();
               toast({
-                title: 'Material didático gerado com sucesso!',
-                description: 'Material educacional com pesquisa profunda foi criado.',
+                title: 'Material didático gerado!',
+                description: 'Pesquisa profunda concluída com sucesso.',
               });
             }, 2000);
-          } else if (session.status === 'error') {
-            console.error('❌ [Deep Search Frontend] Status: ERROR');
-            console.error('❌ [Deep Search Frontend] Error message:', session.error);
-            setError(session.error || 'Erro desconhecido');
+          } else if (job.status === 'FAILED') {
+            console.error('❌ [Deep Search] Job FAILED:', job.error_message);
+            setError(job.error_message || 'Erro desconhecido');
             setIsGenerating(false);
             toast({
               variant: 'destructive',
               title: 'Erro na geração',
-              description: session.error || 'Não foi possível gerar o material didático',
+              description: job.error_message || 'Não foi possível gerar o material didático',
             });
           }
         }
       )
       .subscribe((status) => {
-        console.log('🔌 [Deep Search Frontend] Subscription status:', status);
+        console.log('🔌 [Deep Search] Subscription status:', status);
       });
 
     return () => {
-      console.log('🔌 [Deep Search Frontend] Unsubscribing from session');
+      console.log('🔌 [Deep Search] Unsubscribing from job');
       supabase.removeChannel(channel);
     };
-  }, [sessionId, lectureId, toast, onUpdate]);
+  }, [jobId, toast, onUpdate]);
 
   const handleGenerate = async () => {
     setError(null);
     setProgressMessage('');
     
     try {
-      console.log('🚀 [Deep Search Frontend] Starting generation process...');
-      console.log('📋 [Deep Search Frontend] Lecture ID:', lectureId);
-      console.log('📋 [Deep Search Frontend] Lecture Title:', lectureTitle);
-      console.log('📋 [Deep Search Frontend] Tags:', tags);
+      console.log('🚀 [Deep Search] Starting with JOB system...');
+      console.log('📋 [Deep Search] Lecture ID:', lectureId);
+      console.log('📋 [Deep Search] Lecture Title:', lectureTitle);
+      console.log('📋 [Deep Search] Tags:', tags);
       
       setIsGenerating(true);
       setCurrentStep(0);
 
-      // Validate data before proceeding
+      // Validate data
       if (!lectureId || !lectureTitle) {
         throw new Error('Dados da aula incompletos');
       }
 
-      console.log('👤 [Deep Search Frontend] Getting authenticated user...');
+      console.log('👤 [Deep Search] Getting authenticated user...');
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
-      if (userError) {
-        console.error('❌ [Deep Search Frontend] User error:', userError);
-        throw new Error(`Erro de autenticação: ${userError.message}`);
-      }
-      
-      if (!user) {
+      if (userError || !user) {
+        console.error('❌ [Deep Search] User error:', userError);
         throw new Error('Usuário não autenticado. Por favor, faça login novamente.');
       }
-      
-      console.log('✅ [Deep Search Frontend] User authenticated:', user.id);
 
-      // Construct query from lecture data
-      const query = `${lectureTitle}${tags.length > 0 ? ` - Tópicos: ${tags.join(', ')}` : ''}`;
-      console.log('📝 [Deep Search Frontend] Query constructed:', query);
+      console.log('✅ [Deep Search] User authenticated:', user.id);
 
-      // Create deep search session
-      console.log('💾 [Deep Search Frontend] Creating session in database...');
-      const { data: session, error: sessionError } = await supabase
-        .from('lecture_deep_search_sessions')
+      // Create JOB instead of session
+      console.log('💾 [Deep Search] Creating job in database...');
+      const { data: job, error: jobError } = await supabase
+        .from('teacher_jobs')
         .insert({
+          teacher_id: user.id,
           lecture_id: lectureId,
-          user_id: user.id,
-          query: query,
-          status: 'pending',
+          job_type: 'GENERATE_LECTURE_DEEP_SEARCH',
+          status: 'PENDING',
+          input_payload: {
+            lectureId,
+            lectureTitle,
+            tags,
+            userId: user.id
+          },
+          progress: 0,
+          progress_message: 'Iniciando pesquisa profunda...'
         })
         .select()
         .single();
 
-      if (sessionError) {
-        console.error('❌ [Deep Search Frontend] Session creation error:', sessionError);
-        throw new Error(`Erro ao criar sessão: ${sessionError.message}`);
+      if (jobError) {
+        console.error('❌ [Deep Search] Job creation error:', jobError);
+        throw new Error(`Erro ao criar job: ${jobError.message}`);
       }
 
-      console.log('✅ [Deep Search Frontend] Session created:', session.id);
-      setSessionId(session.id);
-      setProgressMessage('Sessão criada. Iniciando pesquisa...');
+      console.log('✅ [Deep Search] Job created:', job.id);
+      setJobId(job.id);
+      setProgressMessage('Job criado. Iniciando processamento...');
 
-      // Start research phase
-      setCurrentStep(1);
-      console.log('🔍 [Deep Search Frontend] Calling research agent...');
-      const { data: researchData, error: researchError } = await supabase.functions.invoke(
-        'lecture-deep-research-agent',
-        {
-          body: {
-            query,
-            sessionId: session.id,
-            lectureId,
-          },
-        }
-      );
+      // Call job runner edge function to start processing
+      console.log('🔄 [Deep Search] Invoking job runner...');
+      const { error: runnerError } = await supabase.functions.invoke('teacher-job-runner', {
+        body: { jobId: job.id }
+      });
 
-      if (researchError) {
-        console.error('❌ [Deep Search Frontend] Research error:', researchError);
-        throw new Error(`Erro ao iniciar pesquisa: ${researchError.message}`);
+      if (runnerError) {
+        console.error('❌ [Deep Search] Runner invocation error:', runnerError);
+        throw new Error(`Erro ao iniciar processamento: ${runnerError.message}`);
       }
 
-      console.log('✅ [Deep Search Frontend] Research agent started:', researchData);
-      setProgressMessage('Pesquisa profunda iniciada...');
-
-      // The realtime subscription (useEffect) will handle the rest of the flow
+      console.log('✅ [Deep Search] Job runner invoked successfully');
+      setProgressMessage('Processamento iniciado...');
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      console.error('❌ [Deep Search Frontend] Error:', errorMessage);
-      console.error('❌ [Deep Search Frontend] Error stack:', error);
+      console.error('❌ [Deep Search] Error:', errorMessage);
+      console.error('❌ [Deep Search] Error stack:', error);
       setError(errorMessage);
       setIsGenerating(false);
       toast({
@@ -249,7 +198,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
     }
     setIsOpen(false);
     setCurrentStep(0);
-    setSessionId(null);
+    setJobId(null);
     setError(null);
     setProgressMessage('');
   };
