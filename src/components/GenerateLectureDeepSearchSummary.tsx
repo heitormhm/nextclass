@@ -36,6 +36,13 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const [sessionId, setSessionId] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Auto-start generation when dialog opens (only for first-time generation)
+  useEffect(() => {
+    if (isOpen && !isGenerating && !currentMaterial) {
+      handleGenerate();
+    }
+  }, [isOpen]);
+
   // Subscribe to session updates
   useEffect(() => {
     if (!sessionId) return;
@@ -207,12 +214,11 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogTrigger asChild>
         <Button 
-          variant="outline" 
           size="sm"
-          className="gap-2"
+          className="gap-2 h-10 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-0 hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-xl transition-all"
         >
           <Brain className="h-4 w-4" />
-          {currentMaterial ? 'Gerar Material Didático' : 'Gerar Material Didático'}
+          Gerar Material Didático
         </Button>
       </DialogTrigger>
 
@@ -225,7 +231,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         </DialogHeader>
 
         <div className="space-y-6">
-          {!isGenerating ? (
+          {isGenerating ? (
             <>
               <div className="space-y-4">
                 <div className="rounded-lg border border-border/50 bg-muted/30 p-4">

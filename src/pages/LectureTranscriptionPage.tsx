@@ -1370,7 +1370,7 @@ const LectureTranscriptionPage = () => {
 
           {/* Main content grid */}
           {structuredContent && (
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px] gap-4 md:gap-6">
               {/* Left column - Generated content */}
               <div className="space-y-6">
                 {/* Title */}
@@ -1407,26 +1407,27 @@ const LectureTranscriptionPage = () => {
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="resumo" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 mb-4">
-                        <TabsTrigger value="resumo" className="gap-2">
-                          <FileText className="h-4 w-4" />
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="resumo" className="text-sm sm:text-base">
+                          <FileText className="h-4 w-4 mr-2" />
                           Resumo
                         </TabsTrigger>
                         <TabsTrigger 
                           value="material" 
                           disabled={!structuredContent.material_didatico}
-                          className="gap-2"
+                          className="text-sm sm:text-base"
                         >
-                          <Brain className="h-4 w-4" />
-                          Material Didático
+                          <Brain className="h-4 w-4 mr-2" />
+                          <span className="hidden sm:inline">Material Didático</span>
+                          <span className="sm:hidden">Material</span>
                           {!structuredContent.material_didatico && (
-                            <span className="ml-2 text-xs text-slate-500">(Gerar primeiro)</span>
+                            <span className="ml-2 text-xs text-slate-500 hidden md:inline">(Gerar)</span>
                           )}
                         </TabsTrigger>
                       </TabsList>
                       
-                      <TabsContent value="resumo">
-                        <div className="bg-white p-4 rounded-lg prose prose-sm max-w-none">
+                      <TabsContent value="resumo" className="overflow-x-auto mt-4">
+                        <div className="min-w-0 bg-white p-4 rounded-lg prose prose-sm max-w-none overflow-x-auto">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm, remarkMath]}
                             rehypePlugins={[rehypeKatex]}
@@ -1453,19 +1454,19 @@ const LectureTranscriptionPage = () => {
                           <Button
                             variant="outline"
                             size="sm"
+                            className="h-9"
                             onClick={() => openEditModal('Resumo', { resumo: structuredContent.resumo })}
-                            className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
                           >
-                            <Sparkles className="h-3 w-3 mr-1" />
+                            <Sparkles className="h-4 w-4 mr-1" />
                             Editar com IA
                           </Button>
                         </div>
                       </TabsContent>
                       
-                      <TabsContent value="material">
+                      <TabsContent value="material" className="overflow-x-auto mt-4">
                         {structuredContent.material_didatico ? (
                           <>
-                            <div className="bg-white p-4 rounded-lg prose prose-sm max-w-none">
+                            <div className="min-w-0 bg-white p-4 rounded-lg prose prose-sm max-w-none overflow-x-auto">
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm, remarkMath]}
                                 rehypePlugins={[rehypeKatex]}
@@ -1492,10 +1493,10 @@ const LectureTranscriptionPage = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="h-9"
                                 onClick={() => openEditModal('Material Didático', { material_didatico: structuredContent.material_didatico })}
-                                className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
                               >
-                                <Sparkles className="h-3 w-3 mr-1" />
+                                <Sparkles className="h-4 w-4 mr-1" />
                                 Editar com IA
                               </Button>
                             </div>
@@ -1503,8 +1504,8 @@ const LectureTranscriptionPage = () => {
                         ) : (
                           <div className="text-center py-8 bg-slate-50 rounded-lg">
                             <Brain className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                            <p className="text-slate-600 mb-4">Nenhum material didático gerado ainda</p>
-                            <p className="text-slate-500 text-sm">
+                            <p className="text-slate-600 mb-4 font-medium">Nenhum material didático gerado ainda</p>
+                            <p className="text-slate-500 text-sm px-4">
                               Clique em "Gerar Material Didático" para criar conteúdo com pesquisa profunda
                             </p>
                           </div>
@@ -1524,10 +1525,10 @@ const LectureTranscriptionPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-9"
                       onClick={() => openEditModal('Tópicos', { topicos_principais: structuredContent.topicos_principais })}
-                      className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
                     >
-                      <Sparkles className="h-3 w-3 mr-1" />
+                      <Sparkles className="h-4 w-4 mr-1" />
                       Editar com IA
                     </Button>
                   </CardHeader>
@@ -1937,17 +1938,17 @@ const LectureTranscriptionPage = () => {
                                 audioRef.current.currentTime = value;
                               }
                             }}
-                            className="w-full"
+                            className="w-full [&_[role=slider]]:bg-purple-600 [&_[role=slider]]:border-2 [&_[role=slider]]:border-white [&_[role=slider]]:shadow-lg"
                           />
-                          <div className="flex justify-between text-xs text-slate-600 mt-1">
-                            <span>{formatTime(currentTime)}</span>
-                            <span>{duration > 0 ? formatTime(duration) : 'Carregando...'}</span>
+                          <div className="flex justify-between text-xs text-slate-600 mt-2">
+                            <span className="font-medium">{formatTime(currentTime)}</span>
+                            <span className="sm:hidden">{duration > 0 ? formatTime(duration) : '...'}</span>
                           </div>
                         </div>
                         
                         {/* Controls */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                          <div className="flex gap-2 justify-center sm:justify-start">
                             {/* Play/Pause */}
                             <Button
                               variant="outline"
@@ -1962,36 +1963,31 @@ const LectureTranscriptionPage = () => {
                                   setIsPlaying(!isPlaying);
                                 }
                               }}
-                              className="h-10 w-10 rounded-full bg-purple-600 hover:bg-purple-700 text-white border-0"
+                              className="h-11 w-11 sm:h-10 sm:w-10"
                             >
-                              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+                              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                             </Button>
-                            
-                            {/* Speed control */}
-                            <Select
-                              value={playbackSpeed.toString()}
-                              onValueChange={(value) => {
-                                const speed = parseFloat(value);
-                                setPlaybackSpeed(speed);
-                                if (audioRef.current) audioRef.current.playbackRate = speed;
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const speeds = [1, 1.5, 2, 0.5];
+                                const currentIndex = speeds.indexOf(playbackSpeed);
+                                const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+                                setPlaybackSpeed(nextSpeed);
+                                if (audioRef.current) audioRef.current.playbackRate = nextSpeed;
                               }}
+                              className="min-w-[60px] h-11 sm:h-10"
                             >
-                              <SelectTrigger className="w-[80px] h-10 bg-white border-slate-300">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="0.5">0.5x</SelectItem>
-                                <SelectItem value="1">1x</SelectItem>
-                                <SelectItem value="1.5">1.5x</SelectItem>
-                                <SelectItem value="2">2x</SelectItem>
-                              </SelectContent>
-                            </Select>
+                              {playbackSpeed}x
+                            </Button>
                           </div>
                           
                           {/* Download button */}
                           <Button
                             variant="outline"
                             size="sm"
+                            className="gap-2 h-11 sm:h-10 w-full sm:w-auto"
                             onClick={async () => {
                               try {
                                 toast({ title: 'Preparando download...' });
@@ -2022,10 +2018,9 @@ const LectureTranscriptionPage = () => {
                                 });
                               }
                             }}
-                            className="bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
                           >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
+                            <Download className="h-4 w-4" />
+                            Baixar Áudio
                           </Button>
                         </div>
                       </div>
@@ -2070,38 +2065,38 @@ const LectureTranscriptionPage = () => {
                       {(structuredContent?.referencias_externas || []).map((ref, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 p-4 pr-24 bg-white rounded-lg border border-slate-200 group relative"
+                          className="flex items-start gap-2 p-3 pr-16 sm:pr-20 lg:pr-16 bg-white rounded-lg border border-slate-200 group relative overflow-hidden"
                         >
                           {/* Action buttons (aparecem no hover) */}
-                          <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 hover:bg-blue-100 text-blue-600"
+                              className="h-7 w-7 hover:bg-blue-100 text-blue-600"
                               onClick={() => {
                                 setEditingReferenceIndex(index);
                                 setEditingReference(ref);
                               }}
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 hover:bg-red-100 text-red-600"
+                              className="h-7 w-7 hover:bg-red-100 text-red-600"
                               onClick={() => handleDeleteReference(index)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                           
-                          <ExternalLink className="h-5 w-5 text-purple-600 mt-1 shrink-0" />
-                          <div className="flex-1">
+                          <ExternalLink className="h-4 w-4 text-purple-600 mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
                             <a
                               href={ref.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-slate-900 font-medium mb-1 hover:text-purple-600 transition-colors block"
+                              className="text-sm text-slate-900 font-medium hover:text-purple-600 transition-colors line-clamp-2 block"
                             >
                               {ref.titulo}
                             </a>
