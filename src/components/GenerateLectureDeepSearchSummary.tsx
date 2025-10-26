@@ -34,13 +34,15 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [progressMessage, setProgressMessage] = useState<string>('');
   const { toast } = useToast();
 
   // Subscribe to session updates
   useEffect(() => {
     if (!sessionId) return;
 
-    console.log('🔔 [Deep Search] Subscribing to session:', sessionId);
+    console.log('🔔 [Deep Search Frontend] Subscribing to session:', sessionId);
 
     const channel = supabase
       .channel(`lecture-deep-search-${sessionId}`)
@@ -52,18 +54,63 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
           table: 'lecture_deep_search_sessions',
           filter: `id=eq.${sessionId}`,
         },
-        (payload) => {
-          console.log('📬 [Deep Search] Session update:', payload);
+        async (payload) => {
+          console.log('📬 [Deep Search Frontend] Session update:', payload);
           const session = payload.new as any;
 
+          // Update progress message if available
+          if (session.progress_step) {
+            console.log('📋 [Deep Search Frontend] Progress:', session.progress_step);
+            setProgressMessage(session.progress_step);
+          }
+
           if (session.status === 'analyzing') {
+            console.log('📊 [Deep Search Frontend] Status: Analyzing...');
             setCurrentStep(1);
+            setProgressMessage('Analisando conteúdo da aula...');
           } else if (session.status === 'researched') {
+            console.log('📊 [Deep Search Frontend] Status: Research complete, generating report...');
             setCurrentStep(2);
+            setProgressMessage('Pesquisa concluída. Iniciando geração de relatório...');
+            
+            // Call second edge function to generate report
+            try {
+              console.log('📝 [Deep Search Frontend] Calling generate-lecture-deep-report...');
+              const { error: reportError } = await supabase.functions.invoke(
+                'generate-lecture-deep-report',
+                {
+                  body: {
+                    sessionId: sessionId,
+                    lectureId: lectureId,
+                  },
+                }
+              );
+              
+              if (reportError) {
+                console.error('❌ [Deep Search Frontend] Report error:', reportError);
+                throw reportError;
+              }
+              
+              console.log('✅ [Deep Search Frontend] Report generation started');
+            } catch (error) {
+              console.error('❌ [Deep Search Frontend] Failed to start report generation:', error);
+              setError(error instanceof Error ? error.message : 'Erro ao gerar relatório');
+              setIsGenerating(false);
+              toast({
+                variant: 'destructive',
+                title: 'Erro ao gerar relatório',
+                description: error instanceof Error ? error.message : 'Erro desconhecido',
+              });
+            }
+            
           } else if (session.status === 'generating') {
+            console.log('📊 [Deep Search Frontend] Status: Generating report...');
             setCurrentStep(3);
+            setProgressMessage('Gerando material didático com IA...');
           } else if (session.status === 'completed') {
+            console.log('✅ [Deep Search Frontend] Status: COMPLETED!');
             setCurrentStep(4);
+            setProgressMessage('Concluído!');
             setTimeout(() => {
               setIsGenerating(false);
               setIsOpen(false);
@@ -74,6 +121,9 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
               });
             }, 2000);
           } else if (session.status === 'error') {
+            console.error('❌ [Deep Search Frontend] Status: ERROR');
+            console.error('❌ [Deep Search Frontend] Error message:', session.error);
+            setError(session.error || 'Erro desconhecido');
             setIsGenerating(false);
             toast({
               variant: 'destructive',
@@ -83,30 +133,54 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔌 [Deep Search Frontend] Subscription status:', status);
+      });
 
     return () => {
-      console.log('🔌 [Deep Search] Unsubscribing from session');
+      console.log('🔌 [Deep Search Frontend] Unsubscribing from session');
       supabase.removeChannel(channel);
     };
-  }, [sessionId]);
+  }, [sessionId, lectureId, toast, onUpdate]);
 
   const handleGenerate = async () => {
+    setError(null);
+    setProgressMessage('');
+    
     try {
+      console.log('🚀 [Deep Search Frontend] Starting generation process...');
+      console.log('📋 [Deep Search Frontend] Lecture ID:', lectureId);
+      console.log('📋 [Deep Search Frontend] Lecture Title:', lectureTitle);
+      console.log('📋 [Deep Search Frontend] Tags:', tags);
+      
       setIsGenerating(true);
       setCurrentStep(0);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Usuário não autenticado');
+      // Validate data before proceeding
+      if (!lectureId || !lectureTitle) {
+        throw new Error('Dados da aula incompletos');
       }
+
+      console.log('👤 [Deep Search Frontend] Getting authenticated user...');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('❌ [Deep Search Frontend] User error:', userError);
+        throw new Error(`Erro de autenticação: ${userError.message}`);
+      }
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado. Por favor, faça login novamente.');
+      }
+      
+      console.log('✅ [Deep Search Frontend] User authenticated:', user.id);
 
       // Construct query from lecture data
       const query = `${lectureTitle}${tags.length > 0 ? ` - Tópicos: ${tags.join(', ')}` : ''}`;
-
-      console.log('🚀 [Deep Search] Creating session with query:', query);
+      console.log('📝 [Deep Search Frontend] Query constructed:', query);
 
       // Create deep search session
+      console.log('💾 [Deep Search Frontend] Creating session in database...');
       const { data: session, error: sessionError } = await supabase
         .from('lecture_deep_search_sessions')
         .insert({
@@ -118,14 +192,19 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         .select()
         .single();
 
-      if (sessionError) throw sessionError;
+      if (sessionError) {
+        console.error('❌ [Deep Search Frontend] Session creation error:', sessionError);
+        throw new Error(`Erro ao criar sessão: ${sessionError.message}`);
+      }
 
+      console.log('✅ [Deep Search Frontend] Session created:', session.id);
       setSessionId(session.id);
-      console.log('✅ [Deep Search] Session created:', session.id);
+      setProgressMessage('Sessão criada. Iniciando pesquisa...');
 
       // Start research phase
       setCurrentStep(1);
-      const { error: researchError } = await supabase.functions.invoke(
+      console.log('🔍 [Deep Search Frontend] Calling research agent...');
+      const { data: researchData, error: researchError } = await supabase.functions.invoke(
         'lecture-deep-research-agent',
         {
           body: {
@@ -136,56 +215,26 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         }
       );
 
-      if (researchError) throw researchError;
+      if (researchError) {
+        console.error('❌ [Deep Search Frontend] Research error:', researchError);
+        throw new Error(`Erro ao iniciar pesquisa: ${researchError.message}`);
+      }
 
-      console.log('✅ [Deep Search] Research phase initiated');
+      console.log('✅ [Deep Search Frontend] Research agent started:', researchData);
+      setProgressMessage('Pesquisa profunda iniciada...');
 
-      // Wait for research to complete (status will change to 'researched')
-      const checkResearchStatus = setInterval(async () => {
-        const { data: statusData } = await supabase
-          .from('lecture_deep_search_sessions')
-          .select('status')
-          .eq('id', session.id)
-          .single();
-
-        if (statusData?.status === 'researched') {
-          clearInterval(checkResearchStatus);
-          console.log('✅ [Deep Search] Research completed, starting report generation');
-
-          // Start report generation phase
-          setCurrentStep(3);
-          const { error: reportError } = await supabase.functions.invoke(
-            'generate-lecture-deep-report',
-            {
-              body: {
-                sessionId: session.id,
-                lectureId,
-              },
-            }
-          );
-
-          if (reportError) {
-            console.error('Report generation error:', reportError);
-            throw reportError;
-          }
-        } else if (statusData?.status === 'error') {
-          clearInterval(checkResearchStatus);
-          throw new Error('Research phase failed');
-        }
-      }, 3000);
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        clearInterval(checkResearchStatus);
-      }, 300000);
+      // The realtime subscription (useEffect) will handle the rest of the flow
 
     } catch (error) {
-      console.error('Error generating deep search summary:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      console.error('❌ [Deep Search Frontend] Error:', errorMessage);
+      console.error('❌ [Deep Search Frontend] Error stack:', error);
+      setError(errorMessage);
       setIsGenerating(false);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar material didático',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: errorMessage,
       });
     }
   };
@@ -201,6 +250,8 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
     setIsOpen(false);
     setCurrentStep(0);
     setSessionId(null);
+    setError(null);
+    setProgressMessage('');
   };
 
   return (
@@ -234,7 +285,20 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
                 <p className="text-sm text-muted-foreground">
                   Este processo pode levar até 3 minutos
                 </p>
+                
+                {progressMessage && (
+                  <p className="text-xs text-primary font-medium mt-2 animate-pulse">
+                    {progressMessage}
+                  </p>
+                )}
               </div>
+
+              {error && (
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-300 dark:border-red-800 rounded-lg p-4">
+                  <p className="text-sm text-red-800 dark:text-red-200 font-medium">❌ Erro:</p>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
+                </div>
+              )}
 
               <div className="space-y-3">
                 {PROCESSING_STEPS.map((step, index) => {
