@@ -22,15 +22,16 @@
  * - verify_jwt=false no config.toml (validação manual de JWT na edge function)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Plus } from 'lucide-react';
+import { Trash2, Pencil, Plus, Play, Pause, Download } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -140,6 +141,23 @@ const LectureTranscriptionPage = () => {
   // Modal state for viewing
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [showFlashcardsModal, setShowFlashcardsModal] = useState(false);
+  
+  // Reference CRUD state
+  const [isAddingReference, setIsAddingReference] = useState(false);
+  const [newReference, setNewReference] = useState({
+    titulo: '',
+    url: '',
+    tipo: 'artigo' as 'artigo' | 'vídeo' | 'documentação'
+  });
+  const [editingReferenceIndex, setEditingReferenceIndex] = useState<number | null>(null);
+  const [editingReference, setEditingReference] = useState<any>(null);
+  
+  // Audio player state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     if (id) {
@@ -672,6 +690,12 @@ const LectureTranscriptionPage = () => {
         console.log('[Flashcards] Nenhum flashcard encontrado');
         setGeneratedFlashcards(null);
         setHasFlashcards(false);
+        
+        // Tentar migrar flashcards do structured_content se existirem
+        if (structuredContent?.flashcards && structuredContent.flashcards.length > 0) {
+          console.log('[Flashcards] Iniciando migração automática...');
+          await migrateFlashcardsToTeacherTable();
+        }
         return;
       }
 
@@ -685,6 +709,43 @@ const LectureTranscriptionPage = () => {
       console.error('[Flashcards] Error loading flashcards:', error);
       setGeneratedFlashcards(null);
       setHasFlashcards(false);
+    }
+  };
+
+  const migrateFlashcardsToTeacherTable = async () => {
+    if (!lecture?.id || !structuredContent?.flashcards?.length || generatedFlashcards) return;
+    
+    console.log('🔄 Migrando flashcards para teacher_flashcards table...');
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const flashcardsData = {
+        lecture_id: lecture.id,
+        teacher_id: user.id,
+        title: lectureTitle,
+        cards: structuredContent.flashcards.map((fc: any) => ({
+          front: fc.termo,
+          back: fc.definicao,
+          tags: []
+        }))
+      };
+      
+      const { error } = await supabase
+        .from('teacher_flashcards')
+        .insert(flashcardsData);
+      
+      if (error) throw error;
+      
+      console.log('✅ Flashcards migrados com sucesso');
+      await loadFlashcardsData();
+      toast({
+        title: 'Flashcards migrados',
+        description: 'Os flashcards foram atualizados com sucesso',
+      });
+    } catch (error) {
+      console.error('❌ Erro ao migrar flashcards:', error);
     }
   };
 
@@ -1036,6 +1097,99 @@ const LectureTranscriptionPage = () => {
     });
   };
 
+  const handleAddReference = async () => {
+    if (!newReference.titulo.trim() || !newReference.url.trim()) {
+      toast({ variant: 'destructive', title: 'Preencha todos os campos' });
+      return;
+    }
+    
+    const urlRegex = /^https?:\/\/.+/;
+    if (!urlRegex.test(newReference.url)) {
+      toast({ variant: 'destructive', title: 'URL inválida' });
+      return;
+    }
+    
+    const updatedRefs = [...(structuredContent?.referencias_externas || []), newReference];
+    
+    const { error } = await supabase
+      .from('lectures')
+      .update({
+        structured_content: {
+          ...structuredContent,
+          referencias_externas: updatedRefs
+        }
+      })
+      .eq('id', lecture.id);
+    
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao adicionar referência' });
+      return;
+    }
+    
+    setStructuredContent({ ...structuredContent, referencias_externas: updatedRefs } as any);
+    setIsAddingReference(false);
+    setNewReference({ titulo: '', url: '', tipo: 'artigo' });
+    toast({ title: '✅ Referência adicionada com sucesso' });
+  };
+
+  const handleEditReference = async () => {
+    if (editingReferenceIndex === null || !editingReference) return;
+    
+    const updatedRefs = [...(structuredContent?.referencias_externas || [])];
+    updatedRefs[editingReferenceIndex] = editingReference;
+    
+    const { error } = await supabase
+      .from('lectures')
+      .update({
+        structured_content: {
+          ...structuredContent,
+          referencias_externas: updatedRefs
+        }
+      })
+      .eq('id', lecture.id);
+    
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao editar referência' });
+      return;
+    }
+    
+    setStructuredContent({ ...structuredContent, referencias_externas: updatedRefs } as any);
+    setEditingReferenceIndex(null);
+    setEditingReference(null);
+    toast({ title: '✅ Referência editada com sucesso' });
+  };
+
+  const handleDeleteReference = async (index: number) => {
+    if (!window.confirm('Tem certeza que deseja deletar esta referência?')) return;
+    
+    const updatedRefs = (structuredContent?.referencias_externas || []).filter((_, i) => i !== index);
+    
+    const { error } = await supabase
+      .from('lectures')
+      .update({
+        structured_content: {
+          ...structuredContent,
+          referencias_externas: updatedRefs
+        }
+      })
+      .eq('id', lecture.id);
+    
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao deletar referência' });
+      return;
+    }
+    
+    setStructuredContent({ ...structuredContent, referencias_externas: updatedRefs } as any);
+    toast({ title: '✅ Referência deletada com sucesso' });
+  };
+
+  const formatTime = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handlePublishConfirmed = async () => {
     if (!selectedClassId) {
       toast({
@@ -1320,45 +1474,6 @@ const LectureTranscriptionPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* References */}
-                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
-                      <ExternalLink className="h-5 w-5 text-purple-600" />
-                      Referências Externas
-                    </CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditModal('Referências', { referencias_externas: structuredContent.referencias_externas })}
-                      className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Editar com IA
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {(structuredContent?.referencias_externas || []).map((ref, index) => (
-                        <a
-                          key={index}
-                          href={ref.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-start gap-3 p-4 bg-white rounded-lg hover:bg-white/80 transition-colors border border-slate-200"
-                        >
-                          <ExternalLink className="h-5 w-5 text-purple-600 mt-1 shrink-0" />
-                          <div className="flex-1">
-                            <p className="text-slate-900 font-medium mb-1">{ref.titulo}</p>
-                            <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700 border-purple-300">
-                              {ref.tipo}
-                            </Badge>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
 
                 {/* Quiz questions */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
@@ -1542,9 +1657,14 @@ const LectureTranscriptionPage = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {generatedFlashcards && generatedFlashcards.cards.length > 0 ? (
+                    {(generatedFlashcards && generatedFlashcards.cards.length > 0) || 
+                     (structuredContent?.flashcards && structuredContent.flashcards.length > 0) ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {generatedFlashcards.cards.map((card, index) => (
+                        {(generatedFlashcards?.cards || structuredContent.flashcards.map((fc: any) => ({
+                          front: fc.termo,
+                          back: fc.definicao,
+                          tags: []
+                        }))).map((card, index) => (
                           <div key={index} className="bg-white rounded-lg p-4 border border-slate-200 relative group">
                             {/* Action Buttons */}
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -1708,18 +1828,175 @@ const LectureTranscriptionPage = () => {
                   </CardHeader>
                   <CardContent>
                     {lecture?.audio_url ? (
-                      <audio
-                        controls
-                        className="w-full"
-                        src={lecture.audio_url}
-                      >
-                        Seu navegador não suporta o elemento de áudio.
-                      </audio>
+                      <div className="bg-white/90 backdrop-blur-xl rounded-lg p-4 border border-white/30 shadow-lg">
+                        <audio
+                          ref={audioRef}
+                          src={lecture.audio_url}
+                          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+                          onEnded={() => setIsPlaying(false)}
+                        />
+                        
+                        {/* Progress bar */}
+                        <div className="mb-4">
+                          <Slider
+                            value={[currentTime]}
+                            max={duration || 100}
+                            step={0.1}
+                            onValueChange={([value]) => {
+                              if (audioRef.current) audioRef.current.currentTime = value;
+                            }}
+                            className="w-full"
+                          />
+                          <div className="flex justify-between text-xs text-slate-600 mt-1">
+                            <span>{formatTime(currentTime)}</span>
+                            <span>{formatTime(duration)}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Controls */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-2">
+                            {/* Play/Pause */}
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                if (audioRef.current) {
+                                  if (isPlaying) {
+                                    audioRef.current.pause();
+                                  } else {
+                                    audioRef.current.play();
+                                  }
+                                  setIsPlaying(!isPlaying);
+                                }
+                              }}
+                              className="h-10 w-10 rounded-full bg-purple-600 hover:bg-purple-700 text-white border-0"
+                            >
+                              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+                            </Button>
+                            
+                            {/* Speed control */}
+                            <Select
+                              value={playbackSpeed.toString()}
+                              onValueChange={(value) => {
+                                const speed = parseFloat(value);
+                                setPlaybackSpeed(speed);
+                                if (audioRef.current) audioRef.current.playbackRate = speed;
+                              }}
+                            >
+                              <SelectTrigger className="w-[80px] h-10 bg-white border-slate-300">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0.5">0.5x</SelectItem>
+                                <SelectItem value="1">1x</SelectItem>
+                                <SelectItem value="1.5">1.5x</SelectItem>
+                                <SelectItem value="2">2x</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {/* Download button */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const a = document.createElement('a');
+                              a.href = lecture.audio_url!;
+                              a.download = `${lectureTitle}.webm`;
+                              a.click();
+                            }}
+                            className="bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
                     ) : (
                       <div className="bg-white p-4 rounded-lg text-center">
                         <p className="text-slate-600 text-sm">Nenhum áudio disponível para esta aula.</p>
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+                
+                {/* References - Movido para o final */}
+                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
+                      <ExternalLink className="h-5 w-5 text-purple-600" />
+                      Referências Externas
+                    </CardTitle>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsAddingReference(true)}
+                        className="bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Adicionar Nova
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditModal('Referências', { referencias_externas: structuredContent.referencias_externas })}
+                        className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Editar com IA
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {(structuredContent?.referencias_externas || []).map((ref, index) => (
+                        <div
+                          key={index}
+                          className="flex items-start gap-3 p-4 bg-white rounded-lg border border-slate-200 group relative"
+                        >
+                          {/* Action buttons (aparecem no hover) */}
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-blue-100 text-blue-600"
+                              onClick={() => {
+                                setEditingReferenceIndex(index);
+                                setEditingReference(ref);
+                              }}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-red-100 text-red-600"
+                              onClick={() => handleDeleteReference(index)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          
+                          <ExternalLink className="h-5 w-5 text-purple-600 mt-1 shrink-0" />
+                          <div className="flex-1">
+                            <a
+                              href={ref.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-slate-900 font-medium mb-1 hover:text-purple-600 transition-colors block"
+                            >
+                              {ref.titulo}
+                            </a>
+                            <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700 border-purple-300 mt-1">
+                              {ref.tipo}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
 
