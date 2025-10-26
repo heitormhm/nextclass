@@ -10,7 +10,7 @@ interface GenerateLectureDeepSearchSummaryProps {
   lectureId: string;
   lectureTitle: string;
   tags: string[];
-  currentSummary?: string;
+  currentMaterial?: string;
   fullTranscript: string;
   onUpdate: () => void;
 }
@@ -26,7 +26,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   lectureId,
   lectureTitle,
   tags,
-  currentSummary,
+  currentMaterial,
   fullTranscript,
   onUpdate,
 }) => {
@@ -69,7 +69,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
               setIsOpen(false);
               onUpdate();
               toast({
-                title: 'Resumo gerado com sucesso!',
+                title: 'Material didático gerado com sucesso!',
                 description: 'Material educacional com pesquisa profunda foi criado.',
               });
             }, 2000);
@@ -78,7 +78,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
             toast({
               variant: 'destructive',
               title: 'Erro na geração',
-              description: session.error || 'Não foi possível gerar o resumo',
+              description: session.error || 'Não foi possível gerar o material didático',
             });
           }
         }
@@ -184,7 +184,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
       setIsGenerating(false);
       toast({
         variant: 'destructive',
-        title: 'Erro ao gerar resumo',
+        title: 'Erro ao gerar material didático',
         description: error instanceof Error ? error.message : 'Erro desconhecido',
       });
     }
@@ -193,7 +193,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const handleClose = () => {
     if (isGenerating) {
       const confirm = window.confirm(
-        'A geração do resumo está em andamento. Tem certeza que deseja fechar?'
+        'A geração do material didático está em andamento. Tem certeza que deseja fechar?'
       );
       if (!confirm) return;
       setIsGenerating(false);
@@ -212,7 +212,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
           className="gap-2"
         >
           <Brain className="h-4 w-4" />
-          {currentSummary ? 'Gerar Novo Resumo' : 'Gerar Resumo com Deep Search'}
+          {currentMaterial ? 'Gerar Material Didático' : 'Gerar Material Didático'}
         </Button>
       </DialogTrigger>
 
@@ -220,7 +220,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
-            Gerar Resumo com Pesquisa Profunda
+            Gerar Material Didático com Pesquisa Profunda
           </DialogTitle>
         </DialogHeader>
 
@@ -248,7 +248,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
                         Deep Search Ativado
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        O resumo será gerado com pesquisa web profunda, incluindo:
+                        O material será gerado com pesquisa web profunda, incluindo:
                       </p>
                       <ul className="text-sm text-muted-foreground mt-2 space-y-1">
                         <li>• Busca em múltiplas fontes educacionais</li>
@@ -260,9 +260,9 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
                   </div>
                 </div>
 
-                {currentSummary && (
+                {currentMaterial && (
                   <p className="text-sm text-amber-600 dark:text-amber-400">
-                    ⚠️ Ao gerar um novo resumo, o resumo atual será substituído.
+                    ⚠️ Ao gerar um novo material, o material atual será substituído.
                   </p>
                 )}
               </div>
@@ -273,7 +273,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
                 </Button>
                 <Button onClick={handleGenerate} className="gap-2">
                   <Brain className="h-4 w-4" />
-                  Gerar Resumo
+                  Gerar Material Didático
                 </Button>
               </div>
             </>
@@ -282,7 +282,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
               <div className="text-center space-y-2">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
                 <h3 className="text-lg font-semibold">
-                  Gerando resumo com pesquisa profunda...
+                  Gerando material didático com pesquisa profunda...
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   Este processo pode levar até 3 minutos

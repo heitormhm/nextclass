@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { EditWithAIModal } from '@/components/EditWithAIModal';
@@ -55,6 +56,7 @@ import 'katex/dist/katex.min.css';
 interface StructuredContent {
   titulo_aula: string;
   resumo: string;
+  material_didatico?: string;
   topicos_principais: Array<{ conceito: string; definicao: string }>;
   referencias_externas: Array<{ titulo: string; url: string; tipo: string }>;
   perguntas_revisao: Array<{ pergunta: string; opcoes: string[]; resposta_correta: string }>;
@@ -1184,7 +1186,7 @@ const LectureTranscriptionPage = () => {
   };
 
   const formatTime = (seconds: number) => {
-    if (!seconds || isNaN(seconds)) return '0:00';
+    if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -1387,57 +1389,128 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
 
-                {/* Summary */}
+                {/* Conteúdo Gerado com Tabs */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
                       <BookOpen className="h-5 w-5 text-purple-600" />
-                      Resumo da Aula
+                      Conteúdo Gerado
                     </CardTitle>
-                    <div className="flex gap-2">
-                      <GenerateLectureDeepSearchSummary
-                        lectureId={id || ''}
-                        lectureTitle={lectureTitle}
-                        tags={lecture?.tags || []}
-                        currentSummary={structuredContent.resumo}
-                        fullTranscript={lecture?.raw_transcript || ''}
-                        onUpdate={loadLectureData}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditModal('Resumo', { resumo: structuredContent.resumo })}
-                        className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
-                      >
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        Editar com IA
-                      </Button>
-                    </div>
+                    <GenerateLectureDeepSearchSummary
+                      lectureId={id || ''}
+                      lectureTitle={lectureTitle}
+                      tags={lecture?.tags || []}
+                      currentMaterial={structuredContent.material_didatico}
+                      fullTranscript={lecture?.raw_transcript || ''}
+                      onUpdate={loadLectureData}
+                    />
                   </CardHeader>
                   <CardContent>
-                    <div className="bg-white p-4 rounded-lg prose prose-sm max-w-none">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm, remarkMath]}
-                        rehypePlugins={[rehypeKatex]}
-                        components={{
-                          h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
-                          h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
-                          h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1 text-slate-900" {...props} />,
-                          p: ({node, ...props}) => <p className="mb-2 text-slate-900 leading-relaxed" {...props} />,
-                          strong: ({node, ...props}) => <strong className="font-bold text-purple-700" {...props} />,
-                          ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
-                          ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
-                          li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
-                          code: ({node, inline, ...props}: any) => 
-                            inline ? 
-                            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props} /> :
-                            <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props} />,
-                          blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
-                        }}
-                      >
-                        {structuredContent.resumo}
-                      </ReactMarkdown>
-                    </div>
+                    <Tabs defaultValue="resumo" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="resumo" className="gap-2">
+                          <FileText className="h-4 w-4" />
+                          Resumo
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="material" 
+                          disabled={!structuredContent.material_didatico}
+                          className="gap-2"
+                        >
+                          <Brain className="h-4 w-4" />
+                          Material Didático
+                          {!structuredContent.material_didatico && (
+                            <span className="ml-2 text-xs text-slate-500">(Gerar primeiro)</span>
+                          )}
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="resumo">
+                        <div className="bg-white p-4 rounded-lg prose prose-sm max-w-none">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm, remarkMath]}
+                            rehypePlugins={[rehypeKatex]}
+                            components={{
+                              h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
+                              h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
+                              h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1 text-slate-900" {...props} />,
+                              p: ({node, ...props}) => <p className="mb-2 text-slate-900 leading-relaxed" {...props} />,
+                              strong: ({node, ...props}) => <strong className="font-bold text-purple-700" {...props} />,
+                              ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
+                              ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
+                              li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
+                              code: ({node, inline, ...props}: any) => 
+                                inline ? 
+                                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props} /> :
+                                <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props} />,
+                              blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
+                            }}
+                          >
+                            {structuredContent.resumo}
+                          </ReactMarkdown>
+                        </div>
+                        <div className="flex justify-end mt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditModal('Resumo', { resumo: structuredContent.resumo })}
+                            className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
+                          >
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            Editar com IA
+                          </Button>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="material">
+                        {structuredContent.material_didatico ? (
+                          <>
+                            <div className="bg-white p-4 rounded-lg prose prose-sm max-w-none">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm, remarkMath]}
+                                rehypePlugins={[rehypeKatex]}
+                                components={{
+                                  h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
+                                  h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
+                                  h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1 text-slate-900" {...props} />,
+                                  p: ({node, ...props}) => <p className="mb-2 text-slate-900 leading-relaxed" {...props} />,
+                                  strong: ({node, ...props}) => <strong className="font-bold text-purple-700" {...props} />,
+                                  ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
+                                  ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
+                                  li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
+                                  code: ({node, inline, ...props}: any) => 
+                                    inline ? 
+                                    <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props} /> :
+                                    <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props} />,
+                                  blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
+                                }}
+                              >
+                                {structuredContent.material_didatico}
+                              </ReactMarkdown>
+                            </div>
+                            <div className="flex justify-end mt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEditModal('Material Didático', { material_didatico: structuredContent.material_didatico })}
+                                className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
+                              >
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                Editar com IA
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center py-8 bg-slate-50 rounded-lg">
+                            <Brain className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                            <p className="text-slate-600 mb-4">Nenhum material didático gerado ainda</p>
+                            <p className="text-slate-500 text-sm">
+                              Clique em "Gerar Material Didático" para criar conteúdo com pesquisa profunda
+                            </p>
+                          </div>
+                        )}
+                      </TabsContent>
+                    </Tabs>
                   </CardContent>
                 </Card>
 
@@ -1832,8 +1905,24 @@ const LectureTranscriptionPage = () => {
                         <audio
                           ref={audioRef}
                           src={lecture.audio_url}
-                          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-                          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+                          onTimeUpdate={(e) => {
+                            const time = e.currentTarget.currentTime;
+                            if (!isNaN(time)) setCurrentTime(time);
+                          }}
+                          onLoadedMetadata={(e) => {
+                            const dur = e.currentTarget.duration;
+                            if (!isNaN(dur) && isFinite(dur)) setDuration(dur);
+                          }}
+                          onDurationChange={(e) => {
+                            const dur = e.currentTarget.duration;
+                            if (!isNaN(dur) && isFinite(dur)) setDuration(dur);
+                          }}
+                          onCanPlay={(e) => {
+                            const dur = e.currentTarget.duration;
+                            if (!isNaN(dur) && isFinite(dur) && duration === 0) {
+                              setDuration(dur);
+                            }
+                          }}
                           onEnded={() => setIsPlaying(false)}
                         />
                         
@@ -1841,16 +1930,18 @@ const LectureTranscriptionPage = () => {
                         <div className="mb-4">
                           <Slider
                             value={[currentTime]}
-                            max={duration || 100}
+                            max={duration > 0 ? duration : 100}
                             step={0.1}
                             onValueChange={([value]) => {
-                              if (audioRef.current) audioRef.current.currentTime = value;
+                              if (audioRef.current && duration > 0) {
+                                audioRef.current.currentTime = value;
+                              }
                             }}
                             className="w-full"
                           />
                           <div className="flex justify-between text-xs text-slate-600 mt-1">
                             <span>{formatTime(currentTime)}</span>
-                            <span>{formatTime(duration)}</span>
+                            <span>{duration > 0 ? formatTime(duration) : 'Carregando...'}</span>
                           </div>
                         </div>
                         
@@ -1901,11 +1992,35 @@ const LectureTranscriptionPage = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              const a = document.createElement('a');
-                              a.href = lecture.audio_url!;
-                              a.download = `${lectureTitle}.webm`;
-                              a.click();
+                            onClick={async () => {
+                              try {
+                                toast({ title: 'Preparando download...' });
+                                
+                                const response = await fetch(lecture.audio_url!);
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                
+                                const a = document.createElement('a');
+                                a.style.display = 'none';
+                                a.href = url;
+                                a.download = `${lectureTitle}.webm`;
+                                document.body.appendChild(a);
+                                a.click();
+                                
+                                setTimeout(() => {
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+                                }, 100);
+                                
+                                toast({ title: '✅ Áudio baixado com sucesso!' });
+                              } catch (error) {
+                                console.error('Download error:', error);
+                                toast({ 
+                                  variant: 'destructive', 
+                                  title: 'Erro ao baixar áudio',
+                                  description: 'Tente novamente ou verifique sua conexão'
+                                });
+                              }
                             }}
                             className="bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
                           >
@@ -1955,28 +2070,28 @@ const LectureTranscriptionPage = () => {
                       {(structuredContent?.referencias_externas || []).map((ref, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 p-4 bg-white rounded-lg border border-slate-200 group relative"
+                          className="flex items-start gap-3 p-4 pr-24 bg-white rounded-lg border border-slate-200 group relative"
                         >
                           {/* Action buttons (aparecem no hover) */}
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 hover:bg-blue-100 text-blue-600"
+                              className="h-8 w-8 hover:bg-blue-100 text-blue-600"
                               onClick={() => {
                                 setEditingReferenceIndex(index);
                                 setEditingReference(ref);
                               }}
                             >
-                              <Pencil className="h-3 w-3" />
+                              <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 hover:bg-red-100 text-red-600"
+                              className="h-8 w-8 hover:bg-red-100 text-red-600"
                               onClick={() => handleDeleteReference(index)}
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                           

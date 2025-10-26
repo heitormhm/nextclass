@@ -239,14 +239,14 @@ Gere um resumo educacional completo sobre este tópico, seguindo EXATAMENTE o fo
 
     if (!lectureError && lecture) {
       const structuredContent = lecture.structured_content || {};
-      structuredContent.resumo = reportContent;
+      structuredContent.material_didatico = reportContent;
 
       await supabase
         .from('lectures')
         .update({ structured_content: structuredContent })
         .eq('id', lectureId);
 
-      console.log('✅ [Update] Lecture summary updated successfully');
+      console.log('✅ [Update] Lecture material didático updated successfully');
     }
 
     console.log('✅ [Generate Report] Process completed successfully!');
