@@ -149,10 +149,20 @@ const LectureTranscriptionPage = () => {
   const [newReference, setNewReference] = useState({
     titulo: '',
     url: '',
-    tipo: 'artigo' as 'artigo' | 'vídeo' | 'documentação'
+    tipo: 'site' as 'site' | 'livro' | 'artigo' | 'apresentação' | 'vídeo'
   });
   const [editingReferenceIndex, setEditingReferenceIndex] = useState<number | null>(null);
   const [editingReference, setEditingReference] = useState<any>(null);
+
+  // URL validation helper
+  const isValidUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
   
   // Audio player state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -1130,7 +1140,7 @@ const LectureTranscriptionPage = () => {
     
     setStructuredContent({ ...structuredContent, referencias_externas: updatedRefs } as any);
     setIsAddingReference(false);
-    setNewReference({ titulo: '', url: '', tipo: 'artigo' });
+    setNewReference({ titulo: '', url: '', tipo: 'site' });
     toast({ title: '✅ Referência adicionada com sucesso' });
   };
 
@@ -2090,7 +2100,12 @@ const LectureTranscriptionPage = () => {
                               {ref.titulo}
                             </a>
                             <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700 border-purple-300 mt-1">
-                              {ref.tipo}
+                              {ref.tipo === 'site' && '🌐 '}
+                              {ref.tipo === 'livro' && '📚 '}
+                              {ref.tipo === 'artigo' && '📄 '}
+                              {ref.tipo === 'apresentação' && '📊 '}
+                              {ref.tipo === 'vídeo' && '🎥 '}
+                              {ref.tipo.charAt(0).toUpperCase() + ref.tipo.slice(1)}
                             </Badge>
                           </div>
                         </div>
@@ -2098,6 +2113,210 @@ const LectureTranscriptionPage = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Dialog: Adicionar Nova Referência */}
+                <Dialog open={isAddingReference} onOpenChange={setIsAddingReference}>
+                  <DialogContent className="sm:max-w-lg bg-white">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2 text-slate-900">
+                        <Plus className="h-5 w-5 text-green-600" />
+                        Adicionar Nova Referência
+                      </DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                      {/* Título */}
+                      <div className="space-y-2">
+                        <Label htmlFor="ref-title" className="text-sm font-medium text-slate-700">
+                          Título da Referência *
+                        </Label>
+                        <Input
+                          id="ref-title"
+                          placeholder="Ex: Introdução à Mecânica dos Fluidos"
+                          value={newReference.titulo}
+                          onChange={(e) => setNewReference({ ...newReference, titulo: e.target.value })}
+                          className="border-slate-300 focus:border-purple-500"
+                        />
+                      </div>
+
+                      {/* URL */}
+                      <div className="space-y-2">
+                        <Label htmlFor="ref-url" className="text-sm font-medium text-slate-700">
+                          Link (URL) *
+                        </Label>
+                        <Input
+                          id="ref-url"
+                          type="url"
+                          placeholder="https://..."
+                          value={newReference.url}
+                          onChange={(e) => setNewReference({ ...newReference, url: e.target.value })}
+                          className={`border-slate-300 focus:border-purple-500 ${
+                            newReference.url && !isValidUrl(newReference.url) 
+                              ? 'border-red-500 focus:border-red-500' 
+                              : ''
+                          }`}
+                        />
+                        {newReference.url && !isValidUrl(newReference.url) && (
+                          <p className="text-xs text-red-600">⚠️ URL inválida. Use o formato: https://...</p>
+                        )}
+                      </div>
+
+                      {/* Tipo */}
+                      <div className="space-y-2">
+                        <Label htmlFor="ref-type" className="text-sm font-medium text-slate-700">
+                          Tipo de Referência *
+                        </Label>
+                        <Select
+                          value={newReference.tipo}
+                          onValueChange={(value) => setNewReference({ ...newReference, tipo: value as any })}
+                        >
+                          <SelectTrigger className="border-slate-300 focus:border-purple-500">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="site">🌐 Site</SelectItem>
+                            <SelectItem value="livro">📚 Livro</SelectItem>
+                            <SelectItem value="artigo">📄 Artigo</SelectItem>
+                            <SelectItem value="apresentação">📊 Apresentação</SelectItem>
+                            <SelectItem value="vídeo">🎥 Vídeo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Botões */}
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsAddingReference(false);
+                          setNewReference({ titulo: '', url: '', tipo: 'site' });
+                        }}
+                        className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={handleAddReference}
+                        disabled={
+                          !newReference.titulo.trim() || 
+                          !newReference.url.trim() || 
+                          !isValidUrl(newReference.url)
+                        }
+                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                      >
+                        <Check className="h-4 w-4 mr-2" />
+                        Salvar Referência
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Dialog: Editar Referência */}
+                <Dialog 
+                  open={editingReferenceIndex !== null} 
+                  onOpenChange={(open) => {
+                    if (!open) {
+                      setEditingReferenceIndex(null);
+                      setEditingReference(null);
+                    }
+                  }}
+                >
+                  <DialogContent className="sm:max-w-lg bg-white">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2 text-slate-900">
+                        <Pencil className="h-5 w-5 text-blue-600" />
+                        Editar Referência
+                      </DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                      {/* Título */}
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-ref-title" className="text-sm font-medium text-slate-700">
+                          Título da Referência *
+                        </Label>
+                        <Input
+                          id="edit-ref-title"
+                          placeholder="Ex: Introdução à Mecânica dos Fluidos"
+                          value={editingReference?.titulo || ''}
+                          onChange={(e) => setEditingReference({ ...editingReference, titulo: e.target.value })}
+                          className="border-slate-300 focus:border-purple-500"
+                        />
+                      </div>
+
+                      {/* URL */}
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-ref-url" className="text-sm font-medium text-slate-700">
+                          Link (URL) *
+                        </Label>
+                        <Input
+                          id="edit-ref-url"
+                          type="url"
+                          placeholder="https://..."
+                          value={editingReference?.url || ''}
+                          onChange={(e) => setEditingReference({ ...editingReference, url: e.target.value })}
+                          className={`border-slate-300 focus:border-purple-500 ${
+                            editingReference?.url && !isValidUrl(editingReference.url) 
+                              ? 'border-red-500 focus:border-red-500' 
+                              : ''
+                          }`}
+                        />
+                        {editingReference?.url && !isValidUrl(editingReference.url) && (
+                          <p className="text-xs text-red-600">⚠️ URL inválida. Use o formato: https://...</p>
+                        )}
+                      </div>
+
+                      {/* Tipo */}
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-ref-type" className="text-sm font-medium text-slate-700">
+                          Tipo de Referência *
+                        </Label>
+                        <Select
+                          value={editingReference?.tipo || 'site'}
+                          onValueChange={(value) => setEditingReference({ ...editingReference, tipo: value })}
+                        >
+                          <SelectTrigger className="border-slate-300 focus:border-purple-500">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="site">🌐 Site</SelectItem>
+                            <SelectItem value="livro">📚 Livro</SelectItem>
+                            <SelectItem value="artigo">📄 Artigo</SelectItem>
+                            <SelectItem value="apresentação">📊 Apresentação</SelectItem>
+                            <SelectItem value="vídeo">🎥 Vídeo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Botões */}
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setEditingReferenceIndex(null);
+                          setEditingReference(null);
+                        }}
+                        className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={handleEditReference}
+                        disabled={
+                          !editingReference?.titulo?.trim() || 
+                          !editingReference?.url?.trim() || 
+                          !isValidUrl(editingReference?.url || '')
+                        }
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                      >
+                        <Check className="h-4 w-4 mr-2" />
+                        Salvar Alterações
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Materials panel */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">

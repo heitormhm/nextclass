@@ -34,23 +34,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const autoStarted = useRef(false);
   const { toast } = useToast();
-
-  // Auto-start generation when dialog opens
-  useEffect(() => {
-    if (isOpen && !isGenerating && !autoStarted.current) {
-      autoStarted.current = true;
-      setTimeout(() => handleGenerate(), 100);
-    }
-  }, [isOpen]);
-
-  // Reset auto-start flag when dialog closes
-  useEffect(() => {
-    if (!isOpen) {
-      autoStarted.current = false;
-    }
-  }, [isOpen]);
 
   // Subscribe to session updates
   useEffect(() => {
@@ -240,59 +224,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         </DialogHeader>
 
         <div className="space-y-6">
-          {!isGenerating ? (
-            <>
-              <div className="space-y-4">
-                <div className="rounded-lg border border-border/50 bg-muted/30 p-4">
-                  <h4 className="text-sm font-medium mb-2">Sobre esta aula:</h4>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    <span className="font-medium">Título:</span> {lectureTitle}
-                  </p>
-                  {tags.length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium">Tags:</span> {tags.join(', ')}
-                    </p>
-                  )}
-                </div>
-
-                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                  <div className="flex items-start gap-3">
-                    <Search className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="text-sm font-semibold text-primary mb-1">
-                        Deep Search Ativado
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        O material será gerado com pesquisa web profunda, incluindo:
-                      </p>
-                      <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                        <li>• Busca em múltiplas fontes educacionais</li>
-                        <li>• Análise de estudos de caso reais</li>
-                        <li>• Recursos bibliográficos atualizados</li>
-                        <li>• Material didático estruturado</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                {currentMaterial && (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">
-                    ⚠️ Ao gerar um novo material, o material atual será substituído.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={handleClose}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleGenerate} className="gap-2">
-                  <Brain className="h-4 w-4" />
-                  Gerar Material Didático
-                </Button>
-              </div>
-            </>
-          ) : (
+          {isGenerating ? (
             <div className="space-y-6 py-4">
               <div className="text-center space-y-2">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
@@ -359,6 +291,61 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
                 })}
               </div>
             </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <div className="rounded-lg border border-border/50 bg-muted/30 p-4">
+                  <h4 className="text-sm font-medium mb-2">Sobre esta aula:</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    <span className="font-medium">Título:</span> {lectureTitle}
+                  </p>
+                  {tags.length > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium">Tags:</span> {tags.join(', ')}
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <div className="flex items-start gap-3">
+                    <Search className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-1">
+                        Deep Search Ativado
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        O material será gerado com pesquisa web profunda, incluindo:
+                      </p>
+                      <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                        <li>• Busca em múltiplas fontes educacionais</li>
+                        <li>• Análise de estudos de caso reais</li>
+                        <li>• Recursos bibliográficos atualizados</li>
+                        <li>• Material didático estruturado</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {currentMaterial && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                    ⚠️ Ao gerar um novo material, o material atual será substituído.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={handleClose}>
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleGenerate} 
+                  className="gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                >
+                  <Brain className="h-4 w-4" />
+                  Iniciar Pesquisa Profunda
+                </Button>
+              </div>
+            </>
           )}
         </div>
       </DialogContent>
