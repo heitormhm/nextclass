@@ -1286,6 +1286,8 @@ export type Database = {
           input_payload: Json | null
           job_type: string
           lecture_id: string
+          progress: number | null
+          progress_message: string | null
           result_payload: Json | null
           status: string
           teacher_id: string
@@ -1298,6 +1300,8 @@ export type Database = {
           input_payload?: Json | null
           job_type: string
           lecture_id: string
+          progress?: number | null
+          progress_message?: string | null
           result_payload?: Json | null
           status?: string
           teacher_id: string
@@ -1310,6 +1314,8 @@ export type Database = {
           input_payload?: Json | null
           job_type?: string
           lecture_id?: string
+          progress?: number | null
+          progress_message?: string | null
           result_payload?: Json | null
           status?: string
           teacher_id?: string

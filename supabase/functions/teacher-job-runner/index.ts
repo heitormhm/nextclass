@@ -21,8 +21,9 @@ async function updateJobProgress(
   progress: number,
   message: string
 ) {
-  console.log(`[teacher-job-runner] 📊 Progress ${Math.round(progress * 100)}%: ${message}`);
-  await supabase
+  console.log(`[Job ${jobId}] 📊 ${Math.round(progress * 100)}%: ${message}`);
+  
+  const { error } = await supabase
     .from('teacher_jobs')
     .update({
       progress,
@@ -30,16 +31,26 @@ async function updateJobProgress(
       updated_at: new Date().toISOString()
     })
     .eq('id', jobId);
+    
+  if (error) {
+    console.error(`[Job ${jobId}] ❌ Failed to update progress:`, error);
+  }
 }
 
 // Process deep search for lecture material
 async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: string) {
   const { lectureId, lectureTitle, tags, userId } = job.input_payload;
-  console.log('[Deep Search] 🚀 Starting for lecture:', lectureId, '-', lectureTitle);
+  
+  if (!lectureId || !lectureTitle) {
+    throw new Error('Invalid job payload: missing required fields (lectureId or lectureTitle)');
+  }
+  
+  console.log(`[Job ${job.id}] 🚀 Deep Search starting for lecture: ${lectureTitle}`);
 
   const braveApiKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
   if (!braveApiKey) {
-    throw new Error('BRAVE_SEARCH_API_KEY not configured. Please add it to your secrets.');
+    await updateJobProgress(supabase, job.id, 0, 'Erro: BRAVE_SEARCH_API_KEY não configurada');
+    throw new Error('BRAVE_SEARCH_API_KEY not configured. Please add it to your Supabase secrets.');
   }
 
   try {
@@ -47,16 +58,16 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
     await updateJobProgress(supabase, job.id, 0.1, 'Analisando tópico da aula...');
     
     const query = `${lectureTitle}${tags && tags.length > 0 ? ` - Tópicos: ${tags.join(', ')}` : ''}`;
-    console.log('[Deep Search] 📝 Query:', query);
+    console.log(`[Job ${job.id}] 📝 Query: ${query}`);
     
-    const subQuestions = await decomposeQuery(query, lovableApiKey);
-    console.log('[Deep Search] ✅ Decomposed into', subQuestions.length, 'sub-questions');
+    const subQuestions = await decomposeQuery(query, lovableApiKey, job.id);
+    console.log(`[Job ${job.id}] ✅ Decomposed into ${subQuestions.length} sub-questions`);
 
     // Step 2: Execute web searches (30% progress)
     await updateJobProgress(supabase, job.id, 0.3, 'Pesquisando fontes na web...');
     
-    const searchResults = await executeWebSearches(subQuestions, braveApiKey);
-    console.log('[Deep Search] ✅ Collected', searchResults.length, 'search results');
+    const searchResults = await executeWebSearches(subQuestions, braveApiKey, job.id);
+    console.log(`[Job ${job.id}] ✅ Collected ${searchResults.length} search results`);
 
     // Step 3: Collect data (60% progress)
     await updateJobProgress(supabase, job.id, 0.6, 'Coletando dados educacionais...');
@@ -64,8 +75,8 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
     // Step 4: Generate educational report (80% progress)
     await updateJobProgress(supabase, job.id, 0.8, 'Gerando material didático...');
     
-    const report = await generateEducationalReport(query, searchResults, lovableApiKey);
-    console.log('[Deep Search] ✅ Report generated, length:', report.length);
+    const report = await generateEducationalReport(query, searchResults, lovableApiKey, job.id);
+    console.log(`[Job ${job.id}] ✅ Report generated, length: ${report.length} characters`);
 
     // Step 5: Save to lecture (90% progress)
     await updateJobProgress(supabase, job.id, 0.9, 'Salvando material...');
@@ -78,7 +89,7 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       .single();
     
     if (lectureError) {
-      console.error('[Deep Search] ❌ Failed to fetch lecture:', lectureError);
+      console.error(`[Job ${job.id}] ❌ Failed to fetch lecture:`, lectureError);
       throw new Error(`Failed to fetch lecture: ${lectureError.message}`);
     }
 
@@ -97,7 +108,7 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       .eq('id', lectureId);
     
     if (updateError) {
-      console.error('[Deep Search] ❌ Failed to update lecture:', updateError);
+      console.error(`[Job ${job.id}] ❌ Failed to update lecture:`, updateError);
       throw new Error(`Failed to update lecture: ${updateError.message}`);
     }
 
@@ -113,10 +124,10 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       })
       .eq('id', job.id);
 
-    console.log('[Deep Search] 🎉 Job completed successfully');
+    console.log(`[Job ${job.id}] 🎉 Deep Search completed successfully`);
 
   } catch (error) {
-    console.error('[Deep Search] ❌ Error:', error);
+    console.error(`[Job ${job.id}] ❌ Error:`, error);
     await supabase
       .from('teacher_jobs')
       .update({
@@ -130,44 +141,65 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
 }
 
 // Decompose query into sub-questions
-async function decomposeQuery(query: string, apiKey: string): Promise<string[]> {
-  console.log('[Deep Search] 🧩 Decomposing query...');
+async function decomposeQuery(query: string, apiKey: string, jobId: string): Promise<string[]> {
+  console.log(`[Job ${jobId}] 🧩 Decomposing query...`);
   
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'system',
-          content: 'Você é um assistente que decompõe tópicos educacionais em perguntas de pesquisa. Retorne apenas JSON válido com array "questions".'
-        },
-        {
-          role: 'user',
-          content: `Decomponha este tópico em 3-5 perguntas de pesquisa específicas para buscar informações educacionais relevantes:\n\n"${query}"\n\nRetorne JSON: {"questions": ["pergunta 1", "pergunta 2", ...]}`
-        }
-      ],
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
-  if (!response.ok) {
-    throw new Error(`AI decomposition failed: ${response.status}`);
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: 'Você é um assistente que decompõe tópicos educacionais em perguntas de pesquisa. Retorne apenas JSON válido com array "questions".'
+          },
+          {
+            role: 'user',
+            content: `Decomponha este tópico em 3-5 perguntas de pesquisa específicas para buscar informações educacionais relevantes:\n\n"${query}"\n\nRetorne JSON: {"questions": ["pergunta 1", "pergunta 2", ...]}`
+          }
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Rate limit atingido. Aguarde alguns segundos e tente novamente.');
+      }
+      if (response.status === 402) {
+        throw new Error('Créditos insuficientes no Lovable AI. Adicione créditos em Settings > Usage.');
+      }
+      throw new Error(`AI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    const parsed = JSON.parse(sanitizeJSON(content));
+    
+    return parsed.questions || [query];
+    
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('AI request timeout (60s). Tópico muito complexo ou serviço lento.');
+    }
+    throw error;
   }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  const parsed = JSON.parse(sanitizeJSON(content));
-  
-  return parsed.questions || [query];
 }
 
 // Execute web searches using Brave API
-async function executeWebSearches(questions: string[], braveApiKey: string): Promise<any[]> {
-  console.log('[Deep Search] 🔍 Executing', questions.length, 'web searches...');
+async function executeWebSearches(questions: string[], braveApiKey: string, jobId: string): Promise<any[]> {
+  console.log(`[Job ${jobId}] 🔍 Executing ${questions.length} web searches...`);
   
   const allResults: any[] = [];
   
@@ -188,13 +220,15 @@ async function executeWebSearches(questions: string[], braveApiKey: string): Pro
         if (data.web?.results) {
           allResults.push(...data.web.results.slice(0, 3)); // Top 3 per question
         }
+      } else {
+        console.warn(`[Job ${jobId}] ⚠️ Search failed for question: ${question} (status: ${response.status})`);
       }
     } catch (error) {
-      console.error('[Deep Search] ⚠️ Search error for question:', question, error);
+      console.error(`[Job ${jobId}] ⚠️ Search error for question: ${question}`, error);
     }
   }
   
-  console.log('[Deep Search] ✅ Total results collected:', allResults.length);
+  console.log(`[Job ${jobId}] ✅ Total results collected: ${allResults.length}`);
   return allResults;
 }
 
@@ -202,26 +236,31 @@ async function executeWebSearches(questions: string[], braveApiKey: string): Pro
 async function generateEducationalReport(
   query: string,
   searchResults: any[],
-  apiKey: string
+  apiKey: string,
+  jobId: string
 ): Promise<string> {
-  console.log('[Deep Search] 📝 Generating educational report...');
+  console.log(`[Job ${jobId}] 📝 Generating educational report...`);
   
   const context = searchResults
     .map((r, i) => `[${i + 1}] ${r.title}\n${r.description || ''}\nURL: ${r.url}`)
     .join('\n\n');
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-pro',
-      messages: [
-        {
-          role: 'system',
-          content: `Você é um professor de engenharia especializado em criar material didático.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-pro',
+        messages: [
+          {
+            role: 'system',
+            content: `Você é um professor de engenharia especializado em criar material didático.
           
 INSTRUÇÕES:
 1. Crie um material didático completo e estruturado
@@ -230,28 +269,45 @@ INSTRUÇÕES:
 4. Seja técnico mas didático
 5. Cite as fontes quando relevante
 6. Foque em aplicações práticas da engenharia`
-        },
-        {
-          role: 'user',
-          content: `Tópico: ${query}\n\nFontes de pesquisa:\n${context}\n\nCrie um material didático completo sobre este tópico.`
-        }
-      ],
-    }),
-  });
+          },
+          {
+            role: 'user',
+            content: `Tópico: ${query}\n\nFontes de pesquisa:\n${context}\n\nCrie um material didático completo sobre este tópico.`
+          }
+        ],
+      }),
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    throw new Error(`AI report generation failed: ${response.status}`);
-  }
+    clearTimeout(timeoutId);
 
-  const data = await response.json();
-  const report = data.choices?.[0]?.message?.content;
-  
-  if (!report) {
-    throw new Error('No report generated');
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Rate limit atingido. Aguarde alguns segundos e tente novamente.');
+      }
+      if (response.status === 402) {
+        throw new Error('Créditos insuficientes no Lovable AI. Adicione créditos em Settings > Usage.');
+      }
+      throw new Error(`AI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const report = data.choices?.[0]?.message?.content;
+    
+    if (!report) {
+      throw new Error('No report generated');
+    }
+    
+    console.log(`[Job ${jobId}] ✅ Report generated successfully`);
+    return report;
+    
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('AI request timeout (60s). Tópico muito complexo ou serviço lento.');
+    }
+    throw error;
   }
-  
-  console.log('[Deep Search] ✅ Report generated successfully');
-  return report;
 }
 
 serve(async (req) => {
@@ -262,21 +318,21 @@ serve(async (req) => {
   try {
     const { jobId } = await req.json();
     if (!jobId) {
-      console.error('No jobId provided');
+      console.error('[teacher-job-runner] ❌ No jobId provided');
       return new Response(JSON.stringify({ error: 'jobId is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('[teacher-job-runner] 🔄 Processing job:', jobId);
+    console.log(`[teacher-job-runner] 🔄 Processing job: ${jobId}`);
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Buscar job
+    // Fetch job
     const { data: job, error: jobError } = await supabaseAdmin
       .from('teacher_jobs')
       .select('*')
@@ -284,22 +340,22 @@ serve(async (req) => {
       .single();
 
     if (jobError || !job) {
-      console.error('Job not found:', jobError);
+      console.error(`[teacher-job-runner] ❌ Job not found: ${jobId}`, jobError);
       return new Response(JSON.stringify({ error: 'Job not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('[teacher-job-runner] ✅ Job found:', job.job_type, 'Status:', job.status, 'LectureID:', job.lecture_id);
+    console.log(`[Job ${jobId}] ✅ Found: ${job.job_type} | Status: ${job.status} | Lecture: ${job.lecture_id}`);
 
-    // Atualizar status para PROCESSING
+    // Update status to PROCESSING
     await supabaseAdmin
       .from('teacher_jobs')
       .update({ status: 'PROCESSING', updated_at: new Date().toISOString() })
       .eq('id', jobId);
 
-    console.log('[teacher-job-runner] 🔄 Job status updated to PROCESSING');
+    console.log(`[Job ${jobId}] 🔄 Status updated to PROCESSING`);
 
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableApiKey) {
@@ -308,7 +364,7 @@ serve(async (req) => {
 
     // Handle GENERATE_LECTURE_DEEP_SEARCH job type
     if (job.job_type === 'GENERATE_LECTURE_DEEP_SEARCH') {
-      console.log('[teacher-job-runner] 🔍 Processing GENERATE_LECTURE_DEEP_SEARCH job');
+      console.log(`[Job ${jobId}] 🔍 Processing GENERATE_LECTURE_DEEP_SEARCH`);
       await processLectureDeepSearch(job, supabaseAdmin, lovableApiKey);
       return new Response(
         JSON.stringify({ success: true, message: 'Deep search job completed' }),
@@ -319,6 +375,7 @@ serve(async (req) => {
       );
     }
 
+    // Handle GENERATE_QUIZ and GENERATE_FLASHCARDS
     const { title, transcript, tags } = job.input_payload;
 
     let systemPrompt = '';
@@ -427,15 +484,11 @@ ${transcript}
 IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
     }
 
-    console.log('[teacher-job-runner] 🤖 Calling Lovable AI with 120s timeout...', {
-      model: 'google/gemini-2.5-flash',
-      job_type: job.job_type,
-      transcript_length: transcript?.length || 0
-    });
+    console.log(`[Job ${jobId}] 🤖 Calling Lovable AI with 60s timeout...`);
 
-    // Chamar Lovable AI com timeout de 120s
+    // Call Lovable AI with 60s timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     let aiResponse;
     try {
@@ -457,18 +510,18 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('AI request timed out after 120 seconds');
+        throw new Error('AI request timed out after 60 seconds');
       }
       throw error;
     } finally {
       clearTimeout(timeoutId);
     }
 
-    console.log('[teacher-job-runner] ✅ AI response status:', aiResponse.status);
+    console.log(`[Job ${jobId}] ✅ AI response status: ${aiResponse.status}`);
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('[teacher-job-runner] ❌ AI API error:', aiResponse.status, errorText);
+      console.error(`[Job ${jobId}] ❌ AI API error: ${aiResponse.status}`, errorText);
       
       if (aiResponse.status === 429) {
         throw new Error('Rate limit exceeded. Please try again later.');
@@ -480,7 +533,7 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
     }
 
     const aiData = await aiResponse.json();
-    console.log('[teacher-job-runner] 📦 AI response received, parsing content...');
+    console.log(`[Job ${jobId}] 📦 AI response received, parsing content...`);
 
     const content = aiData.choices?.[0]?.message?.content;
     if (!content) {
@@ -488,71 +541,57 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
     }
 
     const sanitized = sanitizeJSON(content);
-    console.log('[teacher-job-runner] 🧹 Content sanitized, parsing JSON...');
+    console.log(`[Job ${jobId}] 🧹 Content sanitized, parsing JSON...`);
 
     const parsedData = JSON.parse(sanitized);
 
-    // Validar estrutura
+    // Validate structure
     if (job.job_type === 'GENERATE_QUIZ') {
       if (!parsedData.questions || !Array.isArray(parsedData.questions)) {
         throw new Error('Invalid quiz structure: missing questions array');
       }
       
-      console.log(`[teacher-job-runner] ✅ Quiz validated (${parsedData.questions.length} questions), saving to database...`);
+      console.log(`[Job ${jobId}] ✅ Quiz validated: ${parsedData.questions.length} questions`);
 
-      // Deletar quiz existente
-      await supabaseAdmin
-        .from('teacher_quizzes')
-        .delete()
-        .eq('lecture_id', job.lecture_id);
-
-      // Inserir novo quiz
+      // Save to teacher_quizzes table
       const { error: insertError } = await supabaseAdmin
         .from('teacher_quizzes')
         .insert({
           lecture_id: job.lecture_id,
           teacher_id: job.teacher_id,
-          title: `Quiz - ${title}`,
+          title: title || 'Quiz sem título',
           questions: parsedData.questions
         });
 
       if (insertError) {
+        console.error(`[Job ${jobId}] ❌ Failed to save quiz:`, insertError);
         throw new Error(`Failed to save quiz: ${insertError.message}`);
       }
-
-      console.log('[teacher-job-runner] 💾 Quiz saved successfully to teacher_quizzes table');
 
     } else if (job.job_type === 'GENERATE_FLASHCARDS') {
       if (!parsedData.cards || !Array.isArray(parsedData.cards)) {
         throw new Error('Invalid flashcards structure: missing cards array');
       }
+      
+      console.log(`[Job ${jobId}] ✅ Flashcards validated: ${parsedData.cards.length} cards`);
 
-      console.log(`[teacher-job-runner] ✅ Flashcards validated (${parsedData.cards.length} cards), saving to database...`);
-
-      // Deletar flashcards existentes
-      await supabaseAdmin
-        .from('teacher_flashcards')
-        .delete()
-        .eq('lecture_id', job.lecture_id);
-
-      // Inserir novos flashcards
+      // Save to teacher_flashcards table
       const { error: insertError } = await supabaseAdmin
         .from('teacher_flashcards')
         .insert({
           lecture_id: job.lecture_id,
           teacher_id: job.teacher_id,
-          title: `Flashcards - ${title}`,
+          title: title || 'Flashcards sem título',
           cards: parsedData.cards
         });
 
       if (insertError) {
+        console.error(`[Job ${jobId}] ❌ Failed to save flashcards:`, insertError);
         throw new Error(`Failed to save flashcards: ${insertError.message}`);
       }
-
-      console.log('[teacher-job-runner] 💾 Flashcards saved successfully to teacher_flashcards table');
     }
 
-    // Marcar job como COMPLETED
+    // Update job status to COMPLETED
     await supabaseAdmin
       .from('teacher_jobs')
       .update({
@@ -562,7 +601,7 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
       })
       .eq('id', jobId);
 
-    console.log('[teacher-job-runner] 🎉 Job completed successfully:', jobId, '- Updating status to COMPLETED');
+    console.log(`[Job ${jobId}] 🎉 Job completed successfully`);
 
     return new Response(
       JSON.stringify({ success: true, message: 'Job completed successfully' }),
@@ -573,32 +612,11 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
     );
 
   } catch (error) {
-    console.error('❌ Error in teacher-job-runner:', error);
-
-    // Tentar marcar job como FAILED
-    try {
-      const supabaseAdmin = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-
-      const { jobId } = await req.json();
-      if (jobId) {
-        await supabaseAdmin
-          .from('teacher_jobs')
-          .update({
-            status: 'FAILED',
-            error_message: error instanceof Error ? error.message : 'Unknown error',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', jobId);
-      }
-    } catch (updateError) {
-      console.error('Failed to update job status:', updateError);
-    }
-
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[teacher-job-runner] ❌ Error:', errorMessage);
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

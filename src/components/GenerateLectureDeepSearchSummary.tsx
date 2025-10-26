@@ -38,11 +38,48 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const [progressMessage, setProgressMessage] = useState<string>('');
   const { toast } = useToast();
 
-  // Subscribe to job updates via realtime
+  // Subscribe to job updates via realtime with polling fallback
   useEffect(() => {
     if (!jobId) return;
 
     console.log('🔔 [Deep Search] Subscribing to job:', jobId);
+
+    let pollInterval: NodeJS.Timeout | null = null;
+
+    const handleJobUpdate = (job: any) => {
+      // Map progress to steps (0-1 → 0-3), cap at 3 during processing
+      const step = Math.min(Math.floor((job.progress || 0) * 4), 3);
+      setCurrentStep(step);
+      
+      if (job.progress_message) {
+        console.log('📋 [Deep Search] Progress:', `${Math.round((job.progress || 0) * 100)}% - ${job.progress_message}`);
+        setProgressMessage(job.progress_message);
+      }
+
+      if (job.status === 'COMPLETED') {
+        console.log('✅ [Deep Search] Job COMPLETED!');
+        setCurrentStep(4);
+        setProgressMessage('Concluído!');
+        setTimeout(() => {
+          setIsGenerating(false);
+          setIsOpen(false);
+          onUpdate();
+          toast({
+            title: 'Material didático gerado!',
+            description: 'Pesquisa profunda concluída com sucesso.',
+          });
+        }, 2000);
+      } else if (job.status === 'FAILED') {
+        console.error('❌ [Deep Search] Job FAILED:', job.error_message);
+        setError(job.error_message || 'Erro desconhecido');
+        setIsGenerating(false);
+        toast({
+          variant: 'destructive',
+          title: 'Erro na geração',
+          description: job.error_message || 'Não foi possível gerar o material didático',
+        });
+      }
+    };
 
     const channel = supabase
       .channel(`teacher-jobs-${jobId}`)
@@ -55,49 +92,38 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
           filter: `id=eq.${jobId}`,
         },
         (payload) => {
-          console.log('📬 [Deep Search] Job update:', payload);
-          const job = payload.new as any;
-
-          // Map progress to steps (0-1 → 0-4)
-          const step = Math.floor((job.progress || 0) * 4);
-          setCurrentStep(step);
-          
-          if (job.progress_message) {
-            console.log('📋 [Deep Search] Progress:', job.progress_message);
-            setProgressMessage(job.progress_message);
-          }
-
-          if (job.status === 'COMPLETED') {
-            console.log('✅ [Deep Search] Job COMPLETED!');
-            setCurrentStep(4);
-            setProgressMessage('Concluído!');
-            setTimeout(() => {
-              setIsGenerating(false);
-              setIsOpen(false);
-              onUpdate();
-              toast({
-                title: 'Material didático gerado!',
-                description: 'Pesquisa profunda concluída com sucesso.',
-              });
-            }, 2000);
-          } else if (job.status === 'FAILED') {
-            console.error('❌ [Deep Search] Job FAILED:', job.error_message);
-            setError(job.error_message || 'Erro desconhecido');
-            setIsGenerating(false);
-            toast({
-              variant: 'destructive',
-              title: 'Erro na geração',
-              description: job.error_message || 'Não foi possível gerar o material didático',
-            });
-          }
+          console.log('📬 [Deep Search] Realtime update:', payload);
+          handleJobUpdate(payload.new as any);
         }
       )
       .subscribe((status) => {
         console.log('🔌 [Deep Search] Subscription status:', status);
+        
+        // If subscription fails, fallback to polling
+        if (status !== 'SUBSCRIBED') {
+          console.warn('⚠️ [Deep Search] Realtime subscription not active, starting polling fallback...');
+          
+          pollInterval = setInterval(async () => {
+            const { data: job } = await supabase
+              .from('teacher_jobs')
+              .select('*')
+              .eq('id', jobId)
+              .single();
+              
+            if (job) {
+              console.log('🔄 [Deep Search] Poll update:', job.status, `${Math.round((job.progress || 0) * 100)}%`);
+              handleJobUpdate(job);
+            }
+          }, 3000);
+        }
       });
 
     return () => {
       console.log('🔌 [Deep Search] Unsubscribing from job');
+      if (pollInterval) {
+        console.log('🔄 [Deep Search] Stopping polling');
+        clearInterval(pollInterval);
+      }
       supabase.removeChannel(channel);
     };
   }, [jobId, toast, onUpdate]);
@@ -108,9 +134,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
     
     try {
       console.log('🚀 [Deep Search] Starting with JOB system...');
-      console.log('📋 [Deep Search] Lecture ID:', lectureId);
-      console.log('📋 [Deep Search] Lecture Title:', lectureTitle);
-      console.log('📋 [Deep Search] Tags:', tags);
+      console.log('📋 [Deep Search] Lecture:', { id: lectureId, title: lectureTitle, tags });
       
       setIsGenerating(true);
       setCurrentStep(0);
@@ -130,7 +154,25 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
 
       console.log('✅ [Deep Search] User authenticated:', user.id);
 
-      // Create JOB instead of session
+      // Validate user role
+      const { data: userRole, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (roleError || !userRole) {
+        console.error('❌ [Deep Search] Role error:', roleError);
+        throw new Error('Não foi possível verificar permissões.');
+      }
+
+      if (userRole.role !== 'teacher') {
+        throw new Error('Apenas professores podem gerar material didático.');
+      }
+
+      console.log('✅ [Deep Search] User role validated: teacher');
+
+      // Create JOB
       console.log('💾 [Deep Search] Creating job in database...');
       const { data: job, error: jobError } = await supabase
         .from('teacher_jobs')
@@ -152,7 +194,18 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         .single();
 
       if (jobError) {
-        console.error('❌ [Deep Search] Job creation error:', jobError);
+        console.error('❌ [Deep Search] Job creation FAILED');
+        console.error('Error details:', {
+          message: jobError.message,
+          code: jobError.code,
+          details: jobError.details,
+          hint: jobError.hint,
+        });
+        console.error('User context:', {
+          userId: user.id,
+          lectureId: lectureId,
+          lectureTitle: lectureTitle
+        });
         throw new Error(`Erro ao criar job: ${jobError.message}`);
       }
 
