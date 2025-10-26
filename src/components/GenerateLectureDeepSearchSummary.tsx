@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Brain, Loader2, Search, FileText, Check } from 'lucide-react';
@@ -34,12 +34,21 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const autoStarted = useRef(false);
   const { toast } = useToast();
 
-  // Auto-start generation when dialog opens (only for first-time generation)
+  // Auto-start generation when dialog opens
   useEffect(() => {
-    if (isOpen && !isGenerating && !currentMaterial) {
-      handleGenerate();
+    if (isOpen && !isGenerating && !autoStarted.current) {
+      autoStarted.current = true;
+      setTimeout(() => handleGenerate(), 100);
+    }
+  }, [isOpen]);
+
+  // Reset auto-start flag when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      autoStarted.current = false;
     }
   }, [isOpen]);
 
@@ -231,7 +240,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         </DialogHeader>
 
         <div className="space-y-6">
-          {isGenerating ? (
+          {!isGenerating ? (
             <>
               <div className="space-y-4">
                 <div className="rounded-lg border border-border/50 bg-muted/30 p-4">

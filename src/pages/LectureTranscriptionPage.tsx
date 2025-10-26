@@ -1407,15 +1407,15 @@ const LectureTranscriptionPage = () => {
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="resumo" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="resumo" className="text-sm sm:text-base">
+                      <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-0.5 gap-1">
+                        <TabsTrigger value="resumo" className="text-sm sm:text-base data-[state=active]:shadow-none">
                           <FileText className="h-4 w-4 mr-2" />
                           Resumo
                         </TabsTrigger>
                         <TabsTrigger 
                           value="material" 
                           disabled={!structuredContent.material_didatico}
-                          className="text-sm sm:text-base"
+                          className="text-sm sm:text-base data-[state=active]:shadow-none"
                         >
                           <Brain className="h-4 w-4 mr-2" />
                           <span className="hidden sm:inline">Material Didático</span>
@@ -2039,26 +2039,15 @@ const LectureTranscriptionPage = () => {
                       <ExternalLink className="h-5 w-5 text-purple-600" />
                       Referências Externas
                     </CardTitle>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsAddingReference(true)}
-                        className="bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Adicionar Nova
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditModal('Referências', { referencias_externas: structuredContent.referencias_externas })}
-                        className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
-                      >
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        Editar com IA
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsAddingReference(true)}
+                      className="h-9 w-9 bg-green-50 border-green-300 text-green-700 hover:bg-green-100 transition-colors"
+                      title="Adicionar Nova Referência"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
