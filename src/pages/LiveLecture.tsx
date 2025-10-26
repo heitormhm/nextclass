@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LiveTranscriptViewer } from '@/components/LiveTranscriptViewer';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
+import { ProcessingLoadingScreen } from '@/components/ProcessingLoadingScreen';
 
 interface Word {
   text: string;
@@ -66,6 +67,7 @@ const LiveLecture = () => {
   const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [audioSize, setAudioSize] = useState(0); // Track audio size in real-time
+  const [showProcessingScreen, setShowProcessingScreen] = useState(false);
   
   // Transcription states
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
@@ -183,6 +185,10 @@ const LiveLecture = () => {
     loadMicrophones();
   }, []);
 
+  const handleProcessingComplete = () => {
+    setShowProcessingScreen(false);
+    navigate(`/lecturetranscription/${lectureId}`);
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -237,7 +243,10 @@ const LiveLecture = () => {
 
   // Retry helper function
   const uploadWithRetry = async (audioBlob: Blob, lectureId: string, maxRetries = 3): Promise<string | null> => {
-    const audioFileName = `${lectureId}-${Date.now()}.webm`;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
+    const audioFileName = `${user.id}/${lectureId}-${Date.now()}.webm`;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -378,7 +387,8 @@ const LiveLecture = () => {
           : 'Transcrição salva (áudio indisponível)',
       });
 
-      navigate(`/lecturetranscription/${lectureId}`);
+      // Mostrar tela de processamento ao invés de navegar imediatamente
+      setShowProcessingScreen(true);
       
     } catch (error) {
       console.error('[LiveLecture] ❌ Error saving lecture:', error);
@@ -397,9 +407,11 @@ const LiveLecture = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <MainLayout>
-        <div className="flex h-[calc(100vh-64px)] overflow-hidden">
+        <div className="flex h-[calc(100vh-64px)]">
           {/* Main Content Area - LEFT */}
-          <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+          <div className={`flex-1 relative overflow-y-auto bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%] transition-all duration-300 ${
+            isSpeechRecording ? 'mr-80' : ''
+          }`}>
             {/* Animated Background with Ripple Effect */}
             <TeacherBackgroundRipple />
             
@@ -678,7 +690,7 @@ const LiveLecture = () => {
 
           {/* Sidebar - RIGHT (FIXED) */}
           {isSpeechRecording && (
-            <div className="w-80 bg-white border-l border-slate-200 flex flex-col overflow-hidden">
+            <div className="w-80 bg-white border-l border-slate-200 flex flex-col fixed right-0 top-[64px] h-[calc(100vh-64px)]">
               <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-purple-50 to-pink-50">
                 <div className="flex items-center gap-2 mb-1">
                   <Radio className="h-4 w-4 text-purple-600" />
@@ -722,6 +734,11 @@ const LiveLecture = () => {
           )}
         </div>
       </MainLayout>
+      
+      <ProcessingLoadingScreen 
+        isVisible={showProcessingScreen} 
+        onComplete={handleProcessingComplete}
+      />
     </div>
   );
 };
