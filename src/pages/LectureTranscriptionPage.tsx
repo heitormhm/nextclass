@@ -163,6 +163,52 @@ const LectureTranscriptionPage = () => {
     }
   }, [selectedClassId]);
 
+  // Polling para recarregar dados quando lecture está processing
+  useEffect(() => {
+    if (!lecture || lecture.status !== 'processing' || structuredContent) return;
+
+    console.log('⏱️ Setting up polling for processing lecture...');
+    const pollingInterval = setInterval(async () => {
+      console.log('🔄 Polling: checking if lecture is ready...');
+      const { data, error } = await supabase
+        .from('lectures')
+        .select('status, structured_content')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Polling error:', error);
+        return;
+      }
+
+      if (data?.structured_content) {
+        console.log('✅ Structured content is ready! Reloading...');
+        clearInterval(pollingInterval);
+        loadLectureData();
+      } else if (data?.status === 'ready' || data?.status === 'published') {
+        console.log('✅ Lecture status changed to ready/published! Reloading...');
+        clearInterval(pollingInterval);
+        loadLectureData();
+      }
+    }, 5000); // Poll a cada 5 segundos
+
+    // Limpar após 2 minutos (timeout)
+    const timeout = setTimeout(() => {
+      console.warn('⏱️ Polling timeout reached (2 minutes)');
+      clearInterval(pollingInterval);
+      toast({
+        variant: 'destructive',
+        title: 'Processamento demorado',
+        description: 'Tente recarregar a página manualmente.',
+      });
+    }, 120000);
+
+    return () => {
+      clearInterval(pollingInterval);
+      clearTimeout(timeout);
+    };
+  }, [lecture, structuredContent, id]);
+
   // Subscribe to teacher_jobs updates for this lecture
   useEffect(() => {
     if (!id) return;
@@ -376,7 +422,14 @@ const LectureTranscriptionPage = () => {
         setStructuredContent(data.structured_content as StructuredContent);
         setLectureTitle(data.structured_content.titulo_aula || data?.title || 'Nova Aula');
       } else if (data?.status === 'processing' && data?.raw_transcript) {
+        console.log('🔄 Lecture is processing, calling processTranscript...');
         processTranscript(data.raw_transcript);
+      } else if (data?.status === 'processing' && !data?.raw_transcript) {
+        console.warn('⚠️ Lecture status is processing but no raw_transcript found');
+        toast({
+          title: 'Processamento pendente',
+          description: 'A transcrição ainda não foi salva. Aguarde alguns instantes.',
+        });
       }
     } catch (error) {
       console.error('Error loading lecture:', error);
@@ -1130,6 +1183,30 @@ const LectureTranscriptionPage = () => {
                   <p className="text-slate-700 text-sm drop-shadow-sm">
                     A IA está analisando a transcrição e gerando material didático estruturado
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Loading state quando lecture existe mas structured_content ainda não */}
+          {!isLoading && lecture && !structuredContent && lecture.status === 'processing' && (
+            <Card className="bg-white/75 backdrop-blur-xl border-white/40 mb-8 shadow-2xl">
+              <CardContent className="flex flex-col items-center gap-4 py-12">
+                <Loader2 className="h-12 w-12 text-purple-600 animate-spin" />
+                <div className="text-center">
+                  <h3 className="text-slate-900 font-semibold mb-2 text-lg">
+                    🤖 IA está processando sua aula...
+                  </h3>
+                  <p className="text-slate-600 text-sm mb-4">
+                    Isso pode levar até 1 minuto. Aguarde enquanto geramos seu material didático estruturado.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.location.reload()}
+                    className="mt-2"
+                  >
+                    Recarregar Página
+                  </Button>
                 </div>
               </CardContent>
             </Card>

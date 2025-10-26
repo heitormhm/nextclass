@@ -57,7 +57,7 @@ const Navbar = () => {
   const lastNameFromMeta = nameParts[nameParts.length - 1] || '';
   
   // Determine if we're in teacher mode based on current route
-  const isTeacherMode = location.pathname.startsWith('/teacher') || location.pathname === '/livelecture' || location.pathname === '/lecturetranscription';
+  const isTeacherMode = location.pathname.startsWith('/teacher') || location.pathname.startsWith('/livelecture') || location.pathname.startsWith('/lecturetranscription');
   
   // Teacher-specific display name and initials
   const teacherDisplayName = isTeacherMode && firstNameFromMeta && lastNameFromMeta 

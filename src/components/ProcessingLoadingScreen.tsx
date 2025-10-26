@@ -46,9 +46,9 @@ export const ProcessingLoadingScreen: React.FC<Props> = ({ isVisible, onComplete
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-purple-900/95 via-blue-900/95 to-pink-900/95 backdrop-blur-sm">
-      <Card className="w-full max-w-md p-8 bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white text-center mb-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
+      <Card className="w-full max-w-md p-8 bg-white/90 backdrop-blur-xl border-white/30 shadow-2xl">
+        <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">
           Processando Aula
         </h2>
 
@@ -64,12 +64,12 @@ export const ProcessingLoadingScreen: React.FC<Props> = ({ isVisible, onComplete
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className={`flex items-center gap-3 p-4 rounded-lg transition-all ${
+                className={`flex items-center gap-3 p-4 rounded-lg transition-all shadow-md ${
                   isCompleted
-                    ? 'bg-green-500/20 border border-green-400/40'
+                    ? 'bg-white border border-green-400/50'
                     : isCurrent
-                    ? 'bg-blue-500/20 border border-blue-400/40'
-                    : 'bg-white/5 border border-white/10'
+                    ? 'bg-white border border-blue-400/50'
+                    : 'bg-white/50 border border-slate-200'
                 }`}
               >
                 <div className="flex-shrink-0">
@@ -90,7 +90,7 @@ export const ProcessingLoadingScreen: React.FC<Props> = ({ isVisible, onComplete
 
                 <span
                   className={`font-medium ${
-                    isCompleted || isCurrent ? 'text-white' : 'text-white/50'
+                    isCompleted || isCurrent ? 'text-slate-900' : 'text-slate-500'
                   }`}
                 >
                   {step.label}
@@ -100,7 +100,7 @@ export const ProcessingLoadingScreen: React.FC<Props> = ({ isVisible, onComplete
           })}
         </div>
 
-        <p className="text-center text-white/60 text-sm mt-6">
+        <p className="text-center text-slate-600 text-sm mt-6">
           Isso pode levar até 1 minuto...
         </p>
       </Card>

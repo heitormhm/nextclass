@@ -15,29 +15,29 @@ All colors MUST be HSL. Design tokens for consistent theming.
   scrollbar-width: none;
 }
 
-/* Custom minimal scrollbar for sidebar */
+/* Scrollbar minimalista ultra-fino para sidebar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 3px; /* Ultra fino */
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent; /* Invisível */
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
-  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.15); /* Quase invisível */
+  border-radius: 3px; /* Levemente arredondado */
   transition: background 0.2s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.6);
+  background: rgba(100, 116, 139, 0.25); /* Mais visível no hover */
 }
 
 /* Firefox support */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.15) transparent;
 }
 
 @layer base {
