@@ -40,7 +40,7 @@ import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { EditWithAIModal } from '@/components/EditWithAIModal';
 import { PublishLectureModal } from '@/components/PublishLectureModal';
-import { GenerateSummaryWithDeepSearch } from '@/components/GenerateSummaryWithDeepSearch';
+import { GenerateLectureDeepSearchSummary } from '@/components/GenerateLectureDeepSearchSummary';
 import { TeacherQuizModal } from '@/components/TeacherQuizModal';
 import { TeacherFlashcardViewerModal } from '@/components/TeacherFlashcardViewerModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -1241,16 +1241,13 @@ const LectureTranscriptionPage = () => {
                       Resumo da Aula
                     </CardTitle>
                     <div className="flex gap-2">
-                      <GenerateSummaryWithDeepSearch
+                      <GenerateLectureDeepSearchSummary
                         lectureId={id || ''}
                         lectureTitle={lectureTitle}
                         tags={lecture?.tags || []}
                         currentSummary={structuredContent.resumo}
                         fullTranscript={lecture?.raw_transcript || ''}
-                        mainTopics={structuredContent.topicos_principais}
-                        onUpdate={(newSummary) => {
-                          setStructuredContent({ ...structuredContent, resumo: newSummary });
-                        }}
+                        onUpdate={loadLectureData}
                       />
                       <Button
                         variant="outline"

@@ -153,6 +153,12 @@ verify_jwt = false
 [functions.generate-single-flashcard]
 verify_jwt = false
 
+[functions.lecture-deep-research-agent]
+verify_jwt = true
+
+[functions.generate-lecture-deep-report]
+verify_jwt = true
+
 [api]
 enabled = true
 port = 54321

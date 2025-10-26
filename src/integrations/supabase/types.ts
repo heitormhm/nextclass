@@ -713,6 +713,56 @@ export type Database = {
           },
         ]
       }
+      lecture_deep_search_sessions: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          lecture_id: string
+          progress_step: string | null
+          query: string
+          research_data: Json | null
+          result: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          lecture_id: string
+          progress_step?: string | null
+          query: string
+          research_data?: Json | null
+          result?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          lecture_id?: string
+          progress_step?: string | null
+          query?: string
+          research_data?: Json | null
+          result?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lecture_deep_search_sessions_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lectures: {
         Row: {
           audio_url: string | null
