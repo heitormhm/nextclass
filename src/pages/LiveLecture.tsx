@@ -65,7 +65,6 @@ const LiveLecture = () => {
   const [audioLevel, setAudioLevel] = useState(0);
   const [selectedMicrophone, setSelectedMicrophone] = useState('default');
   const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
   const [audioSize, setAudioSize] = useState(0); // Track audio size in real-time
   const [showProcessingScreen, setShowProcessingScreen] = useState(false);
   
@@ -276,12 +275,17 @@ const LiveLecture = () => {
           throw uploadError;
         }
 
-        const { data: urlData } = supabase.storage
+        const { data: urlData, error: urlError } = await supabase.storage
           .from('lecture-audio')
-          .getPublicUrl(audioFileName);
+          .createSignedUrl(audioFileName, 31536000); // 1 year expiration
 
-        const audioUrl = urlData.publicUrl;
-        console.log('[LiveLecture] ✅ Audio uploaded successfully:', audioUrl);
+        if (urlError) {
+          console.error('[LiveLecture] ❌ Error creating signed URL:', urlError);
+          throw urlError;
+        }
+
+        const audioUrl = urlData.signedUrl;
+        console.log('[LiveLecture] ✅ Audio uploaded successfully (signed URL):', audioUrl);
         return audioUrl;
         
       } catch (error) {
@@ -298,6 +302,9 @@ const LiveLecture = () => {
   const handleStopRecording = async () => {
     console.log('[LiveLecture] 🛑 Stopping recording...');
     stopSpeechRecording();
+    
+    // Mostrar tela de processamento imediatamente
+    setShowProcessingScreen(true);
     
     let audioBlob: Blob | null = null;
     try {
@@ -325,8 +332,6 @@ const LiveLecture = () => {
     setIsPaused(false);
     
     try {
-      setIsSaving(true);
-      
       const fullTranscript = fullTranscriptRef.current || transcriptSegments
         .map(seg => `[${seg.speaker}] ${seg.text}`)
         .join('\n\n');
@@ -386,9 +391,6 @@ const LiveLecture = () => {
           ? `Áudio (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB) e transcrição salvos` 
           : 'Transcrição salva (áudio indisponível)',
       });
-
-      // Mostrar tela de processamento ao invés de navegar imediatamente
-      setShowProcessingScreen(true);
       
     } catch (error) {
       console.error('[LiveLecture] ❌ Error saving lecture:', error);
@@ -397,8 +399,7 @@ const LiveLecture = () => {
         title: 'Erro ao salvar',
         description: error instanceof Error ? error.message : 'Não foi possível salvar a gravação',
       });
-    } finally {
-      setIsSaving(false);
+      setShowProcessingScreen(false); // Fechar tela em caso de erro
     }
   };
 
@@ -623,7 +624,6 @@ const LiveLecture = () => {
                     
                     <Button
                       onClick={handleStopRecording}
-                      disabled={isSaving}
                       className="
                         bg-gradient-to-r from-red-600 to-red-700 
                         hover:from-red-700 hover:to-red-800 
@@ -631,12 +631,11 @@ const LiveLecture = () => {
                         shadow-2xl shadow-red-500/30 
                         transition-all duration-300 
                         hover:scale-105 hover:shadow-red-500/50
-                        disabled:opacity-50 disabled:cursor-not-allowed
                         border-2 border-red-400/20
                       "
                     >
                       <Square className="mr-2 h-5 w-5" />
-                      {isSaving ? 'Salvando...' : 'Finalizar'}
+                      Finalizar
                     </Button>
                   </>
                 )}
@@ -701,7 +700,7 @@ const LiveLecture = () => {
                 </Badge>
               </div>
 
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <LiveTranscriptViewer 
                   segments={transcriptSegments}
                   currentWords={currentWords}

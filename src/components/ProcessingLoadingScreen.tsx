@@ -11,8 +11,8 @@ interface ProcessingStep {
 }
 
 const PROCESSING_STEPS: ProcessingStep[] = [
-  { id: 'upload', label: 'Salvando áudio...', icon: Upload, duration: 5000 },
-  { id: 'transcript', label: 'Processando transcrição...', icon: FileText, duration: 30000 },
+  { id: 'upload', label: 'Salvando áudio...', icon: Upload, duration: 8000 },
+  { id: 'transcript', label: 'Processando transcrição...', icon: FileText, duration: 25000 },
   { id: 'tags', label: 'Gerando tags...', icon: Tags, duration: 5000 },
   { id: 'thumbnail', label: 'Criando thumbnail...', icon: Image, duration: 8000 },
 ];
