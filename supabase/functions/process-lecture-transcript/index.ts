@@ -39,7 +39,12 @@ DIRETRIZES:
 2. Filtre hesitações, palavras de preenchimento ("uhm", "então...", "tipo assim"), repetições e conversas fora do tópico
 3. Crie um resumo conciso destacando objetivos de aprendizagem e conclusões principais
 4. Identifique conceitos fundamentais com definições claras extraídas do conteúdo
-5. Sugira 2-3 referências externas VÁLIDAS e de alta qualidade (priorize artigos científicos, livros de referência e documentação técnica oficial)
+5. **REFERÊNCIAS CONFIÁVEIS**: Sugira APENAS 2-3 referências de fontes acadêmicas verificadas:
+   - Artigos revisados por pares (IEEE, Elsevier, Springer, ABNT, SciELO)
+   - Livros técnicos de editoras reconhecidas (McGraw-Hill, Pearson, Wiley, etc)
+   - Documentação oficial de órgãos/universidades (MIT OpenCourseWare, Khan Academy)
+   - **PROIBIDO**: Wikipedia, blogs pessoais, fóruns, redes sociais, PDFs aleatórios
+   - **VALIDAÇÃO**: URLs devem ser de domínios .edu, .org (acadêmicos), .gov, ou editoras científicas
 6. Formule 9 a 11 perguntas de múltipla escolha que apresentem cenários práticos ou problemas que exijam aplicação dos conceitos
 7. Crie flashcards (termo e definição) baseados nos conceitos-chave
 

@@ -192,8 +192,8 @@ export const PublishLectureModal = ({
       // Aguardar 1 segundo para garantir propagação no banco
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Redirecionar para dashboard
-      navigate('/teacher-dashboard', { replace: true });
+      // Redirecionar para o dashboard (rota correta sem hífen)
+      navigate('/teacherdashboard', { replace: true });
     } catch (error) {
       console.error('Error publishing lecture:', error);
       toast({

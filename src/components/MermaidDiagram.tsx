@@ -219,14 +219,16 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         throw new Error('No fixed code returned from edge function');
       }
 
-      console.log('[Mermaid] ✅ Received fixed code:', data.fixedCode);
+      console.log('[Mermaid] ✅ Received fixed code');
       
-      // STEP 2: Validate fixed code BEFORE attempting render
+      // STEP 2: CRITICAL - Re-sanitize fixed code received from AI
       const sanitizedFixed = sanitizeMermaidCode(data.fixedCode);
       
       if (!sanitizedFixed || sanitizedFixed.length < 10) {
         throw new Error('Fixed code is still invalid after sanitization');
       }
+      
+      console.log('[Mermaid] ✅ Fixed code re-sanitized');
       
       // STEP 3: Re-initialize Mermaid before attempting render
       mermaid.initialize({ 
@@ -266,12 +268,15 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
     } catch (err) {
       console.error('[Mermaid] ❌ Regeneration failed:', err);
       
-      // Don't change error state - keep button visible for retry
+      // Generic toast without exposing technical details
       toast({
         title: 'Não foi possível corrigir 😔',
-        description: 'Tente novamente ou edite manualmente. ' + (err as Error).message,
+        description: 'Este diagrama possui erros complexos. A visualização ficará em modo simplificado.',
         variant: 'destructive',
       });
+      
+      // Keep error hidden, don't show to user
+      setError('hidden');
       
     } finally {
       setIsRegenerating(false);

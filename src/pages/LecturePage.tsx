@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Play, Pause, Volume2, Search, Share, PenTool, VolumeX, Settings, Clock, User, Calendar, BookOpen, Brain, Download, FolderOpen, FileText, Sparkles } from 'lucide-react';
+import { Play, Pause, Volume2, Search, Share, PenTool, VolumeX, Settings, Clock, User, Calendar, BookOpen, Brain, Download, FolderOpen, FileText, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,6 +12,7 @@ import MainLayout from '@/components/MainLayout';
 import { FlashcardModal } from '@/components/FlashcardModal';
 import { sanitizeHTML } from '@/utils/sanitize';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TranscriptItem {
   timestamp: string;
@@ -34,6 +35,79 @@ const LecturePage = () => {
   const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
   const { id } = useParams(); // Get the current lecture ID from the URL
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const [lectureData, setLectureData] = useState<any>(null);
+  const [isLoadingLecture, setIsLoadingLecture] = useState(true);
+
+  // Load lecture from database
+  useEffect(() => {
+    const loadLectureFromDB = async () => {
+      if (!id) return;
+      
+      setIsLoadingLecture(true);
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+          toast.error('Você precisa estar logado');
+          navigate('/auth');
+          return;
+        }
+        
+        // Load lecture with teacher info and turma
+        const { data: lecture, error: lectureError } = await supabase
+          .from('lectures')
+          .select(`
+            id,
+            title,
+            structured_content,
+            created_at,
+            audio_url,
+            duration,
+            raw_transcript,
+            turma_id,
+            users!teacher_id(full_name),
+            turmas(nome_turma, periodo, curso)
+          `)
+          .eq('id', id)
+          .eq('status', 'published')
+          .single();
+        
+        if (lectureError) {
+          console.error('Error loading lecture:', lectureError);
+          toast.error('Aula não encontrada');
+          navigate('/dashboard');
+          return;
+        }
+        
+        // Check if student is enrolled in the turma
+        const { data: enrollment, error: enrollmentError } = await supabase
+          .from('turma_enrollments')
+          .select('id')
+          .eq('aluno_id', user.id)
+          .eq('turma_id', lecture.turma_id)
+          .maybeSingle();
+        
+        if (enrollmentError) {
+          console.error('Error checking enrollment:', enrollmentError);
+        }
+        
+        if (!enrollment) {
+          toast.error('Você não tem acesso a esta aula');
+          navigate('/dashboard');
+          return;
+        }
+        
+        setLectureData(lecture);
+        
+      } catch (error) {
+        console.error('Error:', error);
+        toast.error('Erro ao carregar aula');
+      } finally {
+        setIsLoadingLecture(false);
+      }
+    };
+    
+    loadLectureFromDB();
+  }, [id, navigate]);
 
   // Convert timestamp string (MM:SS) to seconds
   const timestampToSeconds = (timestamp: string): number => {
@@ -129,21 +203,25 @@ const LecturePage = () => {
     });
   };
 
-  // Static lecture data
-  const lectureData = {
-    title: 'Fisiopatologia do Sistema Cardiovascular',
-    professor: 'Dr. Maria Santos',
-    date: '15 de Março, 2024',
-    duration: '60 min',
-    summary: 'Esta aula aborda os mecanismos fundamentais da fisiopatologia cardiovascular, incluindo a anatomia do coração, os processos de contração cardíaca, e as principais patologias que afetam o sistema circulatório.',
-    topics: [
-      'Anatomia Cardíaca',
-      'Fisiologia Cardíaca', 
-      'Ciclo Cardíaco',
-      'Pressão Arterial',
-      'Insuficiência Cardíaca',
-      'Arritmias'
-    ]
+  // Display lecture data from database or fallback to mock
+  const displayLectureData = lectureData ? {
+    title: lectureData.title || 'Sem título',
+    professor: lectureData.users?.full_name || 'Professor',
+    date: new Date(lectureData.created_at).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    }),
+    duration: lectureData.duration ? `${Math.round(lectureData.duration / 60)} min` : '60 min',
+    summary: lectureData.structured_content?.resumo || 'Resumo não disponível',
+    topics: lectureData.structured_content?.topicos_principais?.map((t: any) => t.conceito) || []
+  } : {
+    title: 'Carregando...',
+    professor: '',
+    date: '',
+    duration: '',
+    summary: '',
+    topics: []
   };
 
   const transcript: TranscriptItem[] = [
@@ -288,6 +366,39 @@ Distúrbios do ritmo cardíaco que podem ser:
     toast.success("Download iniciado! (funcionalidade simulada)");
   };
 
+  // Loading state
+  if (isLoadingLecture) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-6">
+          <Card className="p-8">
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+              <span className="ml-3 text-lg">Carregando aula...</span>
+            </div>
+          </Card>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // No access state
+  if (!lectureData) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-6">
+          <Card className="p-8 text-center">
+            <h2 className="text-xl font-semibold mb-2">Aula não encontrada</h2>
+            <p className="text-slate-600 mb-4">Você pode não ter acesso a esta aula.</p>
+            <Button onClick={() => navigate('/dashboard')}>
+              Voltar ao Dashboard
+            </Button>
+          </Card>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
@@ -377,19 +488,19 @@ Distúrbios do ritmo cardíaco que podem ser:
             {/* Lecture Info */}
             <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
               <CardContent className="p-4">
-                <h1 className="text-2xl font-bold mb-2">{lectureData.title}</h1>
+                <h1 className="text-2xl font-bold mb-2">{displayLectureData.title}</h1>
                 <div className="flex flex-wrap items-center gap-4 text-sm text-foreground-muted">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    <span>{lectureData.professor}</span>
+                    <span>{displayLectureData.professor}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    <span>{lectureData.date}</span>
+                    <span>{displayLectureData.date}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    <span>{lectureData.duration}</span>
+                    <span>{displayLectureData.duration}</span>
                   </div>
                 </div>
               </CardContent>
@@ -466,11 +577,11 @@ Distúrbios do ritmo cardíaco que podem ser:
                       <div className="p-4 max-h-[600px] overflow-y-auto">
                         <div className="prose prose-sm max-w-none">
                           <h3 className="text-lg font-semibold mb-3">Resumo Estruturado</h3>
-                          <p className="text-foreground-muted mb-4">{lectureData.summary}</p>
+                          <p className="text-foreground-muted mb-4">{displayLectureData.summary}</p>
                           
                           <h4 className="text-base font-semibold mb-2">Tópicos Principais</h4>
                           <ul className="space-y-2">
-                            {lectureData.topics.map((topic, index) => (
+                            {displayLectureData.topics.map((topic, index) => (
                               <li key={index} className="flex items-start gap-2">
                                 <span className="text-primary mt-1">•</span>
                                 <span>{topic}</span>

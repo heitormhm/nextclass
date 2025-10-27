@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Plus, Trash2, GraduationCap, Users, FileEdit, Loader2, Search } from 'lucide-react';
+import { BookOpen, Plus, Trash2, GraduationCap, Users, FileEdit, Loader2, Search, Clock, Eye } from 'lucide-react';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -588,28 +588,42 @@ const TeacherMyLectures = () => {
                   <TableRow>
                     <TableHead>Disciplina</TableHead>
                     <TableHead>Turma</TableHead>
-                    <TableHead>Curso</TableHead>
+                    <TableHead>Aulas</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {disciplinas.map((disciplina) => (
-                    <TableRow key={disciplina.id}>
-                      <TableCell className="font-medium">{disciplina.nome}</TableCell>
-                      <TableCell>{disciplina.turmas?.periodo || '-'}</TableCell>
-                      <TableCell>{disciplina.turmas?.curso || '-'}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteDisciplina(disciplina.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {disciplinas.map((disciplina) => {
+                    // Count published lectures for this discipline
+                    const aulaCount = lectures.filter(l => l.disciplina_id === disciplina.id).length;
+                    
+                    return (
+                      <TableRow key={disciplina.id} className="hover:bg-slate-50">
+                        <TableCell className="font-medium">{disciplina.nome}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm">{disciplina.turmas?.periodo || '-'}</span>
+                            <span className="text-xs text-slate-500">{disciplina.turmas?.curso || '-'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs">
+                            {aulaCount} {aulaCount === 1 ? 'aula' : 'aulas'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteDisciplina(disciplina.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -622,50 +636,129 @@ const TeacherMyLectures = () => {
               <CardTitle className="flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-purple-600" />
                 Aulas Publicadas
-                {lectures.length > 0 && (
+                {filteredLectures.length > 0 && (
                   <Badge variant="secondary" className="ml-2">
-                    {lectures.length}
+                    {filteredLectures.length}
                   </Badge>
                 )}
               </CardTitle>
+              <p className="text-sm text-slate-600 mt-1">
+                Aulas já disponibilizadas para os alunos
+              </p>
             </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="text-center text-slate-500 py-8">Carregando...</p>
-            ) : Object.keys(groupedLectures).length === 0 ? (
-              <p className="text-center text-slate-500 py-8 italic">
-                Nenhuma aula publicada ainda
-              </p>
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : filteredLectures.length === 0 ? (
+              <div className="text-center py-12">
+                <GraduationCap className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-sm text-gray-500">
+                  {searchQuery || selectedDisciplinaFilter !== 'all' 
+                    ? 'Nenhuma aula encontrada com esses filtros' 
+                    : 'Nenhuma aula publicada ainda'}
+                </p>
+              </div>
             ) : (
               <div className="space-y-6">
-                {Object.entries(groupedLectures).map(([turma, disciplinas]) => (
+                {/* Group filtered lectures by turma -> disciplina */}
+                {Object.entries(
+                  filteredLectures.reduce((acc, lecture) => {
+                    const turmaKey = lecture.turmas?.periodo || 'Sem Turma';
+                    const disciplinaKey = lecture.disciplinas?.nome || 'Sem Disciplina';
+                    
+                    if (!acc[turmaKey]) acc[turmaKey] = {};
+                    if (!acc[turmaKey][disciplinaKey]) acc[turmaKey][disciplinaKey] = [];
+                    
+                    acc[turmaKey][disciplinaKey].push(lecture);
+                    return acc;
+                  }, {} as Record<string, Record<string, Lecture[]>>)
+                ).map(([turma, disciplinasGroup]) => (
                   <div key={turma}>
                     <h3 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
                       <Users className="h-5 w-5 text-blue-600" />
                       {turma}
                     </h3>
-                    {Object.entries(disciplinas).map(([disciplina, lecturesList]) => (
-                      <div key={disciplina} className="mb-4 ml-6">
-                        <h4 className="text-md font-medium text-slate-700 mb-2">
-                          📚 {disciplina}
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {Object.entries(disciplinasGroup).map(([disciplina, lecturesList]) => (
+                      <div key={disciplina} className="mb-6 last:mb-0">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-purple-100 text-purple-700 border-purple-300">
+                              {disciplina}
+                            </Badge>
+                            <span className="text-xs text-slate-500">
+                              {lecturesList.length} {lecturesList.length === 1 ? 'aula' : 'aulas'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {lecturesList.map((lecture) => (
                             <Card
                               key={lecture.id}
-                              className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200"
+                              className="group cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200"
                               onClick={() => navigate(`/lecturetranscription/${lecture.id}`)}
                             >
                               <CardContent className="p-4">
-                                <h5 className="font-semibold text-slate-900 mb-2 truncate">
-                                  {lecture.title}
-                                </h5>
-                                <p className="text-xs text-slate-600">
-                                  {new Date(lecture.created_at).toLocaleDateString('pt-BR')}
-                                </p>
-                                <Badge className="mt-2 bg-purple-100 text-purple-700">
-                                  Publicada
-                                </Badge>
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex-1 pr-2">
+                                    <h5 className="font-semibold text-slate-900 line-clamp-2 mb-1">
+                                      {lecture.title}
+                                    </h5>
+                                    <p className="text-xs text-slate-600">
+                                      Publicada em {new Date(lecture.created_at).toLocaleDateString('pt-BR', {
+                                        day: '2-digit',
+                                        month: 'short',
+                                        year: 'numeric'
+                                      })}
+                                    </p>
+                                  </div>
+                                  <Badge className="bg-green-100 text-green-700 border-green-300 text-xs whitespace-nowrap">
+                                    Publicada
+                                  </Badge>
+                                </div>
+                                
+                                {/* Tags */}
+                                {lecture.tags && lecture.tags.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mb-3">
+                                    {lecture.tags.slice(0, 2).map((tag, idx) => (
+                                      <Badge key={idx} variant="outline" className="text-xs border-purple-300 text-purple-700">
+                                        #{tag}
+                                      </Badge>
+                                    ))}
+                                    {lecture.tags.length > 2 && (
+                                      <Badge variant="outline" className="text-xs border-purple-300 text-purple-700">
+                                        +{lecture.tags.length - 2}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {/* Footer com duração */}
+                                <div className="flex items-center justify-between pt-3 border-t border-purple-200">
+                                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                                    {lecture.duration && (
+                                      <>
+                                        <Clock className="h-3 w-3" />
+                                        <span>{Math.round(lecture.duration / 60)} min</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/lecturetranscription/${lecture.id}`);
+                                    }}
+                                  >
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    Ver Aula
+                                  </Button>
+                                </div>
                               </CardContent>
                             </Card>
                           ))}
