@@ -10,15 +10,26 @@ const convertMarkdownToHtml = (text: string): string => {
   if (!text) return '';
   
   let processed = text;
-  
-  // 1. PROCESSAR LaTeX INLINE primeiro ($$...$$)
-  const latexMatches = processed.match(/\$\$(.+?)\$\$/g) || [];
   const latexReplacements: Record<string, string> = {};
   
-  latexMatches.forEach((match, idx) => {
+  // 1. PROCESSAR LaTeX INLINE - AMBAS SINTAXES
+  // Capturar $$...$$
+  const doubleDollarMatches = processed.match(/\$\$(.+?)\$\$/g) || [];
+  doubleDollarMatches.forEach((match, idx) => {
     const formula = match.replace(/\$\$/g, '');
-    const placeholder = `___LATEX_${idx}___`;
-    latexReplacements[placeholder] = `<span class="math-inline-rendered" data-formula="${formula.replace(/"/g, '&quot;')}">${formula}</span>`;
+    const placeholder = `___LATEX_DOUBLE_${idx}___`;
+    latexReplacements[placeholder] = `<span class="math-inline-rendered">${formula}</span>`;
+    processed = processed.replace(match, placeholder);
+  });
+  
+  // Capturar $ ... $ (com espaços ou não)
+  const singleDollarMatches = processed.match(/\$\s*(.+?)\s*\$/g) || [];
+  singleDollarMatches.forEach((match, idx) => {
+    // Evitar capturar $$ novamente
+    if (match.startsWith('$$')) return;
+    const formula = match.replace(/\$/g, '').trim();
+    const placeholder = `___LATEX_SINGLE_${idx}___`;
+    latexReplacements[placeholder] = `<span class="math-inline-rendered">${formula}</span>`;
     processed = processed.replace(match, placeholder);
   });
   
@@ -26,7 +37,7 @@ const convertMarkdownToHtml = (text: string): string => {
   processed = processed
     // Negrito com cor roxa
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-purple-700">$1</strong>')
-    // Itálico
+    // Itálico (só * simples, não **)
     .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em class="italic text-slate-700">$1</em>')
     // Código inline
     .replace(/`(.+?)`/g, '<code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono text-purple-600">$1</code>')

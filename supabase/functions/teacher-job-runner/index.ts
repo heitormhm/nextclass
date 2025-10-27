@@ -908,13 +908,27 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
     return `["${content}"]`;
   });
   
-  // 7. Validar estrutura básica
+  // 7. Corrigir atributos de classe com espaços (ex: +energia_total E → +energia_total)
+  if (fixed.includes('classDiagram')) {
+    // Remover texto após espaço em linhas de atributos/métodos
+    fixed = fixed.replace(/^\s*([\+\-\#\~])(\w+)\s+([A-Z]\w+)$/gm, '$1$2');
+    // Remover espaços em nomes de classes (ex: "Sistema Fechado" → "SistemaFechado")
+    fixed = fixed.replace(/class\s+(\w+)\s+(\w+)/g, 'class $1$2');
+  }
+  
+  // 8. Corrigir sintaxe de relacionamentos em classDiagrams
+  if (fixed.includes('classDiagram')) {
+    // Garantir que relacionamentos não tenham espaços nos nomes
+    fixed = fixed.replace(/(\w+)\s+(\w+)\s*(--|\.\.|\*--|o--)/g, '$1$2 $3');
+  }
+  
+  // 9. Validar estrutura básica
   if (!fixed.includes('graph') && !fixed.includes('classDiagram') && !fixed.includes('sequenceDiagram') && !fixed.includes('gantt')) {
     errors.push('Tipo de diagrama não reconhecido');
     return { valid: false, fixed, errors };
   }
   
-  // 8. Validar nodes (não podem ter espaços sem aspas)
+  // 10. Validar nodes (não podem ter espaços sem aspas)
   const nodeRegex = /(\w+)\s+([A-Z]\w+)\s*\[/g;
   const matches = fixed.match(nodeRegex);
   if (matches) {
@@ -924,10 +938,10 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
     });
   }
   
-  // 9. Verificar linhas vazias excessivas
+  // 11. Verificar linhas vazias excessivas
   fixed = fixed.replace(/\n\n+/g, '\n');
   
-  // 10. Validar fechamentos de blocos
+  // 12. Validar fechamentos de blocos
   const openBraces = (fixed.match(/\{/g) || []).length;
   const closeBraces = (fixed.match(/\}/g) || []).length;
   
@@ -949,7 +963,16 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
 function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
   console.log('[convertToStructured] 🔄 Converting markdown to structured JSON...');
   
-  const lines = markdown.split('\n');
+  // PRÉ-PROCESSAMENTO: Limpar markdown ANTES de parsear
+  let cleanedMarkdown = markdown
+    // 1. Normalizar LaTeX: $ expr $ → $$expr$$
+    .replace(/\$\s+(.+?)\s+\$/g, '$$$$1$$')
+    // 2. Remover asteriscos extras em títulos (ex: **2. Título** → 2. Título)
+    .replace(/^(#{1,4})\s*\*\*(.+?)\*\*\s*$/gm, '$1 $2')
+    // 3. Limpar linhas com apenas "---"
+    .replace(/^-{3,}$/gm, '');
+  
+  const lines = cleanedMarkdown.split('\n');
   const conteudo: any[] = [];
   let currentParagraph = '';
   let skipUntilSection = false; // Flag to skip index/table of contents
@@ -991,16 +1014,17 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
       continue;
     }
     
-    // H2 headings (## )
+    // H2 headings (## ) - Remover asteriscos residuais
     if (line.startsWith('## ')) {
       if (currentParagraph) {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
         currentParagraph = '';
       }
-      conteudo.push({
-        tipo: 'h2',
-        texto: line.replace('## ', '').replace(/\*\*/g, '').trim()
-      });
+      const cleanTitle = line
+        .replace('## ', '')
+        .replace(/^\*\*|\*\*$/g, '') // Remove ** do início/fim
+        .trim();
+      conteudo.push({ tipo: 'h2', texto: cleanTitle });
       continue;
     }
     
@@ -1010,10 +1034,11 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
         currentParagraph = '';
       }
-      conteudo.push({
-        tipo: 'h2',
-        texto: line.replace('### ', '').replace(/\*\*/g, '').trim()
-      });
+      const cleanTitle = line
+        .replace('### ', '')
+        .replace(/^\*\*|\*\*$/g, '')
+        .trim();
+      conteudo.push({ tipo: 'h2', texto: cleanTitle });
       continue;
     }
     
@@ -1023,10 +1048,11 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
         currentParagraph = '';
       }
-      conteudo.push({
-        tipo: 'h2',
-        texto: line.replace('#### ', '').replace(/\*\*/g, '').trim()
-      });
+      const cleanTitle = line
+        .replace('#### ', '')
+        .replace(/^\*\*|\*\*$/g, '')
+        .trim();
+      conteudo.push({ tipo: 'h2', texto: cleanTitle });
       continue;
     }
     
