@@ -568,44 +568,82 @@ const LectureTranscriptionPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Buscar turmas via teacher_turma_access
+      const { data: accessData, error: accessError } = await supabase
+        .from('teacher_turma_access')
+        .select('turma_id')
+        .eq('teacher_id', user.id);
+
+      if (accessError) throw accessError;
+
+      const turmaIds = accessData?.map(a => a.turma_id) || [];
+      
+      if (turmaIds.length === 0) {
+        setClasses([]);
+        return;
+      }
+
       const { data, error } = await supabase
-        .from('classes')
+        .from('turmas')
         .select('*')
-        .eq('teacher_id', user.id)
-        .order('created_at', { ascending: false });
+        .in('id', turmaIds);
 
       if (error) throw error;
-      setClasses(data || []);
+
+      // PRÉ-FILTRAR por 6º Período automaticamente
+      const filtered = (data || []).filter((turma: any) => 
+        turma.periodo === '6' || turma.periodo === '6º Período' || turma.period === '6'
+      );
+
+      console.log('[loadClasses] 📚 Classes (filtered for 6th period):', filtered.length);
+
+      setClasses(filtered);
+      
+      // Auto-selecionar primeira turma do 6º período se existir e lecture.turma_id corresponder
+      if (filtered.length > 0 && lecture?.turma_id) {
+        const matchingClass = filtered.find((c: any) => c.id === lecture.turma_id);
+        if (matchingClass) {
+          setSelectedClassId(matchingClass.id);
+          loadStudents(matchingClass.id);
+          console.log('[loadClasses] ✅ Auto-selected class:', matchingClass);
+        } else if (filtered.length > 0) {
+          // Fallback para primeira turma disponível
+          const firstClass = filtered[0];
+          setSelectedClassId(firstClass.id);
+          loadStudents(firstClass.id);
+          console.log('[loadClasses] ✅ Auto-selected first available class:', firstClass);
+        }
+      }
     } catch (error) {
       console.error('Error loading classes:', error);
     }
   };
 
   const loadStudents = async (classId: string) => {
+    console.log('[loadStudents] 📚 Loading students for turma:', classId);
+    
     try {
-      const { data, error } = await supabase
+      // QUERY SIMPLIFICADA: buscar IDs primeiro
+      const { data: enrollments, error: enrollError } = await supabase
         .from('turma_enrollments')
-        .select(`
-          aluno_id,
-          users!turma_enrollments_aluno_id_fkey (
-            id,
-            full_name,
-            email
-          )
-        `)
+        .select('aluno_id')
         .eq('turma_id', classId);
 
-      if (error) throw error;
+      if (enrollError) {
+        console.error('[loadStudents] ❌ Error fetching enrollments:', enrollError);
+        return;
+      }
 
-      const studentIds = data?.map((e: any) => e.aluno_id) || [];
-      console.log('[loadStudents] 👥 Found', studentIds.length, 'enrollments');
+      const studentIds = enrollments?.map(e => e.aluno_id) || [];
+      console.log('[loadStudents] 👥 Found', studentIds.length, 'enrollments:', studentIds);
 
       if (studentIds.length === 0) {
+        console.warn('[loadStudents] ⚠️ No students enrolled in this turma');
         setStudents([]);
         return;
       }
 
-      // Buscar dados dos usuários da tabela users (sem auth.admin)
+      // Query SEPARADA para buscar dados dos usuários
       const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select('id, full_name, email')
@@ -618,16 +656,22 @@ const LectureTranscriptionPage = () => {
 
       console.log('[loadStudents] 🔍 Raw users data:', usersData);
 
-      const studentsData: Student[] = (usersData || []).map((user) => {
+      if (!usersData || usersData.length === 0) {
+        console.error('[loadStudents] ❌ No user data found for IDs:', studentIds);
+        setStudents([]);
+        return;
+      }
+
+      const studentsData: Student[] = usersData.map((user) => {
         // Multi-level fallback for name
         const fullName = 
-          user.full_name || 
+          user.full_name?.trim() || 
           user.email?.split('@')[0] || 
           'Aluno sem cadastro';
         
         const isPlaceholder = !user.full_name;
         
-        console.log(`[loadStudents] 📝 User ${user.id}: "${fullName}" ${isPlaceholder ? '(placeholder from email)' : '(real name)'}`);
+        console.log(`[loadStudents] 📝 User ${user.id}: "${fullName}" ${isPlaceholder ? '(from email)' : '(real name)'}`);
         
         return {
           id: user.id,
@@ -638,8 +682,9 @@ const LectureTranscriptionPage = () => {
 
       console.log('[loadStudents] ✅ Loaded', studentsData.length, 'students');
       setStudents(studentsData);
+      
     } catch (error) {
-      console.error('[loadStudents] ❌ Error loading students:', error);
+      console.error('[loadStudents] ❌ Unexpected error:', error);
       setStudents([]);
     }
   };

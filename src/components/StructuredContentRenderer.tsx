@@ -9,21 +9,36 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 const convertMarkdownToHtml = (text: string): string => {
   if (!text) return '';
   
-  return text
-    // 1. LaTeX inline: $$...$$ → <span class="math-inline">...</span>
-    .replace(/\$\$(.+?)\$\$/g, '<span class="math-inline katex" style="font-family: \'KaTeX_Main\', \'Times New Roman\', serif; font-style: italic; color: #7C3AED; background: rgba(139, 92, 246, 0.1); padding: 0.125rem 0.25rem; border-radius: 0.25rem;">$1</span>')
-    // 2. Negrito: **texto** → <strong>texto</strong>
+  let processed = text;
+  
+  // 1. PROCESSAR LaTeX INLINE primeiro ($$...$$)
+  const latexMatches = processed.match(/\$\$(.+?)\$\$/g) || [];
+  const latexReplacements: Record<string, string> = {};
+  
+  latexMatches.forEach((match, idx) => {
+    const formula = match.replace(/\$\$/g, '');
+    const placeholder = `___LATEX_${idx}___`;
+    latexReplacements[placeholder] = `<span class="math-inline-rendered" data-formula="${formula.replace(/"/g, '&quot;')}">${formula}</span>`;
+    processed = processed.replace(match, placeholder);
+  });
+  
+  // 2. Processar markdown básico
+  processed = processed
+    // Negrito com cor roxa
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-purple-700">$1</strong>')
-    // 3. Itálico: *texto* → <em>texto</em> (só depois de negrito)
-    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em class="italic">$1</em>')
-    // 4. Código inline: `texto` → <code>texto</code>
-    .replace(/`(.+?)`/g, '<code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono">$1</code>')
-    // 5. Quebras de linha
-    .replace(/&lt;br&gt;/gi, '<br>')
-    .replace(/&lt;br \/&gt;/gi, '<br>')
-    .replace(/&lt;br\/&gt;/gi, '<br>')
-    .replace(/\\n/g, '<br>')
+    // Itálico
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em class="italic text-slate-700">$1</em>')
+    // Código inline
+    .replace(/`(.+?)`/g, '<code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono text-purple-600">$1</code>')
+    // Quebras de linha
     .replace(/\n/g, '<br>');
+  
+  // 3. Restaurar LaTeX processado
+  Object.entries(latexReplacements).forEach(([placeholder, html]) => {
+    processed = processed.replace(placeholder, html);
+  });
+  
+  return processed;
 };
 
 interface ContentBlock {

@@ -457,17 +457,6 @@ async function generateEducationalReport(
 **Professor:** ${teacherName || 'Professor'}
 \`\`\`
 
-## Índice:
-1. Introdução: [Título contextualizador]
-2. Conceitos Fundamentais
-   - 2.1. [Conceito 1]
-   - 2.2. [Conceito 2]
-3. Aplicações Práticas em Engenharia
-4. Exemplos Resolvidos
-5. Exercícios Propostos
-6. Conclusão: Reflexões e Próximos Passos
-7. **Fontes e Referências** (obrigatório)
-
 ## Corpo do Texto:
 - Use **markdown profissional** (##, ###, **negrito**, listas numeradas)
 - Inclua equações LaTeX quando relevante: $$E = mc^2$$
@@ -857,6 +846,60 @@ Criar um material que:
   }
 }
 
+/**
+ * Valida e corrige sintaxe Mermaid antes de salvar
+ */
+function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: string; errors: string[] } {
+  const errors: string[] = [];
+  let fixed = code.trim();
+  
+  console.log('[Mermaid Validator] 🔍 Checking syntax...');
+  
+  // 1. Corrigir caracteres proibidos em nomes de métodos/atributos
+  fixed = fixed.replace(/\+(\w+)\(/g, '$1(');
+  
+  // 2. Corrigir espaços em definições de classe
+  fixed = fixed.replace(/class\s+([A-Z]\w+)\s+([A-Z]\w+)/g, (match, word1, word2) => {
+    return `class ${word1}${word2}`;
+  });
+  
+  // 3. Validar estrutura básica
+  if (!fixed.includes('graph') && !fixed.includes('classDiagram') && !fixed.includes('sequenceDiagram') && !fixed.includes('gantt')) {
+    errors.push('Tipo de diagrama não reconhecido');
+    return { valid: false, fixed, errors };
+  }
+  
+  // 4. Validar nodes (não podem ter espaços sem aspas)
+  const nodeRegex = /(\w+)\s+([A-Z]\w+)\s*\[/g;
+  const matches = fixed.match(nodeRegex);
+  if (matches) {
+    matches.forEach(match => {
+      const fixedMatch = match.replace(/\s+/g, '');
+      fixed = fixed.replace(match, fixedMatch);
+    });
+  }
+  
+  // 5. Verificar linhas vazias excessivas
+  fixed = fixed.replace(/\n\n+/g, '\n');
+  
+  // 6. Validar fechamentos de blocos
+  const openBraces = (fixed.match(/\{/g) || []).length;
+  const closeBraces = (fixed.match(/\}/g) || []).length;
+  
+  if (openBraces !== closeBraces) {
+    errors.push(`Parênteses desbalanceados: ${openBraces} { vs ${closeBraces} }`);
+  }
+  
+  const valid = errors.length === 0;
+  console.log(`[Mermaid Validator] ${valid ? '✅ Valid' : '❌ Invalid'} - Fixed ${fixed.length - code.length} chars`);
+  
+  if (!valid) {
+    console.warn('[Mermaid Validator] Errors:', errors);
+  }
+  
+  return { valid, fixed, errors };
+}
+
 // Convert Markdown to Structured JSON (for StructuredContentRenderer - same logic as TeacherAnnotations)
 function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
   console.log('[convertToStructured] 🔄 Converting markdown to structured JSON...');
@@ -920,6 +963,23 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
         mermaidCode += lines[i] + '\n';
         i++;
       }
+      
+      // ✅ VALIDAR E CORRIGIR sintaxe Mermaid
+      const validation = validateAndFixMermaidSyntax(mermaidCode);
+      
+      if (!validation.valid) {
+        console.warn('[convertToStructured] ⚠️ Mermaid inválido, pulando bloco:', validation.errors);
+        // Adicionar placeholder ao invés de código quebrado
+        conteudo.push({
+          tipo: 'caixa_de_destaque',
+          titulo: '📊 Diagrama Visual',
+          texto: 'Um diagrama será adicionado em breve para ilustrar este conceito.'
+        });
+        continue;
+      }
+      
+      // Usar código CORRIGIDO
+      mermaidCode = validation.fixed;
       
       // Detect diagram type from code - usar tipos que StructuredContentRenderer reconhece
       let tipo = 'diagrama';
