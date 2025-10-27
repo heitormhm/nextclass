@@ -1151,11 +1151,38 @@ const LectureTranscriptionPage = () => {
         return;
       }
 
-      console.log('[Enrich Graphics] Resposta:', data);
+      console.log('[Enrich Graphics] Resposta recebida:', data);
 
-      // Recarregar dados da aula
+      if (!data) {
+        toast({
+          variant: 'destructive',
+          title: 'Erro na resposta',
+          description: 'Nenhum dado retornado pela edge function',
+        });
+        return;
+      }
+
+      if (!data.updatedContent || !data.updatedContent.material_didatico) {
+        console.error('[Enrich Graphics] Estrutura inválida:', data);
+        toast({
+          variant: 'destructive',
+          title: 'Erro na estrutura da resposta',
+          description: data.response || 'Resposta da IA não contém material atualizado',
+        });
+        return;
+      }
+
+      console.log('[Enrich Graphics] Material atualizado recebido, salvando...');
+
+      // Atualizar no estado local IMEDIATAMENTE (optimistic update)
+      setStructuredContent({
+        ...structuredContent,
+        material_didatico: data.updatedContent.material_didatico
+      });
+
+      // Recarregar do banco para confirmar
       await loadLectureData();
-      
+
       toast({
         title: '✅ Gráficos adicionados!',
         description: 'O material didático foi enriquecido com elementos visuais',

@@ -38,6 +38,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const [progressMessage, setProgressMessage] = useState<string>('');
   const { toast } = useToast();
   const hasProcessedCompletion = useRef(false);
+  const pollInterval = useRef<NodeJS.Timeout | null>(null);
   
   // Use refs to avoid re-creating the effect when these change
   const onUpdateRef = useRef(onUpdate);
@@ -48,13 +49,20 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
     toastRef.current = toast;
   }, [onUpdate, toast]);
 
+  // Helper function to stop polling
+  const stopPolling = () => {
+    if (pollInterval.current) {
+      console.log('🛑 [Deep Search] Stopping polling explicitly');
+      clearInterval(pollInterval.current);
+      pollInterval.current = null;
+    }
+  };
+
   // Subscribe to job updates via realtime with polling fallback
   useEffect(() => {
     if (!jobId) return;
 
     console.log('🔔 [Deep Search] Subscribing to job:', jobId);
-
-    let pollInterval: NodeJS.Timeout | null = null;
 
     const handleJobUpdate = (job: any) => {
       // Map progress to steps (0-1 → 0-3), cap at 3 during processing
@@ -77,7 +85,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         setCurrentStep(4);
         setProgressMessage('Concluído!');
         
-        // Limpar jobId ANTES de onUpdate para parar polling
+        stopPolling(); // ⭐ STOP POLLING BEFORE CLEARING JOB ID
         setJobId(null);
         
         setTimeout(() => {
@@ -125,7 +133,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         if (status !== 'SUBSCRIBED') {
           console.warn('⚠️ [Deep Search] Realtime subscription not active, starting polling fallback...');
           
-          pollInterval = setInterval(async () => {
+          pollInterval.current = setInterval(async () => {
             const { data: job } = await supabase
               .from('teacher_jobs')
               .select('*')
@@ -142,10 +150,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
 
     return () => {
       console.log('🔌 [Deep Search] Unsubscribing from job');
-      if (pollInterval) {
-        console.log('🔄 [Deep Search] Stopping polling');
-        clearInterval(pollInterval);
-      }
+      stopPolling();
       supabase.removeChannel(channel);
     };
   }, [jobId]);
@@ -228,20 +233,18 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
 
       console.log('✅ [Deep Search] Permissões validadas');
 
-      // Get teacher name from users table
-      console.log('👤 [Deep Search] Buscando nome do professor...');
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
+      // Get teacher's name from user metadata (same as Navbar)
+      console.log('👤 [Deep Search] Obtendo nome do professor...');
+      const fullName = user.user_metadata?.full_name || '';
+      const nameParts = fullName.split(' ').filter(Boolean);
+      const firstName = nameParts[0] || user.email?.split('@')[0] || 'Professor';
+      const lastName = nameParts[nameParts.length - 1] || '';
+      const teacherName = firstName && lastName 
+        ? `${firstName} ${lastName}` 
+        : firstName;
 
-      if (profileError || !profile?.full_name) {
-        console.warn('⚠️ [Deep Search] Nome não encontrado, usando email como fallback');
-      }
-
-      const teacherName = profile?.full_name || user.email?.split('@')[0] || 'Professor';
       console.log('✅ [Deep Search] Nome do professor:', teacherName);
+      console.log('📋 [Deep Search] user_metadata.full_name:', user.user_metadata?.full_name);
 
       // Preparar payload do job
       const jobPayload = {

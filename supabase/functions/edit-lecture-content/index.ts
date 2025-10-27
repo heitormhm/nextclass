@@ -26,21 +26,27 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const systemPrompt = `Você é Mia, uma assistente de IA pedagógica especializada em edição de material didático.
-Sua tarefa é ajustar o conteúdo educacional com base nas instruções do professor, mantendo qualidade e coerência.
+    const systemPrompt = `Você é Mia, assistente especializada em edição de material didático.
 
-DIRETRIZES:
-1. Mantenha o formato JSON original do conteúdo
-2. Aplique as edições solicitadas de forma precisa
-3. Preserve a qualidade pedagógica do material
-4. Se solicitado adicionar/remover itens, ajuste a estrutura adequadamente
-5. Confirme as mudanças feitas na sua resposta
+TAREFA: Editar o conteúdo com base nas instruções do professor.
 
-IMPORTANTE: Retorne um JSON com:
+FORMATO DE RESPOSTA OBRIGATÓRIO (JSON válido):
 {
-  "response": "Mensagem explicando o que foi alterado",
-  "updatedContent": {objeto JSON com o conteúdo atualizado}
-}`;
+  "response": "Breve descrição do que foi alterado (max 100 caracteres)",
+  "updatedContent": {
+    "material_didatico": "conteúdo atualizado aqui com gráficos Mermaid integrados"
+  }
+}
+
+REGRAS:
+1. SEMPRE retorne JSON válido no formato acima
+2. NUNCA adicione texto fora do JSON
+3. NUNCA use markdown code blocks (sem \`\`\`json)
+4. Para gráficos, use blocos Mermaid: \`\`\`mermaid ... \`\`\`
+5. Mantenha o conteúdo original e adicione elementos visuais
+6. Use no mínimo 2 diagramas Mermaid relevantes
+
+IMPORTANTE: Sua resposta DEVE ser JSON puro, iniciando com { e terminando com }`;
 
     const userPrompt = `Seção: ${sectionTitle}
 
@@ -88,17 +94,38 @@ Aplique a edição solicitada e retorne o resultado no formato especificado.`;
     // Parse the JSON response
     let result;
     try {
-      const jsonMatch = aiContent.match(/```json\s*([\s\S]*?)\s*```/) || 
-                       aiContent.match(/```\s*([\s\S]*?)\s*```/);
-      const jsonString = jsonMatch ? jsonMatch[1] : aiContent;
-      result = JSON.parse(jsonString.trim());
+      // Remover markdown code blocks se existirem
+      let cleanedContent = aiContent.trim();
+      
+      // Remover ```json ... ``` ou ``` ... ```
+      const jsonMatch = cleanedContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        cleanedContent = jsonMatch[1].trim();
+      }
+      
+      // Tentar encontrar JSON válido
+      const jsonStart = cleanedContent.indexOf('{');
+      const jsonEnd = cleanedContent.lastIndexOf('}');
+      
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        cleanedContent = cleanedContent.substring(jsonStart, jsonEnd + 1);
+      }
+      
+      result = JSON.parse(cleanedContent);
+      
+      // Validar estrutura
+      if (!result.updatedContent || !result.updatedContent.material_didatico) {
+        throw new Error('Invalid response structure: missing updatedContent.material_didatico');
+      }
+      
+      console.log('✅ Successfully parsed AI response with valid structure');
+      
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      // Fallback: return just the response text
-      result = {
-        response: aiContent,
-        updatedContent: null
-      };
+      console.error('❌ Failed to parse AI response:', parseError);
+      console.error('📋 Raw AI content:', aiContent.substring(0, 500));
+      
+      // Fallback: tentar extrair apenas o material_didatico
+      throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
     }
 
     // Update lecture in database if content was modified
