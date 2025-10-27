@@ -127,10 +127,30 @@ serve(async (req) => {
 
     // Step 6: Format the response
     const formattedClasses = lectures.map((lecture, index) => {
-      // Extract thumbnail from structured_content if available
+      // Extract thumbnail from structured_content with multiple fallbacks
       let thumbnail = '';
-      if (lecture.structured_content?.sections?.[0]?.image) {
-        thumbnail = lecture.structured_content.sections[0].image;
+      if (lecture.structured_content) {
+        // Priority 1: Direct thumbnail field
+        if (lecture.structured_content.thumbnail) {
+          thumbnail = lecture.structured_content.thumbnail;
+        } 
+        // Priority 2: First section with image
+        else if (lecture.structured_content.sections?.[0]?.image) {
+          thumbnail = lecture.structured_content.sections[0].image;
+        }
+        // Priority 3: Search any section for an image
+        else if (lecture.structured_content.sections) {
+          const sectionWithImage = lecture.structured_content.sections.find(
+            (section: any) => section.image
+          );
+          if (sectionWithImage) {
+            thumbnail = sectionWithImage.image;
+          }
+        }
+        // Priority 4: If has flashcards, use default indicator
+        else if (lecture.structured_content.flashcards && lecture.structured_content.flashcards.length > 0) {
+          thumbnail = 'flashcard-default';
+        }
       }
       
       return {
