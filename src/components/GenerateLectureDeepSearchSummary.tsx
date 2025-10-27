@@ -38,6 +38,15 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const [progressMessage, setProgressMessage] = useState<string>('');
   const { toast } = useToast();
   const hasProcessedCompletion = useRef(false);
+  
+  // Use refs to avoid re-creating the effect when these change
+  const onUpdateRef = useRef(onUpdate);
+  const toastRef = useRef(toast);
+
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+    toastRef.current = toast;
+  }, [onUpdate, toast]);
 
   // Subscribe to job updates via realtime with polling fallback
   useEffect(() => {
@@ -76,8 +85,8 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
           setCurrentStep(0);
           setError(null);
           setProgressMessage('');
-          onUpdate();
-          toast({
+          onUpdateRef.current();
+          toastRef.current({
             title: 'Material didático gerado!',
             description: 'Pesquisa profunda concluída com sucesso.',
           });
@@ -86,7 +95,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         console.error('❌ [Deep Search] Job FAILED:', job.error_message);
         setError(job.error_message || 'Erro desconhecido');
         setIsGenerating(false);
-        toast({
+        toastRef.current({
           variant: 'destructive',
           title: 'Erro na geração',
           description: job.error_message || 'Não foi possível gerar o material didático',
@@ -139,7 +148,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
       }
       supabase.removeChannel(channel);
     };
-  }, [jobId, toast, onUpdate]);
+  }, [jobId]);
 
   const handleGenerate = async () => {
     console.log('🚀 [Deep Search] === INÍCIO DO PROCESSO ===');
@@ -223,9 +232,13 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
       console.log('👤 [Deep Search] Buscando nome do professor...');
       const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select('full_name, email')
+        .select('full_name')
         .eq('id', user.id)
         .single();
+
+      if (profileError || !profile?.full_name) {
+        console.warn('⚠️ [Deep Search] Nome não encontrado, usando email como fallback');
+      }
 
       const teacherName = profile?.full_name || user.email?.split('@')[0] || 'Professor';
       console.log('✅ [Deep Search] Nome do professor:', teacherName);
