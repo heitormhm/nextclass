@@ -597,63 +597,46 @@ const LectureTranscriptionPage = () => {
 
       if (error) throw error;
 
-      console.log('[loadStudents] 🔍 Raw data:', data);
-
-      // Buscar dados dos usuários via auth.users (mais confiável que users table)
       const studentIds = data?.map((e: any) => e.aluno_id) || [];
-      
-      console.log('[loadStudents] 👥 Loading students for turma:', lecture.turma_id, '- Found', studentIds.length, 'enrollments');
-      
-      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError || !authData) {
-        console.warn('[loadStudents] ⚠️ auth.users failed, using fallback:', authError);
-        
-        // Fallback: usar users table
-        const studentsData: Student[] = (data || []).map((enrollment: any) => {
-          const user = enrollment.users;
-          const fullName = 
-            user?.full_name || 
-            user?.email?.split('@')[0] || 
-            'Aluno sem nome';
-          
-          const isPlaceholder = fullName === user?.email?.split('@')[0] || fullName === 'Aluno sem nome';
-          
-          return {
-            id: enrollment.aluno_id,
-            name: isPlaceholder ? `${fullName} 📧` : fullName,
-            hasAccess: true,
-          };
-        });
-        
-        console.log('[loadStudents] ✅ Fallback complete:', studentsData.length);
-        setStudents(studentsData);
+      console.log('[loadStudents] 👥 Found', studentIds.length, 'enrollments');
+
+      if (studentIds.length === 0) {
+        setStudents([]);
         return;
       }
-      
-      // Filtrar apenas alunos matriculados e extrair nome completo do metadata
-      const studentsData: Student[] = (authData.users || [])
-        .filter((user: any) => studentIds.includes(user.id))
-        .map((user: any) => {
-          // Multi-level fallback for name
-          const fullName = 
-            user.user_metadata?.full_name || 
-            user.raw_user_meta_data?.full_name ||
-            user.email?.split('@')[0] ||
-            'Sem nome cadastrado';
-          
-          const isPlaceholder = fullName === user.email?.split('@')[0] || fullName === 'Sem nome cadastrado';
-          
-          console.log(`[loadStudents] 📝 User ${user.id}: "${fullName}" ${isPlaceholder ? '(placeholder)' : '(real name)'}`);
-          
-          return {
-            id: user.id,
-            name: isPlaceholder ? `${fullName} 📧` : fullName,
-            hasAccess: true,
-          };
-        });
 
-      console.log('[loadStudents] ✅ Loaded via auth.users:', studentsData.length);
+      // Buscar dados dos usuários da tabela users (sem auth.admin)
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, full_name, email')
+        .in('id', studentIds);
+
+      if (usersError) {
+        console.error('[loadStudents] ❌ Error fetching users:', usersError);
+        return;
+      }
+
+      console.log('[loadStudents] 🔍 Raw users data:', usersData);
+
+      const studentsData: Student[] = (usersData || []).map((user) => {
+        // Multi-level fallback for name
+        const fullName = 
+          user.full_name || 
+          user.email?.split('@')[0] || 
+          'Aluno sem cadastro';
+        
+        const isPlaceholder = !user.full_name;
+        
+        console.log(`[loadStudents] 📝 User ${user.id}: "${fullName}" ${isPlaceholder ? '(placeholder from email)' : '(real name)'}`);
+        
+        return {
+          id: user.id,
+          name: isPlaceholder ? `${fullName} 📧` : fullName,
+          hasAccess: true,
+        };
+      });
+
+      console.log('[loadStudents] ✅ Loaded', studentsData.length, 'students');
       setStudents(studentsData);
     } catch (error) {
       console.error('[loadStudents] ❌ Error loading students:', error);

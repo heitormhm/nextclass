@@ -10,11 +10,15 @@ const convertMarkdownToHtml = (text: string): string => {
   if (!text) return '';
   
   return text
-    // 1. Negrito: **texto** → <strong>texto</strong>
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // 2. Itálico: *texto* → <em>texto</em> (só depois de negrito para evitar conflito)
-    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
-    // 3. Quebras de linha escapadas
+    // 1. LaTeX inline: $$...$$ → <span class="math-inline">...</span>
+    .replace(/\$\$(.+?)\$\$/g, '<span class="math-inline katex" style="font-family: \'KaTeX_Main\', \'Times New Roman\', serif; font-style: italic; color: #7C3AED; background: rgba(139, 92, 246, 0.1); padding: 0.125rem 0.25rem; border-radius: 0.25rem;">$1</span>')
+    // 2. Negrito: **texto** → <strong>texto</strong>
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-purple-700">$1</strong>')
+    // 3. Itálico: *texto* → <em>texto</em> (só depois de negrito)
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em class="italic">$1</em>')
+    // 4. Código inline: `texto` → <code>texto</code>
+    .replace(/`(.+?)`/g, '<code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono">$1</code>')
+    // 5. Quebras de linha
     .replace(/&lt;br&gt;/gi, '<br>')
     .replace(/&lt;br \/&gt;/gi, '<br>')
     .replace(/&lt;br\/&gt;/gi, '<br>')

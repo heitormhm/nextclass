@@ -881,28 +881,28 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
       continue;
     }
     
-    // H3 headings
+    // H3 headings - CONVERTER PARA H2 para compatibilidade
     if (line.startsWith('### ')) {
       if (currentParagraph) {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
         currentParagraph = '';
       }
       conteudo.push({
-        tipo: 'h3',
-        texto: line.replace('### ', '')
+        tipo: 'h2',
+        texto: line.replace('### ', '').replace(/\*\*/g, '')
       });
       continue;
     }
     
-    // H4 headings
+    // H4 headings - CONVERTER PARA H2
     if (line.startsWith('#### ')) {
       if (currentParagraph) {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
         currentParagraph = '';
       }
       conteudo.push({
-        tipo: 'h4',
-        texto: line.replace('#### ', '')
+        tipo: 'h2',
+        texto: line.replace('#### ', '').replace(/\*\*/g, '')
       });
       continue;
     }
@@ -921,20 +921,24 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
         i++;
       }
       
-      // Detect diagram type from code
+      // Detect diagram type from code - usar tipos que StructuredContentRenderer reconhece
       let tipo = 'diagrama';
       let titulo = '📊 Diagrama Visual';
       
-      if (mermaidCode.includes('graph TD') || mermaidCode.includes('graph LR')) {
+      const trimmedCode = mermaidCode.trim();
+      if (trimmedCode.startsWith('graph TD') || trimmedCode.startsWith('graph LR')) {
         tipo = 'fluxograma';
         titulo = '📊 Fluxograma';
-      } else if (mermaidCode.includes('sequenceDiagram')) {
+      } else if (trimmedCode.startsWith('gantt')) {
+        tipo = 'cronograma_gantt';
+        titulo = '📅 Cronograma';
+      } else if (trimmedCode.includes('sequenceDiagram')) {
         tipo = 'diagrama';
         titulo = '🔄 Diagrama de Sequência';
-      } else if (mermaidCode.includes('stateDiagram')) {
+      } else if (trimmedCode.includes('stateDiagram')) {
         tipo = 'diagrama';
         titulo = '🔀 Diagrama de Estados';
-      } else if (mermaidCode.includes('classDiagram')) {
+      } else if (trimmedCode.includes('classDiagram')) {
         tipo = 'diagrama';
         titulo = '📐 Diagrama de Classes';
       }
