@@ -84,25 +84,55 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         const renderTimeout = setTimeout(() => {
           console.error('[Mermaid] Render timeout');
           setError('timeout');
-        }, 8000); // Aumentar timeout para 8s
+        }, 10000); // Timeout de 10s
 
-        try {
-          const { svg } = await mermaid.render(uniqueId, sanitizedCode);
-          clearTimeout(renderTimeout);
+        // ✅ FASE 5: Estratégia de fallback com múltiplas tentativas
+        const renderStrategies = [
+          { name: 'Original', code: sanitizedCode },
+          { 
+            name: 'Add space after graph type', 
+            code: sanitizedCode.replace(/^graph([A-Z]{2,})/m, 'graph $1 ') 
+          },
+          { 
+            name: 'Remove quotes from labels', 
+            code: sanitizedCode.replace(/\["([^"]+)"\]/g, '[$1]') 
+          },
+          { 
+            name: 'Simplify text in labels', 
+            code: sanitizedCode.replace(/\[([^\]]{50,})\]/g, (match, content) => {
+              return `[${content.substring(0, 40)}...]`;
+            })
+          },
+        ];
+
+        let renderSuccess = false;
+        
+        for (const strategy of renderStrategies) {
+          if (renderSuccess) break;
           
-          // ✅ REMOVER validação de erro no SVG - se renderizou, aceitar
-          if (ref.current) {
-            ref.current.innerHTML = svg;
+          try {
+            console.log(`[Mermaid] Trying strategy: ${strategy.name}`);
+            const { svg } = await mermaid.render(`${uniqueId}-${strategy.name}`, strategy.code);
+            
+            clearTimeout(renderTimeout);
+            
+            if (ref.current) {
+              ref.current.innerHTML = svg;
+            }
+            
+            setError(null);
+            renderSuccess = true;
+            console.log(`[Mermaid] ✅ Rendered successfully with strategy: ${strategy.name}`);
+          } catch (strategyErr) {
+            console.warn(`[Mermaid] Strategy "${strategy.name}" failed:`, strategyErr);
+            continue; // Tentar próxima estratégia
           }
-          
-          setError(null);
-        } catch (renderErr) {
+        }
+        
+        if (!renderSuccess) {
           clearTimeout(renderTimeout);
-          console.error('[Mermaid] Render failed:', renderErr);
-          
-          // ✅ Log do código que falhou para debug
-          console.error('[Mermaid] Failed code:', sanitizedCode);
-          
+          console.error('[Mermaid] All render strategies failed');
+          console.error('[Mermaid] Original code:', sanitizedCode);
           setError('hidden');
         }
       } catch (err) {

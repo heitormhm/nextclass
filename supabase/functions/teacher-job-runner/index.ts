@@ -267,6 +267,76 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
     if (!validation.valid) {
       console.warn(`[Job ${job.id}] ⚠️ Mermaid syntax issues detected:`, validation.errors);
     }
+    
+    // ✅ FASE 6: Validar qualidade das referências
+    const validateReferences = (text: string): { valid: boolean; issues: string[] } => {
+      const issues: string[] = [];
+      
+      // Fontes banidas (baixa qualidade acadêmica)
+      const bannedSources = [
+        'brasilescola.uol.com.br',
+        'pt.wikipedia.org',
+        'mundoeducacao.uol.com.br',
+        'infoescola.com',
+        'todamateria.com.br',
+      ];
+      
+      // Fontes acadêmicas preferidas
+      const academicSources = [
+        'ieee.org',
+        'sciencedirect.com',
+        'springer.com',
+        '.edu',
+        'researchgate.net',
+        'doi.org',
+        'scholar.google',
+      ];
+      
+      // Extrair todas as URLs do texto
+      const urlRegex = /https?:\/\/[^\s\)]+/g;
+      const urls = text.match(urlRegex) || [];
+      
+      // Contar fontes banidas
+      const bannedCount = urls.filter(url => 
+        bannedSources.some(banned => url.includes(banned))
+      ).length;
+      
+      // Contar fontes acadêmicas
+      const academicCount = urls.filter(url => 
+        academicSources.some(academic => url.includes(academic))
+      ).length;
+      
+      const totalUrls = urls.length;
+      const academicPercentage = totalUrls > 0 ? (academicCount / totalUrls) * 100 : 0;
+      
+      console.log(`[Reference Validation] 📊 Stats:`, {
+        total: totalUrls,
+        banned: bannedCount,
+        academic: academicCount,
+        academicPercentage: academicPercentage.toFixed(1) + '%'
+      });
+      
+      // REGRA 1: Mais de 2 fontes banidas = rejeitar
+      if (bannedCount > 2) {
+        issues.push(`Muitas fontes de baixa qualidade (${bannedCount}). Use fontes acadêmicas.`);
+      }
+      
+      // REGRA 2: Menos de 40% de fontes acadêmicas = avisar
+      if (academicPercentage < 40 && totalUrls > 5) {
+        issues.push(`Apenas ${academicPercentage.toFixed(1)}% de fontes acadêmicas. Mínimo recomendado: 40%`);
+      }
+      
+      return {
+        valid: issues.length === 0,
+        issues
+      };
+    };
+    
+    const refValidation = validateReferences(report);
+    if (!refValidation.valid) {
+      console.warn(`[Job ${job.id}] ⚠️ Reference quality issues:`, refValidation.issues);
+      // NÃO bloquear, apenas avisar
+    }
 
     // Step 5: Save report (80-100%)
     await updateJobProgress(supabase, job.id, 0.80, 'Salvando material didático...');
@@ -470,12 +540,54 @@ async function generateEducationalReport(
 - Títulos devem ser DESCRITIVOS, não genéricos
 
 - Use **markdown profissional** (##, ###, **negrito**, listas numeradas)
-- Inclua equações LaTeX INLINE com delimitadores duplos: $$E = mc^2$$ ou $$\Delta U = Q - W$$
+- **CRÍTICO - SINTAXE LaTeX OBRIGATÓRIA:** Use SEMPRE $$....$$ para fórmulas matemáticas
 - Crie tabelas comparativas para conceitos similares
 - Use blocos Mermaid para diagramas visuais (flowcharts, class diagrams)
 - **Extensão mínima:** 4000-5000 palavras (conteúdo denso e técnico)
 - **Distribuição por seção:**
   * Introdução: 400-600 palavras
+
+# ⚠️ FASE 3: SINTAXE LaTeX ESTRITA E MANDATÓRIA
+
+## ✅ FORMATO CORRETO (ÚNICO PERMITIDO):
+\`\`\`
+$$E = mc^2$$
+$$\\Delta U = Q - W$$
+$$W = \\int_{V_1}^{V_2} P \\, dV$$
+$$\\frac{V_2}{V_1} = \\frac{T_2}{T_1}$$
+\`\`\`
+
+## ❌ FORMATOS PROIBIDOS:
+- ** 1$ ** ← NUNCA use asteriscos + números + dólar
+- ___LATEX_DOUBLE_2___ ← NUNCA use placeholders
+- $E = mc^2$ ← NUNCA use $ simples (sempre duplo: $$)
+- \\Delta U sem delimitadores ← SEMPRE envolva em $$
+
+## 📋 REGRAS OBRIGATÓRIAS:
+1. **TODA** fórmula matemática DEVE estar entre $$..$$
+2. **NUNCA** misture asteriscos com fórmulas: \`**$$formula$$**\` é PROIBIDO
+3. Variáveis isoladas (como T, P, V) em texto corrido NÃO precisam de $$
+4. Expressões matemáticas (como ΔU = Q - W) SEMPRE precisam de $$
+5. **SEMPRE** deixe espaço antes e depois: \`texto $$formula$$ texto\`
+
+## 🎯 EXEMPLOS CORRETOS vs INCORRETOS:
+
+### ✅ CORRETO:
+\`\`\`
+A energia interna (U) varia segundo $$\\Delta U = Q - W$$.
+Para um gás ideal, $$PV = nRT$$.
+O trabalho é calculado por $$W = \\int P \\, dV$$.
+\`\`\`
+
+### ❌ INCORRETO:
+\`\`\`
+** 1$ ** (placeholder corrompido)
+A energia $\\Delta U$ varia... ($ simples)
+** $$\\Delta U = Q - W$$ ** (asteriscos + fórmula)
+\\Delta U = Q - W (sem delimitadores)
+\`\`\`
+
+**IMPORTANTE:** Se você gerar fórmulas fora deste formato, o sistema REJEITARÁ o material!
   * Conceitos Fundamentais: 1200-1500 palavras (maior seção)
   * Aplicações Práticas: 1000-1300 palavras
   * Exemplos Resolvidos: 800-1000 palavras
@@ -888,19 +1000,26 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
   
   console.log('[Mermaid Validator] 🔍 Checking syntax...');
   
-  // 0. ✅ FASE 2: Corrigir falta de espaço após tipo de diagrama
-  // Ex: "graphTDA[...]" → "graph TD A[...]"
-  fixed = fixed.replace(/^graph([A-Z]+)\[/gm, (match, type) => {
+  // 0. ✅ FASE 1: Corrigir falta de espaço após tipo de diagrama + CAPTURAR ASPAS
+  // Ex: "graphTDA[...]" → "graph TD A[...]" ou "graphTDA["...]" → "graph TD A["..."]"
+  fixed = fixed.replace(/^graph([A-Z]+)\[["']?/gm, (match, type) => {
+    console.log(`[Fix] Detected: "${match}" → type: "${type}"`);
+    
     // Se tipo é TD/LR/TB/BT sem espaço
     if (['TD', 'LR', 'TB', 'BT'].includes(type)) {
-      return `graph ${type}\n    A[`;
+      // Preservar aspas se existirem no match
+      const hasQuote = match.includes('"') || match.includes("'");
+      return hasQuote ? `graph ${type}\n    A["` : `graph ${type}\n    A[`;
     }
-    // Se é algo como graphTDA
+    
+    // Se é algo como graphTDA ou graphTDA["
     if (type.length > 2) {
       const graphType = type.slice(0, 2); // TD
       const nodeName = type.slice(2); // A
-      return `graph ${graphType}\n    ${nodeName}[`;
+      const hasQuote = match.includes('"') || match.includes("'");
+      return hasQuote ? `graph ${graphType}\n    ${nodeName}["` : `graph ${graphType}\n    ${nodeName}[`;
     }
+    
     return match;
   });
 
@@ -999,14 +1118,21 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
     errors.push(`Parênteses desbalanceados: ${openBraces} { vs ${closeBraces} }`);
   }
   
-  // ✅ FASE 1: Validações OBRIGATÓRIAS que forçam invalid
+  // ✅ FASE 2: Validações OBRIGATÓRIAS FORTALECIDAS - capturar aspas em node names
   const criticalErrors = [
-    fixed.match(/graph[A-Z]+\[/), // graphTDA[...] sem espaço
+    fixed.match(/graph[A-Z]+\[["']?/), // graphTDA[..." ou graphTDA["..." sem espaço
     fixed.match(/subgraph[A-Z]+\[/), // subgraphNome[...] sem espaço
+    // NOVO: Verificar se graph existe mas NÃO tem tipo correto
+    (!fixed.match(/^graph\s+(TD|LR|TB|BT)\s/m) && fixed.includes('graph')),
   ];
 
   if (criticalErrors.some(Boolean)) {
-    errors.push('CRITICAL: Estrutura Mermaid inválida - espaçamento incorreto');
+    errors.push('CRITICAL: Estrutura Mermaid inválida - espaçamento incorreto ou tipo ausente (TD/LR/TB/BT)');
+    console.error('[Mermaid Validator] CRITICAL syntax errors detected:', {
+      hasGraphWithoutSpace: !!fixed.match(/graph[A-Z]+\[["']?/),
+      hasSubgraphWithoutSpace: !!fixed.match(/subgraph[A-Z]+\[/),
+      missingGraphType: !fixed.match(/^graph\s+(TD|LR|TB|BT)\s/m) && fixed.includes('graph'),
+    });
   }
   
   const valid = errors.length === 0;
@@ -1023,7 +1149,53 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
 async function convertMarkdownToStructuredJSON(markdown: string, title: string): Promise<any> {
   console.log('[convertToStructured] 🔄 Converting markdown to structured JSON...');
   
-  // ✅ FASE 3: Normalizar LaTeX PRIMEIRO com detecção agressiva
+  // ✅ FASE 4: AGGRESSIVE LaTeX Fix - EXECUTAR ANTES da normalização normal
+  const aggressiveLatexFix = (text: string): string => {
+    console.log('[AGGRESSIVE LaTeX Fix] 🔥 Fixing corrupted LaTeX...');
+    
+    let fixed = text;
+    
+    // 1. Remover placeholders corrompidos: ** 1$ **, ___LATEX_DOUBLE_2___, etc.
+    fixed = fixed.replace(/\*\*\s*\d+\$\s*\*\*/g, ''); // ** 1$ **
+    fixed = fixed.replace(/___LATEX_DOUBLE_\d+___/g, ''); // ___LATEX_DOUBLE_2___
+    fixed = fixed.replace(/\*\*\s*\\\w+.*?\$\s*\*\*/g, (match) => {
+      // ** \command ...$ ** → $$\command ...$$
+      const formula = match.replace(/\*\*/g, '').replace(/\$/g, '').trim();
+      return ` $$${formula}$$ `;
+    });
+    
+    // 2. Detectar expressões matemáticas isoladas (sem $$)
+    // Ex: "Onde: \Delta U = Q - W" → "Onde: $$\Delta U = Q - W$$"
+    fixed = fixed.replace(
+      /(?:^|\n|\s)(\\[A-Za-z]+(?:\{[^}]*\})?(?:\s*[=+\-*/^_]\s*\\?[A-Za-z0-9{}]+)+)/gm,
+      (match, formula) => {
+        if (!match.includes('$$')) {
+          return match.replace(formula, `$$${formula.trim()}$$`);
+        }
+        return match;
+      }
+    );
+    
+    // 3. Converter $ simples em duplo: $expr$ → $$expr$$
+    // Mas SOMENTE se não estiver já dentro de $$
+    fixed = fixed.replace(/(?<!\$)\$([^$\n]+?)\$(?!\$)/g, '$$$$1$$');
+    
+    // 4. Limpar espaços extras dentro de fórmulas
+    fixed = fixed.replace(/\$\$\s+/g, '$$');
+    fixed = fixed.replace(/\s+\$\$/g, '$$');
+    
+    // 5. Garantir espaçamento ao redor de fórmulas (para não grudar no texto)
+    fixed = fixed.replace(/(\w)(\$\$)/g, '$1 $2');
+    fixed = fixed.replace(/(\$\$)(\w)/g, '$1 $2');
+    
+    console.log('[AGGRESSIVE LaTeX Fix] ✅ Corrupted LaTeX cleaned');
+    return fixed;
+  };
+  
+  // Aplicar fix agressivo PRIMEIRO
+  const aggressiveFixed = aggressiveLatexFix(markdown);
+  
+  // ✅ FASE 3: Normalizar LaTeX DEPOIS com detecção agressiva
   const normalizeLatexSyntax = (text: string): string => {
     console.log('[LaTeX Normalizer] 🔄 Cleaning LaTeX syntax...');
     
@@ -1072,7 +1244,7 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
     return fixed;
   };
 
-  const latexNormalized = normalizeLatexSyntax(markdown);
+  const latexNormalized = normalizeLatexSyntax(aggressiveFixed);
   
   // PRÉ-PROCESSAMENTO: Limpar markdown APÓS normalizar LaTeX
   let cleanedMarkdown = latexNormalized
