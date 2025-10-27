@@ -116,51 +116,18 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
     await updateJobProgress(supabase, job.id, 0.8, 'Gerando material didático...');
     
     const report = await generateEducationalReport(query, searchResults, teacherName, lovableApiKey, job.id);
-    console.log(`[Job ${job.id}] ✅ Report generated, length: ${report.length} characters`);
+    console.log(`[Job ${job.id}] ✅ Report generated with native Mermaid diagrams, length: ${report.length} characters`);
 
-    // Step 5: Auto-enrich with graphics (80-95%)
-    await updateJobProgress(supabase, job.id, 0.80, 'Adicionando gráficos e diagramas...');
-
+    // Step 5: Save report with native graphics (80-100%)
+    await updateJobProgress(supabase, job.id, 0.80, 'Salvando material didático...');
+    
     try {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL');
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-      
-      // Chamar edit-lecture-content para adicionar gráficos
-      const editResponse = await fetch(`${supabaseUrl}/functions/v1/edit-lecture-content`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          lectureId,
-          sectionTitle: 'Material Didático',
-          currentContent: report,
-          editInstruction: 'Adicione gráficos Mermaid (flowcharts, diagramas de sequência, diagramas conceituais), tabelas comparativas e figuras explicativas para ilustrar melhor os conceitos. Inclua pelo menos 2 fluxogramas técnicos e 1 diagrama conceitual relevante ao conteúdo de engenharia. Use sintaxe Mermaid correta e posicione os gráficos estrategicamente no texto.'
-        })
-      });
-
-      if (editResponse.ok) {
-        const editData = await editResponse.json();
-        if (editData.updatedContent?.material_didatico) {
-          console.log(`[Job ${job.id}] ✅ Graphics added automatically, updated length: ${editData.updatedContent.material_didatico.length}`);
-          await updateJobProgress(supabase, job.id, 0.95, 'Gráficos adicionados com sucesso...');
-        } else {
-          console.warn(`[Job ${job.id}] ⚠️ Graphics enrichment returned invalid structure`);
-          await saveReportToLecture(supabase, lectureId, report, job.id);
-          await updateJobProgress(supabase, job.id, 0.95, 'Concluído sem gráficos automáticos');
-        }
-      } else {
-        const errorText = await editResponse.text();
-        console.warn(`[Job ${job.id}] ⚠️ Graphics enrichment failed (${editResponse.status}): ${errorText.substring(0, 200)}`);
-        
-        await saveReportToLecture(supabase, lectureId, report, job.id);
-        await updateJobProgress(supabase, job.id, 0.95, 'Concluído (gráficos não adicionados)');
-      }
-    } catch (graphicsError) {
-      console.error(`[Job ${job.id}] ❌ Error adding graphics:`, graphicsError);
-      console.log(`[Job ${job.id}] Falling back to original report without graphics`);
       await saveReportToLecture(supabase, lectureId, report, job.id);
+      console.log(`[Job ${job.id}] ✅ Report saved successfully with native Mermaid diagrams`);
+      await updateJobProgress(supabase, job.id, 0.95, 'Material salvo com sucesso!');
+    } catch (saveError) {
+      console.error(`[Job ${job.id}] ❌ Error saving report:`, saveError);
+      throw saveError;
     }
     
     // Step 6: Complete (100% progress)
@@ -408,6 +375,155 @@ async function generateEducationalReport(
 - **Listas:** Numere passos de processos, use bullets para características
 
 **IDIOMA OBRIGATÓRIO:** Português brasileiro (pt-BR).
+
+# 📊 DIAGRAMAS MERMAID OBRIGATÓRIOS
+
+**REGRA CRÍTICA:** Você DEVE incluir NO MÍNIMO 3-5 diagramas Mermaid nativamente no material.
+
+## Tipos de Diagramas a Usar:
+
+### 1. Flowchart (Fluxogramas de Processo)
+Use para: Ciclos termodinâmicos, processos industriais, algoritmos
+
+\`\`\`mermaid
+graph TD
+    A[Entrada: Calor Q] --> B{Sistema Termodinâmico}
+    B --> C[Trabalho W realizado]
+    B --> D[Aumento de Energia ΔU]
+    C --> E[Saída: Energia]
+    D --> E
+    style A fill:#e3f2fd
+    style B fill:#fff9c4
+    style E fill:#c8e6c9
+\`\`\`
+
+### 2. Sequence Diagram (Interações)
+Use para: Trocas de energia, comunicação entre componentes
+
+\`\`\`mermaid
+sequenceDiagram
+    participant S as Sistema
+    participant A as Ambiente
+    S->>A: Fornece Calor Q
+    A->>S: Realiza Trabalho W
+    S->>S: ΔU = Q - W
+    Note over S: Primeira Lei
+\`\`\`
+
+### 3. State Diagram (Máquinas de Estado)
+Use para: Transições de fase, estados de sistema
+
+\`\`\`mermaid
+stateDiagram-v2
+    [*] --> Sólido
+    Sólido --> Líquido: Fusão (adiciona calor)
+    Líquido --> Gasoso: Vaporização
+    Gasoso --> Líquido: Condensação
+    Líquido --> Sólido: Solidificação
+    Gasoso --> [*]
+\`\`\`
+
+### 4. Class Diagram (Estruturas/Componentes)
+Use para: Hierarquias de conceitos, classificações
+
+\`\`\`mermaid
+classDiagram
+    class SistemaTermodinâmico {
+        +energia_interna ΔU
+        +calor Q
+        +trabalho W
+        +calcularPrimeiraLei()
+    }
+    class SistemaFechado {
+        +massa_constante
+        +volume_variável
+    }
+    class SistemaAberto {
+        +fluxo_massa
+        +entalpia
+    }
+    SistemaTermodinâmico <|-- SistemaFechado
+    SistemaTermodinâmico <|-- SistemaAberto
+\`\`\`
+
+## 📍 Posicionamento Estratégico dos Diagramas
+
+**❌ ERRADO:**
+\`\`\`
+## 2. Primeira Lei da Termodinâmica
+
+\`\`\`mermaid
+graph TD
+...
+\`\`\`
+
+A Primeira Lei estabelece...
+\`\`\`
+
+**✅ CORRETO:**
+\`\`\`
+## 2. Primeira Lei da Termodinâmica
+
+A Primeira Lei da Termodinâmica estabelece a conservação de energia em sistemas termodinâmicos. Para um sistema fechado, a variação de energia interna (ΔU) depende do calor (Q) fornecido ao sistema e do trabalho (W) realizado pelo sistema, conforme a equação fundamental:
+
+$$\\Delta U = Q - W$$
+
+Onde:
+- **Q** → Calor transferido para o sistema (Joules)
+- **W** → Trabalho realizado pelo sistema (Joules)  
+- **ΔU** → Variação da energia interna (Joules)
+
+Esta relação é fundamental para análise de máquinas térmicas, refrigeradores e processos industriais. O diagrama abaixo ilustra o fluxo de energia em um sistema termodinâmico típico:
+
+\`\`\`mermaid
+graph TD
+    A[Sistema Recebe Calor Q] --> B{Primeira Lei<br/>ΔU = Q - W}
+    B --> C[Trabalho W<br/>realizado pelo sistema]
+    B --> D[Energia Interna ΔU<br/>aumenta]
+    C --> E[Saída: Energia útil]
+    D --> E
+    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style B fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style E fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+\`\`\`
+
+Na prática industrial, esta lei permite calcular a eficiência de motores...
+\`\`\`
+
+## 🎨 Regras de Estilo para Mermaid
+
+**SEMPRE use cores para destacar:**
+\`\`\`
+style NodoEntrada fill:#e3f2fd,stroke:#1976d2
+style NodoProcesso fill:#fff9c4,stroke:#f57f17
+style NodoSaida fill:#c8e6c9,stroke:#388e3c
+\`\`\`
+
+**Use setas descritivas:**
+\`\`\`
+A -->|Adiciona Calor Q| B
+B -->|Realiza Trabalho W| C
+\`\`\`
+
+## 📐 Distribuição Obrigatória
+
+**Para material de 3000 palavras:**
+- Seção 2 (Conceitos Fundamentais): **1-2 diagramas**
+- Seção 3 (Aplicações Práticas): **1-2 diagramas**
+- Seção 4 (Exemplos Resolvidos): **1 diagrama** (opcional)
+
+**Total mínimo: 3 diagramas | Ideal: 4-5 diagramas**
+
+## ⚠️ Validação de Sintaxe Mermaid
+
+**Certifique-se:**
+- ✅ Todos os blocos começam com \`\`\`mermaid
+- ✅ Todos os blocos terminam com \`\`\`
+- ✅ Nomes de nodos não têm espaços (use _ ou camelCase)
+- ✅ Setas usam sintaxe válida: -->, ->>, ->, ---|texto|
+- ✅ Cores usam hex válido ou nomes CSS: #e3f2fd, lightblue
+
+**TESTE cada diagrama mentalmente antes de gerar!**
 
 # 🎯 OBJETIVO FINAL
 
