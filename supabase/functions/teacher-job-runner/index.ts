@@ -1050,49 +1050,25 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
   
   console.log('[Mermaid Validator] 🔍 Checking syntax...');
   
-  // 0. ✅ FASE 2: Corrigir LINHA INTEIRA de graph com tipo colado
-  // Ex: "graphTDA["Identificar Sistema"]" → "graph TD\n    A["Identificar Sistema"]"
-  fixed = fixed.replace(/^graphTD([A-Z]+)\[([^\]]*)\]/gm, (match, nodeName, label) => {
-    console.log(`[Fix] Full line detected: "${match}"`);
-    console.log(`[Fix] → nodeName: "${nodeName}", label: "${label}"`);
-    
-    // Extrair tipo de diagrama (TD/LR/TB/BT) se estiver colado no início
-    // Ex: "graphTDA[...]" → tipo = "TD", nodeName = "A"
-    const typeMatch = nodeName.match(/^(TD|LR|TB|BT)(.*)$/);
-    
-    if (typeMatch) {
-      const [, graphType, restOfName] = typeMatch;
-      const actualNode = restOfName || 'A';
-      
-      // Verificar se label tem aspas
-      const hasQuotes = label.includes('"') || label.includes("'");
-      const cleanLabel = label.replace(/^["']|["']$/g, ''); // Remover aspas nas pontas
-      
-      console.log(`[Fix] Corrected to: graph ${graphType}\\n    ${actualNode}["${cleanLabel}"]`);
-      return `graph ${graphType}\n    ${actualNode}["${cleanLabel}"]`;
-    }
-    
-    // Fallback: não conseguiu extrair tipo
-    console.warn(`[Fix] Could not extract graph type from: ${match}`);
-    return `graph TD\n    ${nodeName}["${label}"]`;
-  });
-
-  // Corrigir casos onde graph já tem espaço mas tipo está colado no node
-  // Ex: "graph TDA[...]" → "graph TD\n    A[...]"
-  fixed = fixed.replace(/^graph\s+([A-Z]{2,})([A-Z]+)\[([^\]]*)\]/gm, (match, type, nodeName, label) => {
-    // Se type é TD/LR/TB/BT válido
+  // ✅ FASE 1: Corrigir APENAS código inválido, preservar código válido
+  // Detectar: "graphTDA[" (sem espaço/quebra) → Corrigir
+  // Preservar: "graph TD\n    A[" (já válido) → Manter
+  
+  // Detectar padrão inválido: graphTYPEA[ onde TYPE+A estão colados
+  fixed = fixed.replace(/^graph([A-Z]{2,})([A-Z]+)\[/gm, (match, type, node) => {
+    // Ex: "graphTDA[" → type="TD", node="A" ou type="TDA", node=""
     if (['TD', 'LR', 'TB', 'BT'].includes(type)) {
-      const hasQuotes = label.includes('"') || label.includes("'");
-      const cleanLabel = label.replace(/^["']|["']$/g, '');
-      console.log(`[Fix] Space-separated corrected: graph ${type}\\n    ${nodeName}["${cleanLabel}"]`);
-      return `graph ${type}\n    ${nodeName}["${cleanLabel}"]`;
+      // Tipo válido encontrado
+      console.log(`[Fix] Valid type detected: graph ${type}\\n    ${node}[`);
+      return `graph ${type}\n    ${node}[`;
     }
     
-    // Se não, o tipo está colado (ex: TDA)
-    const graphType = type.slice(0, 2); // TD
-    const restNode = type.slice(2) + nodeName; // A + resto
-    const cleanLabel = label.replace(/^["']|["']$/g, '');
-    return `graph ${graphType}\n    ${restNode}["${cleanLabel}"]`;
+    // Tipo inválido ou colado (ex: "graphABC" ou "graphTDA")
+    // Extrair os 2 primeiros chars como tipo
+    const graphType = type.slice(0, 2);
+    const restNode = type.slice(2) + node;
+    console.log(`[Fix] Invalid pattern detected: "${match}" → graph ${graphType}\\n    ${restNode}[`);
+    return `graph ${graphType}\n    ${restNode}[`;
   });
 
   // Corrigir subgraph sem espaço
@@ -1200,9 +1176,9 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
     (!fixed.match(/^graph\s+(TD|LR|TB|BT)\s+/m) && fixed.includes('graph')),
   ];
 
-  // Adicionar detecção de tags HTML em labels (comum quando AI gera <br/>)
-  if (code.includes('<br/>') || code.includes('<br>')) {
-    errors.push('CRITICAL: Tags HTML detectadas em código Mermaid (usar \\n)');
+  // ✅ FASE 2: Adicionar detecção de tags HTML em labels (comum quando AI gera <br/>)
+  if (code.includes('<br/>') || code.includes('<br>') || code.includes('<strong>') || code.includes('<b>')) {
+    errors.push('CRITICAL: Tags HTML detectadas em código Mermaid (usar \\n para quebras)');
   }
 
   if (criticalErrors.some(Boolean)) {

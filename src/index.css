@@ -475,6 +475,23 @@ All colors MUST be HSL. Design tokens for consistent theming.
   font-family: monospace;
 }
 
+/* ✅ FASE 4: Mermaid Responsive Styles */
+.mermaid-responsive {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.mermaid-responsive svg {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .mermaid-responsive svg {
+    font-size: 12px;
+  }
+}
+
 /* ✅ FASE 4: KaTeX Rendered Math - Diferente do antigo math-inline-rendered */
 .math-inline-katex {
   display: inline-block;

@@ -71,12 +71,29 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           return;
         }
 
-        // ✅ TENTAR RENDERIZAR SEMPRE (backend já validou/corrigiu)
+        // ✅ FASE 4: Configuração Mermaid com responsividade
         mermaid.initialize({ 
           theme: 'default',
-          logLevel: 'error', // Aumentar verbosidade para debug
+          logLevel: 'error',
           startOnLoad: false,
           securityLevel: 'loose',
+          flowchart: { 
+            useMaxWidth: true,
+            htmlLabels: true
+          },
+          sequence: { 
+            useMaxWidth: true,
+            wrap: true
+          },
+          gantt: {
+            useMaxWidth: true
+          },
+          class: {
+            useMaxWidth: true
+          },
+          state: {
+            useMaxWidth: true
+          }
         });
 
         const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -146,8 +163,11 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
 
   return (
     <MermaidErrorBoundary>
-      <div className="bg-muted/30 p-6 rounded-xl border-2 border-border my-6">
-        <h4 className="font-bold text-foreground mb-2 text-lg">{icon} {title}</h4>
+      <div className="bg-muted/30 p-4 rounded-xl border-2 border-border my-6 w-full overflow-hidden">
+        <h4 className="font-bold text-foreground mb-2 text-base flex items-center gap-2">
+          {icon && <span>{icon}</span>}
+          <span>{title}</span>
+        </h4>
         <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
         {error ? (
           <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg p-6">
@@ -169,7 +189,9 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
             </details>
           </div>
         ) : (
-          <div ref={ref} className="flex justify-center items-center min-h-[200px] bg-white rounded-lg p-4" />
+          <div className="overflow-x-auto w-full">
+            <div ref={ref} className="flex justify-center items-center min-h-[200px] w-full mermaid-responsive bg-white rounded-lg p-4" />
+          </div>
         )}
       </div>
     </MermaidErrorBoundary>
