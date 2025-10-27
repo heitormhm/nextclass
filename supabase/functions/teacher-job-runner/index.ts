@@ -888,6 +888,28 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
   
   console.log('[Mermaid Validator] 🔍 Checking syntax...');
   
+  // 0. ✅ FASE 2: Corrigir falta de espaço após tipo de diagrama
+  // Ex: "graphTDA[...]" → "graph TD A[...]"
+  fixed = fixed.replace(/^graph([A-Z]+)\[/gm, (match, type) => {
+    // Se tipo é TD/LR/TB/BT sem espaço
+    if (['TD', 'LR', 'TB', 'BT'].includes(type)) {
+      return `graph ${type}\n    A[`;
+    }
+    // Se é algo como graphTDA
+    if (type.length > 2) {
+      const graphType = type.slice(0, 2); // TD
+      const nodeName = type.slice(2); // A
+      return `graph ${graphType}\n    ${nodeName}[`;
+    }
+    return match;
+  });
+
+  // Corrigir subgraph sem espaço
+  // Ex: "subgraphSistema[...]" → "subgraph Sistema\n    A[...]"
+  fixed = fixed.replace(/^subgraph([A-Z]\w+)\[/gm, (match, name) => {
+    return `subgraph ${name}\n    A[`;
+  });
+  
   // 1. Corrigir caracteres proibidos em nomes de métodos/atributos
   // Ex: +trocaMassa() → trocaMassa()
   fixed = fixed.replace(/\+(\w+)\(/g, '$1(');
@@ -936,6 +958,26 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
     return { valid: false, fixed, errors };
   }
   
+  // ✅ FASE 1: Validação estrita de sintaxe básica
+  if (fixed.includes('graph')) {
+    // DEVE ter: "graph TD" ou "graph LR" com espaço
+    if (!fixed.match(/^graph\s+(TD|LR|TB|BT)\s/m)) {
+      errors.push('Sintaxe inválida: "graph" deve ser seguido de TD/LR/TB/BT e espaço');
+    }
+    
+    // DEVE ter pelo menos um nó: A[...]
+    if (!fixed.match(/[A-Z]\[/)) {
+      errors.push('Nenhum nó encontrado (formato: A[Label])');
+    }
+  }
+
+  if (fixed.includes('classDiagram')) {
+    // DEVE ter pelo menos uma declaração de classe
+    if (!fixed.match(/class\s+\w+/)) {
+      errors.push('Nenhuma classe definida em classDiagram');
+    }
+  }
+  
   // 10. Validar nodes (não podem ter espaços sem aspas)
   const nodeRegex = /(\w+)\s+([A-Z]\w+)\s*\[/g;
   const matches = fixed.match(nodeRegex);
@@ -957,6 +999,16 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
     errors.push(`Parênteses desbalanceados: ${openBraces} { vs ${closeBraces} }`);
   }
   
+  // ✅ FASE 1: Validações OBRIGATÓRIAS que forçam invalid
+  const criticalErrors = [
+    fixed.match(/graph[A-Z]+\[/), // graphTDA[...] sem espaço
+    fixed.match(/subgraph[A-Z]+\[/), // subgraphNome[...] sem espaço
+  ];
+
+  if (criticalErrors.some(Boolean)) {
+    errors.push('CRITICAL: Estrutura Mermaid inválida - espaçamento incorreto');
+  }
+  
   const valid = errors.length === 0;
   console.log(`[Mermaid Validator] ${valid ? '✅ Valid' : '❌ Invalid'} - Fixed ${Math.abs(fixed.length - code.length)} chars`);
   
@@ -971,7 +1023,7 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
 async function convertMarkdownToStructuredJSON(markdown: string, title: string): Promise<any> {
   console.log('[convertToStructured] 🔄 Converting markdown to structured JSON...');
   
-  // ✅ FASE 2: Normalizar LaTeX PRIMEIRO
+  // ✅ FASE 3: Normalizar LaTeX PRIMEIRO com detecção agressiva
   const normalizeLatexSyntax = (text: string): string => {
     console.log('[LaTeX Normalizer] 🔄 Cleaning LaTeX syntax...');
     
@@ -983,15 +1035,40 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
     // 2. Corrigir $ expr $ com espaços → $$expr$$
     fixed = fixed.replace(/\$\s+(.+?)\s+\$/g, '$$$$1$$');
     
-    // 3. Adicionar $$ em fórmulas sem delimitadores (LaTeX cru)
-    fixed = fixed.replace(/([^$\n])(\\\w+(?:\{[^}]*\})?(?:[^$\n\s]|\s+(?=[^\n]))*?)(?=\s{2,}|$|\n)/g, (match, before, formula) => {
-      if (!formula.includes('$$') && formula.match(/\\[a-zA-Z]+/)) {
-        return `${before}$$${formula.trim()}$$`;
-      }
-      return match;
-    });
+    // 3. ✅ FASE 3: Detectar comandos LaTeX comuns SEM delimitadores
+    const latexCommands = /\\(Delta|sum|int|frac|times|cdot|alpha|beta|gamma|theta|omega|pi|sigma|sqrt|partial|nabla|infty|rightarrow|leftarrow|leftrightarrow|dot|vec|operatorname)/g;
     
-    console.log('[LaTeX Normalizer] ✅ LaTeX normalized');
+    // Processar linha por linha para detectar LaTeX cru
+    fixed = fixed.split('\n').map(line => {
+      // Se linha tem comando LaTeX mas não tem $$
+      if (latexCommands.test(line) && !line.includes('$$')) {
+        // Extrair fórmulas após : ou = ou "Onde"
+        const formulaMatch = line.match(/(?:[:\=]|Onde)\s*(.+?)(?=\s{2,}|$|\n|,)/);
+        if (formulaMatch) {
+          const formula = formulaMatch[1].trim();
+          // Só adicionar $$ se tiver comando LaTeX e não estiver já delimitado
+          if (formula.match(/\\[a-zA-Z]+/) && !formula.includes('$$')) {
+            return line.replace(formula, `$$${formula}$$`);
+          }
+        }
+      }
+      return line;
+    }).join('\n');
+    
+    // 4. ✅ FASE 3: Casos específicos - fórmulas isoladas em parágrafos
+    // Ex: "A equação \Delta U = Q - W representa..."
+    fixed = fixed.replace(
+      /([^$\n])(\\\w+(?:\{[^}]*\})?(?:\s*[=\+\-\*\/]\s*\S+)*)/g,
+      (match, before, formula) => {
+        // Verificar se fórmula tem comando LaTeX e não está já em $$
+        if (formula.match(/\\[a-zA-Z]+/) && !formula.includes('$$')) {
+          return `${before}$$${formula.trim()}$$`;
+        }
+        return match;
+      }
+    );
+    
+    console.log('[LaTeX Normalizer] ✅ LaTeX normalized with aggressive detection');
     return fixed;
   };
 
@@ -1111,7 +1188,11 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
       const validation = validateAndFixMermaidSyntax(mermaidCode);
       
       if (!validation.valid) {
-        console.warn('[convertToStructured] ⚠️ Invalid Mermaid, attempting AI fix...');
+        // ✅ FASE 5: Log detalhado de debug
+        console.warn('[convertToStructured] ⚠️ Invalid Mermaid:', validation.errors);
+        console.warn('[convertToStructured] 📋 Original code:', mermaidCode.substring(0, 200));
+        console.warn('[convertToStructured] 🔧 Fixed code:', validation.fixed.substring(0, 200));
+        console.warn('[convertToStructured] ⏭️ Calling AI fix...');
         
         // ✅ FASE 3: CHAMAR EDGE FUNCTION para correção com AI
         try {

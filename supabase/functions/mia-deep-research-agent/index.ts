@@ -24,10 +24,12 @@ async function executeWebSearch(
   console.log(`  → Executing Brave Search for: "${query}"`);
   
   const url = new URL('https://api.search.brave.com/res/v1/web/search');
-  url.searchParams.set('q', query);
+  // ✅ FASE 4: Priorizar domínios acadêmicos
+  const academicQuery = `${query} (site:ieee.org OR site:sciencedirect.com OR site:springer.com OR site:.edu OR site:researchgate.net)`;
+  url.searchParams.set('q', academicQuery);
   url.searchParams.set('count', numResults.toString());
   url.searchParams.set('search_lang', 'en');
-  url.searchParams.set('safesearch', 'moderate');
+  url.searchParams.set('safesearch', 'strict'); // Filtrar resultados genéricos
   
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -231,28 +233,42 @@ async function processDeepResearch(
       const subQuestion = subQuestions[questionIdx];
       console.log(`\n--- Researching Question ${questionIdx + 1}/${subQuestions.length}: "${subQuestion}" ---`);
       
+      const MAX_ITERATIONS = 5; // Guaranteed termination after 5 attempts
+      const MIN_SOURCES = 3; // Minimum acceptable sources
+      const TARGET_SOURCES = 5; // Ideal number of sources
+      
       const conversationHistory: any[] = [
         {
           role: 'system',
-          content: `You are a research assistant. Your task is to find 3-5 high-quality sources for the question: "${subQuestion}".
+          content: `You are an ACADEMIC research assistant specializing in engineering sources. Your task is to find 3-5 HIGH-QUALITY ACADEMIC sources for: "${subQuestion}".
 
-Use the web_search function to search for information. You should:
-1. Start with a direct search of the question
-2. If results are poor, refine your query to be more specific or broader
-3. Focus on academic sources (.edu, .org, technical documentation)
-4. Stop once you have 3-5 quality sources with substantial content
+✅ CRITICAL RULES FOR SOURCES:
+1. ONLY use sources from these domains:
+   - .edu (university sites)
+   - ieee.org, ieeexplore.ieee.org (IEEE papers)
+   - sciencedirect.com (ScienceDirect journals)
+   - springer.com, springerlink.com (Springer)
+   - researchgate.net (academic papers)
+   - Technical standards (ABNT, ISO, ASTM)
 
-Be strategic about your searches - you have a limited number of iterations.`
+2. ⛔ REJECT these sources IMMEDIATELY:
+   - Wikipedia (wikipedia.org)
+   - Toda Matéria, Brasil Escola, UOL Educação
+   - Personal blogs (.blogspot, .wordpress)
+   - Generic educational sites without peer review
+
+3. Search strategy:
+   - Use queries like: "first law thermodynamics site:ieee.org"
+   - Add "filetype:pdf" for papers
+   - Prefer sources with DOI numbers
+
+Be strategic about your searches - you have ${MAX_ITERATIONS} iterations to find quality academic sources.`
         },
         {
           role: 'user',
           content: `Find authoritative sources to answer: ${subQuestion}`
         }
       ];
-      
-      const MAX_ITERATIONS = 5; // Guaranteed termination after 5 attempts
-      const MIN_SOURCES = 3; // Minimum acceptable sources
-      const TARGET_SOURCES = 5; // Ideal number of sources
       const searchResults: Array<{ url: string; snippet: string }> = [];
       const seenUrls = new Set<string>();
       
