@@ -106,6 +106,29 @@ async function preprocessMermaidBlocks(markdown: string, jobId: string): Promise
   return processedMarkdown;
 }
 
+// Fix common LaTeX errors in markdown content
+async function fixLatexErrors(markdown: string, jobId: string): Promise<string> {
+  console.log(`[Job ${jobId}] 🔧 Fixing LaTeX errors...`);
+  
+  let fixed = markdown;
+  
+  // Fix 1: CdotB malformed → C × B
+  fixed = fixed.replace(/C\s*dot\s*B/gi, 'C × B');
+  fixed = fixed.replace(/([A-Z])\\cdot([A-Z])/g, '$1 \\times $2');
+  
+  // Fix 2: Multiplication with \cdot → \times (unless it's vector dot product)
+  fixed = fixed.replace(/(\d+)\s*\\cdot\s*(\d+)/g, '$1 \\times $2');
+  
+  // Fix 3: Formulas without $$ → add delimiters
+  fixed = fixed.replace(/(?<!\$)\\frac\{([^}]+)\}\{([^}]+)\}(?!\$)/g, '$$\\frac{$1}{$2}$$');
+  
+  // Fix 4: Ensure proper spacing around inline math
+  fixed = fixed.replace(/\$\$([^\$]+)\$\$/g, ' $$\$1$$ ');
+  
+  console.log(`[Job ${jobId}] ✅ LaTeX errors fixed`);
+  return fixed;
+}
+
 // Helper function to update job progress
 async function updateJobProgress(
   supabase: any,
@@ -152,9 +175,12 @@ async function saveReportToLecture(
   // ETAPA 1: Preprocess Mermaid blocks (add stable keys, validate)
   console.log(`[Job ${jobId}] 🎨 Starting Mermaid preprocessing...`);
   const preprocessedReport = await preprocessMermaidBlocks(report, jobId);
+  
+  // ETAPA 1.5: Fix LaTeX errors
+  const fixedReport = await fixLatexErrors(preprocessedReport, jobId);
 
   // ETAPA 2: Validate material length (minimum 3000 words, excluding code blocks)
-  const materialText = preprocessedReport.replace(/```[\s\S]*?```/g, ''); // Remove code blocks
+  const materialText = fixedReport.replace(/```[\s\S]*?```/g, ''); // Remove code blocks
   const wordCount = materialText.split(/\s+/).filter(word => word.length > 0).length;
 
   console.log(`[Job ${jobId}] 📏 Material word count: ${wordCount} words`);
@@ -170,13 +196,17 @@ async function saveReportToLecture(
 
   console.log(`[Job ${jobId}] ✅ Material length validated: ${wordCount} words`);
   
-  // ETAPA 3: Save preprocessed report
+  // ETAPA 3: Convert to structured JSON (for StructuredContentRenderer)
+  console.log(`[Job ${jobId}] 🔄 Converting to structured JSON...`);
+  const structuredJSON = convertMarkdownToStructuredJSON(fixedReport, 'Material Didático');
+  
+  // ETAPA 4: Save structured JSON
   const { error: updateError } = await supabase
     .from('lectures')
     .update({
       structured_content: {
         ...existingContent,
-        material_didatico: preprocessedReport
+        material_didatico: JSON.stringify(structuredJSON)
       },
       updated_at: new Date().toISOString()
     })
@@ -505,12 +535,22 @@ async function generateEducationalReport(
 
 # 📊 FORMATAÇÃO TÉCNICA
 
-- **Equações:** Use LaTeX inline $$\\frac{dQ}{dt}$$ ou display mode:
-  \`\`\`
-  $$
-  \\Delta U = Q - W
-  $$
-  \`\`\`
+- **Equações:** 
+  * Use LaTeX inline com $$...$$ para fórmulas simples: $$F = m \\times a$$
+  * Use \\times (NÃO \\cdot) para multiplicação: $$W_{comp} = Q_{quente} \\times \\eta$$
+  * Use \\cdot APENAS para produto escalar de vetores: $$\\vec{A} \\cdot \\vec{B}$$
+  * Display mode para equações longas:
+    \`\`\`
+    $$
+    \\Delta U = Q - W
+    $$
+    \`\`\`
+
+**EXEMPLOS CORRETOS:**
+- ✅ $$COP_R = \\frac{Q_{frio}}{W_{comp}}$$
+- ✅ $$\\eta = 1 - \\frac{T_{fria}}{T_{quente}}$$
+- ❌ $$CdotB$$ (NUNCA use texto puro em LaTeX)
+- ❌ $$C\\cdotB$$ (use \\times ou deixe implícito: $$CB$$)
 
 - **Tabelas:** Use markdown tables para comparações
 - **Listas:** Numere passos de processos, use bullets para características
@@ -815,6 +855,156 @@ Criar um material que:
     }
     throw error;
   }
+}
+
+// Convert Markdown to Structured JSON (for StructuredContentRenderer - same logic as TeacherAnnotations)
+function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
+  console.log('[convertToStructured] 🔄 Converting markdown to structured JSON...');
+  
+  const lines = markdown.split('\n');
+  const conteudo: any[] = [];
+  let currentParagraph = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // H2 headings
+    if (line.startsWith('## ')) {
+      if (currentParagraph) {
+        conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+        currentParagraph = '';
+      }
+      conteudo.push({
+        tipo: 'h2',
+        texto: line.replace('## ', '')
+      });
+      continue;
+    }
+    
+    // H3 headings
+    if (line.startsWith('### ')) {
+      if (currentParagraph) {
+        conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+        currentParagraph = '';
+      }
+      conteudo.push({
+        tipo: 'h3',
+        texto: line.replace('### ', '')
+      });
+      continue;
+    }
+    
+    // H4 headings
+    if (line.startsWith('#### ')) {
+      if (currentParagraph) {
+        conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+        currentParagraph = '';
+      }
+      conteudo.push({
+        tipo: 'h4',
+        texto: line.replace('#### ', '')
+      });
+      continue;
+    }
+    
+    // Mermaid diagrams
+    if (line.startsWith('```mermaid')) {
+      if (currentParagraph) {
+        conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+        currentParagraph = '';
+      }
+      
+      let mermaidCode = '';
+      i++; // Skip ```mermaid line
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        mermaidCode += lines[i] + '\n';
+        i++;
+      }
+      
+      // Detect diagram type from code
+      let tipo = 'diagrama';
+      let titulo = '📊 Diagrama Visual';
+      
+      if (mermaidCode.includes('graph TD') || mermaidCode.includes('graph LR')) {
+        tipo = 'fluxograma';
+        titulo = '📊 Fluxograma';
+      } else if (mermaidCode.includes('sequenceDiagram')) {
+        tipo = 'diagrama';
+        titulo = '🔄 Diagrama de Sequência';
+      } else if (mermaidCode.includes('stateDiagram')) {
+        tipo = 'diagrama';
+        titulo = '🔀 Diagrama de Estados';
+      } else if (mermaidCode.includes('classDiagram')) {
+        tipo = 'diagrama';
+        titulo = '📐 Diagrama de Classes';
+      }
+      
+      conteudo.push({
+        tipo: tipo,
+        definicao_mermaid: mermaidCode.trim(),
+        titulo: titulo,
+        descricao: 'Representação visual do conceito'
+      });
+      continue;
+    }
+    
+    // Blockquotes (callouts)
+    if (line.startsWith('> ')) {
+      if (currentParagraph) {
+        conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+        currentParagraph = '';
+      }
+      
+      let blockText = line.replace('> ', '');
+      const titleMatch = blockText.match(/\*\*(.+?)\*\*/);
+      
+      if (titleMatch) {
+        const titulo = titleMatch[1];
+        const texto = blockText.replace(/\*\*(.+?)\*\*/, '').trim();
+        
+        // Detect if it's a post-it note
+        const lowerText = texto.toLowerCase();
+        if (titulo.includes('💡') || titulo.includes('⚠️') || titulo.includes('🤔') || titulo.includes('🌍')) {
+          conteudo.push({
+            tipo: 'post_it',
+            texto: texto || titulo
+          });
+        } else {
+          conteudo.push({
+            tipo: 'caixa_de_destaque',
+            titulo: titulo.replace(/[📌💡⚠️🤔🌍]/g, '').trim(),
+            texto: texto
+          });
+        }
+      } else {
+        conteudo.push({
+          tipo: 'post_it',
+          texto: blockText
+        });
+      }
+      continue;
+    }
+    
+    // Regular paragraphs
+    if (line.length > 0 && !line.startsWith('#') && !line.startsWith('```') && !line.startsWith('|')) {
+      currentParagraph += (currentParagraph ? ' ' : '') + line;
+    } else if (line.length === 0 && currentParagraph) {
+      conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+      currentParagraph = '';
+    }
+  }
+  
+  // Add final paragraph if exists
+  if (currentParagraph) {
+    conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+  }
+  
+  console.log(`[convertToStructured] ✅ Converted to ${conteudo.length} blocks`);
+  
+  return {
+    titulo_geral: title,
+    conteudo: conteudo
+  };
 }
 
 serve(async (req) => {

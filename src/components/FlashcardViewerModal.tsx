@@ -75,7 +75,7 @@ export const FlashcardViewerModal = ({ isOpen, onClose, flashcardSet }: Flashcar
           </div>
 
           <div 
-            className="relative h-64 cursor-pointer perspective-1000"
+            className="relative h-80 max-h-80 cursor-pointer perspective-1000"
             onClick={handleFlip}
           >
             <div 

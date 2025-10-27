@@ -48,6 +48,7 @@ import { TeacherFlashcardViewerModal } from '@/components/TeacherFlashcardViewer
 import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewer';
 import { MermaidDiagram } from '@/components/MermaidDiagram';
 import { MermaidErrorBoundary } from '@/components/MermaidErrorBoundary';
+import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
@@ -601,24 +602,31 @@ const LectureTranscriptionPage = () => {
       // Buscar dados dos usuários via auth.users (mais confiável que users table)
       const studentIds = data?.map((e: any) => e.aluno_id) || [];
       
-      console.log('[loadStudents] 👥 Buscando usuários via auth.admin:', studentIds.length);
+      console.log('[loadStudents] 👥 Loading students for turma:', lecture.turma_id, '- Found', studentIds.length, 'enrollments');
       
       const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
       
       if (authError || !authData) {
-        console.warn('[loadStudents] ⚠️ Erro ao buscar auth.users, usando fallback:', authError);
+        console.warn('[loadStudents] ⚠️ auth.users failed, using fallback:', authError);
         
         // Fallback: usar users table
         const studentsData: Student[] = (data || []).map((enrollment: any) => {
           const user = enrollment.users;
+          const fullName = 
+            user?.full_name || 
+            user?.email?.split('@')[0] || 
+            'Aluno sem nome';
+          
+          const isPlaceholder = fullName === user?.email?.split('@')[0] || fullName === 'Aluno sem nome';
+          
           return {
             id: enrollment.aluno_id,
-            name: user?.full_name || user?.email?.split('@')[0] || 'Aluno sem nome',
+            name: isPlaceholder ? `${fullName} 📧` : fullName,
             hasAccess: true,
           };
         });
         
-        console.log('[loadStudents] ✅ Usando fallback, students:', studentsData.length);
+        console.log('[loadStudents] ✅ Fallback complete:', studentsData.length);
         setStudents(studentsData);
         return;
       }
@@ -627,16 +635,25 @@ const LectureTranscriptionPage = () => {
       const studentsData: Student[] = (authData.users || [])
         .filter((user: any) => studentIds.includes(user.id))
         .map((user: any) => {
-          const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Sem nome';
-          console.log(`[loadStudents] 📝 User ${user.id}: ${fullName}`);
+          // Multi-level fallback for name
+          const fullName = 
+            user.user_metadata?.full_name || 
+            user.raw_user_meta_data?.full_name ||
+            user.email?.split('@')[0] ||
+            'Sem nome cadastrado';
+          
+          const isPlaceholder = fullName === user.email?.split('@')[0] || fullName === 'Sem nome cadastrado';
+          
+          console.log(`[loadStudents] 📝 User ${user.id}: "${fullName}" ${isPlaceholder ? '(placeholder)' : '(real name)'}`);
+          
           return {
             id: user.id,
-            name: fullName,
+            name: isPlaceholder ? `${fullName} 📧` : fullName,
             hasAccess: true,
           };
         });
 
-      console.log('[loadStudents] ✅ Mapped students via auth.users:', studentsData.length);
+      console.log('[loadStudents] ✅ Loaded via auth.users:', studentsData.length);
       setStudents(studentsData);
     } catch (error) {
       console.error('[loadStudents] ❌ Error loading students:', error);
@@ -1637,60 +1654,58 @@ const LectureTranscriptionPage = () => {
                       <TabsContent value="material" className="overflow-x-auto mt-4">
                         {structuredContent.material_didatico ? (
                           <>
-                            <div className="min-w-0 bg-white p-4 rounded-lg prose prose-sm max-w-none overflow-x-auto">
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm, remarkMath]}
-                  rehypePlugins={[
-                    [rehypeKatex, {
-                      throwOnError: false,
-                      errorColor: '#cc0000',
-                      strict: false,
-                      trust: true
-                    }]
-                  ]}
-                                components={{
-                                  h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
-                                  h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
-                                  h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1 text-slate-900" {...props} />,
-                                  p: ({node, ...props}) => <p className="mb-2 text-slate-900 leading-relaxed" {...props} />,
-                                  strong: ({node, ...props}) => <strong className="font-bold text-purple-700" {...props} />,
-                                  ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
-                                  ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
-                                  li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
-                                  code: ({node, inline, className, children, ...props}: any) => {
-                                    const match = /language-(\w+)/.exec(className || '');
-                                    const language = match ? match[1] : '';
-                                    
-                                     // Mermaid agora é pré-processado no backend
-                                    // Não precisa renderização especial aqui
-                                    if (!inline && language === 'mermaid') {
-                                      const code = String(children).replace(/\n$/, '');
-                                      const stableKey = `mermaid-${code.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '')}`;
-                                      return (
-                                        <MermaidErrorBoundary key={stableKey}>
-                                          <MermaidDiagram
-                                            code={code}
-                                            title="Diagrama"
-                                            description=""
-                                            icon="📊"
-                                          />
-                                        </MermaidErrorBoundary>
-                                      );
-                                    }
-                                    
-                                    // Código inline
-                                    if (inline) {
-                                      return <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props}>{children}</code>;
-                                    }
-                                    
-                                    // Código em bloco (outros idiomas)
-                                    return <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props}>{children}</code>;
-                                  },
-                                  blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
-                                }}
-                              >
-                                {structuredContent.material_didatico}
-                              </ReactMarkdown>
+                            <div className="min-w-0 bg-white p-4 rounded-lg">
+                              {(() => {
+                                try {
+                                  // Try to parse as structured JSON (new format)
+                                  const parsed = JSON.parse(structuredContent.material_didatico);
+                                  if (parsed.conteudo && Array.isArray(parsed.conteudo)) {
+                                    console.log('[Render] ✅ Rendering structured content via StructuredContentRenderer');
+                                    return <StructuredContentRenderer structuredData={parsed} />;
+                                  }
+                                } catch (e) {
+                                  console.warn('[Render] ⚠️ Content is not structured JSON, using markdown fallback');
+                                }
+                                
+                                // Fallback: render plain markdown
+                                return (
+                                  <div className="prose prose-sm max-w-none overflow-x-auto">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm, remarkMath]}
+                                      rehypePlugins={[
+                                        [rehypeKatex, {
+                                          throwOnError: false,
+                                          errorColor: '#cc0000',
+                                          strict: false,
+                                          trust: true
+                                        }]
+                                      ]}
+                                      components={{
+                                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
+                                        h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
+                                        h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1 text-slate-900" {...props} />,
+                                        p: ({node, ...props}) => <p className="mb-2 text-slate-900 leading-relaxed" {...props} />,
+                                        strong: ({node, ...props}) => <strong className="font-bold text-purple-700" {...props} />,
+                                        ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
+                                        ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
+                                        li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
+                                        code: ({node, inline, className, children, ...props}: any) => {
+                                          // Código inline
+                                          if (inline) {
+                                            return <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props}>{children}</code>;
+                                          }
+                                          
+                                          // Código em bloco
+                                          return <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props}>{children}</code>;
+                                        },
+                                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
+                                      }}
+                                    >
+                                      {structuredContent.material_didatico}
+                                    </ReactMarkdown>
+                                  </div>
+                                );
+                              })()}
                             </div>
                             <div className="flex justify-end gap-2 mt-2">
                               <Button

@@ -86,7 +86,7 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
           </div>
 
           <div 
-            className="relative min-h-80 cursor-pointer perspective-1000"
+            className="relative h-80 max-h-80 cursor-pointer perspective-1000"
             onClick={handleFlip}
           >
             <div 
