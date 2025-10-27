@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Plus, Trash2, GraduationCap, Users, FileEdit, Loader2 } from 'lucide-react';
+import { BookOpen, Plus, Trash2, GraduationCap, Users, FileEdit, Loader2, Search } from 'lucide-react';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -68,6 +69,8 @@ const TeacherMyLectures = () => {
   const [newDisciplineName, setNewDisciplineName] = useState('');
   const [selectedTurmaId, setSelectedTurmaId] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'recent' | 'alphabetical'>('recent');
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -239,6 +242,50 @@ const TeacherMyLectures = () => {
     }
   };
 
+  const handleDeleteDraft = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!window.confirm('Tem certeza que deseja excluir este rascunho?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('lectures')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Rascunho excluído! 🗑️',
+        description: 'O rascunho foi removido com sucesso',
+      });
+
+      loadData();
+    } catch (error) {
+      console.error('Error deleting draft:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o rascunho',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const DraftCardSkeleton = () => (
+    <Card className="bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200">
+      <CardContent className="p-4 space-y-3">
+        <Skeleton className="h-5 w-3/4 bg-yellow-200" />
+        <Skeleton className="h-3 w-1/2 bg-yellow-200" />
+        <div className="flex justify-between">
+          <Skeleton className="h-6 w-24 bg-yellow-200" />
+          <Skeleton className="h-3 w-20 bg-yellow-200" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   // Group lectures by turma and disciplina
   const groupedLectures = lectures.reduce((acc, lecture) => {
     const turmaKey = lecture.turmas?.periodo || 'Sem Turma';
@@ -253,91 +300,161 @@ const TeacherMyLectures = () => {
 
   return (
     <MainLayout>
-      <TeacherBackgroundRipple />
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-            <BookOpen className="h-10 w-10" />
-            Minhas Aulas
-          </h1>
-          <p className="text-white/80">Gerencie suas aulas publicadas e disciplinas</p>
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+        <TeacherBackgroundRipple />
+        
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
-        {/* Section 1: Draft Lectures */}
-        <Card className="mb-8 bg-white/90 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileEdit className="h-5 w-5 text-yellow-600" />
-              Meus Rascunhos
-            </CardTitle>
-            <p className="text-sm text-slate-600 mt-1">
-              Aulas em andamento que ainda não foram publicadas
-            </p>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <p className="text-center text-slate-500 py-8">Carregando...</p>
-            ) : drafts.length === 0 ? (
-              <p className="text-center text-slate-500 py-8 italic">
-                Nenhum rascunho no momento
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+                <BookOpen className="h-10 w-10" />
+                Minhas Aulas
+              </h1>
+              <p className="text-white/80 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+                Gerencie suas aulas publicadas e disciplinas
               </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {drafts.map((draft) => (
-                  <Card
-                    key={draft.id}
-                    className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200"
-                    onClick={() => navigate(`/lecturetranscription/${draft.id}`)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <h5 className="font-semibold text-slate-900 line-clamp-2 flex-1">
-                          {draft.title || 'Sem título'}
-                        </h5>
-                        {draft.status === 'processing' && (
-                          <Loader2 className="h-4 w-4 text-yellow-600 animate-spin ml-2 flex-shrink-0" />
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-600 mb-2">
-                        {new Date(draft.created_at).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <Badge 
-                          className={`text-xs ${
-                            draft.status === 'processing' 
-                              ? 'bg-yellow-100 text-yellow-800 border-yellow-300' 
-                              : 'bg-blue-100 text-blue-800 border-blue-300'
-                          }`}
-                        >
-                          {draft.status === 'processing' ? '⏳ Processando' : '✏️ Pronto para publicar'}
-                        </Badge>
-                        {draft.disciplinas && (
-                          <span className="text-xs text-slate-500">
-                            {draft.disciplinas.nome}
-                          </span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+            </div>
+            
+            <div className="flex gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
+                <Input
+                  placeholder="Buscar aulas..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-white/10 backdrop-blur-lg border-white/20 text-white placeholder:text-white/50 w-64"
+                />
               </div>
-            )}
-          </CardContent>
-        </Card>
+              
+              <Select value={sortOrder} onValueChange={(value: 'recent' | 'alphabetical') => setSortOrder(value)}>
+                <SelectTrigger className="w-40 bg-white/10 backdrop-blur-lg border-white/20 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recent">Mais Recentes</SelectItem>
+                  <SelectItem value="alphabetical">Alfabética</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-        {/* Section 2: Manage Disciplines */}
-        <Card className="mb-8 bg-white/90 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-green-600" />
-              Gerenciar Disciplinas
-            </CardTitle>
+          {/* Section 1: Draft Lectures */}
+          <Card className="mb-8 bg-white/90 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileEdit className="h-5 w-5 text-yellow-600" />
+                Meus Rascunhos
+                {drafts.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {drafts.length}
+                  </Badge>
+                )}
+              </CardTitle>
+              <p className="text-sm text-slate-600 mt-1">
+                Aulas em andamento que ainda não foram publicadas
+              </p>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3].map((i) => <DraftCardSkeleton key={i} />)}
+                </div>
+              ) : drafts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 px-4">
+                  <div className="mb-4 p-6 bg-yellow-100 rounded-full">
+                    <FileEdit className="h-12 w-12 text-yellow-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    Nenhum rascunho no momento
+                  </h3>
+                  <p className="text-sm text-slate-500 text-center max-w-md mb-4">
+                    Comece gravando uma nova aula ou faça upload de material para criar conteúdo
+                  </p>
+                  <Button 
+                    className="bg-gradient-to-r from-purple-600 to-pink-600"
+                    onClick={() => navigate('/teacherdashboard')}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Começar Agora
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {drafts.map((draft) => (
+                    <Card
+                      key={draft.id}
+                      className="group relative cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200"
+                      onClick={() => navigate(`/lecturetranscription/${draft.id}`)}
+                    >
+                      <CardContent className="p-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={(e) => handleDeleteDraft(draft.id, e)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+
+                        <div className="flex items-start justify-between mb-2">
+                          <h5 className="font-semibold text-slate-900 line-clamp-2 flex-1 pr-8">
+                            {draft.title || 'Sem título'}
+                          </h5>
+                          {draft.status === 'processing' && (
+                            <Loader2 className="h-4 w-4 text-yellow-600 animate-spin ml-2 flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 mb-2">
+                          {new Date(draft.created_at).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-yellow-300/30">
+                          <Badge 
+                            className={`text-xs ${
+                              draft.status === 'processing' 
+                                ? 'bg-yellow-100 text-yellow-800 border-yellow-300' 
+                                : 'bg-blue-100 text-blue-800 border-blue-300'
+                            }`}
+                          >
+                            {draft.status === 'processing' ? '⏳ Processando' : '✏️ Pronto'}
+                          </Badge>
+                          {draft.disciplinas && (
+                            <span className="text-xs text-slate-500 font-medium">
+                              📚 {draft.disciplinas.nome}
+                            </span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Section 2: Manage Disciplines */}
+          <Card className="mb-8 bg-white/90 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-green-600" />
+                Gerenciar Disciplinas
+                {disciplinas.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {disciplinas.length}
+                  </Badge>
+                )}
+              </CardTitle>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-to-r from-purple-600 to-pink-600">
@@ -424,14 +541,19 @@ const TeacherMyLectures = () => {
           </CardContent>
         </Card>
 
-        {/* Section 3: Published Lectures */}
-        <Card className="mb-8 bg-white/90 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-purple-600" />
-              Aulas Publicadas
-            </CardTitle>
-          </CardHeader>
+          {/* Section 3: Published Lectures */}
+          <Card className="mb-8 bg-white/90 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-purple-600" />
+                Aulas Publicadas
+                {lectures.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {lectures.length}
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             {isLoading ? (
               <p className="text-center text-slate-500 py-8">Carregando...</p>
@@ -479,8 +601,9 @@ const TeacherMyLectures = () => {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </MainLayout>
   );
