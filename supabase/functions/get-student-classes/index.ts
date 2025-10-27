@@ -55,56 +55,7 @@ serve(async (req) => {
     const turmaIds = enrollments.map(e => e.turma_id);
     console.log('Student enrolled in turmas:', turmaIds);
 
-    // Step 2: Get the turmas details
-    const { data: turmas, error: turmasError } = await supabase
-      .from('turmas')
-      .select('curso, periodo')
-      .in('id', turmaIds);
-
-    if (turmasError) {
-      console.error('Error fetching turmas:', turmasError);
-      throw turmasError;
-    }
-
-    if (!turmas || turmas.length === 0) {
-      console.log('No turmas found');
-      return new Response(
-        JSON.stringify({ classes: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Turmas details:', turmas);
-
-    // Step 3: Find matching classes based on course and period
-    const classQueries = turmas.map(turma => 
-      supabase
-        .from('classes')
-        .select('id')
-        .eq('course', turma.curso)
-        .eq('period', turma.periodo)
-    );
-
-    const classResults = await Promise.all(classQueries);
-    const classIds: string[] = [];
-
-    classResults.forEach(result => {
-      if (result.data) {
-        result.data.forEach(c => classIds.push(c.id));
-      }
-    });
-
-    console.log('Matching class IDs:', classIds);
-
-    if (classIds.length === 0) {
-      console.log('No matching classes found');
-      return new Response(
-        JSON.stringify({ classes: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Step 4: Get lectures for these classes with teacher info
+    // Step 2: Get lectures DIRECTLY by turma_id
     const { data: lectures, error: lecturesError } = await supabase
       .from('lectures')
       .select(`
@@ -112,12 +63,13 @@ serve(async (req) => {
         title,
         duration,
         created_at,
-        class_id,
+        turma_id,
         teacher_id,
-        status
+        status,
+        structured_content
       `)
-      .in('class_id', classIds)
-      .eq('status', 'completed');
+      .in('turma_id', turmaIds)
+      .eq('status', 'published');
 
     if (lecturesError) {
       console.error('Error fetching lectures:', lecturesError);
@@ -125,12 +77,14 @@ serve(async (req) => {
     }
 
     if (!lectures || lectures.length === 0) {
-      console.log('No lectures found');
+      console.log('No published lectures found for enrolled turmas');
       return new Response(
         JSON.stringify({ classes: [] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Found', lectures.length, 'published lectures');
 
     // Step 5: Get teacher information for each lecture
     const teacherIds = [...new Set(lectures.map(l => l.teacher_id))];
@@ -145,33 +99,40 @@ serve(async (req) => {
 
     const teacherMap = new Map(teachers?.map(t => [t.id, t.full_name]) || []);
 
-    // Step 6: Get class information
-    const { data: classesData, error: classesError } = await supabase
-      .from('classes')
-      .select('id, name, course')
-      .in('id', classIds);
+    // Step 4: Get turmas info for lecture topics
+    const { data: turmasData, error: turmasError } = await supabase
+      .from('turmas')
+      .select('id, nome_turma, curso')
+      .in('id', turmaIds);
 
-    if (classesError) {
-      console.error('Error fetching classes:', classesError);
+    if (turmasError) {
+      console.error('Error fetching turmas:', turmasError);
     }
 
-    const classMap = new Map(classesData?.map(c => [c.id, { name: c.name, course: c.course }]) || []);
+    const turmaMap = new Map(turmasData?.map(t => [t.id, { name: t.nome_turma, course: t.curso }]) || []);
 
-    // Step 7: Format the response
+    // Step 5: Format the response
     const formattedClasses = lectures.map((lecture, index) => {
-      const classInfo = classMap.get(lecture.class_id);
+      const turmaInfo = turmaMap.get(lecture.turma_id);
+      
+      // Extract thumbnail from structured_content if available
+      let thumbnail = '';
+      if (lecture.structured_content?.sections?.[0]?.image) {
+        thumbnail = lecture.structured_content.sections[0].image;
+      }
+      
       return {
         id: lecture.id,
         lessonNumber: `Aula ${index + 1}`,
         title: lecture.title,
         instructor: teacherMap.get(lecture.teacher_id) || 'Professor Desconhecido',
         duration: lecture.duration ? `${lecture.duration} min` : '45 min',
-        progress: 0, // TODO: Implement progress tracking
-        thumbnail: '', // TODO: Implement thumbnail support
-        topic: classInfo?.course || 'Engenharia',
+        progress: 0,
+        thumbnail: thumbnail,
+        topic: turmaInfo?.course || 'Engenharia',
         type: 'online',
-        classId: lecture.class_id,
-        className: classInfo?.name || 'Sem turma'
+        turmaId: lecture.turma_id,
+        className: turmaInfo?.name || 'Sem turma'
       };
     });
 
