@@ -25,17 +25,36 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Generate image using Gemini 2.5 Flash Image Preview (Nano banana)
-    const imagePrompt = `Create a professional educational thumbnail image for a university engineering lecture about "${topic}".
-    
-Style: Modern, clean, academic
-Elements: Include relevant engineering symbols, diagrams, or concepts
-Colors: Use professional blues, purples, and gradients
-Text: DO NOT include any text in the image
-Quality: High resolution, suitable for a lecture cover image
-Aspect ratio: 16:9 (landscape orientation)
+    // Generate PHOTOREALISTIC image using Gemini 2.5 Flash Image Preview (Nano banana)
+    const imagePrompt = `Generate a high-quality, PHOTOREALISTIC image of REAL industrial equipment or engineering infrastructure related to "${topic}".
 
-The image should be visually appealing and immediately convey the subject matter to engineering students.`;
+**CRITICAL REQUIREMENTS:**
+- Style: Photorealistic, professional engineering photography
+- Subject: MUST show a REAL physical object (machine, equipment, construction, industrial plant)
+- Examples by topic:
+  * Thermodynamics → Industrial boiler, heat exchanger, steam turbine, power plant cooling towers
+  * Fluid Mechanics → Pump station, hydraulic system, pipeline network, water treatment plant
+  * Electrical Circuits → Electrical substation, transformer bank, control panel, circuit breakers
+  * Structural Analysis → Bridge structure, building frame, steel truss, construction site
+  * Materials Science → Steel mill, metallurgy equipment, materials testing machine
+  * Control Systems → Industrial automation equipment, PLC panel, SCADA control room
+
+**VISUAL REQUIREMENTS:**
+- Lighting: Natural industrial lighting or well-lit factory environment
+- Perspective: Professional 3/4 angle showing scale and detail
+- Background: Industrial environment context (factory floor, construction site, power plant)
+- Quality: 4K photographic quality, sharp focus on main equipment
+- Colors: Natural industrial colors (steel gray, machinery green, safety yellow accents)
+- NO text, NO labels, NO diagrams, NO illustrations
+- NO people in the image (focus on equipment only)
+
+**TECHNICAL SPECIFICATIONS:**
+- Aspect ratio: 16:9 (landscape)
+- Resolution: High resolution suitable for lecture cover
+- Composition: Rule of thirds, main subject in focus
+- Depth of field: Slight bokeh on background to emphasize main equipment
+
+The image should immediately convey "this is real industrial engineering equipment" to university students.`;
 
     console.log('Calling Lovable AI for image generation...');
 

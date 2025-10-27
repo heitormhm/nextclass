@@ -2597,7 +2597,7 @@ const LectureTranscriptionPage = () => {
           onOpenChange={setOpenPublishModal}
           lectureId={id || ''}
           initialTitle={lectureTitle}
-          initialTurmaId={lecture?.class_id || derivedTurmaId || selectedClassId}
+          initialTurmaId={lecture?.turma_id || lecture?.class_id || derivedTurmaId || selectedClassId}
           initialDisciplinaId={lecture?.disciplina_id || ''}
         />
 

@@ -99,6 +99,16 @@ export const PublishLectureModal = ({
       return;
     }
 
+    // DEBUG LOG
+    console.log('[Publish] Starting publication with:', {
+      lectureId,
+      title,
+      selectedTurma,
+      selectedDisciplina,
+      initialTurmaId,
+      hasInitialValue: !!selectedTurma
+    });
+
     setPublishing(true);
 
     try {
@@ -106,14 +116,20 @@ export const PublishLectureModal = ({
         .from('lectures')
         .update({
           title,
-          class_id: selectedTurma,
+          class_id: selectedTurma,         // Legacy support
+          turma_id: selectedTurma,         // New schema field
           disciplina_id: selectedDisciplina || null,
           status: 'published',
           updated_at: new Date().toISOString()
         })
         .eq('id', lectureId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Publish] Database error:', error);
+        throw error;
+      }
+      
+      console.log('[Publish] ✅ Successfully published lecture');
 
       toast({
         title: 'Sucesso!',

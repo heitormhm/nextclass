@@ -14,6 +14,54 @@ function sanitizeJSON(text: string): string {
     .trim();
 }
 
+// Validate Mermaid syntax
+function validateMermaidDiagrams(materialDidatico: string): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const mermaidBlocks = materialDidatico.match(/```mermaid\n([\s\S]*?)```/g) || [];
+  
+  console.log(`[Validation] Found ${mermaidBlocks.length} Mermaid blocks`);
+  
+  mermaidBlocks.forEach((block, index) => {
+    const code = block.replace(/```mermaid\n|```$/g, '').trim();
+    
+    // Check 1: Must start with valid diagram type
+    if (!code.match(/^(graph|flowchart|sequenceDiagram|stateDiagram-v2|classDiagram)/)) {
+      errors.push(`Block ${index + 1}: Invalid diagram type`);
+    }
+    
+    // Check 2: No unicode arrows
+    if (code.match(/[→←↔⇒⇐⇔]/)) {
+      errors.push(`Block ${index + 1}: Contains unicode arrows (→←↔⇒⇐⇔) - use ASCII (-->, <--, <-->)`);
+    }
+    
+    // Check 3: No problematic chars in labels
+    const labelsMatch = code.match(/\[([^\]]+)\]/g);
+    if (labelsMatch) {
+      labelsMatch.forEach(label => {
+        if (label.match(/[Δ∆αβγθλμπσω]/)) {
+          errors.push(`Block ${index + 1}: Greek letters in label "${label}" - use spelled names (Delta, Alpha, etc.)`);
+        }
+      });
+    }
+    
+    // Check 4: Node IDs must be alphanumeric
+    const nodeIdMatch = code.match(/^\s*([A-Z0-9_]+)\[/gm);
+    if (nodeIdMatch) {
+      nodeIdMatch.forEach(nodeId => {
+        const id = nodeId.trim().replace(/\[.*/, '');
+        if (id.match(/[^A-Z0-9]/)) {
+          errors.push(`Block ${index + 1}: Invalid node ID "${id}" - use only A-Z and 0-9`);
+        }
+      });
+    }
+  });
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
 // Helper function to update job progress
 async function updateJobProgress(
   supabase: any,
@@ -117,6 +165,24 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
     
     const report = await generateEducationalReport(query, searchResults, teacherName, lovableApiKey, job.id);
     console.log(`[Job ${job.id}] ✅ Report generated with native Mermaid diagrams, length: ${report.length} characters`);
+
+    // Validate Mermaid syntax
+    const validation = validateMermaidDiagrams(report);
+    if (!validation.valid) {
+      console.warn(`[Job ${job.id}] ⚠️ Mermaid syntax issues detected:`, validation.errors);
+    }
+
+    // Step 5: Save report (80-100%)
+    await updateJobProgress(supabase, job.id, 0.80, 'Salvando material didático...');
+
+    try {
+      await saveReportToLecture(supabase, lectureId, report, job.id);
+      console.log(`[Job ${job.id}] ✅ Report saved successfully with native Mermaid diagrams`);
+      await updateJobProgress(supabase, job.id, 1.0, 'Concluído!');
+    } catch (saveError) {
+      console.error(`[Job ${job.id}] ❌ Error saving report:`, saveError);
+      throw saveError;
+    }
 
     // Step 5: Save report with native graphics (80-100%)
     await updateJobProgress(supabase, job.id, 0.80, 'Salvando material didático...');
@@ -524,6 +590,42 @@ B -->|Realiza Trabalho W| C
 - ✅ Cores usam hex válido ou nomes CSS: #e3f2fd, lightblue
 
 **TESTE cada diagrama mentalmente antes de gerar!**
+
+## ⚠️ SINTAXE MERMAID: REGRAS OBRIGATÓRIAS
+
+**ERROS COMUNS A EVITAR:**
+
+❌ **NUNCA use caracteres especiais em labels:**
+- Parênteses: \`[Sistema (Q→W)]\` ← ERRADO
+- Setas unicode: \`[Q → W]\` ← ERRADO (use texto "para")
+- Símbolos matemáticos: \`[ΔU = Q - W]\` ← ERRADO (use "Delta U")
+
+✅ **USE SEMPRE ASCII puro:**
+- \`[Sistema: Q para W]\` ← CORRETO
+- \`[Q para W]\` ← CORRETO
+- \`[Delta U = Q - W]\` ← CORRETO
+
+**REGRAS CRÍTICAS:**
+
+1. **Node IDs:** Apenas letras/números (A, B, C1, Estado1)
+   - ❌ \`Estado_Inicial\` (evite underscores)
+   - ✅ \`EstadoInicial\` ou \`E1\`
+
+2. **Labels em colchetes []:**
+   - ❌ Parênteses, setas unicode, símbolos gregos
+   - ✅ Use texto ASCII: "Sistema de entrada", "Q para W", "Delta U"
+
+3. **Setas:**
+   - ✅ Use \`-->\`, \`->\`, \`==>\` (ASCII)
+   - ❌ NUNCA \`→\`, \`⇒\`, \`←\` (unicode)
+
+4. **Styling:**
+   - ✅ Use hex colors: \`#e3f2fd\`
+   - ✅ Use CSS names: \`lightblue\`
+
+5. **Quebras de linha:**
+   - ✅ Use \`<br/>\` dentro de labels
+   - ❌ NUNCA múltiplas linhas diretas
 
 # 🎯 OBJETIVO FINAL
 

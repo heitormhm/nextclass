@@ -8,65 +8,82 @@ interface MermaidDiagramProps {
   icon: string;
 }
 
-// Função de sanitização para limpar código Mermaid antes de renderizar
 const sanitizeMermaidCode = (code: string): string => {
   let sanitized = code;
   
-  // 0. FIRST: Replace problematic arrow characters BEFORE processing brackets
-  sanitized = sanitized
-    .replace(/→/g, '-->')
-    .replace(/←/g, '<--')
-    .replace(/↔/g, '<-->')
-    .replace(/⇒/g, '==>')
-    .replace(/⇐/g, '<==')
-    .replace(/⇔/g, '<==>');
+  // STEP 1: Replace ALL unicode arrows FIRST
+  const unicodeArrows: Record<string, string> = {
+    '→': '-->',
+    '←': '<--',
+    '↔': '<-->',
+    '⇒': '==>',
+    '⇐': '<==',
+    '⇔': '<==>'
+  };
   
-  // 1. Remover caracteres problemáticos em labels com colchetes []
-  sanitized = sanitized.replace(/([A-Z]\[)([^\]]+)(\])/g, (match, open, content, close) => {
+  Object.entries(unicodeArrows).forEach(([unicode, ascii]) => {
+    sanitized = sanitized.replace(new RegExp(unicode, 'g'), ascii);
+  });
+  
+  // STEP 2: Replace Greek letters in labels
+  const greekLetters: Record<string, string> = {
+    'Δ': 'Delta',
+    '∆': 'Delta',
+    'Σ': 'Sigma',
+    'α': 'alpha',
+    'β': 'beta',
+    'γ': 'gamma',
+    'θ': 'theta',
+    'λ': 'lambda',
+    'μ': 'mu',
+    'π': 'pi',
+    'σ': 'sigma',
+    'ω': 'omega'
+  };
+  
+  // Only replace Greek letters inside labels []
+  sanitized = sanitized.replace(/(\[)([^\]]+)(\])/g, (match, open, content, close) => {
     let cleanContent = content;
-    
-    // Only replace problematic parentheses, not all of them
-    // Keep parentheses if they're balanced and contain commas (likely a list)
-    const hasBalancedParens = (content.match(/\(/g) || []).length === (content.match(/\)/g) || []).length;
-    const hasCommaInsideParens = /\([^)]*,[^)]*\)/.test(content);
-    
-    if (hasBalancedParens && hasCommaInsideParens) {
-      // Keep parentheses but remove special chars
-      cleanContent = content
-        .replace(/[&<>"']/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    } else {
-      // Original sanitization for problematic cases
-      cleanContent = content
-        .replace(/\(/g, ' - ')
-        .replace(/\)/g, '')
-        .replace(/[&<>"']/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-    
+    Object.entries(greekLetters).forEach(([greek, spelled]) => {
+      cleanContent = cleanContent.replace(new RegExp(greek, 'g'), spelled);
+    });
     return `${open}${cleanContent}${close}`;
   });
   
-  // 2. Limpar labels em chaves {} (para mapas mentais)
-  sanitized = sanitized.replace(/(\{)([^\}]+)(\})/g, (match, open, content, close) => {
+  // STEP 3: Clean problematic chars in labels
+  sanitized = sanitized.replace(/(\[)([^\]]+)(\])/g, (match, open, content, close) => {
     let cleanContent = content
-      .replace(/\(/g, ' - ')
-      .replace(/\)/g, '')
-      .replace(/[&<>"']/g, '')
-      .replace(/\s+/g, ' ')
+      .replace(/[&<>"']/g, '') // Remove HTML-problematic chars
+      .replace(/\(/g, '')       // Remove opening parenthesis
+      .replace(/\)/g, '')       // Remove closing parenthesis
+      .replace(/\s+/g, ' ')     // Normalize whitespace
       .trim();
     
     return `${open}${cleanContent}${close}`;
   });
+
+  // Clean up any potential HTML tags
+  sanitized = sanitized.replace(/<[^>]*>/g, '');
   
-  // 3. Validar estrutura básica
-  if (!sanitized.includes('graph') && !sanitized.includes('flowchart') && !sanitized.includes('mindmap')) {
-    console.warn('[Mermaid] Código sem tipo de diagrama reconhecido');
+  // Replace common problematic patterns
+  sanitized = sanitized
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, 'and')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+
+  // Ensure proper spacing around mermaid syntax elements
+  sanitized = sanitized.replace(/-->/g, ' --> ');
+  sanitized = sanitized.replace(/\|/g, ' | ');
+  
+  // STEP 4: Validate basic structure
+  if (!sanitized.match(/^(graph|flowchart|sequenceDiagram|stateDiagram)/m)) {
+    console.warn('[Mermaid] ⚠️ No valid diagram type found');
+    return ''; // Return empty to trigger placeholder
   }
   
-  return sanitized;
+  console.log('[Mermaid] ✅ Sanitization complete');
+  return sanitized.trim();
 };
 
 export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagramProps) => {
