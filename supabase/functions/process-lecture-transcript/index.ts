@@ -147,47 +147,94 @@ Retorne um JSON com esta estrutura exata:
 
     console.log('Parsed response:', structuredContent);
 
-    // Validate and clean Mermaid diagrams
+    // Validate and clean Mermaid diagrams with AUTO-FIX capability
     function validateAndCleanMermaidDiagrams(markdown: string): string {
-      console.log('[Mermaid Validation] Starting validation...');
+      console.log('[Mermaid Validation] Starting SMART validation with auto-fix...');
       
       const mermaidBlockRegex = /```mermaid\s*\n([\s\S]*?)```/g;
-      const problematicCharsRegex = /[→←↔⇒⇐⇔ΔΣαβγθλμπσω&<>"']/;
       
       let cleanedMarkdown = markdown;
       let blocksFound = 0;
+      let blocksFixed = 0;
       let blocksRemoved = 0;
       
       cleanedMarkdown = cleanedMarkdown.replace(mermaidBlockRegex, (match, code) => {
         blocksFound++;
+        const originalCode = code;
         
-        // Validação 1: Verifica caracteres problemáticos
-        if (problematicCharsRegex.test(code)) {
-          console.warn(`[Mermaid Validation] Block ${blocksFound} contains problematic characters. Removing.`);
+        // STEP 1: Auto-fix common issues
+        let fixedCode = code;
+        
+        // Fix 1.1: Replace Unicode arrows with ASCII
+        fixedCode = fixedCode
+          .replace(/→/g, '-->')
+          .replace(/←/g, '<--')
+          .replace(/↔/g, '<-->')
+          .replace(/⇒/g, '==>')
+          .replace(/⇐/g, '<==')
+          .replace(/⇔/g, '<=>');
+        
+        // Fix 1.2: Replace Greek letters ONLY in labels (inside [])
+        fixedCode = fixedCode.replace(/(\[[^\]]+\])/g, (label: string) => {
+          return label
+            .replace(/Δ|∆/g, 'Delta')
+            .replace(/Σ/g, 'Sigma')
+            .replace(/α/g, 'alpha')
+            .replace(/β/g, 'beta')
+            .replace(/γ/g, 'gamma')
+            .replace(/θ/g, 'theta')
+            .replace(/λ/g, 'lambda')
+            .replace(/μ/g, 'mu')
+            .replace(/π/g, 'pi')
+            .replace(/σ/g, 'sigma')
+            .replace(/ω/g, 'omega');
+        });
+        
+        // Fix 1.3: Clean problematic chars in labels (preserves content)
+        fixedCode = fixedCode.replace(/(\[[^\]]+\])/g, (label: string) => {
+          return label
+            .replace(/[<>"'&]/g, '') // Remove HTML-problematic chars
+            .replace(/\(/g, '')
+            .replace(/\)/g, '');
+        });
+        
+        // STEP 2: Validate AFTER fixes
+        
+        // Validation 2.1: Minimum length
+        if (fixedCode.trim().length < 20) {
+          console.warn(`[Mermaid Validation] Block ${blocksFound} too short after fixes. Removing.`);
           blocksRemoved++;
           return '';
         }
         
-        // Validação 2: Verifica tipo de diagrama válido
-        const validDiagramTypes = /^(flowchart|graph|sequenceDiagram|stateDiagram-v2|classDiagram)/m;
-        if (!validDiagramTypes.test(code)) {
+        // Validation 2.2: Valid diagram type
+        const validTypes = /^(flowchart|graph|sequenceDiagram|stateDiagram-v2|classDiagram|gantt)/m;
+        if (!validTypes.test(fixedCode)) {
           console.warn(`[Mermaid Validation] Block ${blocksFound} has invalid diagram type. Removing.`);
           blocksRemoved++;
           return '';
         }
         
-        // Validação 3: Verifica se tem conteúdo mínimo
-        if (code.trim().length < 20) {
-          console.warn(`[Mermaid Validation] Block ${blocksFound} is too short. Removing.`);
+        // Validation 2.3: Check for REMAINING problematic chars (after all fixes)
+        const stillProblematic = /[→←↔⇒⇐⇔ΔΣαβγθλμπσω]/;
+        if (stillProblematic.test(fixedCode)) {
+          console.warn(`[Mermaid Validation] Block ${blocksFound} still has unfixable Unicode. Removing.`);
           blocksRemoved++;
           return '';
         }
         
-        console.log(`[Mermaid Validation] Block ${blocksFound} passed validation ✅`);
-        return match;
+        // SUCCESS
+        if (fixedCode !== originalCode) {
+          console.log(`[Mermaid Validation] Block ${blocksFound} auto-fixed ✅`);
+          blocksFixed++;
+        } else {
+          console.log(`[Mermaid Validation] Block ${blocksFound} valid, no fixes needed ✅`);
+        }
+        
+        return `\`\`\`mermaid\n${fixedCode}\n\`\`\``;
       });
       
-      console.log(`[Mermaid Validation] Summary: ${blocksFound} blocks found, ${blocksRemoved} removed, ${blocksFound - blocksRemoved} kept`);
+      console.log(`[Mermaid Validation] Summary: ${blocksFound} found, ${blocksFixed} auto-fixed, ${blocksRemoved} removed, ${blocksFound - blocksRemoved} kept`);
       
       return cleanedMarkdown;
     }

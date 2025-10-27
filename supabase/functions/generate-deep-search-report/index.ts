@@ -240,6 +240,41 @@ RESTRIÇÕES:
   - Use listas com bullets (•) para características, propriedades e itens relacionados
   - Insira subtítulos (###) a cada 2-3 parágrafos para organizar o conteúdo
 
+  **5. DIAGRAMAS MERMAID - OBRIGATÓRIO (MÍNIMO 2 DIAGRAMAS POR MATERIAL):**
+  
+  **REGRAS ABSOLUTAS PARA DIAGRAMAS MERMAID:**
+  1. **TIPOS PERMITIDOS:** flowchart TD, flowchart LR, sequenceDiagram, stateDiagram-v2
+  2. **SETAS:** Use APENAS --> (direita), <-- (esquerda), ==> (bold) [ASCII puro, NUNCA → ← ⇒]
+  3. **IDs DE NÓS:** Apenas letras e números (A, B, Estado1, Etapa2) - SEM espaços ou caracteres especiais
+  4. **LABELS (texto dentro de []):**
+     - Podem conter: letras, números, espaços, ponto, vírgula
+     - EVITE: parênteses (), aspas "", símbolos <>, &
+     - Letras gregas: escreva por extenso (Delta, theta, pi) EM VEZ DE símbolos (Δ, θ, π)
+  5. **VALIDAÇÃO MENTAL:** Antes de gerar, pergunte-se: "Este código funcionaria em https://mermaid.live?"
+  
+  **FORMATO DO BLOCO:**
+  - Inicie com: três backticks + palavra "mermaid"
+  - Próxima linha: tipo do diagrama (ex: flowchart TD)
+  - Defina nós e conexões usando sintaxe válida
+  - Feche com: três backticks
+  
+  **EXEMPLO DE ESTRUTURA VÁLIDA:**
+  - Nó A conectado a decisão B: A[Inicio] --> B{Condicao}
+  - Decisão B com duas saídas: B -->|Sim| C[Acao1] e B -->|Nao| D[Acao2]
+  - Use apenas caracteres ASCII simples em IDs (A, B, C) e texto legível em labels [Texto aqui]
+  
+  **O QUE EVITAR:**
+  - Setas Unicode: → ← ⇒ (use --> <-- ==>)
+  - Símbolos gregos: Δ θ π (escreva Delta theta pi)
+  - Parênteses em labels: (evite) substitua por texto simples
+  - Espaços em IDs de nós: use A1 A2 Estado1 (não "Estado 1")
+
+  **ONDE INSERIR DIAGRAMAS:**
+  - Material 1 (Estudo de Caso): Diagrama de fluxo do processo técnico principal
+  - Material 2 (Nota Técnica): Diagrama de estados ou sequência do fenômeno explicado
+  - Insira diagramas DENTRO do markdown normal como blocos de código
+  - Use subtítulo antes do diagrama: ### Diagrama: [descrição]
+
 **EXEMPLO COMPLETO E OBRIGATÓRIO DE FORMATAÇÃO:**
 
 ### 2.1 Densidade e Massa Específica (ρ)

@@ -125,9 +125,9 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
       try {
         const sanitizedCode = sanitizeMermaidCode(code);
         
-        // AGGRESSIVE PRE-VALIDATION: Reject invalid code BEFORE attempting render
+        // Minimal validation (only extreme cases)
         if (!sanitizedCode || sanitizedCode.length < 10) {
-          console.warn('[Mermaid] Empty or too short code, showing placeholder');
+          console.warn('[Mermaid] Empty code, showing placeholder');
           setError('invalid');
           return;
         }
@@ -138,13 +138,10 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           return;
         }
 
-        if (sanitizedCode.match(/[→←↔⇒⇐⇔Δ∆Σαβγθλμπσω]/)) {
-          console.warn('[Mermaid] Problematic Unicode characters detected, showing placeholder');
-          setError('invalid');
-          return;
-        }
-
-        // Configure Mermaid silently
+        // ✅ REMOVED Unicode validation - trust backend sanitization
+        // We now attempt to render even if there are minor issues
+        
+        // Configure Mermaid with tolerant settings
         mermaid.initialize({ 
           theme: 'default',
           logLevel: 'fatal',
@@ -152,9 +149,9 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           securityLevel: 'loose',
         });
 
-        const uniqueId = `mermaid-${Date.now()}`;
+        const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        // Attempt render with timeout
+        // Timeout de 5s
         const renderTimeout = setTimeout(() => {
           console.error('[Mermaid] Render timeout');
           setError('timeout');
@@ -164,13 +161,14 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           const { svg } = await mermaid.render(uniqueId, sanitizedCode);
           clearTimeout(renderTimeout);
           
-          // Validate SVG doesn't contain errors before inserting
+          // Validate AFTER render (check IF it rendered with errors)
           if (svg.includes('Syntax error') || svg.includes('error-icon') || svg.includes('Parse error')) {
-            console.warn('[Mermaid] ⚠️ Error detected in rendered SVG, showing placeholder');
+            console.warn('[Mermaid] Error detected in SVG, showing placeholder');
             setError('render_error');
             return;
           }
           
+          // ✅ SUCCESS
           if (ref.current) {
             ref.current.innerHTML = svg;
           }
@@ -178,7 +176,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           setError(null);
         } catch (renderErr) {
           clearTimeout(renderTimeout);
-          console.error('[Mermaid] Render failed silently');
+          console.error('[Mermaid] Render failed:', renderErr);
           setError('hidden');
         }
       } catch (err) {
@@ -196,9 +194,23 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         <h4 className="font-bold text-foreground mb-2 text-lg">{icon} {title}</h4>
         <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
         {error ? (
-          <div className="flex flex-col items-center justify-center min-h-[200px] bg-muted/10 rounded-lg p-4">
-            <div className="text-5xl mb-2 opacity-50">📊</div>
-            <p className="text-xs text-muted-foreground/70">Visualização em construção</p>
+          <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="text-4xl opacity-40">📊</div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Diagrama temporariamente indisponível</p>
+                <p className="text-xs text-slate-500">O sistema está processando este conteúdo visual</p>
+              </div>
+            </div>
+            {/* Preview do código para debug */}
+            <details className="mt-3">
+              <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-700">
+                Ver código-fonte (debug)
+              </summary>
+              <pre className="mt-2 text-xs bg-slate-100 p-2 rounded overflow-x-auto max-h-40">
+                <code>{code.substring(0, 300)}{code.length > 300 ? '...' : ''}</code>
+              </pre>
+            </details>
           </div>
         ) : (
           <div ref={ref} className="flex justify-center items-center min-h-[200px] bg-white rounded-lg p-4" />
