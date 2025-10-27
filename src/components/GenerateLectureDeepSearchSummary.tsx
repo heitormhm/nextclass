@@ -174,6 +174,16 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
 
       // Create JOB
       console.log('💾 [Deep Search] Creating job in database...');
+      console.log('📊 [Deep Search] Job payload:', {
+        teacher_id: user.id,
+        lecture_id: lectureId,
+        job_type: 'GENERATE_LECTURE_DEEP_SEARCH',
+        status: 'PENDING',
+        progress: 0,
+        progress_message: 'Iniciando pesquisa profunda...',
+        input_payload: { lectureId, lectureTitle, tags, userId: user.id }
+      });
+      
       const { data: job, error: jobError } = await supabase
         .from('teacher_jobs')
         .insert({
@@ -195,17 +205,19 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
 
       if (jobError) {
         console.error('❌ [Deep Search] Job creation FAILED');
-        console.error('Error details:', {
+        console.error('📋 [Deep Search] Full error:', jobError);
+        console.error('📋 [Deep Search] Error details:', {
           message: jobError.message,
           code: jobError.code,
           details: jobError.details,
           hint: jobError.hint,
         });
-        console.error('User context:', {
+        console.error('👤 [Deep Search] User context:', {
           userId: user.id,
           lectureId: lectureId,
           lectureTitle: lectureTitle
         });
+        setError(`Erro ao criar job: ${jobError.message}`);
         throw new Error(`Erro ao criar job: ${jobError.message}`);
       }
 

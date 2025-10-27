@@ -42,7 +42,6 @@ export const LiveTranscriptViewer: React.FC<LiveTranscriptViewerProps> = ({
           <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p className="text-sm font-medium">Aguardando transcrição...</p>
           <p className="text-xs mt-1">Comece a falar para ver a transcrição aqui</p>
-          <p className="text-xs mt-2 text-amber-600 font-medium">⚠️ Requer créditos OpenAI para transcrição ao vivo</p>
         </div>
       )}
 

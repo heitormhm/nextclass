@@ -1285,13 +1285,17 @@ const LectureTranscriptionPage = () => {
           {/* Header */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+              <div className="flex items-center gap-3">
                 <Sparkles className="h-8 w-8 text-purple-300 animate-pulse" />
-                Centro de Publicação Inteligente
-              </h1>
-              <p className="text-white/80 text-base drop-shadow-sm">
-                Revise, edite e publique seu material didático gerado por IA
-              </p>
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+                    Centro de Publicação Inteligente
+                  </h1>
+                  <p className="text-white/80 text-base drop-shadow-sm mt-1">
+                    Revise, edite e publique seu material didático gerado por IA
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -1386,7 +1390,10 @@ const LectureTranscriptionPage = () => {
                 {/* Title */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 font-bold">Título da Aula</CardTitle>
+                    <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-purple-600" />
+                      Título da Aula
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Input
@@ -1402,8 +1409,8 @@ const LectureTranscriptionPage = () => {
                 {/* Conteúdo Gerado com Tabs */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-purple-600" />
+                    <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-purple-600" />
                       Conteúdo Gerado
                     </CardTitle>
                     <GenerateLectureDeepSearchSummary
@@ -1528,8 +1535,8 @@ const LectureTranscriptionPage = () => {
                 {/* Main topics */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-purple-600" />
+                    <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-purple-600" />
                       Tópicos Principais
                     </CardTitle>
                     <Button
@@ -1562,7 +1569,8 @@ const LectureTranscriptionPage = () => {
                 {/* Quiz questions */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-slate-900 font-bold">
+                    <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
+                      <CheckSquare className="h-5 w-5 text-purple-600" />
                       Perguntas de Revisão ({generatedQuiz?.questions?.length || structuredContent?.perguntas_revisao?.length || 0})
                     </CardTitle>
                     <div className="flex gap-2">
@@ -1689,7 +1697,8 @@ const LectureTranscriptionPage = () => {
                 {/* Flashcards */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-slate-900 font-bold">
+                    <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-purple-600" />
                       Flashcards ({generatedFlashcards?.cards?.length || structuredContent.flashcards.length})
                     </CardTitle>
                     <div className="flex gap-2">
@@ -1812,15 +1821,15 @@ const LectureTranscriptionPage = () => {
                 {/* Thumbnail panel */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4 text-purple-600" />
+                    <CardTitle className="text-lg text-slate-900 font-bold flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-purple-600" />
                       Thumbnail da Aula
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {isGeneratingThumbnail ? (
                       <div className="flex items-center justify-center h-40 bg-white rounded-lg border border-slate-300">
-                        <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
+                        <Loader2 className="h-5 w-5 text-purple-600 animate-spin" />
                       </div>
                     ) : thumbnailUrl ? (
                       <div className="relative rounded-lg overflow-hidden border border-slate-300">
@@ -1905,8 +1914,8 @@ const LectureTranscriptionPage = () => {
                  {/* Audio Player */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl mt-4">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-purple-600" />
+                    <CardTitle className="text-lg text-slate-900 font-bold flex items-center gap-2">
+                      <Play className="h-5 w-5 text-purple-600" />
                       Áudio da Aula
                     </CardTitle>
                   </CardHeader>
@@ -2045,7 +2054,7 @@ const LectureTranscriptionPage = () => {
                 {/* References - Movido para o final */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-slate-900 font-bold flex items-center gap-2">
+                    <CardTitle className="text-lg text-slate-900 font-bold flex items-center gap-2">
                       <ExternalLink className="h-5 w-5 text-purple-600" />
                       Referências Externas
                     </CardTitle>
@@ -2321,8 +2330,8 @@ const LectureTranscriptionPage = () => {
                 {/* Materials panel */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
-                      <FileUp className="h-4 w-4 text-purple-600" />
+                    <CardTitle className="text-lg text-slate-900 font-bold flex items-center gap-2">
+                      <FileUp className="h-5 w-5 text-purple-600" />
                       Materiais Suplementares
                     </CardTitle>
                   </CardHeader>
@@ -2453,8 +2462,8 @@ const LectureTranscriptionPage = () => {
                 {/* Student access control */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 font-bold text-sm flex items-center gap-2">
-                      <Users className="h-4 w-4 text-purple-600" />
+                    <CardTitle className="text-lg text-slate-900 font-bold flex items-center gap-2">
+                      <Users className="h-5 w-5 text-purple-600" />
                       Controle de Acesso
                     </CardTitle>
                   </CardHeader>
