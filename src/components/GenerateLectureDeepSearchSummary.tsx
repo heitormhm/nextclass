@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Brain, Loader2, Search, FileText, Check, AlertCircle } from 'lucide-react';
+import { Brain, Loader2, Search, FileText, Check, AlertCircle, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,6 +21,7 @@ const PROCESSING_STEPS = [
   { id: 2, label: 'Pesquisando fontes na web', icon: Search },
   { id: 3, label: 'Coletando dados educacionais', icon: FileText },
   { id: 4, label: 'Gerando material didático', icon: Brain },
+  { id: 5, label: 'Adicionando gráficos e diagramas', icon: BarChart3 },
 ];
 
 export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearchSummaryProps> = ({
@@ -39,6 +40,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const { toast } = useToast();
   const hasProcessedCompletion = useRef(false);
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
+  const isMounted = useRef(true);
   
   // Use refs to avoid re-creating the effect when these change
   const onUpdateRef = useRef(onUpdate);
@@ -58,6 +60,15 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
     }
   };
 
+  // Global cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log('🔌 [Deep Search] Component unmounting, cleaning up...');
+      isMounted.current = false;
+      stopPolling();
+    };
+  }, []);
+
   // Subscribe to job updates via realtime with polling fallback
   useEffect(() => {
     if (!jobId) return;
@@ -65,8 +76,15 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
     console.log('🔔 [Deep Search] Subscribing to job:', jobId);
 
     const handleJobUpdate = (job: any) => {
-      // Map progress to steps (0-1 → 0-3), cap at 3 during processing
-      const step = Math.min(Math.floor((job.progress || 0) * 4), 3);
+      if (!isMounted.current) {
+        console.log('⚠️ [Deep Search] Component unmounted, ignoring update');
+        return;
+      }
+      
+      console.log(`🔄 [Deep Search] Job update:`, job.status, job.progress);
+      
+      // Map progress to steps (0-1 → 0-4), cap at 4 during processing
+      const step = Math.min(Math.floor((job.progress || 0) * 5), 4);
       setCurrentStep(step);
       
       if (job.progress_message) {
@@ -82,13 +100,20 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         hasProcessedCompletion.current = true;
         
         console.log('✅ [Deep Search] Job COMPLETED!');
-        setCurrentStep(4);
-        setProgressMessage('Concluído!');
         
-        stopPolling(); // ⭐ STOP POLLING BEFORE CLEARING JOB ID
+        stopPolling();
+        
+        if (!isMounted.current) {
+          console.log('⚠️ [Deep Search] Component unmounted after completion, skipping state updates');
+          return;
+        }
+        
+        setCurrentStep(5);
+        setProgressMessage('Concluído!');
         setJobId(null);
         
         setTimeout(() => {
+          if (!isMounted.current) return;
           setIsGenerating(false);
           setCurrentStep(0);
           setError(null);

@@ -37,6 +37,45 @@ async function updateJobProgress(
   }
 }
 
+// Helper function to save report to lecture
+async function saveReportToLecture(
+  supabase: any,
+  lectureId: string,
+  report: string,
+  jobId: string
+) {
+  const { data: lecture, error: lectureError } = await supabase
+    .from('lectures')
+    .select('structured_content')
+    .eq('id', lectureId)
+    .single();
+  
+  if (lectureError) {
+    console.error(`[Job ${jobId}] ❌ Failed to fetch lecture:`, lectureError);
+    throw new Error(`Failed to fetch lecture: ${lectureError.message}`);
+  }
+
+  const existingContent = lecture?.structured_content || {};
+  
+  const { error: updateError } = await supabase
+    .from('lectures')
+    .update({
+      structured_content: {
+        ...existingContent,
+        material_didatico: report
+      },
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', lectureId);
+  
+  if (updateError) {
+    console.error(`[Job ${jobId}] ❌ Failed to update lecture:`, updateError);
+    throw new Error(`Failed to update lecture: ${updateError.message}`);
+  }
+  
+  console.log(`[Job ${jobId}] ✅ Report saved to lecture`);
+}
+
 // Process deep search for lecture material
 async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: string) {
   const { lectureId, lectureTitle, tags, userId, teacherName } = job.input_payload;
@@ -79,40 +118,49 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
     const report = await generateEducationalReport(query, searchResults, teacherName, lovableApiKey, job.id);
     console.log(`[Job ${job.id}] ✅ Report generated, length: ${report.length} characters`);
 
-    // Step 5: Save to lecture (90% progress)
-    await updateJobProgress(supabase, job.id, 0.9, 'Salvando material...');
-    
-    // Get existing lecture content
-    const { data: lecture, error: lectureError } = await supabase
-      .from('lectures')
-      .select('structured_content')
-      .eq('id', lectureId)
-      .single();
-    
-    if (lectureError) {
-      console.error(`[Job ${job.id}] ❌ Failed to fetch lecture:`, lectureError);
-      throw new Error(`Failed to fetch lecture: ${lectureError.message}`);
-    }
+    // Step 5: Auto-enrich with graphics (80-95%)
+    await updateJobProgress(supabase, job.id, 0.80, 'Adicionando gráficos e diagramas...');
 
-    const existingContent = lecture?.structured_content || {};
-    
-    // Update lecture with material
-    const { error: updateError } = await supabase
-      .from('lectures')
-      .update({
-        structured_content: {
-          ...existingContent,
-          material_didatico: report
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      // Chamar edit-lecture-content para adicionar gráficos
+      const editResponse = await fetch(`${supabaseUrl}/functions/v1/edit-lecture-content`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
         },
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', lectureId);
-    
-    if (updateError) {
-      console.error(`[Job ${job.id}] ❌ Failed to update lecture:`, updateError);
-      throw new Error(`Failed to update lecture: ${updateError.message}`);
-    }
+        body: JSON.stringify({
+          lectureId,
+          sectionTitle: 'Material Didático',
+          currentContent: report,
+          editInstruction: 'Adicione gráficos Mermaid (flowcharts, diagramas de sequência, diagramas conceituais), tabelas comparativas e figuras explicativas para ilustrar melhor os conceitos. Inclua pelo menos 2 fluxogramas técnicos e 1 diagrama conceitual relevante ao conteúdo de engenharia. Use sintaxe Mermaid correta e posicione os gráficos estrategicamente no texto.'
+        })
+      });
 
+      if (editResponse.ok) {
+        const editData = await editResponse.json();
+        if (editData.updatedContent?.material_didatico) {
+          console.log(`[Job ${job.id}] ✅ Graphics added automatically, updated length: ${editData.updatedContent.material_didatico.length}`);
+          await updateJobProgress(supabase, job.id, 0.95, 'Gráficos adicionados com sucesso...');
+        } else {
+          console.warn(`[Job ${job.id}] ⚠️ Graphics enrichment returned invalid structure, using original report`);
+          await saveReportToLecture(supabase, lectureId, report, job.id);
+        }
+      } else {
+        const errorText = await editResponse.text();
+        console.warn(`[Job ${job.id}] ⚠️ Graphics enrichment failed (${editResponse.status}): ${errorText}`);
+        console.log(`[Job ${job.id}] Falling back to original report without graphics`);
+        await saveReportToLecture(supabase, lectureId, report, job.id);
+      }
+    } catch (graphicsError) {
+      console.error(`[Job ${job.id}] ❌ Error adding graphics:`, graphicsError);
+      console.log(`[Job ${job.id}] Falling back to original report without graphics`);
+      await saveReportToLecture(supabase, lectureId, report, job.id);
+    }
+    
     // Step 6: Complete (100% progress)
     await updateJobProgress(supabase, job.id, 1.0, 'Concluído!');
     

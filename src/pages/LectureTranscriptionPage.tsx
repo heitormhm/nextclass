@@ -156,7 +156,7 @@ const LectureTranscriptionPage = () => {
   const [editingReference, setEditingReference] = useState<any>(null);
   
   // Graphics enrichment state
-  const [isEnrichingWithGraphics, setIsEnrichingWithGraphics] = useState(false);
+  
 
   // URL validation helper
   const isValidUrl = (url: string) => {
@@ -1113,93 +1113,6 @@ const LectureTranscriptionPage = () => {
     });
   };
 
-  const handleEnrichWithGraphics = async () => {
-    if (!structuredContent?.material_didatico) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Nenhum material didático disponível para enriquecer',
-      });
-      return;
-    }
-
-    setIsEnrichingWithGraphics(true);
-    
-    try {
-      toast({
-        title: '🎨 Adicionando gráficos e diagramas...',
-        description: 'Este processo pode levar alguns segundos',
-        duration: 3000,
-      });
-
-      const { data, error } = await supabase.functions.invoke('edit-lecture-content', {
-        body: {
-          lectureId: id,
-          sectionTitle: 'Material Didático',
-          currentContent: JSON.stringify({ material_didatico: structuredContent.material_didatico }),
-          editInstruction: 'Adicione gráficos Mermaid (flowcharts, diagramas de sequência, diagramas de classe), tabelas comparativas e figuras explicativas para ilustrar melhor os conceitos. Inclua pelo menos 2 fluxogramas técnicos e 1 diagrama conceitual relevante ao conteúdo. Use sintaxe Mermaid correta com ```mermaid blocos. Mantenha o conteúdo original e adicione os elementos visuais de forma integrada.'
-        }
-      });
-
-      if (error) {
-        console.error('[Enrich Graphics] Erro:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Erro ao adicionar gráficos',
-          description: error.message || 'Não foi possível processar a requisição',
-        });
-        return;
-      }
-
-      console.log('[Enrich Graphics] Resposta recebida:', data);
-
-      if (!data) {
-        toast({
-          variant: 'destructive',
-          title: 'Erro na resposta',
-          description: 'Nenhum dado retornado pela edge function',
-        });
-        return;
-      }
-
-      if (!data.updatedContent || !data.updatedContent.material_didatico) {
-        console.error('[Enrich Graphics] Estrutura inválida:', data);
-        toast({
-          variant: 'destructive',
-          title: 'Erro na estrutura da resposta',
-          description: data.response || 'Resposta da IA não contém material atualizado',
-        });
-        return;
-      }
-
-      console.log('[Enrich Graphics] Material atualizado recebido, salvando...');
-
-      // Atualizar no estado local IMEDIATAMENTE (optimistic update)
-      setStructuredContent({
-        ...structuredContent,
-        material_didatico: data.updatedContent.material_didatico
-      });
-
-      // Recarregar do banco para confirmar
-      await loadLectureData();
-
-      toast({
-        title: '✅ Gráficos adicionados!',
-        description: 'O material didático foi enriquecido com elementos visuais',
-        duration: 5000,
-      });
-
-    } catch (error) {
-      console.error('[Enrich Graphics] Erro:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao processar',
-        description: error instanceof Error ? error.message : 'Erro inesperado',
-      });
-    } finally {
-      setIsEnrichingWithGraphics(false);
-    }
-  };
 
   const handleAddReference = async () => {
     if (!newReference.titulo.trim() || !newReference.url.trim()) {
@@ -1607,25 +1520,6 @@ const LectureTranscriptionPage = () => {
                               >
                                 <Sparkles className="h-4 w-4 mr-1" />
                                 Editar com IA
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleEnrichWithGraphics}
-                                disabled={isEnrichingWithGraphics}
-                                className="h-9 bg-purple-50 hover:bg-purple-100 border-purple-300"
-                              >
-                                {isEnrichingWithGraphics ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 mr-1 animate-spin text-purple-600" />
-                                    Processando...
-                                  </>
-                                ) : (
-                                  <>
-                                    <BarChart3 className="h-4 w-4 mr-1 text-purple-600" />
-                                    Adicionar Gráficos
-                                  </>
-                                )}
                               </Button>
                             </div>
                           </>

@@ -38,15 +38,20 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (JSON válido):
   }
 }
 
-REGRAS:
+REGRAS CRÍTICAS DE FORMATAÇÃO:
 1. SEMPRE retorne JSON válido no formato acima
 2. NUNCA adicione texto fora do JSON
 3. NUNCA use markdown code blocks (sem \`\`\`json)
-4. Para gráficos, use blocos Mermaid: \`\`\`mermaid ... \`\`\`
-5. Mantenha o conteúdo original e adicione elementos visuais
-6. Use no mínimo 2 diagramas Mermaid relevantes
+4. Para gráficos Mermaid, use blocos: \`\`\`mermaid\\ngraph TD\\nA-->B\`\`\`
+5. Use \\n para quebras de linha dentro do JSON
+6. Escape aspas duplas dentro do conteúdo: \\"
+7. Mantenha o conteúdo original e adicione elementos visuais
+8. Use no mínimo 2 diagramas Mermaid relevantes
 
-IMPORTANTE: Sua resposta DEVE ser JSON puro, iniciando com { e terminando com }`;
+IMPORTANTE: 
+- Sua resposta DEVE ser JSON puro válido
+- Inicie com { e termine com }
+- Use escape correto para todos os caracteres especiais`;
 
     const userPrompt = `Seção: ${sectionTitle}
 
@@ -107,24 +112,45 @@ Aplique a edição solicitada e retorne o resultado no formato especificado.`;
       const jsonStart = cleanedContent.indexOf('{');
       const jsonEnd = cleanedContent.lastIndexOf('}');
       
-      if (jsonStart !== -1 && jsonEnd !== -1) {
-        cleanedContent = cleanedContent.substring(jsonStart, jsonEnd + 1);
+      if (jsonStart === -1 || jsonEnd === -1 || jsonStart > jsonEnd) {
+        throw new Error('No valid JSON structure found (missing { or })');
       }
       
-      result = JSON.parse(cleanedContent);
+      cleanedContent = cleanedContent.substring(jsonStart, jsonEnd + 1);
+      
+      // Tentar parsing incremental para detectar onde falha
+      console.log('[Edit Content] Attempting to parse JSON...');
+      console.log('[Edit Content] JSON length:', cleanedContent.length);
+      
+      try {
+        result = JSON.parse(cleanedContent);
+      } catch (parseError1) {
+        // Se falhar, tentar remover o último caractere (pode estar truncado)
+        console.warn('[Edit Content] First parse attempt failed, trying without last char...');
+        try {
+          result = JSON.parse(cleanedContent.slice(0, -1) + '}');
+        } catch (parseError2) {
+          // Se ainda falhar, logar mais detalhes
+          console.error('[Edit Content] ❌ Both parse attempts failed');
+          console.error('[Edit Content] Last 200 chars:', cleanedContent.slice(-200));
+          throw parseError1;
+        }
+      }
       
       // Validar estrutura
       if (!result.updatedContent || !result.updatedContent.material_didatico) {
         throw new Error('Invalid response structure: missing updatedContent.material_didatico');
       }
       
-      console.log('✅ Successfully parsed AI response with valid structure');
+      console.log('✅ Successfully parsed AI response');
+      console.log('[Edit Content] Response description:', result.response);
+      console.log('[Edit Content] Material length:', result.updatedContent.material_didatico.length);
       
     } catch (parseError) {
       console.error('❌ Failed to parse AI response:', parseError);
-      console.error('📋 Raw AI content:', aiContent.substring(0, 500));
+      console.error('📋 First 500 chars:', aiContent.substring(0, 500));
+      console.error('📋 Last 500 chars:', aiContent.substring(Math.max(0, aiContent.length - 500)));
       
-      // Fallback: tentar extrair apenas o material_didatico
       throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
     }
 
