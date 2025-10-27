@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { brokenCode, context } = await req.json();
+    const { brokenCode, context, strategy = 'Reescreva o diagrama do zero seguindo sintaxe Mermaid estrita', attempt = 1 } = await req.json();
     
     if (!brokenCode) {
       throw new Error('Missing brokenCode parameter');
@@ -22,10 +22,12 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('[Fix Mermaid] Attempting to fix diagram...');
+    console.log(`[Fix Mermaid] Attempt ${attempt} - Strategy: ${strategy}`);
     console.log('[Fix Mermaid] Broken code:', brokenCode);
 
     const systemPrompt = `You are a Mermaid diagram syntax expert. Your job is to FIX broken Mermaid diagrams by correcting syntax errors while preserving the original intent and structure.
+
+**STRATEGY FOR THIS ATTEMPT:** ${strategy}
 
 **CRITICAL RULES:**
 1. ONLY return the corrected Mermaid code (no explanations, no markdown fences)

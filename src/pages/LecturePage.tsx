@@ -79,24 +79,41 @@ const LecturePage = () => {
         }
         
         // Check if student is enrolled in the turma
-        const { data: enrollment, error: enrollmentError } = await supabase
-          .from('turma_enrollments')
-          .select('id')
-          .eq('aluno_id', user.id)
-          .eq('turma_id', lecture.turma_id)
-          .maybeSingle();
-        
-        if (enrollmentError) {
-          console.error('Error checking enrollment:', enrollmentError);
-        }
-        
-        if (!enrollment) {
-          toast.error('Você não tem acesso a esta aula');
-          navigate('/dashboard');
-          return;
-        }
-        
-        setLectureData(lecture);
+      const { data: enrollment, error: enrollmentError } = await supabase
+        .from('turma_enrollments')
+        .select('id')
+        .eq('aluno_id', user.id)
+        .eq('turma_id', lecture.turma_id)
+        .maybeSingle();
+      
+      if (enrollmentError) {
+        console.error('Error checking enrollment:', enrollmentError);
+      }
+      
+      if (!enrollment) {
+        toast.error('Você não tem acesso a esta aula');
+        navigate('/dashboard');
+        return;
+      }
+      
+      setLectureData(lecture);
+      
+      // Register view
+      const { error: viewError } = await supabase
+        .from('lecture_views')
+        .insert({
+          lecture_id: id,
+          user_id: user.id,
+          viewed_at: new Date().toISOString()
+        })
+        .select()
+        .maybeSingle();
+      
+      if (viewError) {
+        console.log('[LecturePage] View already registered or insert failed:', viewError);
+      } else {
+        console.log('[LecturePage] ✅ View registered successfully');
+      }
         
       } catch (error) {
         console.error('Error:', error);

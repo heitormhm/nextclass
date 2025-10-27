@@ -199,88 +199,95 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
   const handleRegenerateDiagram = async () => {
     setIsRegenerating(true);
     
-    try {
-      console.log('[Mermaid] 🔄 Requesting diagram fix...');
-      
-      // STEP 1: Call edge function
-      const { data, error: funcError } = await supabase.functions.invoke('fix-mermaid-diagram', {
-        body: {
-          brokenCode: code,
-          context: `${title} - ${description}`
+    const MAX_ATTEMPTS = 3;
+    const STRATEGIES = [
+      'Reescreva o diagrama do zero seguindo sintaxe Mermaid estrita',
+      'Corrija apenas os erros de sintaxe mantendo a estrutura',
+      'Simplifique o diagrama removendo elementos problemáticos'
+    ];
+    
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        console.log(`[Mermaid] 🔄 Attempt ${attempt + 1}/${MAX_ATTEMPTS} using strategy: ${STRATEGIES[attempt]}`);
+        
+        const { data, error: funcError } = await supabase.functions.invoke('fix-mermaid-diagram', {
+          body: {
+            brokenCode: code,
+            context: `${title} - ${description}`,
+            strategy: STRATEGIES[attempt],
+            attempt: attempt + 1
+          }
+        });
+
+        if (funcError) {
+          console.error(`[Mermaid] ❌ Attempt ${attempt + 1} failed:`, funcError);
+          continue;
         }
-      });
 
-      if (funcError) {
-        console.error('[Mermaid] ❌ Edge function error:', funcError);
-        throw new Error(`Edge function failed: ${funcError.message}`);
-      }
+        if (!data?.fixedCode) {
+          console.warn(`[Mermaid] ⚠️ Attempt ${attempt + 1} returned no code`);
+          continue;
+        }
 
-      if (!data?.fixedCode) {
-        throw new Error('No fixed code returned from edge function');
+        console.log(`[Mermaid] ✅ Attempt ${attempt + 1} returned code`);
+        
+        const sanitizedFixed = sanitizeMermaidCode(data.fixedCode);
+        
+        if (!sanitizedFixed || sanitizedFixed.length < 10) {
+          console.warn(`[Mermaid] ⚠️ Attempt ${attempt + 1} sanitization failed`);
+          continue;
+        }
+        
+        mermaid.initialize({ 
+          theme: 'default',
+          logLevel: 'fatal',
+          startOnLoad: false,
+          securityLevel: 'loose',
+        });
+        
+        const uniqueId = `mermaid-fix-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        const renderPromise = mermaid.render(uniqueId, sanitizedFixed);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Render timeout')), 5000)
+        );
+        
+        const result = await Promise.race([renderPromise, timeoutPromise]) as { svg: string };
+        
+        if (result.svg.includes('Syntax error') || result.svg.includes('Parse error') || result.svg.includes('error-icon')) {
+          console.warn(`[Mermaid] ⚠️ Attempt ${attempt + 1} rendered with errors`);
+          continue;
+        }
+        
+        if (ref.current) {
+          ref.current.innerHTML = result.svg;
+        }
+        
+        setError(null);
+        
+        toast({
+          title: 'Diagrama corrigido! ✅',
+          description: `Resolvido usando estratégia ${attempt + 1}`,
+        });
+        
+        setIsRegenerating(false);
+        return;
+        
+      } catch (err) {
+        console.error(`[Mermaid] ❌ Attempt ${attempt + 1} exception:`, err);
       }
-
-      console.log('[Mermaid] ✅ Received fixed code');
-      
-      // STEP 2: CRITICAL - Re-sanitize fixed code received from AI
-      const sanitizedFixed = sanitizeMermaidCode(data.fixedCode);
-      
-      if (!sanitizedFixed || sanitizedFixed.length < 10) {
-        throw new Error('Fixed code is still invalid after sanitization');
-      }
-      
-      console.log('[Mermaid] ✅ Fixed code re-sanitized');
-      
-      // STEP 3: Re-initialize Mermaid before attempting render
-      mermaid.initialize({ 
-        theme: 'default',
-        logLevel: 'fatal',
-        startOnLoad: false,
-        securityLevel: 'loose',
-      });
-      
-      // Attempt render with timeout protection
-      const uniqueId = `mermaid-fix-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      const renderPromise = mermaid.render(uniqueId, sanitizedFixed);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Render timeout')), 5000)
-      );
-      
-      const result = await Promise.race([renderPromise, timeoutPromise]) as { svg: string };
-      
-      // STEP 4: Validate rendered SVG doesn't contain errors
-      if (result.svg.includes('Syntax error') || result.svg.includes('error-icon') || result.svg.includes('Parse error')) {
-        throw new Error('Rendered SVG contains syntax errors');
-      }
-      
-      // STEP 5: Success - update DOM
-      if (ref.current) {
-        ref.current.innerHTML = result.svg;
-      }
-      
-      setError(null);
-      
-      toast({
-        title: 'Diagrama corrigido! ✅',
-        description: 'O diagrama foi renderizado com sucesso',
-      });
-      
-    } catch (err) {
-      console.error('[Mermaid] ❌ Regeneration failed:', err);
-      
-      // Generic toast without exposing technical details
-      toast({
-        title: 'Não foi possível corrigir 😔',
-        description: 'Este diagrama possui erros complexos. A visualização ficará em modo simplificado.',
-        variant: 'destructive',
-      });
-      
-      // Keep error hidden, don't show to user
-      setError('hidden');
-      
-    } finally {
-      setIsRegenerating(false);
     }
+    
+    console.error('[Mermaid] ❌ All attempts failed');
+    
+    toast({
+      title: 'Não foi possível corrigir 😔',
+      description: 'Este diagrama possui erros muito complexos. A visualização ficará simplificada.',
+      variant: 'destructive',
+    });
+    
+    setError('hidden');
+    setIsRegenerating(false);
   };
 
   return (

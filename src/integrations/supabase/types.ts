@@ -763,6 +763,35 @@ export type Database = {
           },
         ]
       }
+      lecture_views: {
+        Row: {
+          id: string
+          lecture_id: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          lecture_id: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          lecture_id?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lecture_views_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lectures: {
         Row: {
           audio_url: string | null

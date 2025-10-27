@@ -1393,32 +1393,35 @@ const LectureTranscriptionPage = () => {
                 <Save className="h-4 w-4 mr-2" />
                 Salvar Progresso
               </Button>
-              <Button
-                onClick={handlePublish}
-                disabled={!selectedClassId || isPublishing || !structuredContent}
-                className="
-                  bg-gradient-to-r from-green-600 to-green-700 
-                  hover:from-green-700 hover:to-green-800
-                  text-white font-bold
-                  shadow-2xl shadow-green-500/30
-                  hover:scale-105 hover:shadow-green-500/50
-                  transition-all duration-300
-                  border-2 border-green-400/20
-                  disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
-                "
-              >
-                {isPublishing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Publicando...
-                  </>
-                ) : (
-                  <>
-                    <CheckSquare className="mr-2 h-4 w-4" />
-                    Publicar Aula
-                  </>
-                )}
-              </Button>
+              
+              {lecture?.status !== 'published' && (
+                <Button
+                  onClick={handlePublish}
+                  disabled={!selectedClassId || isPublishing || !structuredContent}
+                  className="
+                    bg-gradient-to-r from-green-600 to-green-700 
+                    hover:from-green-700 hover:to-green-800
+                    text-white font-bold
+                    shadow-2xl shadow-green-500/30
+                    hover:scale-105 hover:shadow-green-500/50
+                    transition-all duration-300
+                    border-2 border-green-400/20
+                    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+                  "
+                >
+                  {isPublishing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Publicando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckSquare className="mr-2 h-4 w-4" />
+                      Publicar Aula
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
 

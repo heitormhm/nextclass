@@ -16,6 +16,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -45,6 +56,7 @@ interface Lecture {
   duration?: number;
   disciplinas?: { nome: string };
   turmas?: { periodo: string; curso: string };
+  view_count?: number;
 }
 
 interface Disciplina {
@@ -88,7 +100,7 @@ const TeacherMyLectures = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Load published lectures
+      // Load published lectures with view counts
       const { data: lecturesData, error: lecturesError } = await supabase
         .from('lectures')
         .select(`
@@ -106,8 +118,26 @@ const TeacherMyLectures = () => {
         .eq('teacher_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (lecturesError) throw lecturesError;
-      setLectures(lecturesData || []);
+      if (lecturesError) {
+        console.error('Error loading published lectures:', lecturesError);
+        setLectures([]);
+      } else {
+        // Fetch view counts for each lecture
+        const lecturesWithViews = await Promise.all(
+          (lecturesData || []).map(async (lecture) => {
+            const { count } = await supabase
+              .from('lecture_views')
+              .select('*', { count: 'exact', head: true })
+              .eq('lecture_id', lecture.id);
+            
+            return {
+              ...lecture,
+              view_count: count || 0
+            };
+          })
+        );
+        setLectures(lecturesWithViews);
+      }
 
       // Load draft lectures (processing + ready)
       const { data: draftsData, error: draftsError } = await supabase
@@ -218,6 +248,34 @@ const TeacherMyLectures = () => {
       });
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleDeleteAllDrafts = async () => {
+    try {
+      const draftIds = filteredDrafts.map(d => d.id);
+      
+      const { error } = await supabase
+        .from('lectures')
+        .delete()
+        .in('id', draftIds);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Rascunhos deletados',
+        description: `${draftIds.length} rascunho(s) foram removidos com sucesso`,
+      });
+      
+      loadData();
+      
+    } catch (error) {
+      console.error('Error deleting drafts:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao deletar',
+        description: 'Não foi possível deletar os rascunhos',
+      });
     }
   };
 
@@ -415,18 +473,55 @@ const TeacherMyLectures = () => {
           {/* Section 1: Draft Lectures */}
           <Card className="mb-8 bg-white/90 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileEdit className="h-5 w-5 text-yellow-600" />
-                Meus Rascunhos
-                {drafts.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {drafts.length}
-                  </Badge>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileEdit className="h-5 w-5 text-yellow-600" />
+                    Meus Rascunhos
+                    {filteredDrafts.length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {filteredDrafts.length}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Aulas em andamento que ainda não foram publicadas
+                  </p>
+                </div>
+                
+                {filteredDrafts.length > 0 && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Deletar Todos ({filteredDrafts.length})
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Deletar todos os rascunhos?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação irá deletar permanentemente <strong>{filteredDrafts.length} rascunho(s)</strong>.
+                          Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteAllDrafts}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Sim, deletar todos
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
-              </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">
-                Aulas em andamento que ainda não foram publicadas
-              </p>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -736,29 +831,36 @@ const TeacherMyLectures = () => {
                                   </div>
                                 )}
                                 
-                                {/* Footer com duração */}
-                                <div className="flex items-center justify-between pt-3 border-t border-purple-200">
-                                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                                    {lecture.duration && (
-                                      <>
-                                        <Clock className="h-3 w-3" />
-                                        <span>{Math.round(lecture.duration / 60)} min</span>
-                                      </>
-                                    )}
+                            {/* Footer com duração e visualizações */}
+                            <div className="flex items-center justify-between pt-3 border-t border-purple-200">
+                              <div className="flex items-center gap-3 text-xs text-slate-500">
+                                {lecture.duration && (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>{Math.round(lecture.duration / 60)} min</span>
                                   </div>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/lecturetranscription/${lecture.id}`);
-                                    }}
-                                  >
-                                    <Eye className="h-4 w-4 mr-1" />
-                                    Ver Aula
-                                  </Button>
+                                )}
+                                
+                                <div className="flex items-center gap-1 text-blue-600">
+                                  <Eye className="h-3 w-3" />
+                                  <span className="font-semibold">{lecture.view_count || 0}</span>
+                                  <span className="text-slate-400">visualizações</span>
                                 </div>
+                              </div>
+                              
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/lecturetranscription/${lecture.id}`);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Ver Aula
+                              </Button>
+                            </div>
                               </CardContent>
                             </Card>
                           ))}
