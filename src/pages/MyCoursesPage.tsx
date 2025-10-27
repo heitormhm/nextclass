@@ -27,7 +27,7 @@ const MyCoursesPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [topicFilter, setTopicFilter] = useState('all-topics');
+  const [disciplinaFilter, setDisciplinaFilter] = useState('all-disciplinas');
   const [instructorFilter, setInstructorFilter] = useState('all-instructors');
   const [sortBy, setSortBy] = useState('title');
 
@@ -59,8 +59,8 @@ const MyCoursesPage = () => {
     }
   };
 
-  // Extract unique topics and instructors for filter dropdowns
-  const uniqueTopics = Array.from(new Set(courses.map(course => course.topic)));
+  // Extract unique disciplinas and instructors for filter dropdowns
+  const uniqueDisciplinas = Array.from(new Set(courses.map(course => course.topic)));
   const uniqueInstructors = Array.from(new Set(courses.map(course => course.instructor)));
 
   // Filter courses based on search and filters
@@ -69,10 +69,10 @@ const MyCoursesPage = () => {
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.instructor.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.topic.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTopic = topicFilter === 'all-topics' || course.topic === topicFilter;
+    const matchesDisciplina = disciplinaFilter === 'all-disciplinas' || course.topic === disciplinaFilter;
     const matchesInstructor = instructorFilter === 'all-instructors' || course.instructor === instructorFilter;
 
-    return matchesSearch && matchesTopic && matchesInstructor;
+    return matchesSearch && matchesDisciplina && matchesInstructor;
   });
 
   // Sort courses
@@ -120,16 +120,16 @@ const MyCoursesPage = () => {
                 <div className="flex items-center gap-4">
                   <span className="text-foreground font-medium">Filtrar por:</span>
                   
-                  {/* Topic Filter */}
-                  <Select value={topicFilter} onValueChange={setTopicFilter}>
+                  {/* Disciplina Filter */}
+                  <Select value={disciplinaFilter} onValueChange={setDisciplinaFilter}>
                     <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Tópico" />
+                      <SelectValue placeholder="Disciplina" />
                     </SelectTrigger>
                     <SelectContent className="bg-background border shadow-lg z-50">
-                      <SelectItem value="all-topics">Todos os tópicos</SelectItem>
-                      {uniqueTopics.map(topic => (
-                        <SelectItem key={topic} value={topic}>
-                          {topic}
+                      <SelectItem value="all-disciplinas">Todas as disciplinas</SelectItem>
+                      {uniqueDisciplinas.map(disciplina => (
+                        <SelectItem key={disciplina} value={disciplina}>
+                          {disciplina}
                         </SelectItem>
                       ))}
                     </SelectContent>

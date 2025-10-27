@@ -4,13 +4,13 @@ interface StudentBackgroundGridProps {
   className?: string;
 }
 
-// Student colors: pastel tones for soft, motivational atmosphere
+// Student colors: vibrant pastel tones for engaging atmosphere
 const STUDENT_GRID_COLORS = [
-  '252, 231, 243',  // pink-50 enhanced
-  '243, 232, 255',  // purple-50 enhanced
-  '250, 245, 255',  // fuchsia-50
-  '240, 253, 250',  // teal-50 (fresh accent)
-  '254, 252, 232',  // yellow-50 (energy accent)
+  '244, 114, 182',  // pink-400 (more vibrant)
+  '192, 132, 252',  // purple-400 (more vibrant)
+  '232, 121, 249',  // fuchsia-400
+  '45, 212, 191',   // teal-400
+  '251, 191, 36',   // amber-400
 ];
 
 export const StudentBackgroundGrid: React.FC<StudentBackgroundGridProps> = ({ className }) => {
@@ -28,14 +28,14 @@ export const StudentBackgroundGrid: React.FC<StudentBackgroundGridProps> = ({ cl
       
       (cell as HTMLElement).style.animationDelay = `${delay}s`;
       (cell as HTMLElement).style.animationDuration = `${duration}s`;
-      (cell as HTMLElement).style.fill = `rgba(${color}, 0.05)`;
+      (cell as HTMLElement).style.fill = `rgba(${color}, 0.12)`;
     });
   }, []);
   
   return (
     <svg
       ref={gridRef}
-      className={`absolute inset-0 w-full h-full opacity-50 pointer-events-none ${className || ''}`}
+      className={`absolute inset-0 w-full h-full opacity-70 pointer-events-none z-0 ${className || ''}`}
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="xMidYMid slice"
     >

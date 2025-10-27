@@ -9,7 +9,7 @@ import SmartReviewWidget from '@/components/dashboard/SmartReviewWidget';
 import GamifiedProgressTracking from '@/components/dashboard/GamifiedProgressTracking';
 import { FlashcardsSection } from '@/components/dashboard/FlashcardsSection';
 import { UpcomingEventsSection } from '@/components/dashboard/UpcomingEventsSection';
-import { StudentBackgroundRipple } from '@/components/ui/student-background-ripple';
+import { StudentBackgroundGrid } from '@/components/ui/student-background-grid';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -86,17 +86,16 @@ const Dashboard = () => {
 
   return (
     <MainLayout>
-      <div className="relative min-h-screen bg-slate-50">
-        {/* Gradient Blobs */}
-        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full filter blur-3xl opacity-50" />
-        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50" />
-        <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40" />
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+        {/* Grid FIRST (z-0) */}
+        <StudentBackgroundGrid />
         
-        {/* Background Ripple Effect */}
-        <StudentBackgroundRipple />
+        {/* Gradient Blobs DEPOIS (z-10) - tons mais suaves */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40 z-10" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40 z-10" />
         
-        {/* Main Content */}
-        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-6 sm:space-y-8">
+        {/* Main Content (z-20) */}
+        <div className="relative z-20 container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-6 sm:space-y-8">
           {/* Page Header */}
           <div className="animate-fade-in">
             {authLoading ? (

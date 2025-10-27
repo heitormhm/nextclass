@@ -227,7 +227,7 @@ const Navbar = () => {
               mobile && "w-full justify-start"
             )}
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-light rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center shadow-md">
               <span className="text-white text-sm font-semibold">{teacherInitials}</span>
             </div>
             {!mobile && <span className="font-medium">{teacherDisplayName}</span>}
@@ -322,7 +322,7 @@ const Navbar = () => {
                             variant="ghost"
                             className="w-full justify-start gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-lg p-3 rounded-lg hover:bg-accent min-h-[48px]"
                           >
-                            <div className="w-6 h-6 bg-gradient-to-br from-primary to-primary-light rounded-full flex items-center justify-center">
+                            <div className="w-6 h-6 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center shadow-md">
                               <span className="text-white text-xs font-semibold">{teacherInitials}</span>
                             </div>
                             <span className="font-medium flex-1 text-left">{teacherDisplayName}</span>

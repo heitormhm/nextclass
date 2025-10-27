@@ -55,7 +55,7 @@ serve(async (req) => {
     const turmaIds = enrollments.map(e => e.turma_id);
     console.log('Student enrolled in turmas:', turmaIds);
 
-    // Step 2: Get lectures DIRECTLY by turma_id
+    // Step 2: Get lectures DIRECTLY by turma_id with disciplina
     const { data: lectures, error: lecturesError } = await supabase
       .from('lectures')
       .select(`
@@ -66,7 +66,8 @@ serve(async (req) => {
         turma_id,
         teacher_id,
         status,
-        structured_content
+        structured_content,
+        disciplina_id
       `)
       .in('turma_id', turmaIds)
       .eq('status', 'published');
@@ -86,7 +87,7 @@ serve(async (req) => {
 
     console.log('Found', lectures.length, 'published lectures');
 
-    // Step 5: Get teacher information for each lecture
+    // Step 3: Get teacher information for each lecture
     const teacherIds = [...new Set(lectures.map(l => l.teacher_id))];
     const { data: teachers, error: teachersError } = await supabase
       .from('users')
@@ -99,22 +100,33 @@ serve(async (req) => {
 
     const teacherMap = new Map(teachers?.map(t => [t.id, t.full_name]) || []);
 
-    // Step 4: Get turmas info for lecture topics
+    // Step 4: Get disciplinas info for lecture topics
+    const disciplinaIds = [...new Set(lectures.map(l => l.disciplina_id).filter(Boolean))];
+    const { data: disciplinasData, error: disciplinasError } = await supabase
+      .from('disciplinas')
+      .select('id, nome')
+      .in('id', disciplinaIds);
+
+    if (disciplinasError) {
+      console.error('Error fetching disciplinas:', disciplinasError);
+    }
+
+    const disciplinaMap = new Map(disciplinasData?.map(d => [d.id, d.nome]) || []);
+
+    // Step 5: Get turmas info for class names
     const { data: turmasData, error: turmasError } = await supabase
       .from('turmas')
-      .select('id, nome_turma, curso')
+      .select('id, nome_turma')
       .in('id', turmaIds);
 
     if (turmasError) {
       console.error('Error fetching turmas:', turmasError);
     }
 
-    const turmaMap = new Map(turmasData?.map(t => [t.id, { name: t.nome_turma, course: t.curso }]) || []);
+    const turmaMap = new Map(turmasData?.map(t => [t.id, t.nome_turma]) || []);
 
-    // Step 5: Format the response
+    // Step 6: Format the response
     const formattedClasses = lectures.map((lecture, index) => {
-      const turmaInfo = turmaMap.get(lecture.turma_id);
-      
       // Extract thumbnail from structured_content if available
       let thumbnail = '';
       if (lecture.structured_content?.sections?.[0]?.image) {
@@ -129,10 +141,10 @@ serve(async (req) => {
         duration: lecture.duration ? `${lecture.duration} min` : '45 min',
         progress: 0,
         thumbnail: thumbnail,
-        topic: turmaInfo?.course || 'Engenharia',
+        topic: disciplinaMap.get(lecture.disciplina_id) || 'Engenharia',
         type: 'online',
         turmaId: lecture.turma_id,
-        className: turmaInfo?.name || 'Sem turma'
+        className: turmaMap.get(lecture.turma_id) || 'Sem turma'
       };
     });
 
