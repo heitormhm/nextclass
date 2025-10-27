@@ -598,25 +598,45 @@ const LectureTranscriptionPage = () => {
 
       console.log('[loadStudents] 🔍 Raw data:', data);
 
-      const studentsData: Student[] = (data || []).map((enrollment: any) => {
-        const user = enrollment.users;
+      // Buscar dados dos usuários via auth.users (mais confiável que users table)
+      const studentIds = data?.map((e: any) => e.aluno_id) || [];
+      
+      console.log('[loadStudents] 👥 Buscando usuários via auth.admin:', studentIds.length);
+      
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError || !authData) {
+        console.warn('[loadStudents] ⚠️ Erro ao buscar auth.users, usando fallback:', authError);
         
-        if (!user || !user.full_name) {
-          console.error('[loadStudents] ⚠️ Missing user data:', {
-            aluno_id: enrollment.aluno_id,
-            user,
-            enrollment
-          });
-        }
+        // Fallback: usar users table
+        const studentsData: Student[] = (data || []).map((enrollment: any) => {
+          const user = enrollment.users;
+          return {
+            id: enrollment.aluno_id,
+            name: user?.full_name || user?.email?.split('@')[0] || 'Aluno sem nome',
+            hasAccess: true,
+          };
+        });
+        
+        console.log('[loadStudents] ✅ Usando fallback, students:', studentsData.length);
+        setStudents(studentsData);
+        return;
+      }
+      
+      // Filtrar apenas alunos matriculados e extrair nome completo do metadata
+      const studentsData: Student[] = (authData.users || [])
+        .filter((user: any) => studentIds.includes(user.id))
+        .map((user: any) => {
+          const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Sem nome';
+          console.log(`[loadStudents] 📝 User ${user.id}: ${fullName}`);
+          return {
+            id: user.id,
+            name: fullName,
+            hasAccess: true,
+          };
+        });
 
-        return {
-          id: enrollment.aluno_id,
-          name: user?.full_name || 'Aluno sem nome',
-          hasAccess: true, // All enrolled students have access by default
-        };
-      });
-
-      console.log('[loadStudents] ✅ Mapped students:', studentsData);
+      console.log('[loadStudents] ✅ Mapped students via auth.users:', studentsData.length);
       setStudents(studentsData);
     } catch (error) {
       console.error('[loadStudents] ❌ Error loading students:', error);
@@ -1641,7 +1661,8 @@ const LectureTranscriptionPage = () => {
                                     const match = /language-(\w+)/.exec(className || '');
                                     const language = match ? match[1] : '';
                                     
-                                     // Se for bloco Mermaid, renderizar com componente dedicado
+                                     // Mermaid agora é pré-processado no backend
+                                    // Não precisa renderização especial aqui
                                     if (!inline && language === 'mermaid') {
                                       const code = String(children).replace(/\n$/, '');
                                       const stableKey = `mermaid-${code.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '')}`;

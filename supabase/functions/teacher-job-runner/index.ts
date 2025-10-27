@@ -62,6 +62,50 @@ function validateMermaidDiagrams(materialDidatico: string): { valid: boolean; er
   };
 }
 
+// Preprocess Mermaid blocks before saving (add stable keys, validate)
+async function preprocessMermaidBlocks(markdown: string, jobId: string): Promise<string> {
+  const mermaidBlocks = markdown.match(/```mermaid\n([\s\S]*?)```/g) || [];
+  
+  console.log(`[Job ${jobId}] 🎨 Preprocessing ${mermaidBlocks.length} Mermaid blocks`);
+  
+  let processedMarkdown = markdown;
+  
+  for (let i = 0; i < mermaidBlocks.length; i++) {
+    const originalBlock = mermaidBlocks[i];
+    const code = originalBlock.replace(/```mermaid\n|```$/g, '').trim();
+    
+    // Validar sintaxe
+    const validation = validateMermaidDiagrams(originalBlock);
+    
+    if (!validation.valid) {
+      console.warn(`[Job ${jobId}] ⚠️ Mermaid block ${i + 1} invalid:`, validation.errors);
+      
+      // Substituir por placeholder visual
+      const placeholder = `\n\n<div class="bg-amber-50 border-2 border-amber-300 rounded-lg p-4 my-4">
+  <div class="flex items-center gap-2 mb-2">
+    <span class="text-2xl">📊</span>
+    <strong class="text-amber-900">Diagrama Visual</strong>
+  </div>
+  <p class="text-sm text-amber-700">Este diagrama está temporariamente indisponível e será adicionado em breve.</p>
+</div>\n\n`;
+      
+      processedMarkdown = processedMarkdown.replace(originalBlock, placeholder);
+    } else {
+      console.log(`[Job ${jobId}] ✅ Mermaid block ${i + 1} validated`);
+      
+      // Adicionar hash estável para key React
+      const stableHash = `mermaid-${i}-${code.substring(0, 50).replace(/[^a-zA-Z0-9]/g, '')}`;
+      processedMarkdown = processedMarkdown.replace(
+        originalBlock,
+        `\n\n<!-- MERMAID:${stableHash} -->\n${originalBlock}\n<!-- /MERMAID -->\n\n`
+      );
+    }
+  }
+  
+  console.log(`[Job ${jobId}] ✅ Mermaid preprocessing complete`);
+  return processedMarkdown;
+}
+
 // Helper function to update job progress
 async function updateJobProgress(
   supabase: any,
@@ -105,14 +149,12 @@ async function saveReportToLecture(
 
   const existingContent = lecture?.structured_content || {};
 
-  // Validate Mermaid diagrams
-  const validation = validateMermaidDiagrams(report);
-  if (!validation.valid) {
-    console.warn(`[Job ${jobId}] ⚠️ Mermaid syntax issues detected:`, validation.errors);
-  }
+  // ETAPA 1: Preprocess Mermaid blocks (add stable keys, validate)
+  console.log(`[Job ${jobId}] 🎨 Starting Mermaid preprocessing...`);
+  const preprocessedReport = await preprocessMermaidBlocks(report, jobId);
 
-  // Validate material length (minimum 3000 words, excluding code blocks)
-  const materialText = report.replace(/```[\s\S]*?```/g, ''); // Remove code blocks
+  // ETAPA 2: Validate material length (minimum 3000 words, excluding code blocks)
+  const materialText = preprocessedReport.replace(/```[\s\S]*?```/g, ''); // Remove code blocks
   const wordCount = materialText.split(/\s+/).filter(word => word.length > 0).length;
 
   console.log(`[Job ${jobId}] 📏 Material word count: ${wordCount} words`);
@@ -128,12 +170,13 @@ async function saveReportToLecture(
 
   console.log(`[Job ${jobId}] ✅ Material length validated: ${wordCount} words`);
   
+  // ETAPA 3: Save preprocessed report
   const { error: updateError } = await supabase
     .from('lectures')
     .update({
       structured_content: {
         ...existingContent,
-        material_didatico: report
+        material_didatico: preprocessedReport
       },
       updated_at: new Date().toISOString()
     })
@@ -144,7 +187,7 @@ async function saveReportToLecture(
     throw new Error(`Failed to update lecture: ${updateError.message}`);
   }
   
-  console.log(`[Job ${jobId}] ✅ Report saved to lecture`);
+  console.log(`[Job ${jobId}] ✅ Preprocessed report saved to lecture`);
 }
 
 // Process deep search for lecture material

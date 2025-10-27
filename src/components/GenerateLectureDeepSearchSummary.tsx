@@ -399,17 +399,17 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex items-center gap-3 flex-wrap">
       <Button 
         size="sm"
         disabled={isGenerating}
         onClick={handleButtonClick}
-        className="gap-2 h-10 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-0 hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+        className="gap-2 h-10 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-0 hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 whitespace-nowrap"
       >
         {isGenerating ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Gerando Material...
+            Gerando...
           </>
         ) : (
           <>
@@ -419,12 +419,12 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         )}
       </Button>
 
+      {/* Barra de progresso INLINE ao lado do botão */}
       {isGenerating && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-purple-50 border border-purple-200 rounded-lg">
-          <Loader2 className="h-4 w-4 animate-spin text-purple-600 flex-shrink-0" />
+        <div className="flex-1 flex items-center gap-2 min-w-0">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-medium text-purple-900">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-xs font-medium text-purple-900 whitespace-nowrap">
                 {Math.round((currentStep / PROCESSING_STEPS.length) * 100)}%
               </span>
               <span className="text-xs text-purple-600 truncate">
@@ -441,25 +441,22 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         </div>
       )}
 
-      {error && (
-        <Alert variant="destructive">
+      {/* Alerta de erro INLINE */}
+      {error && !isGenerating && (
+        <Alert variant="destructive" className="flex-1 min-w-[300px]">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
+          <AlertDescription className="text-xs">
             {error === 'TIMEOUT' 
-              ? 'A geração demorou mais que o esperado. Tente novamente.' 
+              ? 'Timeout. Tente novamente.' 
               : error === 'AUTH_ERROR'
-              ? 'Erro de autenticação. Faça login novamente.'
+              ? 'Erro de autenticação.'
               : error === 'PERMISSION_DENIED'
-              ? 'Você não tem permissão para gerar material.'
-              : `Erro ao gerar material: ${error}`
+              ? 'Sem permissão.'
+              : `Erro: ${error}`
             }
           </AlertDescription>
         </Alert>
       )}
-
-      {/* Dialog removed - using inline progress badge */}
-      <Dialog open={false} onOpenChange={() => {}}>
-      </Dialog>
     </div>
   );
 };

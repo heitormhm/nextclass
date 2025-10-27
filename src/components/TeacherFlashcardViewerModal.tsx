@@ -4,6 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 
+// Convert markdown to HTML for flashcard text formatting
+const convertMarkdownToHtml = (text: string): string => {
+  if (!text) return '';
+  
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') // Negrito
+    .replace(/\*(.+?)\*/g, '<em>$1</em>') // Itálico
+    .replace(/\n/g, '<br>') // Quebras de linha
+    .replace(/\$\$(.+?)\$\$/g, '<span class="math-inline">$1</span>') // LaTeX inline
+    .replace(/`(.+?)`/g, '<code class="inline-code">$1</code>') // Código inline
+    .trim();
+};
+
 interface FlashcardSet {
   id: string;
   title: string;
@@ -90,13 +103,19 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
                     ))}
                   </div>
                 )}
-                <p className="text-3xl font-semibold text-center text-slate-900 mt-8">{currentCard.front}</p>
+                <div 
+                  className="text-3xl font-semibold text-center text-slate-900 mt-8" 
+                  dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(currentCard.front) }}
+                />
                 <p className="text-sm text-purple-700 mt-6 font-medium">Clique para ver a resposta</p>
               </div>
 
               {/* Back */}
               <div className="flashcard-face flashcard-back bg-gradient-to-br from-emerald-100 to-teal-100 rounded-lg p-8 flex items-center justify-center border-2 border-emerald-400 shadow-lg">
-                <p className="text-2xl text-center text-slate-900 leading-relaxed">{currentCard.back}</p>
+                <div 
+                  className="text-2xl text-center text-slate-900 leading-relaxed" 
+                  dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(currentCard.back) }}
+                />
               </div>
             </div>
           </div>
@@ -174,6 +193,21 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
 
           .flashcard-back {
             transform: rotateY(180deg);
+          }
+
+          /* Formatação de texto em flashcards */
+          .math-inline {
+            font-family: 'KaTeX_Main', 'Times New Roman', serif;
+            font-style: italic;
+            color: #6B46C1;
+          }
+
+          .inline-code {
+            background-color: rgba(100, 100, 100, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
           }
         `}</style>
       </DialogContent>
