@@ -3,6 +3,7 @@ import mermaid from 'mermaid';
 import { Button } from './ui/button';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { MermaidErrorBoundary } from './MermaidErrorBoundary';
 
 interface MermaidDiagramProps {
   code: string;
@@ -123,101 +124,63 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
 
   useEffect(() => {
     const renderDiagram = async () => {
-      if (ref.current && code) {
-        try {
-          // Configure Mermaid with error suppression
-          mermaid.initialize({ 
-            theme: 'default',
-            logLevel: 'fatal', // Only fatal logs - suppress error messages
-            themeVariables: {
-              primaryColor: '#3b82f6',
-              primaryTextColor: '#fff',
-              primaryBorderColor: '#2563eb',
-              lineColor: '#8b5cf6',
-              secondaryColor: '#10b981',
-              tertiaryColor: '#f59e0b',
-              background: '#ffffff',
-              mainBkg: '#dbeafe',
-              secondBkg: '#e9d5ff',
-              tertiaryBkg: '#fef3c7',
-            },
-            startOnLoad: false,
-            securityLevel: 'loose',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-          });
-          
-          // Override global error handler to suppress toasts/notifications
-          mermaid.parseError = function(err: any) {
-            console.error('[Mermaid] Parse error silenciado (não exibido ao usuário):', err);
-            // DO NOT show anything visually - errors are logged only
-          };
-          
-          const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          const sanitizedCode = sanitizeMermaidCode(code);
-          
-          // Debug logging
-          console.log('[Mermaid] === RENDERING ATTEMPT ===');
-          console.log('[Mermaid] Original code:', code);
-          console.log('[Mermaid] Sanitized code:', sanitizedCode);
-          
-          // PRE-RENDER VALIDATION: Check if diagram type is valid
-          if (!sanitizedCode.match(/^(graph|flowchart|sequenceDiagram|stateDiagram-v2|classDiagram|gantt|mindmap)/m)) {
-            console.warn('[Mermaid] Invalid diagram type detected, skipping render');
-            setError('invalid');
-            return;
-          }
+      if (!ref.current || !code) return;
 
-          // NEW: Check for remaining problematic syntax
-          if (sanitizedCode.match(/[→←↔⇒⇐⇔Δ∆Σαβγθλμπσω]/)) {
-            console.warn('[Mermaid] Problematic characters still present after sanitization');
-            setError('invalid');
-            return;
+      try {
+        const sanitizedCode = sanitizeMermaidCode(code);
+        
+        // AGGRESSIVE PRE-VALIDATION: Reject invalid code BEFORE attempting render
+        if (!sanitizedCode || sanitizedCode.length < 10) {
+          console.warn('[Mermaid] Empty or too short code, showing placeholder');
+          setError('invalid');
+          return;
+        }
+
+        if (!sanitizedCode.match(/^(graph|flowchart|sequenceDiagram|stateDiagram-v2|classDiagram|gantt)/m)) {
+          console.warn('[Mermaid] Invalid diagram type, showing placeholder');
+          setError('invalid');
+          return;
+        }
+
+        if (sanitizedCode.match(/[→←↔⇒⇐⇔Δ∆Σαβγθλμπσω]/)) {
+          console.warn('[Mermaid] Problematic Unicode characters detected, showing placeholder');
+          setError('invalid');
+          return;
+        }
+
+        // Configure Mermaid silently
+        mermaid.initialize({ 
+          theme: 'default',
+          logLevel: 'fatal',
+          startOnLoad: false,
+          securityLevel: 'loose',
+        });
+
+        const uniqueId = `mermaid-${Date.now()}`;
+        
+        // Attempt render with timeout
+        const renderTimeout = setTimeout(() => {
+          console.error('[Mermaid] Render timeout');
+          setError('timeout');
+        }, 5000);
+
+        try {
+          const { svg } = await mermaid.render(uniqueId, sanitizedCode);
+          clearTimeout(renderTimeout);
+          
+          if (ref.current) {
+            ref.current.innerHTML = svg;
           }
           
-          // Add timeout protection to prevent hanging
-          const renderTimeout = setTimeout(() => {
-            console.error('[Mermaid] Render timeout after 5 seconds');
-            setError('timeout');
-          }, 5000);
-          
-          try {
-            const { svg } = await mermaid.render(uniqueId, sanitizedCode);
-            clearTimeout(renderTimeout);
-            
-            // AGGRESSIVE ERROR CLEANUP
-            if (ref.current) {
-              ref.current.innerHTML = svg;
-              
-              const svgElement = ref.current.querySelector('svg');
-              if (svgElement) {
-                // Remove all text elements containing error messages
-                const textElements = svgElement.querySelectorAll('text');
-                textElements.forEach(text => {
-                  const content = text.textContent || '';
-                  if (content.includes('Syntax error') || 
-                      content.includes('version 10.9.4') ||
-                      content.includes('Parse error')) {
-                    text.remove();
-                  }
-                });
-                
-                // Remove error icons
-                const errorCircles = svgElement.querySelectorAll('circle[class*="error"]');
-                errorCircles.forEach(circle => circle.remove());
-              }
-            }
-            setError(null);
-            console.log('[Mermaid] ✅ Rendered successfully');
-          } catch (renderErr) {
-            clearTimeout(renderTimeout);
-            // Error already logged by parseError handler
-            setError('hidden');
-            console.error('[Mermaid] ❌ Render falhou, mostrando placeholder neutro');
-          }
-        } catch (err) {
-          console.error('[Mermaid] ❌ Erro geral:', err);
+          setError(null);
+        } catch (renderErr) {
+          clearTimeout(renderTimeout);
+          console.error('[Mermaid] Render failed silently');
           setError('hidden');
         }
+      } catch (err) {
+        console.error('[Mermaid] General error:', err);
+        setError('hidden');
       }
     };
     
@@ -259,36 +222,38 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
   };
 
   return (
-    <div className="bg-muted/30 p-6 rounded-xl border-2 border-border my-6">
-      <h4 className="font-bold text-foreground mb-2 text-lg">{icon} {title}</h4>
-      <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
-      {error ? (
-        <div className="flex flex-col items-center justify-center min-h-[200px] bg-red-50 rounded-lg p-4 border-2 border-red-200">
-          <div className="text-5xl mb-2 opacity-50">⚠️</div>
-          <p className="text-sm text-red-700 font-medium mb-3">Diagrama com erro de sintaxe</p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-red-300 text-red-700 hover:bg-red-100"
-            onClick={handleRegenerateDiagram}
-            disabled={isRegenerating}
-          >
-            {isRegenerating ? (
-              <>
-                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                Corrigindo...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-3 w-3 mr-2" />
-                Gerar Novo Diagrama
-              </>
-            )}
-          </Button>
-        </div>
-      ) : (
-        <div ref={ref} className="flex justify-center items-center min-h-[200px] bg-white rounded-lg p-4" />
-      )}
-    </div>
+    <MermaidErrorBoundary>
+      <div className="bg-muted/30 p-6 rounded-xl border-2 border-border my-6">
+        <h4 className="font-bold text-foreground mb-2 text-lg">{icon} {title}</h4>
+        <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
+        {error ? (
+          <div className="flex flex-col items-center justify-center min-h-[200px] bg-muted/10 rounded-lg p-4">
+            <div className="text-5xl mb-2 opacity-50">📊</div>
+            <p className="text-xs text-muted-foreground/70 mb-3">Visualização em construção</p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-muted-foreground/30 text-muted-foreground/70 hover:bg-muted/20"
+              onClick={handleRegenerateDiagram}
+              disabled={isRegenerating}
+            >
+              {isRegenerating ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                  Corrigindo...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-3 w-3 mr-2" />
+                  Tentar Novamente
+                </>
+              )}
+            </Button>
+          </div>
+        ) : (
+          <div ref={ref} className="flex justify-center items-center min-h-[200px] bg-white rounded-lg p-4" />
+        )}
+      </div>
+    </MermaidErrorBoundary>
   );
 };

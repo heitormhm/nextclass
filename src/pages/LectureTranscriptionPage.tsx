@@ -24,7 +24,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3 } from 'lucide-react';
+import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -158,7 +158,7 @@ const LectureTranscriptionPage = () => {
   const [editingReference, setEditingReference] = useState<any>(null);
   
   // Graphics enrichment state
-  
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // URL validation helper
   const isValidUrl = (url: string) => {
@@ -198,6 +198,43 @@ const LectureTranscriptionPage = () => {
       loadStudents(selectedClassId);
     }
   }, [selectedClassId]);
+
+  // Save changes before leaving page
+  useEffect(() => {
+    const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'Você tem alterações não salvas. Deseja realmente sair?';
+        
+        // Try to save in the background
+        if (id && structuredContent) {
+          try {
+            await supabase
+              .from('lectures')
+              .update({
+                structured_content: structuredContent as any,
+                title: lectureTitle,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', id);
+          } catch (err) {
+            console.error('[LectureTranscription] Failed to save on exit:', err);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges, id, structuredContent, lectureTitle]);
+
+  // Track unsaved changes
+  useEffect(() => {
+    // Mark as changed whenever structuredContent updates
+    if (structuredContent) {
+      setHasUnsavedChanges(true);
+    }
+  }, [structuredContent]);
 
   // Polling para recarregar dados quando lecture está processing
   useEffect(() => {
@@ -1319,6 +1356,43 @@ const LectureTranscriptionPage = () => {
                 {lecture?.status === 'ready' && '✏️ Rascunho'}
                 {lecture?.status === 'published' && '✅ Publicado'}
               </Badge>
+              <Button
+                variant="outline"
+                className="backdrop-blur-xl bg-white/20 hover:bg-white/30 border-white/40 text-white"
+                onClick={async () => {
+                  if (!id || !structuredContent) return;
+                  
+                  try {
+                    const { error } = await supabase
+                      .from('lectures')
+                      .update({
+                        structured_content: structuredContent as any,
+                        title: lectureTitle,
+                        updated_at: new Date().toISOString()
+                      })
+                      .eq('id', id);
+
+                    if (error) throw error;
+
+                    toast({
+                      title: 'Salvo! 💾',
+                      description: 'Progresso salvo com sucesso',
+                    });
+                    
+                    setHasUnsavedChanges(false);
+                  } catch (err) {
+                    console.error('Save error:', err);
+                    toast({
+                      title: 'Erro ao salvar',
+                      description: 'Não foi possível salvar o progresso',
+                      variant: 'destructive',
+                    });
+                  }
+                }}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Progresso
+              </Button>
               <Button
                 onClick={handlePublish}
                 disabled={!selectedClassId || isPublishing || !structuredContent}

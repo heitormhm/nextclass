@@ -73,6 +73,59 @@ const LiveLecture = () => {
   const [currentWords, setCurrentWords] = useState<Word[]>([]);
   
   const fullTranscriptRef = useRef<string>('');
+  const saveProgressRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Save before leaving page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isSpeechRecording) {
+        e.preventDefault();
+        e.returnValue = 'A gravação está em andamento. Deseja realmente sair?';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isSpeechRecording]);
+
+  // Auto-save progress every 30 seconds
+  useEffect(() => {
+    if (!isSpeechRecording || !lectureId) return;
+
+    const saveProgress = async () => {
+      const fullTranscript = fullTranscriptRef.current;
+      if (!fullTranscript || fullTranscript.length < 10) return;
+
+      console.log('[LiveLecture] 💾 Auto-saving progress...');
+      
+      try {
+        const { error } = await supabase
+          .from('lectures')
+          .update({
+            raw_transcript: fullTranscript,
+            duration: recordingTime,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', lectureId);
+
+        if (error) {
+          console.error('[LiveLecture] Auto-save failed:', error);
+        } else {
+          console.log('[LiveLecture] ✅ Progress saved');
+        }
+      } catch (err) {
+        console.error('[LiveLecture] Auto-save error:', err);
+      }
+    };
+
+    saveProgressRef.current = setInterval(saveProgress, 30000); // 30 seconds
+
+    return () => {
+      if (saveProgressRef.current) {
+        clearInterval(saveProgressRef.current);
+      }
+    };
+  }, [isSpeechRecording, lectureId, recordingTime]);
 
   // Route Protection - Check for valid lectureId
   useEffect(() => {

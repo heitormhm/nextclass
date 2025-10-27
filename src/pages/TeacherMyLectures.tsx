@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Plus, Trash2, GraduationCap, Users, Eye } from 'lucide-react';
+import { BookOpen, Plus, Trash2, GraduationCap, Users, FileEdit, Loader2 } from 'lucide-react';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +37,7 @@ interface Lecture {
   id: string;
   title: string;
   created_at: string;
+  status?: string;
   disciplina_id: string;
   turma_id: string;
   disciplinas?: { nome: string };
@@ -59,6 +60,7 @@ interface Turma {
 
 const TeacherMyLectures = () => {
   const [lectures, setLectures] = useState<Lecture[]>([]);
+  const [drafts, setDrafts] = useState<Lecture[]>([]);
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,6 +99,26 @@ const TeacherMyLectures = () => {
 
       if (lecturesError) throw lecturesError;
       setLectures(lecturesData || []);
+
+      // Load draft lectures (processing + ready)
+      const { data: draftsData, error: draftsError } = await supabase
+        .from('lectures')
+        .select(`
+          id,
+          title,
+          created_at,
+          status,
+          disciplina_id,
+          turma_id,
+          disciplinas(nome),
+          turmas(periodo, curso)
+        `)
+        .in('status', ['processing', 'ready'])
+        .eq('teacher_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (draftsError) throw draftsError;
+      setDrafts(draftsData || []);
 
       // Load disciplinas
       const { data: disciplinasData, error: disciplinasError } = await supabase
@@ -241,66 +263,76 @@ const TeacherMyLectures = () => {
           <p className="text-white/80">Gerencie suas aulas publicadas e disciplinas</p>
         </div>
 
-        {/* Section 1: Published Lectures */}
+        {/* Section 1: Draft Lectures */}
         <Card className="mb-8 bg-white/90 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-purple-600" />
-              Aulas Publicadas
+              <FileEdit className="h-5 w-5 text-yellow-600" />
+              Meus Rascunhos
             </CardTitle>
+            <p className="text-sm text-slate-600 mt-1">
+              Aulas em andamento que ainda não foram publicadas
+            </p>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <p className="text-center text-slate-500 py-8">Carregando...</p>
-            ) : Object.keys(groupedLectures).length === 0 ? (
+            ) : drafts.length === 0 ? (
               <p className="text-center text-slate-500 py-8 italic">
-                Nenhuma aula publicada ainda
+                Nenhum rascunho no momento
               </p>
             ) : (
-              <div className="space-y-6">
-                {Object.entries(groupedLectures).map(([turma, disciplinas]) => (
-                  <div key={turma}>
-                    <h3 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <Users className="h-5 w-5 text-blue-600" />
-                      {turma}
-                    </h3>
-                    {Object.entries(disciplinas).map(([disciplina, lecturesList]) => (
-                      <div key={disciplina} className="mb-4 ml-6">
-                        <h4 className="text-md font-medium text-slate-700 mb-2">
-                          📚 {disciplina}
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {lecturesList.map((lecture) => (
-                            <Card
-                              key={lecture.id}
-                              className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200"
-                              onClick={() => navigate(`/lecturetranscription/${lecture.id}`)}
-                            >
-                              <CardContent className="p-4">
-                                <h5 className="font-semibold text-slate-900 mb-2 truncate">
-                                  {lecture.title}
-                                </h5>
-                                <p className="text-xs text-slate-600">
-                                  {new Date(lecture.created_at).toLocaleDateString('pt-BR')}
-                                </p>
-                                <Badge className="mt-2 bg-purple-100 text-purple-700">
-                                  Publicada
-                                </Badge>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {drafts.map((draft) => (
+                  <Card
+                    key={draft.id}
+                    className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200"
+                    onClick={() => navigate(`/lecturetranscription/${draft.id}`)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h5 className="font-semibold text-slate-900 line-clamp-2 flex-1">
+                          {draft.title || 'Sem título'}
+                        </h5>
+                        {draft.status === 'processing' && (
+                          <Loader2 className="h-4 w-4 text-yellow-600 animate-spin ml-2 flex-shrink-0" />
+                        )}
                       </div>
-                    ))}
-                  </div>
+                      <p className="text-xs text-slate-600 mb-2">
+                        {new Date(draft.created_at).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <Badge 
+                          className={`text-xs ${
+                            draft.status === 'processing' 
+                              ? 'bg-yellow-100 text-yellow-800 border-yellow-300' 
+                              : 'bg-blue-100 text-blue-800 border-blue-300'
+                          }`}
+                        >
+                          {draft.status === 'processing' ? '⏳ Processando' : '✏️ Pronto para publicar'}
+                        </Badge>
+                        {draft.disciplinas && (
+                          <span className="text-xs text-slate-500">
+                            {draft.disciplinas.nome}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Section 2: Disciplinas Management */}
-        <Card className="bg-white/90 backdrop-blur-sm">
+        {/* Section 2: Manage Disciplines */}
+        <Card className="mb-8 bg-white/90 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-green-600" />
@@ -388,6 +420,64 @@ const TeacherMyLectures = () => {
                   ))}
                 </TableBody>
               </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Section 3: Published Lectures */}
+        <Card className="mb-8 bg-white/90 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-purple-600" />
+              Aulas Publicadas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <p className="text-center text-slate-500 py-8">Carregando...</p>
+            ) : Object.keys(groupedLectures).length === 0 ? (
+              <p className="text-center text-slate-500 py-8 italic">
+                Nenhuma aula publicada ainda
+              </p>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(groupedLectures).map(([turma, disciplinas]) => (
+                  <div key={turma}>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-blue-600" />
+                      {turma}
+                    </h3>
+                    {Object.entries(disciplinas).map(([disciplina, lecturesList]) => (
+                      <div key={disciplina} className="mb-4 ml-6">
+                        <h4 className="text-md font-medium text-slate-700 mb-2">
+                          📚 {disciplina}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {lecturesList.map((lecture) => (
+                            <Card
+                              key={lecture.id}
+                              className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200"
+                              onClick={() => navigate(`/lecturetranscription/${lecture.id}`)}
+                            >
+                              <CardContent className="p-4">
+                                <h5 className="font-semibold text-slate-900 mb-2 truncate">
+                                  {lecture.title}
+                                </h5>
+                                <p className="text-xs text-slate-600">
+                                  {new Date(lecture.created_at).toLocaleDateString('pt-BR')}
+                                </p>
+                                <Badge className="mt-2 bg-purple-100 text-purple-700">
+                                  Publicada
+                                </Badge>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
