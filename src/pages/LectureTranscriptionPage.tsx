@@ -583,22 +583,38 @@ const LectureTranscriptionPage = () => {
           aluno_id,
           users!turma_enrollments_aluno_id_fkey (
             id,
-            full_name
+            full_name,
+            email
           )
         `)
         .eq('turma_id', classId);
 
       if (error) throw error;
 
-      const studentsData: Student[] = (data || []).map((enrollment: any) => ({
-        id: enrollment.aluno_id,
-        name: enrollment.users?.full_name || 'Aluno sem nome',
-        hasAccess: true, // All enrolled students have access by default
-      }));
+      console.log('[loadStudents] 🔍 Raw data:', data);
 
+      const studentsData: Student[] = (data || []).map((enrollment: any) => {
+        const user = enrollment.users;
+        
+        if (!user || !user.full_name) {
+          console.error('[loadStudents] ⚠️ Missing user data:', {
+            aluno_id: enrollment.aluno_id,
+            user,
+            enrollment
+          });
+        }
+
+        return {
+          id: enrollment.aluno_id,
+          name: user?.full_name || 'Aluno sem nome',
+          hasAccess: true, // All enrolled students have access by default
+        };
+      });
+
+      console.log('[loadStudents] ✅ Mapped students:', studentsData);
       setStudents(studentsData);
     } catch (error) {
-      console.error('Error loading students:', error);
+      console.error('[loadStudents] ❌ Error loading students:', error);
       setStudents([]);
     }
   };
@@ -1404,10 +1420,19 @@ const LectureTranscriptionPage = () => {
                   if (!id || !structuredContent) return;
                   
                   try {
+                    // 🔧 FASE 1: Preservar thumbnail ao salvar progresso
+                    const currentContent = structuredContent as Record<string, any>;
+                    const contentToSave = {
+                      ...currentContent,
+                      thumbnail: thumbnailUrl || currentContent.thumbnail || ''
+                    };
+
+                    console.log('[SaveProgress] Salvando com thumbnail:', contentToSave.thumbnail);
+
                     const { error } = await supabase
                       .from('lectures')
                       .update({
-                        structured_content: structuredContent as any,
+                        structured_content: contentToSave,
                         title: lectureTitle,
                         updated_at: new Date().toISOString()
                       })
@@ -2711,6 +2736,8 @@ const LectureTranscriptionPage = () => {
                 tags: card.tags || []
               }))
             }}
+            hasQuiz={hasQuiz}
+            onViewQuiz={() => setShowQuizModal(true)}
           />
         )}
       </div>

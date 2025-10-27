@@ -19,18 +19,13 @@ export const StudentBackgroundGrid: React.FC<StudentBackgroundGridProps> = ({ cl
   const gridRef = useRef<SVGSVGElement>(null);
   
   useEffect(() => {
-    // Soft pulsing animation for grid cells
+    // FASE 6: Remover animações pulsantes - apenas aplicar cor estática
     const cells = gridRef.current?.querySelectorAll('.grid-cell');
     if (!cells) return;
     
     cells.forEach((cell, index) => {
-      const delay = (index * 0.15) % 4; // Stagger animation
-      const duration = 4 + Math.random() * 2; // 4-6s for slow, gentle motion
       const color = STUDENT_GRID_COLORS[index % STUDENT_GRID_COLORS.length];
-      
-      (cell as HTMLElement).style.animationDelay = `${delay}s`;
-      (cell as HTMLElement).style.animationDuration = `${duration}s`;
-      (cell as HTMLElement).style.fill = `rgba(${color}, 0.15)`;
+      (cell as HTMLElement).style.fill = `rgba(${color}, 0.08)`; // Opacidade reduzida e estática
     });
   }, []);
   
@@ -67,7 +62,7 @@ export const StudentBackgroundGrid: React.FC<StudentBackgroundGridProps> = ({ cl
       {/* Base grid pattern */}
       <rect width="100%" height="100%" fill="url(#student-grid-pattern)" />
       
-      {/* Animated cells - soft pulsing SQUARES */}
+      {/* Animated cells - ESTÁTICOS (sem animação) */}
       {Array.from({ length: 20 }).map((_, i) => {
         const size = 40 + Math.random() * 30; // 40-70px
         const x = (i * 17 + 5) % 90;
@@ -82,10 +77,6 @@ export const StudentBackgroundGrid: React.FC<StudentBackgroundGridProps> = ({ cl
             width={size}
             height={size}
             rx="8"
-            style={{ 
-              animation: 'pulse-soft 5s ease-in-out infinite',
-              transformOrigin: 'center'
-            }}
           />
         );
       })}

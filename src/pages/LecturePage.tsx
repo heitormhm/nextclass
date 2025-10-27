@@ -53,7 +53,13 @@ const LecturePage = () => {
           return;
         }
         
-        // ✅ Load lecture WITHOUT foreign key lookup
+        // ✅ FASE 2: Load lecture with detailed debugging
+        console.log('[LecturePage] 🔍 Starting lecture load:', {
+          lectureId: id,
+          userId: user.id,
+          timestamp: new Date().toISOString()
+        });
+
         const { data: lecture, error: lectureError } = await supabase
           .from('lectures')
           .select(`
@@ -66,32 +72,101 @@ const LecturePage = () => {
             raw_transcript,
             turma_id,
             teacher_id,
-            disciplina_id
+            disciplina_id,
+            status
           `)
           .eq('id', id)
           .eq('status', 'published')
-          .single();
+          .maybeSingle();
         
+        console.log('[LecturePage] 📊 Lecture query result:', {
+          lecture,
+          error: lectureError,
+          hasLecture: !!lecture
+        });
+
         if (lectureError) {
-          console.error('Error loading lecture:', lectureError);
-          toast.error('Aula não encontrada');
+          console.error('[LecturePage] ❌ Error loading lecture:', {
+            error: lectureError,
+            message: lectureError.message,
+            details: lectureError.details,
+            hint: lectureError.hint
+          });
+          toast.error('Erro ao carregar aula');
           navigate('/dashboard');
           return;
         }
 
+        if (!lecture) {
+          console.error('[LecturePage] ❌ Lecture not found or not published:', { lectureId: id });
+          toast.error('Aula não encontrada ou ainda não publicada');
+          navigate('/dashboard');
+          return;
+        }
+
+        console.log('[LecturePage] ✅ Lecture loaded:', {
+          id: lecture.id,
+          title: lecture.title,
+          turmaId: lecture.turma_id,
+          teacherId: lecture.teacher_id,
+          hasThumbnail: !!(lecture.structured_content as any)?.thumbnail
+        });
+
         // ✅ Fetch teacher info separately
-        const { data: teacher } = await supabase
+        const { data: teacher, error: teacherError } = await supabase
           .from('users')
           .select('full_name')
           .eq('id', lecture.teacher_id)
           .single();
 
+        console.log('[LecturePage] 👨‍🏫 Teacher query:', {
+          teacher,
+          error: teacherError
+        });
+
         // ✅ Fetch turma info separately
-        const { data: turma } = await supabase
+        const { data: turma, error: turmaError } = await supabase
           .from('turmas')
           .select('nome_turma, periodo, curso')
           .eq('id', lecture.turma_id)
           .single();
+
+        console.log('[LecturePage] 🏫 Turma query:', {
+          turma,
+          error: turmaError
+        });
+
+        // ✅ Check enrollment FIRST
+        console.log('[LecturePage] 🎓 Checking enrollment:', {
+          alunoId: user.id,
+          turmaId: lecture.turma_id
+        });
+
+        const { data: enrollments, error: enrollmentError } = await supabase
+          .from('turma_enrollments')
+          .select('*')
+          .eq('aluno_id', user.id)
+          .eq('turma_id', lecture.turma_id);
+      
+        console.log('[LecturePage] 📋 Enrollment check result:', {
+          enrollments,
+          error: enrollmentError,
+          hasEnrollment: enrollments && enrollments.length > 0,
+          enrollmentCount: enrollments?.length || 0
+        });
+
+        if (enrollmentError) {
+          console.error('[LecturePage] ❌ Error checking enrollment:', enrollmentError);
+        }
+        
+        if (!enrollments || enrollments.length === 0) {
+          console.error('[LecturePage] ❌ No enrollment found for user');
+          toast.error('Você não tem acesso a esta aula. Verifique sua matrícula.');
+          navigate('/dashboard');
+          return;
+        }
+
+        console.log('[LecturePage] ✅ Access granted');
 
         // ✅ Merge data
         const lectureWithRelations = {
@@ -100,23 +175,7 @@ const LecturePage = () => {
           turmas: turma
         };
         
-        // Check if student is enrolled in the turma
-      const { data: enrollment, error: enrollmentError } = await supabase
-        .from('turma_enrollments')
-        .select('id')
-        .eq('aluno_id', user.id)
-        .eq('turma_id', lecture.turma_id)
-        .maybeSingle();
-      
-      if (enrollmentError) {
-        console.error('Error checking enrollment:', enrollmentError);
-      }
-      
-      if (!enrollment) {
-        toast.error('Você não tem acesso a esta aula');
-        navigate('/dashboard');
-        return;
-      }
+        console.log('[LecturePage] 🎉 Final lecture data:', lectureWithRelations);
       
       setLectureData(lectureWithRelations);
       

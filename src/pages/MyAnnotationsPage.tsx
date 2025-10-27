@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Filter, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
+import { StudentBackgroundGrid } from "@/components/ui/student-background-grid";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -139,7 +140,16 @@ const MyAnnotationsPage = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+        {/* FASE 5: Grid PRIMEIRO (z-0) */}
+        <StudentBackgroundGrid className="z-0" />
+        
+        {/* Gradient Blobs DEPOIS (z-10) */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
+        
+        {/* Conteúdo (z-20) */}
+        <div className="relative z-20 container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Compact Header with Controls */}
           <div className="mb-6">
@@ -369,6 +379,7 @@ const MyAnnotationsPage = () => {
             Criar Nova Anotação
           </span>
         </Button>
+      </div>
       </div>
     </MainLayout>
   );

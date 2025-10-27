@@ -18,9 +18,11 @@ interface TeacherFlashcardViewerModalProps {
   isOpen: boolean;
   onClose: () => void;
   flashcardSet: FlashcardSet | null;
+  hasQuiz?: boolean;
+  onViewQuiz?: () => void;
 }
 
-export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet }: TeacherFlashcardViewerModalProps) => {
+export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, hasQuiz, onViewQuiz }: TeacherFlashcardViewerModalProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -128,6 +130,20 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet }: T
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
+
+          {/* FASE 3: Botão Ver Quiz */}
+          {hasQuiz && onViewQuiz && (
+            <Button 
+              variant="outline"
+              className="w-full bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700"
+              onClick={() => {
+                handleClose();
+                onViewQuiz();
+              }}
+            >
+              📝 Ver Quiz Gerado
+            </Button>
+          )}
         </div>
 
         <style>{`
