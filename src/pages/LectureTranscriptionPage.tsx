@@ -45,6 +45,8 @@ import { PublishLectureModal } from '@/components/PublishLectureModal';
 import { GenerateLectureDeepSearchSummary } from '@/components/GenerateLectureDeepSearchSummary';
 import { TeacherQuizModal } from '@/components/TeacherQuizModal';
 import { TeacherFlashcardViewerModal } from '@/components/TeacherFlashcardViewerModal';
+import { MermaidDiagram } from '@/components/MermaidDiagram';
+import { MermaidErrorBoundary } from '@/components/MermaidErrorBoundary';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
@@ -1501,10 +1503,33 @@ const LectureTranscriptionPage = () => {
                                   ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
                                   ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
                                   li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
-                                  code: ({node, inline, ...props}: any) => 
-                                    inline ? 
-                                    <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props} /> :
-                                    <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props} />,
+                                  code: ({node, inline, className, children, ...props}: any) => {
+                                    const match = /language-(\w+)/.exec(className || '');
+                                    const language = match ? match[1] : '';
+                                    
+                                    // Se for bloco Mermaid, renderizar com componente dedicado
+                                    if (!inline && language === 'mermaid') {
+                                      const code = String(children).replace(/\n$/, '');
+                                      return (
+                                        <MermaidErrorBoundary key={Math.random()}>
+                                          <MermaidDiagram
+                                            code={code}
+                                            title="Diagrama"
+                                            description=""
+                                            icon="📊"
+                                          />
+                                        </MermaidErrorBoundary>
+                                      );
+                                    }
+                                    
+                                    // Código inline
+                                    if (inline) {
+                                      return <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props}>{children}</code>;
+                                    }
+                                    
+                                    // Código em bloco (outros idiomas)
+                                    return <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props}>{children}</code>;
+                                  },
                                   blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
                                 }}
                               >

@@ -26,24 +26,55 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const systemPrompt = `Você é Mia, especialista em criar materiais visuais educacionais para engenharia.
+  const systemPrompt = `Você é Mia, especialista em criar materiais visuais educacionais para engenharia.
 
 TAREFA: Adicionar gráficos Mermaid, tabelas e diagramas ao material didático.
 
-REQUISITOS:
-1. Adicione NO MÍNIMO 2 gráficos Mermaid relevantes
-2. Use diferentes tipos: flowchart, sequence diagram, graph
-3. Posicione gráficos após seções explicativas
-4. Mantenha TODO o conteúdo original (não remova nada)
-5. Use sintaxe Mermaid válida
+REQUISITOS OBRIGATÓRIOS:
+1. Adicione NO MÍNIMO 3 gráficos Mermaid (idealmente 4-5)
+2. Use tipos variados:
+   - Flowchart (graph TD/LR) para processos
+   - Sequence diagram para interações
+   - State diagram para máquinas de estado
+   - Class diagram para estruturas
+3. Posicione gráficos estrategicamente:
+   - Após seções explicativas (nunca antes)
+   - Um gráfico a cada 400-600 palavras
+   - No mínimo 1 gráfico nas seções principais
+4. Mantenha TODO o conteúdo original (não remova NADA)
+5. Use sintaxe Mermaid válida e testada
 
-EXEMPLO DE GRÁFICO MERMAID:
+EXEMPLOS DE POSICIONAMENTO:
+
+**❌ ERRADO (antes da explicação):**
+## 2. Conceitos
+
 \`\`\`mermaid
 graph TD
-    A[Entrada de Calor Q] --> B{Processo Termodinâmico}
-    B --> C[Trabalho Realizado W]
-    B --> D[Variação de Energia Interna ΔU]
-    C --> E[ΔU = Q - W]
+  A-->B
+\`\`\`
+
+Aqui está o conceito...
+
+**✅ CORRETO (depois da explicação):**
+## 2. Conceitos
+
+A Primeira Lei estabelece que... [300 palavras de explicação]
+
+\`\`\`mermaid
+graph TD
+    A[Energia Interna] --> B{Primeira Lei}
+    B --> C[Q - W = ΔU]
+\`\`\`
+
+SINTAXE MERMAID VÁLIDA:
+
+\`\`\`mermaid
+graph TD
+    A[Entrada] --> B{Decisão}
+    B -->|Sim| C[Processo 1]
+    B -->|Não| D[Processo 2]
+    C --> E[Saída]
     D --> E
 \`\`\`
 
