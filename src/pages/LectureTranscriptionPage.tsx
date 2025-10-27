@@ -160,6 +160,11 @@ const LectureTranscriptionPage = () => {
   
   // Graphics enrichment state
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Material generation progress state
+  const [materialGenerationProgress, setMaterialGenerationProgress] = useState<number>(0);
+  const [isGeneratingMaterial, setIsGeneratingMaterial] = useState(false);
+  const [generationMessage, setGenerationMessage] = useState<string>('');
 
   // URL validation helper
   const isValidUrl = (url: string) => {
@@ -1569,6 +1574,11 @@ const LectureTranscriptionPage = () => {
                       currentMaterial={structuredContent.material_didatico}
                       fullTranscript={lecture?.raw_transcript || ''}
                       onUpdate={loadLectureData}
+                      onProgressUpdate={(progress, message) => {
+                        setMaterialGenerationProgress(progress);
+                        setGenerationMessage(message);
+                      }}
+                      onGeneratingChange={setIsGeneratingMaterial}
                     />
                   </CardHeader>
                   <CardContent>
@@ -1583,13 +1593,18 @@ const LectureTranscriptionPage = () => {
                         </TabsTrigger>
                         <TabsTrigger 
                           value="material" 
-                          disabled={!structuredContent.material_didatico}
-                          className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center"
+                          disabled={!structuredContent.material_didatico && !isGeneratingMaterial}
+                          className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center gap-2"
                         >
-                          <Brain className="h-4 w-4 mr-2" />
+                          <Brain className="h-4 w-4" />
                           <span className="hidden sm:inline">Material Didático</span>
                           <span className="sm:hidden">Material</span>
-                          {!structuredContent.material_didatico && (
+                          {isGeneratingMaterial && (
+                            <Badge variant="secondary" className="ml-1 text-xs animate-pulse">
+                              {materialGenerationProgress}%
+                            </Badge>
+                          )}
+                          {!structuredContent.material_didatico && !isGeneratingMaterial && (
                             <span className="ml-2 text-xs text-slate-500 hidden md:inline">(Gerar)</span>
                           )}
                         </TabsTrigger>
@@ -1605,7 +1620,14 @@ const LectureTranscriptionPage = () => {
                             <div className="min-w-0 bg-white p-4 rounded-lg prose prose-sm max-w-none overflow-x-auto">
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm, remarkMath]}
-                                rehypePlugins={[rehypeKatex]}
+                  rehypePlugins={[
+                    [rehypeKatex, {
+                      throwOnError: false,
+                      errorColor: '#cc0000',
+                      strict: false,
+                      trust: true
+                    }]
+                  ]}
                                 components={{
                                   h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
                                   h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
@@ -1619,11 +1641,12 @@ const LectureTranscriptionPage = () => {
                                     const match = /language-(\w+)/.exec(className || '');
                                     const language = match ? match[1] : '';
                                     
-                                    // Se for bloco Mermaid, renderizar com componente dedicado
+                                     // Se for bloco Mermaid, renderizar com componente dedicado
                                     if (!inline && language === 'mermaid') {
                                       const code = String(children).replace(/\n$/, '');
+                                      const stableKey = `mermaid-${code.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '')}`;
                                       return (
-                                        <MermaidErrorBoundary key={Math.random()}>
+                                        <MermaidErrorBoundary key={stableKey}>
                                           <MermaidDiagram
                                             code={code}
                                             title="Diagrama"

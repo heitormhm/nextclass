@@ -14,6 +14,8 @@ interface GenerateLectureDeepSearchSummaryProps {
   currentMaterial?: string;
   fullTranscript: string;
   onUpdate: () => void;
+  onProgressUpdate?: (progress: number, message: string) => void;
+  onGeneratingChange?: (isGenerating: boolean) => void;
 }
 
 const PROCESSING_STEPS = [
@@ -31,6 +33,8 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   currentMaterial,
   fullTranscript,
   onUpdate,
+  onProgressUpdate,
+  onGeneratingChange,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -68,8 +72,9 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
       console.log('🔌 [Deep Search] Component unmounting, cleaning up...');
       isMounted.current = false;
       stopPolling();
+      onGeneratingChange?.(false);
     };
-  }, []);
+  }, [onGeneratingChange]);
 
   // Subscribe to job updates via realtime with polling fallback
   useEffect(() => {
@@ -88,10 +93,14 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
       // Map progress to steps (0-1 → 0-4), cap at 4 during processing
       const step = Math.min(Math.floor((job.progress || 0) * 5), 4);
       setCurrentStep(step);
+      const progressPercent = Math.round((job.progress || 0) * 100);
       
       if (job.progress_message) {
-        console.log('📋 [Deep Search] Progress:', `${Math.round((job.progress || 0) * 100)}% - ${job.progress_message}`);
+        console.log('📋 [Deep Search] Progress:', `${progressPercent}% - ${job.progress_message}`);
         setProgressMessage(job.progress_message);
+        onProgressUpdate?.(progressPercent, job.progress_message);
+      } else {
+        onProgressUpdate?.(progressPercent, PROCESSING_STEPS[step]?.label || 'Processando...');
       }
 
       if (job.status === 'COMPLETED') {
@@ -114,6 +123,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         setCurrentStep(5);
         setProgressMessage('Concluído!');
         setJobId(null);
+        onProgressUpdate?.(100, 'Concluído!');
         
         setTimeout(() => {
           if (!isMounted.current) return;
@@ -121,6 +131,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
           setCurrentStep(0);
           setError(null);
           setProgressMessage('');
+          onGeneratingChange?.(false);
           onUpdateRef.current();
           toastRef.current({
             title: 'Material didático gerado!',
@@ -131,6 +142,8 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         console.error('❌ [Deep Search] Job FAILED:', job.error_message);
         setError(job.error_message || 'Erro desconhecido');
         setIsGenerating(false);
+        onGeneratingChange?.(false);
+        onProgressUpdate?.(0, 'Erro na geração');
         toastRef.current({
           variant: 'destructive',
           title: 'Erro na geração',
@@ -200,6 +213,8 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
     try {
       setIsGenerating(true);
       setCurrentStep(0);
+      onGeneratingChange?.(true);
+      onProgressUpdate?.(5, 'Iniciando geração...');
 
       // Validar dados básicos
       if (!lectureId || !lectureTitle) {
@@ -362,6 +377,8 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
       
       setError(errorMessage);
       setIsGenerating(false);
+      onGeneratingChange?.(false);
+      onProgressUpdate?.(0, 'Erro ao iniciar');
       
       toast({
         variant: 'destructive',
@@ -382,7 +399,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Button 
         size="sm"
         disabled={isGenerating}
@@ -392,7 +409,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         {isGenerating ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Processando...
+            Gerando Material...
           </>
         ) : (
           <>
@@ -402,94 +419,46 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         )}
       </Button>
 
-      <Dialog open={isGenerating} onOpenChange={() => {}}>
-        <DialogContent className="max-w-2xl bg-white/95 backdrop-blur-xl border-white/40 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-center">
-              Gerando Material Didático
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-6">
-            <div className="text-center space-y-2">
-              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-              <h3 className="text-base font-semibold">
-                Pesquisa profunda em andamento...
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Este processo pode levar até 3 minutos
-              </p>
-              
-              {progressMessage && (
-                <p className="text-xs text-primary font-medium mt-2 animate-pulse">
-                  {progressMessage}
-                </p>
-              )}
+      {isGenerating && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-purple-50 border border-purple-200 rounded-lg">
+          <Loader2 className="h-4 w-4 animate-spin text-purple-600 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-medium text-purple-900">
+                {Math.round((currentStep / PROCESSING_STEPS.length) * 100)}%
+              </span>
+              <span className="text-xs text-purple-600 truncate">
+                {progressMessage || PROCESSING_STEPS[currentStep - 1]?.label || 'Processando...'}
+              </span>
             </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-3">
-              {PROCESSING_STEPS.map((step) => {
-                const Icon = step.icon;
-                const isCompleted = currentStep > step.id;
-                const isCurrent = currentStep === step.id;
-
-                return (
-                  <Card
-                    key={step.id}
-                    className={`p-3 transition-all ${
-                      isCurrent
-                        ? 'border-primary shadow-md bg-primary/5'
-                        : isCompleted
-                        ? 'border-green-500/50 bg-green-500/5'
-                        : 'border-border/50 bg-muted/30'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                          isCurrent
-                            ? 'bg-primary/10'
-                            : isCompleted
-                            ? 'bg-green-500/10'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        {isCompleted ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Icon
-                            className={`h-4 w-4 ${
-                              isCurrent ? 'text-primary animate-pulse' : 'text-muted-foreground'
-                            }`}
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p
-                          className={`text-sm font-medium ${
-                            isCurrent || isCompleted ? 'text-foreground' : 'text-muted-foreground'
-                          }`}
-                        >
-                          {step.label}
-                        </p>
-                      </div>
-                      {isCurrent && (
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
+            <div className="w-full bg-purple-200 rounded-full h-1.5">
+              <div 
+                className="bg-gradient-to-r from-purple-600 to-pink-600 h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${(currentStep / PROCESSING_STEPS.length) * 100}%` }}
+              />
             </div>
           </div>
-        </DialogContent>
+        </div>
+      )}
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error === 'TIMEOUT' 
+              ? 'A geração demorou mais que o esperado. Tente novamente.' 
+              : error === 'AUTH_ERROR'
+              ? 'Erro de autenticação. Faça login novamente.'
+              : error === 'PERMISSION_DENIED'
+              ? 'Você não tem permissão para gerar material.'
+              : `Erro ao gerar material: ${error}`
+            }
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Dialog removed - using inline progress badge */}
+      <Dialog open={false} onOpenChange={() => {}}>
       </Dialog>
     </div>
   );
