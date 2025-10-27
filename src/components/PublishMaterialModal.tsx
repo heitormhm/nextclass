@@ -300,11 +300,11 @@ export const PublishMaterialModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col bg-white/90 backdrop-blur-xl border-purple-100/30 shadow-[0_8px_30px_rgb(147,51,234,0.15)]">
-        <DialogHeader className="flex-shrink-0 pb-4 border-b">
-          <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
-              <Upload className="h-6 w-6 text-white" />
+      <DialogContent className="max-w-2xl max-h-[65vh] flex flex-col bg-white/90 backdrop-blur-xl border-purple-100/30 shadow-[0_8px_30px_rgb(147,51,234,0.15)]">
+        <DialogHeader className="flex-shrink-0 pb-3 border-b">
+          <DialogTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
+              <Upload className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
             <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               Publicar Material para Alunos
@@ -312,13 +312,13 @@ export const PublishMaterialModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-1 py-4
+        <div className="flex-1 overflow-y-auto px-1 py-3
           [&::-webkit-scrollbar]:w-2 
           [&::-webkit-scrollbar-track]:bg-transparent 
           [&::-webkit-scrollbar-thumb]:bg-purple-200/60 
           [&::-webkit-scrollbar-thumb]:rounded-full 
           [&::-webkit-scrollbar-thumb]:hover:bg-purple-300/80">
-          <div className="space-y-6">
+          <div className="space-y-4">
           {/* Material Details */}
           <div className="space-y-4">
             <div>
@@ -349,11 +349,11 @@ export const PublishMaterialModal = ({
           <div>
             <Label>Arquivo *</Label>
             <div 
-              className="mt-2 border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-purple-400 transition-colors"
+              className="mt-2 border-2 border-dashed rounded-lg p-4 sm:p-6 text-center cursor-pointer hover:border-purple-400 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-sm font-medium">Arraste arquivos ou clique para selecionar</p>
+              <Upload className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 text-gray-400" />
+              <p className="text-sm font-medium">Arraste ou clique para selecionar</p>
               <p className="text-xs text-muted-foreground mt-1">
                 PDFs, Imagens, Áudios, Vídeos (máx 50MB)
               </p>
@@ -447,10 +447,10 @@ export const PublishMaterialModal = ({
 
             {/* Inline Disciplina Creation */}
             {showCreateDisciplina && (
-              <Card className="p-4 bg-purple-50 border-purple-200">
-                <h4 className="font-semibold mb-3 text-purple-900">Nova Disciplina</h4>
+              <Card className="p-3 bg-purple-50 border-purple-200">
+                <h4 className="font-semibold mb-2 text-sm text-purple-900">Nova Disciplina</h4>
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div>
                     <Label htmlFor="new-disc-name">Nome da Disciplina *</Label>
                     <Input
@@ -501,9 +501,9 @@ export const PublishMaterialModal = ({
           </div>
 
           {/* Tags Section - Auto-Generated */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="tags" className="flex items-center gap-2">
+              <Label htmlFor="tags" className="flex items-center gap-2 text-sm">
                 Tags
                 {generatingTags && (
                   <Loader2 className="h-3 w-3 animate-spin text-purple-600" />
@@ -522,7 +522,7 @@ export const PublishMaterialModal = ({
               </Button>
             </div>
             
-            <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-purple-50/50 rounded-lg border border-purple-100">
+            <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-purple-50/50 rounded-lg border border-purple-100">
               {tags.length > 0 ? (
                 tags.map((tag, index) => (
                   <Badge 
@@ -584,8 +584,8 @@ export const PublishMaterialModal = ({
           </div>
         </div>
 
-        <div className="flex-shrink-0 pt-4 border-t">
-          <div className="flex gap-3">
+        <div className="flex-shrink-0 pt-3 border-t">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <Button
               variant="outline"
               onClick={onClose}

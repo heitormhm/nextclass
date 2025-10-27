@@ -45,6 +45,7 @@ import { PublishLectureModal } from '@/components/PublishLectureModal';
 import { GenerateLectureDeepSearchSummary } from '@/components/GenerateLectureDeepSearchSummary';
 import { TeacherQuizModal } from '@/components/TeacherQuizModal';
 import { TeacherFlashcardViewerModal } from '@/components/TeacherFlashcardViewerModal';
+import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewer';
 import { MermaidDiagram } from '@/components/MermaidDiagram';
 import { MermaidErrorBoundary } from '@/components/MermaidErrorBoundary';
 import { supabase } from '@/integrations/supabase/client';
@@ -1570,18 +1571,7 @@ const LectureTranscriptionPage = () => {
                       </TabsList>
                       
                       <TabsContent value="resumo" className="overflow-x-auto mt-4">
-                        <div className="min-w-0 bg-white p-4 rounded-lg">
-                          {lecture?.raw_transcript ? (
-                            <div className="prose prose-sm max-w-none text-slate-900 leading-relaxed">
-                              <p className="whitespace-pre-wrap">{lecture.raw_transcript}</p>
-                            </div>
-                          ) : (
-                            <div className="text-center py-8 text-slate-500">
-                              <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                              <p className="font-medium">Nenhuma transcrição disponível</p>
-                            </div>
-                          )}
-                        </div>
+                        <FormattedTranscriptViewer transcript={lecture?.raw_transcript || ''} />
                       </TabsContent>
                       
                       <TabsContent value="material" className="overflow-x-auto mt-4">
