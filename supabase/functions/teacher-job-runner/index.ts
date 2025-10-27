@@ -458,12 +458,14 @@ async function generateEducationalReport(
 \`\`\`
 
 ## Corpo do Texto:
+
+**⛔ PROIBIDO: NÃO CRIE ÍNDICE, SUMÁRIO OU LISTA DE TÓPICOS NO INÍCIO! Comece direto com a introdução.**
+
 - Use **markdown profissional** (##, ###, **negrito**, listas numeradas)
-- Inclua equações LaTeX quando relevante: $$E = mc^2$$
+- Inclua equações LaTeX INLINE com delimitadores duplos: $$E = mc^2$$ ou $$\Delta U = Q - W$$
 - Crie tabelas comparativas para conceitos similares
-- Use blocos de código para algoritmos/pseudocódigo
+- Use blocos Mermaid para diagramas visuais (flowcharts, class diagrams)
 - **Extensão mínima:** 4000-5000 palavras (conteúdo denso e técnico)
-- **Páginas equivalentes:** Mínimo 4 páginas impressas (A4, fonte 12pt)
 - **Distribuição por seção:**
   * Introdução: 400-600 palavras
   * Conceitos Fundamentais: 1200-1500 palavras (maior seção)
@@ -472,6 +474,29 @@ async function generateEducationalReport(
   * Exercícios Propostos: 400-500 palavras
   * Conclusão: 300-400 palavras
   * Referências: 100-200 palavras
+
+**EXEMPLO DE ESTRUTURA CORRETA (SEM ÍNDICE):**
+
+\`\`\`markdown
+### **Material Didático de Engenharia**
+**Disciplina:** Termodinâmica
+**Tópico:** Primeira Lei
+**Professor:** ${teacherName}
+
+---
+
+## 1. Introdução: A Base da Conservação de Energia
+
+Parágrafo introdutório conectando ao contexto industrial...
+
+A Primeira Lei pode ser expressa matematicamente como $$\Delta U = Q - W$$, onde...
+
+## 2. Conceitos Fundamentais
+
+### 2.1. Sistema Termodinâmico Fechado
+
+Para um **sistema fechado**, a massa permanece constante...
+\`\`\`
 
 # 🎓 SISTEMA DE REFERÊNCIAS (OBRIGATÓRIO)
 
@@ -856,20 +881,40 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
   console.log('[Mermaid Validator] 🔍 Checking syntax...');
   
   // 1. Corrigir caracteres proibidos em nomes de métodos/atributos
+  // Ex: +trocaMassa() → trocaMassa()
   fixed = fixed.replace(/\+(\w+)\(/g, '$1(');
   
   // 2. Corrigir espaços em definições de classe
+  // Ex: "class Sistema Fechado" → "class SistemaFechado"
   fixed = fixed.replace(/class\s+([A-Z]\w+)\s+([A-Z]\w+)/g, (match, word1, word2) => {
     return `class ${word1}${word2}`;
   });
   
-  // 3. Validar estrutura básica
+  // 3. Corrigir espaços em nomes de nós/classes (ex: "Sistema Fechado" → "SistemaFechado")
+  fixed = fixed.replace(/(\w+)\s+(\w+)(?=\s*[\[\{:])/g, '$1$2');
+  
+  // 4. Remover caracteres especiais em labels que não estão entre aspas
+  fixed = fixed.replace(/([^"'\[])(\+)(\w+)/g, '$1$3');
+  
+  // 5. Corrigir sintaxe de subgrafos (subgraph deve ter nome sem espaços)
+  fixed = fixed.replace(/subgraph\s+([^[\n]+)\s+([A-Z]\w+)/g, (match, word1, word2) => {
+    const combinedName = word1.trim().replace(/\s+/g, '') + word2;
+    return `subgraph ${combinedName}`;
+  });
+  
+  // 6. Garantir que labels com caracteres especiais/acentos estejam entre aspas
+  fixed = fixed.replace(/\[([^\]]*[áéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ][^\]]*)\]/gi, (match, content) => {
+    if (content.includes('"') || content.includes("'")) return match;
+    return `["${content}"]`;
+  });
+  
+  // 7. Validar estrutura básica
   if (!fixed.includes('graph') && !fixed.includes('classDiagram') && !fixed.includes('sequenceDiagram') && !fixed.includes('gantt')) {
     errors.push('Tipo de diagrama não reconhecido');
     return { valid: false, fixed, errors };
   }
   
-  // 4. Validar nodes (não podem ter espaços sem aspas)
+  // 8. Validar nodes (não podem ter espaços sem aspas)
   const nodeRegex = /(\w+)\s+([A-Z]\w+)\s*\[/g;
   const matches = fixed.match(nodeRegex);
   if (matches) {
@@ -879,10 +924,10 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
     });
   }
   
-  // 5. Verificar linhas vazias excessivas
+  // 9. Verificar linhas vazias excessivas
   fixed = fixed.replace(/\n\n+/g, '\n');
   
-  // 6. Validar fechamentos de blocos
+  // 10. Validar fechamentos de blocos
   const openBraces = (fixed.match(/\{/g) || []).length;
   const closeBraces = (fixed.match(/\}/g) || []).length;
   
@@ -891,7 +936,7 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
   }
   
   const valid = errors.length === 0;
-  console.log(`[Mermaid Validator] ${valid ? '✅ Valid' : '❌ Invalid'} - Fixed ${fixed.length - code.length} chars`);
+  console.log(`[Mermaid Validator] ${valid ? '✅ Valid' : '❌ Invalid'} - Fixed ${Math.abs(fixed.length - code.length)} chars`);
   
   if (!valid) {
     console.warn('[Mermaid Validator] Errors:', errors);
@@ -907,11 +952,46 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
   const lines = markdown.split('\n');
   const conteudo: any[] = [];
   let currentParagraph = '';
+  let skipUntilSection = false; // Flag to skip index/table of contents
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // H2 headings
+    // Skip empty lines
+    if (line.length === 0) {
+      if (currentParagraph) {
+        conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+        currentParagraph = '';
+      }
+      continue;
+    }
+    
+    // ⛔ DETECT AND SKIP INDEX/TABLE OF CONTENTS
+    if (line.match(/^(Índice|##\s*Índice|Sumário|##\s*Sumário|Table of Contents)/i)) {
+      console.warn('[convertToStructured] ⚠️ Index detected, skipping until next section');
+      skipUntilSection = true;
+      continue;
+    }
+    
+    // If we're skipping index, wait for next h2 heading
+    if (skipUntilSection) {
+      if (line.startsWith('## ') && !line.match(/índice|sumário|table of contents/i)) {
+        skipUntilSection = false; // Resume processing
+      } else {
+        continue; // Skip index lines
+      }
+    }
+    
+    // Markdown separator (---)
+    if (line.match(/^-{3,}$/)) {
+      if (currentParagraph) {
+        conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+        currentParagraph = '';
+      }
+      continue;
+    }
+    
+    // H2 headings (## )
     if (line.startsWith('## ')) {
       if (currentParagraph) {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
@@ -919,12 +999,12 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
       }
       conteudo.push({
         tipo: 'h2',
-        texto: line.replace('## ', '')
+        texto: line.replace('## ', '').replace(/\*\*/g, '').trim()
       });
       continue;
     }
     
-    // H3 headings - CONVERTER PARA H2 para compatibilidade
+    // H3 headings (### ) - NORMALIZE TO H2 for compatibility
     if (line.startsWith('### ')) {
       if (currentParagraph) {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
@@ -932,12 +1012,12 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
       }
       conteudo.push({
         tipo: 'h2',
-        texto: line.replace('### ', '').replace(/\*\*/g, '')
+        texto: line.replace('### ', '').replace(/\*\*/g, '').trim()
       });
       continue;
     }
     
-    // H4 headings - CONVERTER PARA H2
+    // H4 headings (#### ) - NORMALIZE TO H2
     if (line.startsWith('#### ')) {
       if (currentParagraph) {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
@@ -945,7 +1025,7 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
       }
       conteudo.push({
         tipo: 'h2',
-        texto: line.replace('#### ', '').replace(/\*\*/g, '')
+        texto: line.replace('#### ', '').replace(/\*\*/g, '').trim()
       });
       continue;
     }
@@ -964,24 +1044,23 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
         i++;
       }
       
-      // ✅ VALIDAR E CORRIGIR sintaxe Mermaid
+      // ✅ VALIDATE AND FIX Mermaid syntax
       const validation = validateAndFixMermaidSyntax(mermaidCode);
       
       if (!validation.valid) {
-        console.warn('[convertToStructured] ⚠️ Mermaid inválido, pulando bloco:', validation.errors);
-        // Adicionar placeholder ao invés de código quebrado
+        console.warn('[convertToStructured] ⚠️ Invalid Mermaid, adding placeholder:', validation.errors);
         conteudo.push({
           tipo: 'caixa_de_destaque',
           titulo: '📊 Diagrama Visual',
-          texto: 'Um diagrama será adicionado em breve para ilustrar este conceito.'
+          texto: 'Um diagrama foi planejado para esta seção mas requer ajustes técnicos.'
         });
         continue;
       }
       
-      // Usar código CORRIGIDO
+      // Use FIXED code
       mermaidCode = validation.fixed;
       
-      // Detect diagram type from code - usar tipos que StructuredContentRenderer reconhece
+      // Detect correct diagram type
       let tipo = 'diagrama';
       let titulo = '📊 Diagrama Visual';
       
@@ -1049,25 +1128,34 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
       continue;
     }
     
-    // Regular paragraphs
-    if (line.length > 0 && !line.startsWith('#') && !line.startsWith('```') && !line.startsWith('|')) {
+    // Regular paragraphs - accumulate consecutive lines
+    if (!line.startsWith('#') && !line.startsWith('```') && !line.startsWith('|') && !line.startsWith('---')) {
+      // Skip if line looks like index item (starts with number or bullet)
+      if (skipUntilSection || line.match(/^\d+\.\s+/) || line.match(/^\*\s+\d+\./)) {
+        continue;
+      }
+      
       currentParagraph += (currentParagraph ? ' ' : '') + line;
-    } else if (line.length === 0 && currentParagraph) {
-      conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
-      currentParagraph = '';
     }
   }
   
   // Add final paragraph if exists
-  if (currentParagraph) {
+  if (currentParagraph.trim()) {
     conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
   }
   
-  console.log(`[convertToStructured] ✅ Converted to ${conteudo.length} blocks`);
+  // Filter empty or very short blocks (< 10 chars)
+  const blocosFiltrados = conteudo.filter(bloco => {
+    if (!bloco.texto && !bloco.definicao_mermaid) return false;
+    if (bloco.texto && bloco.texto.length < 10) return false;
+    return true;
+  });
+  
+  console.log(`[convertToStructured] ✅ Converted to ${blocosFiltrados.length} valid blocks (filtered ${conteudo.length - blocosFiltrados.length} empty blocks)`);
   
   return {
     titulo_geral: title,
-    conteudo: conteudo
+    conteudo: blocosFiltrados
   };
 }
 

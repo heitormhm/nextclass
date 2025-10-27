@@ -452,29 +452,25 @@ All colors MUST be HSL. Design tokens for consistent theming.
   animation: fadeInScale 0.3s ease-out forwards;
 }
 
-/* LaTeX Inline Rendering */
+/* LaTeX Inline Rendering - Enhanced visibility */
 .math-inline-rendered {
-  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+  font-family: 'KaTeX_Main', 'Times New Roman', serif !important;
   font-style: italic;
-  color: #7C3AED; /* purple-600 */
-  background: linear-gradient(to right, rgba(139, 92, 246, 0.1), rgba(167, 139, 250, 0.1));
-  padding: 0.125rem 0.375rem;
+  color: #7C3AED !important; /* purple-600 */
+  background: linear-gradient(to right, rgba(139, 92, 246, 0.15), rgba(167, 139, 250, 0.15));
+  padding: 0.25rem 0.5rem;
   border-radius: 0.375rem;
   font-weight: 500;
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   display: inline-block;
+  margin: 0 0.125rem;
 }
 
-.math-inline-rendered::before {
-  content: "$$";
-  font-size: 0.75rem;
-  opacity: 0.5;
-  margin-right: 0.25rem;
-}
-
+.math-inline-rendered::before,
 .math-inline-rendered::after {
-  content: "$$";
-  font-size: 0.75rem;
-  opacity: 0.5;
-  margin-left: 0.25rem;
+  content: "$";
+  font-size: 0.7rem;
+  opacity: 0.4;
+  margin: 0 0.125rem;
+  font-family: monospace;
 }

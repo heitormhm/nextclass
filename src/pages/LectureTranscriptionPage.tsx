@@ -1685,14 +1685,25 @@ const LectureTranscriptionPage = () => {
                             <div className="min-w-0 bg-white p-4 rounded-lg">
                               {(() => {
                                 try {
-                                  // Try to parse as structured JSON (new format)
+                                  console.log('[Render] 🔍 Raw material_didatico type:', typeof structuredContent.material_didatico);
+                                  console.log('[Render] 🔍 First 300 chars:', structuredContent.material_didatico.substring(0, 300));
+                                  
                                   const parsed = JSON.parse(structuredContent.material_didatico);
+                                  
+                                  console.log('[Render] 📦 Parsed JSON keys:', Object.keys(parsed));
+                                  console.log('[Render] 📦 titulo_geral:', parsed.titulo_geral);
+                                  console.log('[Render] 📦 Content blocks count:', parsed.conteudo?.length);
+                                  console.log('[Render] 📦 First 3 blocks types:', parsed.conteudo?.slice(0, 3).map((b: any) => b.tipo));
+                                  
                                   if (parsed.conteudo && Array.isArray(parsed.conteudo)) {
                                     console.log('[Render] ✅ Rendering structured content via StructuredContentRenderer');
                                     return <StructuredContentRenderer structuredData={parsed} />;
+                                  } else {
+                                    console.error('[Render] ❌ parsed.conteudo is not an array:', parsed.conteudo);
                                   }
                                 } catch (e) {
-                                  console.warn('[Render] ⚠️ Content is not structured JSON, using markdown fallback');
+                                  console.error('[Render] ❌ JSON parse error:', e);
+                                  console.log('[Render] ⚠️ Falling back to ReactMarkdown');
                                 }
                                 
                                 // Fallback: render plain markdown
