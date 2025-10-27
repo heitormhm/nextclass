@@ -95,6 +95,7 @@ const LectureTranscriptionPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSectionTitle, setEditingSectionTitle] = useState('');
   const [editingSectionContent, setEditingSectionContent] = useState<any>(null);
+  const [editPrefilledPrompt, setEditPrefilledPrompt] = useState<string>('');
 
   // Thumbnail state
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
@@ -1506,7 +1507,7 @@ const LectureTranscriptionPage = () => {
                                 {structuredContent.material_didatico}
                               </ReactMarkdown>
                             </div>
-                            <div className="flex justify-end mt-2">
+                            <div className="flex justify-end gap-2 mt-2">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1515,6 +1516,18 @@ const LectureTranscriptionPage = () => {
                               >
                                 <Sparkles className="h-4 w-4 mr-1" />
                                 Editar com IA
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 bg-purple-50 hover:bg-purple-100 border-purple-300"
+                                onClick={() => {
+                                  setEditPrefilledPrompt('Adicione gráficos Mermaid, diagramas e figuras explicativas para ilustrar melhor os conceitos. Inclua pelo menos 2 fluxogramas e 1 gráfico de dados relevante ao conteúdo.');
+                                  openEditModal('Material Didático', { material_didatico: structuredContent.material_didatico });
+                                }}
+                              >
+                                <BarChart3 className="h-4 w-4 mr-1 text-purple-600" />
+                                Adicionar Gráficos
                               </Button>
                             </div>
                           </>
@@ -2550,11 +2563,15 @@ const LectureTranscriptionPage = () => {
         {/* Edit with AI Modal */}
         <EditWithAIModal
           isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditPrefilledPrompt('');
+          }}
           sectionTitle={editingSectionTitle}
           currentContent={editingSectionContent}
           onUpdate={handleContentUpdate}
           lectureId={id || ''}
+          prefilledPrompt={editPrefilledPrompt}
         />
 
         {/* Publish Lecture Modal */}

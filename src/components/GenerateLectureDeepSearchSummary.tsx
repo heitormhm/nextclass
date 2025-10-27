@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Brain, Loader2, Search, FileText, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface GenerateLectureDeepSearchSummaryProps {
   lectureId: string;
@@ -36,6 +37,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const [error, setError] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState<string>('');
   const { toast } = useToast();
+  const hasProcessedCompletion = useRef(false);
 
   // Subscribe to job updates via realtime with polling fallback
   useEffect(() => {
@@ -56,13 +58,22 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
       }
 
       if (job.status === 'COMPLETED') {
+        if (hasProcessedCompletion.current) {
+          console.log('⏭️ [Deep Search] Completion already processed, skipping');
+          return;
+        }
+        hasProcessedCompletion.current = true;
+        
         console.log('✅ [Deep Search] Job COMPLETED!');
         setCurrentStep(4);
         setProgressMessage('Concluído!');
+        
+        // Limpar jobId ANTES de onUpdate para parar polling
+        setJobId(null);
+        
         setTimeout(() => {
           setIsGenerating(false);
           setCurrentStep(0);
-          setJobId(null);
           setError(null);
           setProgressMessage('');
           onUpdate();
@@ -70,7 +81,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
             title: 'Material didático gerado!',
             description: 'Pesquisa profunda concluída com sucesso.',
           });
-        }, 2000);
+        }, 1000);
       } else if (job.status === 'FAILED') {
         console.error('❌ [Deep Search] Job FAILED:', job.error_message);
         setError(job.error_message || 'Erro desconhecido');
@@ -141,6 +152,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
 
     setError(null);
     setProgressMessage('');
+    hasProcessedCompletion.current = false;
     
     try {
       setIsGenerating(true);
@@ -207,6 +219,17 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
 
       console.log('✅ [Deep Search] Permissões validadas');
 
+      // Get teacher name from users table
+      console.log('👤 [Deep Search] Buscando nome do professor...');
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('full_name, email')
+        .eq('id', user.id)
+        .single();
+
+      const teacherName = profile?.full_name || user.email?.split('@')[0] || 'Professor';
+      console.log('✅ [Deep Search] Nome do professor:', teacherName);
+
       // Preparar payload do job
       const jobPayload = {
         teacher_id: user.id,
@@ -217,7 +240,8 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
           lectureId,
           lectureTitle,
           tags,
-          userId: user.id
+          userId: user.id,
+          teacherName: teacherName
         },
         progress: 0,
         progress_message: 'Iniciando pesquisa profunda...'
@@ -333,13 +357,19 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         )}
       </Button>
 
-      {isGenerating && (
-        <Card className="border-primary/20 bg-primary/5 animate-in fade-in slide-in-from-top-2 duration-300">
-          <CardContent className="pt-6 space-y-4">
+      <Dialog open={isGenerating} onOpenChange={() => {}}>
+        <DialogContent className="max-w-2xl bg-white/95 backdrop-blur-xl border-white/40 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center">
+              Gerando Material Didático
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-6">
             <div className="text-center space-y-2">
               <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
               <h3 className="text-base font-semibold">
-                Gerando material didático com pesquisa profunda...
+                Pesquisa profunda em andamento...
               </h3>
               <p className="text-sm text-muted-foreground">
                 Este processo pode levar até 3 minutos
@@ -413,9 +443,9 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

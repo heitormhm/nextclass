@@ -20,6 +20,7 @@ interface EditWithAIModalProps {
   currentContent: any;
   onUpdate: (updatedContent: any) => void;
   lectureId: string;
+  prefilledPrompt?: string;
   additionalContext?: {
     isIndividualItem?: boolean;
     itemIndex?: number;
@@ -34,6 +35,7 @@ export const EditWithAIModal: React.FC<EditWithAIModalProps> = ({
   currentContent,
   onUpdate,
   lectureId,
+  prefilledPrompt,
   additionalContext,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -71,6 +73,12 @@ export const EditWithAIModal: React.FC<EditWithAIModalProps> = ({
       });
     }
   }, [speechError, toast]);
+
+  useEffect(() => {
+    if (isOpen && prefilledPrompt) {
+      setInput(prefilledPrompt);
+    }
+  }, [isOpen, prefilledPrompt]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;

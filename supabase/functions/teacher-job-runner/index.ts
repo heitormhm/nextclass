@@ -39,13 +39,14 @@ async function updateJobProgress(
 
 // Process deep search for lecture material
 async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: string) {
-  const { lectureId, lectureTitle, tags, userId } = job.input_payload;
+  const { lectureId, lectureTitle, tags, userId, teacherName } = job.input_payload;
   
   if (!lectureId || !lectureTitle) {
     throw new Error('Invalid job payload: missing required fields (lectureId or lectureTitle)');
   }
   
   console.log(`[Job ${job.id}] 🚀 Deep Search starting for lecture: ${lectureTitle}`);
+  console.log(`[Job ${job.id}] 👤 Teacher name: ${teacherName || 'Not provided'}`);
 
   const braveApiKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
   if (!braveApiKey) {
@@ -75,7 +76,7 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
     // Step 4: Generate educational report (80% progress)
     await updateJobProgress(supabase, job.id, 0.8, 'Gerando material didático...');
     
-    const report = await generateEducationalReport(query, searchResults, lovableApiKey, job.id);
+    const report = await generateEducationalReport(query, searchResults, teacherName, lovableApiKey, job.id);
     console.log(`[Job ${job.id}] ✅ Report generated, length: ${report.length} characters`);
 
     // Step 5: Save to lecture (90% progress)
@@ -236,6 +237,7 @@ async function executeWebSearches(questions: string[], braveApiKey: string, jobI
 async function generateEducationalReport(
   query: string,
   searchResults: any[],
+  teacherName: string | undefined,
   apiKey: string,
   jobId: string
 ): Promise<string> {
@@ -261,14 +263,18 @@ async function generateEducationalReport(
           {
             role: 'system',
             content: `Você é um professor de engenharia especializado em criar material didático.
-          
+
+**Informações do Professor:**
+- Nome: ${teacherName || 'Professor'}
+
 INSTRUÇÕES:
 1. Crie um material didático completo e estruturado
 2. Use markdown com seções claras
 3. Inclua: introdução, conceitos principais, exemplos práticos, conclusão
 4. Seja técnico mas didático
 5. Cite as fontes quando relevante
-6. Foque em aplicações práticas da engenharia`
+6. Foque em aplicações práticas da engenharia
+7. Ao referenciar o autor do material, use "Professor: ${teacherName || 'Professor'}" ao invés de placeholders como "[Seu Nome]"`
           },
           {
             role: 'user',
