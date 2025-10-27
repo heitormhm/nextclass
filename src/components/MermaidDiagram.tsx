@@ -71,7 +71,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           return;
         }
 
-        // ✅ FASE 4: Configuração Mermaid com responsividade
+        // ✅ FASE 3: Configuração Mermaid com responsividade máxima
         mermaid.initialize({ 
           theme: 'default',
           logLevel: 'error',
@@ -79,20 +79,29 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           securityLevel: 'loose',
           flowchart: { 
             useMaxWidth: true,
-            htmlLabels: true
+            htmlLabels: true,
+            curve: 'basis'
           },
           sequence: { 
             useMaxWidth: true,
-            wrap: true
+            wrap: true,
+            width: 150,
+            height: 50
           },
           gantt: {
-            useMaxWidth: true
+            useMaxWidth: true,
+            fontSize: 14
           },
           class: {
             useMaxWidth: true
           },
           state: {
             useMaxWidth: true
+          },
+          // Configuração global de largura máxima
+          themeVariables: {
+            fontSize: '14px',
+            fontFamily: 'Inter, system-ui, sans-serif'
           }
         });
 
@@ -189,8 +198,16 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
             </details>
           </div>
         ) : (
-          <div className="overflow-x-auto w-full">
-            <div ref={ref} className="flex justify-center items-center min-h-[200px] w-full mermaid-responsive bg-white rounded-lg p-4" />
+          <div className="overflow-x-auto overflow-y-hidden w-full">
+            <div 
+              ref={ref} 
+              className="mermaid-responsive min-h-[200px] flex justify-center items-center bg-white rounded-lg p-4"
+              style={{
+                maxWidth: '100%',
+                width: 'fit-content',
+                margin: '0 auto'
+              }}
+            />
           </div>
         )}
       </div>

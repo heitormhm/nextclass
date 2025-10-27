@@ -475,21 +475,63 @@ All colors MUST be HSL. Design tokens for consistent theming.
   font-family: monospace;
 }
 
-/* ✅ FASE 4: Mermaid Responsive Styles */
+/* ============================================================================
+   FASE 2: Referências bibliográficas - Superscript clicável
+   ============================================================================ */
+.citation-ref {
+  font-size: 0.75em;
+  font-weight: 600;
+  color: hsl(var(--primary));
+  cursor: pointer;
+  padding: 0 0.2em;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.citation-ref:hover {
+  color: hsl(var(--primary) / 0.8);
+  text-decoration: underline;
+  transform: translateY(-1px);
+}
+
+/* ============================================================================
+   FASE 3: Mermaid Responsive Styles - Responsividade máxima
+   ============================================================================ */
 .mermaid-responsive {
   max-width: 100%;
-  overflow-x: auto;
+  overflow: visible;
 }
 
 .mermaid-responsive svg {
   max-width: 100%;
   height: auto;
+  display: block;
+  margin: 0 auto;
 }
 
+/* Para diagramas muito largos: permitir scroll horizontal */
 @media (max-width: 768px) {
+  .mermaid-responsive {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  
   .mermaid-responsive svg {
+    min-width: 600px; /* Garantir legibilidade mínima */
     font-size: 12px;
   }
+}
+
+/* Melhorar legibilidade de texto em diagramas */
+.mermaid-responsive text {
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 14px !important;
+}
+
+.mermaid-responsive .node rect,
+.mermaid-responsive .node circle,
+.mermaid-responsive .node polygon {
+  stroke-width: 2px !important;
 }
 
 /* ✅ FASE 4: KaTeX Rendered Math - Diferente do antigo math-inline-rendered */

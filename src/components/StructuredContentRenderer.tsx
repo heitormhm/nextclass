@@ -69,7 +69,19 @@ const convertMarkdownToHtml = (text: string): string => {
     .replace(/`(.+?)`/g, '<code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono text-purple-600">$1</code>')
     .replace(/\n/g, '<br>');
   
-  // 3. Restaurar LaTeX renderizado
+  // 3. ✅ FASE 2: Processar referências bibliográficas [1], [2], [1, 2]
+  processed = processed.replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (match, nums) => {
+    // Dividir se houver múltiplas refs: [1, 2, 3]
+    const refNumbers = nums.split(',').map((n: string) => n.trim());
+    
+    const refsHtml = refNumbers.map((num: string) => 
+      `<sup class="citation-ref" data-ref="${num}">${num}</sup>`
+    ).join(',');
+    
+    return refsHtml;
+  });
+  
+  // 4. Restaurar LaTeX renderizado
   Object.entries(latexReplacements).forEach(([placeholder, html]) => {
     processed = processed.replace(placeholder, html);
   });

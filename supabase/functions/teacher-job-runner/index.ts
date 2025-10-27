@@ -106,6 +106,69 @@ async function preprocessMermaidBlocks(markdown: string, jobId: string): Promise
   return processedMarkdown;
 }
 
+// ============================================================================
+// HELPER: Final Content Sanitization (FASE 1)
+// ============================================================================
+function finalContentSanitization(structuredContent: any, jobId: string): any {
+  console.log(`[Job ${jobId}] [Final Sanitization] 🧹 Cleaning structured content JSON...`);
+  
+  const jsonStr = JSON.stringify(structuredContent, null, 2);
+  
+  // 1. Detectar problemas ANTES de limpar
+  const issues = {
+    latexDoublePlaceholders: (jsonStr.match(/___LATEX_DOUBLE_\d+___/g) || []).length,
+    latexSinglePlaceholders: (jsonStr.match(/___LATEX_SINGLE_\d+___/g) || []).length,
+    corruptedDollarSigns: (jsonStr.match(/\d+\$+\s*\d*/g) || []).length,
+    isolatedVariables: (jsonStr.match(/"\s*[a-z]\s+[a-z]\s+[a-z]\s*"/gi) || []).length,
+  };
+  
+  if (Object.values(issues).some(count => count > 0)) {
+    console.error(`[Job ${jobId}] [Final Sanitization] ❌ ISSUES DETECTED:`, issues);
+  }
+  
+  // 2. Remover TODOS os placeholders corrompidos
+  let cleaned = jsonStr
+    .replace(/___LATEX_DOUBLE_\d+___/g, '') // Remove ___LATEX_DOUBLE_0___
+    .replace(/___LATEX_SINGLE_\d+___/g, '') // Remove ___LATEX_SINGLE_0___
+    .replace(/\d+\$\$\s*\d*/g, '') // Remove "1$$", "2$$1"
+    .replace(/\$\s*\d+\s*\$/g, '') // Remove "$ 1 $"
+    .replace(/\*\*\s*\d+\$\s*\*\*/g, '') // Remove "** 1$ **"
+    .replace(/\d+\$\s+\d+\$/g, ''); // Remove "1$ 1$"
+  
+  // 3. Limpar variáveis isoladas (q e w → removidas se não estão em LaTeX)
+  cleaned = cleaned.replace(/"texto":\s*"([^"]*)\s+([a-z])\s+([a-z])\s+([a-z])\s*([^"]*)"/gi, (match, before, var1, var2, var3, after) => {
+    // Se não tem $$ ao redor, remover as variáveis
+    if (!before.includes('$$') && !after.includes('$$')) {
+      console.warn(`[Job ${jobId}] [Sanitization] Removed isolated variables: ${var1} ${var2} ${var3}`);
+      return `"texto": "${before.trim()} ${after.trim()}"`;
+    }
+    return match;
+  });
+  
+  // 4. Parse e validar estrutura JSON
+  try {
+    const parsed = JSON.parse(cleaned);
+    
+    // 5. Log de qualidade final
+    const finalJsonStr = JSON.stringify(parsed);
+    const remainingIssues = {
+      latexPlaceholders: (finalJsonStr.match(/___LATEX_/g) || []).length,
+      corruptedDollars: (finalJsonStr.match(/\d+\$\$/g) || []).length,
+    };
+    
+    if (remainingIssues.latexPlaceholders > 0 || remainingIssues.corruptedDollars > 0) {
+      console.error(`[Job ${jobId}] [Final Sanitization] ⚠️ STILL HAS ISSUES:`, remainingIssues);
+    } else {
+      console.log(`[Job ${jobId}] [Final Sanitization] ✅ Clean - No placeholders detected`);
+    }
+    
+    return parsed;
+  } catch (err) {
+    console.error(`[Job ${jobId}] [Final Sanitization] ❌ Invalid JSON after cleaning:`, err);
+    throw new Error('Final sanitization produced invalid JSON');
+  }
+}
+
 // Fix common LaTeX errors in markdown content
 async function fixLatexErrors(markdown: string, jobId: string): Promise<string> {
   console.log(`[Job ${jobId}] 🔧 Fixing LaTeX errors...`);
@@ -198,7 +261,10 @@ async function saveReportToLecture(
   
   // ETAPA 3: Convert to structured JSON (for StructuredContentRenderer)
   console.log(`[Job ${jobId}] 🔄 Converting to structured JSON...`);
-  const structuredJSON = await convertMarkdownToStructuredJSON(fixedReport, 'Material Didático');
+  let structuredJSON = await convertMarkdownToStructuredJSON(fixedReport, 'Material Didático');
+  
+  // ✅ FASE 1: SANITIZAÇÃO FINAL DO JSON antes de salvar
+  structuredJSON = finalContentSanitization(structuredJSON, jobId);
   
   // ETAPA 4: Save structured JSON
   const { error: updateError } = await supabase
