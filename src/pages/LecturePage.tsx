@@ -27,7 +27,8 @@ const LecturePage = () => {
   const [searchParams] = useSearchParams();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration] = useState(3600); // 60 minutes in seconds
+  const [audioDuration, setAudioDuration] = useState(0);
+  const duration = audioDuration || 3600; // Use actual audio duration or fallback
   const [volume, setVolume] = useState([80]);
   const [isMuted, setIsMuted] = useState(false);
   const [activeTab, setActiveTab] = useState('material');
@@ -36,8 +37,10 @@ const LecturePage = () => {
   const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
   const { id } = useParams(); // Get the current lecture ID from the URL
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [lectureData, setLectureData] = useState<any>(null);
   const [isLoadingLecture, setIsLoadingLecture] = useState(true);
+  const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
 
   // Load lecture from database
   useEffect(() => {
@@ -187,7 +190,24 @@ const LecturePage = () => {
         
         console.log('[LecturePage] 🎉 Final lecture data:', lectureWithRelations);
       
-      setLectureData(lectureWithRelations);
+        setLectureData(lectureWithRelations);
+
+        // ✅ FASE 2: Process transcript from database
+        if (lectureWithRelations.raw_transcript) {
+          const transcriptText = lectureWithRelations.raw_transcript;
+          const teacherName = teacher?.full_name || 'Professor';
+          
+          // Create transcript item(s) from raw_transcript
+          const transcriptItems: TranscriptItem[] = [{
+            timestamp: '00:00',
+            speaker: teacherName,
+            text: transcriptText,
+            seconds: 0
+          }];
+          
+          setTranscript(transcriptItems);
+          console.log('[LecturePage] ✅ Transcript loaded:', transcriptItems.length, 'items');
+        }
       
       // Register view
       const { error: viewError } = await supabase
@@ -311,6 +331,17 @@ const LecturePage = () => {
     });
   };
 
+  const handleAddToAnnotations = () => {
+    const materialContent = lectureData?.structured_content?.material_didatico || '';
+    navigate(`/annotation/${id}`, {
+      state: {
+        prePopulatedContent: materialContent,
+        lectureTitle: lectureData?.title || 'Material da Aula'
+      }
+    });
+    toast.success('Redirecionando para anotações...');
+  };
+
   // Display lecture data from database or fallback to mock
   const displayLectureData = lectureData ? {
     title: lectureData.title || 'Sem título',
@@ -332,32 +363,7 @@ const LecturePage = () => {
     topics: []
   };
 
-  const transcript: TranscriptItem[] = [
-    {
-      timestamp: '00:00',
-      speaker: 'Dr. Maria Santos',
-      text: 'Bem-vindos à nossa aula sobre fisiopatologia do sistema cardiovascular. Hoje vamos abordar os conceitos fundamentais que regem o funcionamento do coração.',
-      seconds: 0
-    },
-    {
-      timestamp: '00:45',
-      speaker: 'Dr. Maria Santos', 
-      text: 'Vamos começar revisando a anatomia cardíaca básica. O coração é um órgão muscular oco, dividido em quatro câmaras principais.',
-      seconds: 45
-    },
-    {
-      timestamp: '01:30',
-      speaker: 'Dr. Maria Santos',
-      text: 'As duas câmaras superiores são os átrios - átrio direito e átrio esquerdo. As duas câmaras inferiores são os ventrículos.',
-      seconds: 90
-    },
-    {
-      timestamp: '02:15',
-      speaker: 'Dr. Maria Santos',
-      text: 'O ciclo cardíaco consiste em duas fases principais: sístole e diástole. Durante a sístole, o coração se contrai e bombeia sangue.',
-      seconds: 135
-    }
-  ];
+  // Transcript is now loaded from database via useState hook (line 43)
 
   // Mock bibliography data
   const bibliography = [
@@ -458,7 +464,36 @@ Distúrbios do ritmo cardíaco que podem ser:
   };
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleAudioTimeUpdate = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+    setCurrentTime(Math.floor(e.currentTarget.currentTime));
+  };
+
+  const handleAudioLoadedMetadata = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+    setAudioDuration(Math.floor(e.currentTarget.duration));
+  };
+
+  const handleVolumeChange = (value: number[]) => {
+    setVolume(value);
+    if (audioRef.current) {
+      audioRef.current.volume = value[0] / 100;
+    }
+  };
+
+  const handleMuteToggle = () => {
+    setIsMuted(!isMuted);
+    if (audioRef.current) {
+      audioRef.current.muted = !isMuted;
+    }
   };
 
   const handleTimeJump = (seconds: number) => {
@@ -468,6 +503,9 @@ Distúrbios do ritmo cardíaco que podem ser:
 
   const handleProgressChange = (value: number[]) => {
     setCurrentTime(value[0]);
+    if (audioRef.current) {
+      audioRef.current.currentTime = value[0];
+    }
   };
 
   const handleDownload = () => {
@@ -521,48 +559,74 @@ Distúrbios do ritmo cardíaco que podem ser:
         <div className="relative z-20 container mx-auto px-4 py-6">
         {/* Two-Panel Layout */}
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-          {/* Left Panel - Video Player */}
+          {/* Left Panel - Audio Player */}
           <div className="xl:col-span-3 space-y-4">
-            {/* Video Container */}
+            {/* Audio Player Moderno */}
             <Card className="border-0 shadow-sm overflow-hidden bg-white/60 backdrop-blur-xl">
-              <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center relative">
-                <div className="absolute inset-0 bg-black/20"></div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handlePlayPause}
-                  className="h-20 w-20 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm z-10"
-                >
-                  {isPlaying ? (
-                    <Pause className="h-10 w-10 text-white" />
-                  ) : (
-                    <Play className="h-10 w-10 text-white ml-1" />
-                  )}
-                </Button>
-              </div>
-              
-              {/* Video Controls */}
-              <CardContent className="p-4 space-y-3">
-                <Slider
-                  value={[currentTime]}
-                  max={duration}
-                  step={1}
-                  className="w-full"
-                  onValueChange={handleProgressChange}
-                />
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+              <CardContent className="p-6">
+                {/* Waveform Visual */}
+                <div className="relative h-32 mb-6 rounded-lg bg-gradient-to-r from-purple-100/50 via-pink-100/50 to-purple-100/50 overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex gap-1 items-end h-20">
+                      {[...Array(50)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-1 bg-gradient-to-t from-purple-500 to-pink-500 rounded-full transition-all ${
+                            isPlaying ? 'animate-pulse' : ''
+                          }`}
+                          style={{
+                            height: `${Math.random() * 60 + 20}%`,
+                            animationDelay: `${i * 0.05}s`
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Play Button Centralizado */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handlePlayPause}
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-16 w-16 rounded-full bg-white/90 hover:bg-white shadow-lg z-10"
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-8 w-8 text-purple-600" />
+                    ) : (
+                      <Play className="h-8 w-8 text-purple-600 ml-1" />
+                    )}
+                  </Button>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <Slider
+                    value={[currentTime]}
+                    max={duration}
+                    step={1}
+                    className="w-full"
+                    onValueChange={handleProgressChange}
+                  />
+                  
+                  <div className="flex items-center justify-between text-xs text-foreground-muted">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                </div>
+
+                {/* Controles do Player */}
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex items-center gap-3">
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={handlePlayPause}
-                      className="h-8 w-8"
+                      className="h-10 w-10"
                     >
                       {isPlaying ? (
-                        <Pause className="h-4 w-4" />
+                        <Pause className="h-5 w-5" />
                       ) : (
-                        <Play className="h-4 w-4" />
+                        <Play className="h-5 w-5" />
                       )}
                     </Button>
                     
@@ -570,7 +634,7 @@ Distúrbios do ritmo cardíaco que podem ser:
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setIsMuted(!isMuted)}
+                        onClick={handleMuteToggle}
                         className="h-8 w-8"
                       >
                         {isMuted ? (
@@ -583,22 +647,27 @@ Distúrbios do ritmo cardíaco que podem ser:
                         value={volume}
                         max={100}
                         step={1}
-                        className="w-24"
-                        onValueChange={setVolume}
+                        className="w-20 sm:w-28"
+                        onValueChange={handleVolumeChange}
                       />
                     </div>
-                    
-                    <span className="text-sm text-foreground-muted ml-2">
-                      {formatTime(currentTime)} / {formatTime(duration)}
-                    </span>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Settings className="h-4 w-4" />
-                    </Button>
+                    <Badge variant="secondary" className="text-xs">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {displayLectureData.duration}
+                    </Badge>
                   </div>
                 </div>
+
+                {/* HTML5 Audio Element (hidden) */}
+                <audio
+                  ref={audioRef}
+                  src={lectureData?.audio_url}
+                  onTimeUpdate={handleAudioTimeUpdate}
+                  onLoadedMetadata={handleAudioLoadedMetadata}
+                />
               </CardContent>
             </Card>
 
@@ -647,11 +716,11 @@ Distúrbios do ritmo cardíaco que podem ser:
                           <span className="text-sm">Resumo</span>
                         </TabsTrigger>
                         <TabsTrigger 
-                          value="material" 
+                          value="anexos" 
                           className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary transition-all"
                         >
                           <FolderOpen className="h-4 w-4 mr-2" />
-                          <span className="text-sm">Material</span>
+                          <span className="text-sm">Anexos</span>
                         </TabsTrigger>
                       </TabsList>
                     </div>
@@ -689,41 +758,145 @@ Distúrbios do ritmo cardíaco que podem ser:
                       </div>
                     </TabsContent>
 
-                    {/* Summary Tab */}
+                    {/* Summary Tab - FASE 6: Dados Reais */}
                     <TabsContent value="summary" className="flex-1 p-0 m-0">
                       <div className="p-4 max-h-[600px] overflow-y-auto">
                         <div className="prose prose-sm max-w-none">
-                          <h3 className="text-lg font-semibold mb-3">Resumo Estruturado</h3>
-                          <p className="text-foreground-muted mb-4">{displayLectureData.summary}</p>
+                          <h3 className="text-lg font-semibold mb-3">Resumo da Aula</h3>
                           
-                          <h4 className="text-base font-semibold mb-2">Tópicos Principais</h4>
-                          <ul className="space-y-2">
-                            {displayLectureData.topics.map((topic, index) => (
-                              <li key={index} className="flex items-start gap-2">
-                                <span className="text-primary mt-1">•</span>
-                                <span>{topic}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          {/* Resumo Principal */}
+                          {lectureData?.structured_content?.resumo && (
+                            <div className="bg-primary/5 border-l-4 border-primary p-4 rounded-r-lg mb-4">
+                              <p className="text-foreground-muted leading-relaxed">
+                                {lectureData.structured_content.resumo}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {/* Tópicos Principais */}
+                          {lectureData?.structured_content?.topicos_principais && 
+                           lectureData.structured_content.topicos_principais.length > 0 && (
+                            <div className="mb-4">
+                              <h4 className="text-base font-semibold mb-3 flex items-center gap-2">
+                                <BookOpen className="h-4 w-4 text-primary" />
+                                Tópicos Principais
+                              </h4>
+                              <ul className="space-y-3">
+                                {lectureData.structured_content.topicos_principais.map((topico: any, index: number) => (
+                                  <li key={index} className="bg-white/80 border border-primary/10 rounded-lg p-3">
+                                    <div className="flex items-start gap-2">
+                                      <Badge variant="secondary" className="mt-0.5">
+                                        {index + 1}
+                                      </Badge>
+                                      <div className="flex-1">
+                                        <div className="font-medium text-sm mb-1">
+                                          {topico.conceito || topico}
+                                        </div>
+                                        {topico.descricao && (
+                                          <div className="text-xs text-foreground-muted">
+                                            {topico.descricao}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
 
-                          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/10">
-                            <h4 className="text-base font-semibold mb-2 flex items-center gap-2">
-                              <Brain className="h-4 w-4 text-primary" />
-                              Conceitos-Chave
-                            </h4>
-                            <div 
-                              className="text-sm"
-                              dangerouslySetInnerHTML={{ __html: sanitizeHTML(materialAprimoradoContent) }}
-                            />
-                          </div>
+                          {/* Conceitos-Chave */}
+                          {lectureData?.structured_content?.conceitos_chave && 
+                           lectureData.structured_content.conceitos_chave.length > 0 && (
+                            <div className="mt-6 p-4 bg-purple-50/50 rounded-lg border border-purple-200/50">
+                              <h4 className="text-base font-semibold mb-3 flex items-center gap-2">
+                                <Brain className="h-4 w-4 text-purple-600" />
+                                Conceitos-Chave
+                              </h4>
+                              <div className="grid grid-cols-1 gap-2">
+                                {lectureData.structured_content.conceitos_chave.map((conceito: string, index: number) => (
+                                  <div key={index} className="flex items-start gap-2 text-sm">
+                                    <span className="text-purple-600 mt-1">•</span>
+                                    <span>{conceito}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TabsContent>
 
-                    {/* Material Tab */}
-                    <TabsContent value="material" className="flex-1 p-0 m-0">
+                    {/* Anexos Tab - FASE 3: Material Didático Real */}
+                    <TabsContent value="anexos" className="flex-1 p-0 m-0">
                       <div className="p-4 space-y-4 max-h-[600px] overflow-y-auto">
-                        <h3 className="text-base font-semibold mb-3">Recursos para Download</h3>
+                        {/* Material Didático Gerado */}
+                        {lectureData?.structured_content?.material_didatico && (
+                          <div className="mb-6">
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="text-base font-semibold flex items-center gap-2">
+                                <BookOpen className="h-5 w-5 text-primary" />
+                                Material Didático
+                              </h3>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleAddToAnnotations}
+                                className="text-xs"
+                              >
+                                <PenTool className="h-3 w-3 mr-1" />
+                                Adicionar às Anotações
+                              </Button>
+                            </div>
+                            
+                            <Card className="border-primary/20 bg-white/80">
+                              <CardContent className="p-4">
+                                <div className="prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
+                                  {lectureData.structured_content.material_didatico}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )}
+
+                        {/* Flashcards Gerados */}
+                        {lectureData?.structured_content?.flashcards && 
+                         lectureData.structured_content.flashcards.length > 0 && (
+                          <div className="mb-6">
+                            <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                              <Sparkles className="h-5 w-5 text-primary" />
+                              Flashcards ({lectureData.structured_content.flashcards.length})
+                            </h3>
+                            
+                            <div className="grid grid-cols-1 gap-3">
+                              {lectureData.structured_content.flashcards.slice(0, 3).map((card: any, index: number) => (
+                                <Card key={index} className="border-primary/10 hover:border-primary/30 transition-colors">
+                                  <CardContent className="p-3">
+                                    <div className="font-medium text-sm mb-1 text-primary">
+                                      {card.termo || card.front}
+                                    </div>
+                                    <div className="text-xs text-foreground-muted line-clamp-2">
+                                      {card.definicao || card.back}
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                            
+                            {lectureData.structured_content.flashcards.length > 3 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/review?lectureId=${id}`)}
+                                className="w-full mt-3"
+                              >
+                                Ver todos os {lectureData.structured_content.flashcards.length} flashcards
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        
+                        <h3 className="text-base font-semibold mb-3">Recursos Adicionais</h3>
                         
                         <div className="space-y-3">
                           <Card 
@@ -805,11 +978,11 @@ Distúrbios do ritmo cardíaco que podem ser:
                       </div>
                     </TabsContent>
 
-                    {/* Action Bar */}
+                    {/* Action Bar - FASE 5: Responsivo */}
                     <div className="border-t p-4 bg-background/50">
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Button 
-                          className="bg-primary hover:bg-primary/90 transition-all"
+                          className="bg-primary hover:bg-primary/90 transition-all w-full"
                           asChild
                         >
                           <Link to={`/quiz/${id}`}>
@@ -819,7 +992,7 @@ Distúrbios do ritmo cardíaco que podem ser:
                         </Button>
                         <Button 
                           variant="outline"
-                          className="hover:bg-accent transition-all"
+                          className="hover:bg-accent transition-all w-full"
                           onClick={() => navigate(`/review?lectureId=${id}`)}
                         >
                           <Sparkles className="h-4 w-4 mr-2" />
