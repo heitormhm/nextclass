@@ -203,6 +203,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
               ref={ref} 
               className="mermaid-responsive min-h-[200px] flex justify-center items-center bg-white rounded-lg p-4"
               style={{
+                minWidth: '80%',
                 maxWidth: '100%',
                 width: 'fit-content',
                 margin: '0 auto'

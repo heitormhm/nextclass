@@ -1120,6 +1120,21 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
   // Detectar: "graphTDA[" (sem espaço/quebra) → Corrigir
   // Preservar: "graph TD\n    A[" (já válido) → Manter
   
+  // 0. ✅ Corrigir 'end' colado com node name: "endA[...]" → "end\n    A[...]"
+  fixed = fixed.replace(/^(\s*)(end)([A-Z][^\n\[]*\[)/gm, (match, indent, endKeyword, rest) => {
+    console.log(`[Mermaid Fix] 'end' colado detectado: "${match}"`);
+    return `${indent}${endKeyword}\n${indent}    ${rest}`;
+  });
+
+  // 0.5. ✅ Corrigir 'direction' colado: "directionLRS[...]" → "direction LR\n    S[...]"
+  fixed = fixed.replace(/^(\s*)(direction)([A-Z]{2,})([A-Z]+\[)/gm, (match, indent, dirKeyword, dirType, rest) => {
+    console.log(`[Mermaid Fix] 'direction' colado detectado: "${match}"`);
+    // Ex: "directionLRS[" → "direction LR\n    S["
+    const graphDirection = dirType.substring(0, 2); // "LR"
+    const nodeName = dirType.substring(2) + rest; // "S["
+    return `${indent}${dirKeyword} ${graphDirection}\n${indent}    ${nodeName}`;
+  });
+  
   // Detectar padrão inválido: graphTYPEA[ onde TYPE+A estão colados
   fixed = fixed.replace(/^graph([A-Z]{2,})([A-Z]+)\[/gm, (match, type, node) => {
     // Ex: "graphTDA[" → type="TD", node="A" ou type="TDA", node=""

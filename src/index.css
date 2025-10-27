@@ -504,9 +504,17 @@ All colors MUST be HSL. Design tokens for consistent theming.
 
 .mermaid-responsive svg {
   max-width: 100%;
+  min-width: 80%; /* Ocupar pelo menos 80% do container */
   height: auto;
   display: block;
   margin: 0 auto;
+}
+
+/* Em desktop, permitir expansão total */
+@media (min-width: 1024px) {
+  .mermaid-responsive svg {
+    min-width: 90%;
+  }
 }
 
 /* Para diagramas muito largos: permitir scroll horizontal */

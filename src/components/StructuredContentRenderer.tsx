@@ -645,6 +645,38 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
           </details>
         );
       
+      case 'referencias':
+        return (
+          <div key={index} className="mt-12 pt-8 border-t-2 border-border">
+            <h2 className="text-3xl font-bold mb-6 text-foreground flex items-center gap-2">
+              <span>📚</span>
+              <span>Fontes e Referências</span>
+            </h2>
+            <ol className="space-y-4">
+              {bloco.lista?.map((ref: any, i: number) => (
+                <li key={i} className="flex gap-3 items-start group">
+                  <span className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-110 transition-transform">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 text-sm leading-relaxed">
+                    <span className="text-foreground">{ref.descricao}</span>
+                    {ref.url && (
+                      <a 
+                        href={ref.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="ml-2 text-primary hover:text-primary/80 underline inline-flex items-center gap-1 transition-colors"
+                      >
+                        🔗 Acessar
+                      </a>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        );
+      
       default:
         console.warn(`[StructuredContentRenderer] Tipo de bloco não suportado: ${bloco.tipo}`);
         return null; // Não renderizar nada, evitar poluição visual
