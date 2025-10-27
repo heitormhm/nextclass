@@ -41,6 +41,8 @@ interface Lecture {
   status?: string;
   disciplina_id: string;
   turma_id: string;
+  tags?: string[];
+  duration?: number;
   disciplinas?: { nome: string };
   turmas?: { periodo: string; curso: string };
 }
@@ -70,7 +72,9 @@ const TeacherMyLectures = () => {
   const [selectedTurmaId, setSelectedTurmaId] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState<'recent' | 'alphabetical'>('recent');
+  const [sortOrder, setSortOrder] = useState<'recent' | 'alphabetical' | 'oldest'>('recent');
+  const [selectedDisciplinaFilter, setSelectedDisciplinaFilter] = useState<string>('all');
+  const [dateOrder, setDateOrder] = useState<'desc' | 'asc'>('desc');
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -93,6 +97,8 @@ const TeacherMyLectures = () => {
           created_at,
           disciplina_id,
           turma_id,
+          tags,
+          duration,
           disciplinas(nome),
           turmas(periodo, curso)
         `)
@@ -113,6 +119,8 @@ const TeacherMyLectures = () => {
           status,
           disciplina_id,
           turma_id,
+          tags,
+          duration,
           disciplinas(nome),
           turmas(periodo, curso)
         `)
@@ -286,6 +294,49 @@ const TeacherMyLectures = () => {
     </Card>
   );
 
+  // Filter and sort function
+  const filterAndSortLectures = (lectureList: Lecture[]) => {
+    let filtered = lectureList;
+
+    // 1. FILTER BY SEARCH (title OR tags)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(lecture => {
+        const matchesTitle = lecture.title.toLowerCase().includes(query);
+        const matchesTags = lecture.tags?.some(tag => tag.toLowerCase().includes(query)) || false;
+        return matchesTitle || matchesTags;
+      });
+    }
+
+    // 2. FILTER BY DISCIPLINA
+    if (selectedDisciplinaFilter !== 'all') {
+      filtered = filtered.filter(lecture => lecture.disciplina_id === selectedDisciplinaFilter);
+    }
+
+    // 3. SORT
+    filtered.sort((a, b) => {
+      if (sortOrder === 'alphabetical') {
+        return a.title.localeCompare(b.title);
+      }
+      
+      // By date
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      
+      if (dateOrder === 'desc') {
+        return dateB - dateA; // Most recent first
+      } else {
+        return dateA - dateB; // Oldest first
+      }
+    });
+
+    return filtered;
+  };
+
+  // Apply filters
+  const filteredDrafts = filterAndSortLectures(drafts);
+  const filteredLectures = filterAndSortLectures(lectures);
+
   // Group lectures by turma and disciplina
   const groupedLectures = lectures.reduce((acc, lecture) => {
     const turmaKey = lecture.turmas?.periodo || 'Sem Turma';
@@ -321,23 +372,40 @@ const TeacherMyLectures = () => {
               </p>
             </div>
             
-            <div className="flex gap-3">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
                 <Input
-                  placeholder="Buscar aulas..."
+                  placeholder="Buscar por título ou tags..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-white/10 backdrop-blur-lg border-white/20 text-white placeholder:text-white/50 w-64"
+                  className="pl-10 bg-white/10 backdrop-blur-lg border-white/20 text-white placeholder:text-white/50"
                 />
               </div>
               
-              <Select value={sortOrder} onValueChange={(value: 'recent' | 'alphabetical') => setSortOrder(value)}>
-                <SelectTrigger className="w-40 bg-white/10 backdrop-blur-lg border-white/20 text-white">
+              <Select value={selectedDisciplinaFilter} onValueChange={setSelectedDisciplinaFilter}>
+                <SelectTrigger className="w-[180px] bg-white/10 backdrop-blur-lg border-white/20 text-white">
+                  <SelectValue placeholder="Disciplina" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {disciplinas.map(disc => (
+                    <SelectItem key={disc.id} value={disc.id}>{disc.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select value={sortOrder} onValueChange={(value: 'recent' | 'alphabetical' | 'oldest') => {
+                setSortOrder(value);
+                if (value === 'recent') setDateOrder('desc');
+                if (value === 'oldest') setDateOrder('asc');
+              }}>
+                <SelectTrigger className="w-[160px] bg-white/10 backdrop-blur-lg border-white/20 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="recent">Mais Recentes</SelectItem>
+                  <SelectItem value="oldest">Mais Antigas</SelectItem>
                   <SelectItem value="alphabetical">Alfabética</SelectItem>
                 </SelectContent>
               </Select>
@@ -386,7 +454,7 @@ const TeacherMyLectures = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {drafts.map((draft) => (
+                  {filteredDrafts.map((draft) => (
                     <Card
                       key={draft.id}
                       className="group relative cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200"
@@ -420,15 +488,22 @@ const TeacherMyLectures = () => {
                           })}
                         </p>
                         <div className="flex items-center justify-between mt-3 pt-3 border-t border-yellow-300/30">
-                          <Badge 
-                            className={`text-xs ${
-                              draft.status === 'processing' 
-                                ? 'bg-yellow-100 text-yellow-800 border-yellow-300' 
-                                : 'bg-blue-100 text-blue-800 border-blue-300'
-                            }`}
-                          >
-                            {draft.status === 'processing' ? '⏳ Processando' : '✏️ Pronto'}
-                          </Badge>
+                          <div className="flex gap-2 flex-wrap">
+                            <Badge 
+                              className={`text-xs ${
+                                draft.status === 'processing' 
+                                  ? 'bg-yellow-100 text-yellow-800 border-yellow-300' 
+                                  : 'bg-blue-100 text-blue-800 border-blue-300'
+                              }`}
+                            >
+                              {draft.status === 'processing' ? '⏳ Processando' : '✏️ Pronto'}
+                            </Badge>
+                            {draft.duration && (
+                              <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-800">
+                                ⏱️ {Math.round(draft.duration / 60)} min
+                              </Badge>
+                            )}
+                          </div>
                           {draft.disciplinas && (
                             <span className="text-xs text-slate-500 font-medium">
                               📚 {draft.disciplinas.nome}

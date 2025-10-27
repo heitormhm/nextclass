@@ -90,23 +90,32 @@ export const PublishLectureModal = ({
   };
 
   const handlePublish = async () => {
-    if (!title || !selectedTurma) {
+    // Validação mais rigorosa
+    if (!title.trim()) {
       toast({
-        title: 'Campos obrigatórios',
-        description: 'Preencha o título e selecione uma turma',
+        title: '⚠️ Título obrigatório',
+        description: 'Digite um título para a aula',
         variant: 'destructive',
       });
       return;
     }
 
-    // DEBUG LOG
-    console.log('[Publish] Starting publication with:', {
+    if (!selectedTurma) {
+      toast({
+        title: '⚠️ Turma obrigatória',
+        description: 'Selecione uma turma para publicar',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // DEBUG: Log completo antes de tentar publicar
+    console.log('[Publish] 📋 Attempting publication with:', {
       lectureId,
-      title,
+      title: title.trim(),
       selectedTurma,
-      selectedDisciplina,
-      initialTurmaId,
-      hasInitialValue: !!selectedTurma
+      selectedDisciplina: selectedDisciplina || 'none',
+      timestamp: new Date().toISOString()
     });
 
     setPublishing(true);
@@ -115,9 +124,9 @@ export const PublishLectureModal = ({
       const { error } = await supabase
         .from('lectures')
         .update({
-          title,
-          class_id: selectedTurma,         // Legacy support
-          turma_id: selectedTurma,         // New schema field
+          title: title.trim(),
+          class_id: selectedTurma,
+          turma_id: selectedTurma,
           disciplina_id: selectedDisciplina || null,
           status: 'published',
           updated_at: new Date().toISOString()
@@ -125,22 +134,53 @@ export const PublishLectureModal = ({
         .eq('id', lectureId);
 
       if (error) {
-        console.error('[Publish] Database error:', error);
-        throw error;
+        console.error('[Publish] ❌ Database error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        
+        toast({
+          title: '❌ Erro ao publicar',
+          description: error.message || 'Verifique se você tem permissão para publicar nesta turma',
+          variant: 'destructive',
+        });
+        
+        setPublishing(false);
+        return;
       }
 
-      // Verificar se a publicação foi bem-sucedida
+      // Verificar se publicação foi bem-sucedida
       const { data: verifyData, error: verifyError } = await supabase
         .from('lectures')
-        .select('status')
+        .select('status, class_id, turma_id, disciplina_id')
         .eq('id', lectureId)
         .single();
 
-      if (verifyError || verifyData?.status !== 'published') {
-        throw new Error('Failed to verify publication status');
+      if (verifyError) {
+        console.error('[Publish] ❌ Verification failed:', verifyError);
+        toast({
+          title: '❌ Erro de verificação',
+          description: 'Não foi possível confirmar a publicação',
+          variant: 'destructive',
+        });
+        setPublishing(false);
+        return;
       }
 
-      console.log('[Publish] ✅ Successfully published lecture, status verified');
+      if (verifyData?.status !== 'published') {
+        console.error('[Publish] ❌ Status mismatch:', verifyData);
+        toast({
+          title: '❌ Status não atualizado',
+          description: 'A aula não foi marcada como publicada',
+          variant: 'destructive',
+        });
+        setPublishing(false);
+        return;
+      }
+
+      console.log('[Publish] ✅ Publication verified:', verifyData);
 
       toast({
         title: 'Sucesso! 🎉',

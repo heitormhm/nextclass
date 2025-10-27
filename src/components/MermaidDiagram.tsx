@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { MermaidErrorBoundary } from './MermaidErrorBoundary';
+import { useToast } from '@/hooks/use-toast';
 
 interface MermaidDiagramProps {
   code: string;
@@ -94,6 +95,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const { toast } = useToast();
 
   // Inject CSS to forcefully hide mermaid error messages
   useEffect(() => {
@@ -189,9 +191,11 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
 
   const handleRegenerateDiagram = async () => {
     setIsRegenerating(true);
+    
     try {
-      console.log('[Mermaid] Requesting diagram fix...');
+      console.log('[Mermaid] 🔄 Requesting diagram fix...');
       
+      // STEP 1: Call edge function
       const { data, error: funcError } = await supabase.functions.invoke('fix-mermaid-diagram', {
         body: {
           brokenCode: code,
@@ -199,23 +203,58 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         }
       });
 
-      if (funcError) throw funcError;
+      if (funcError) {
+        console.error('[Mermaid] ❌ Edge function error:', funcError);
+        throw new Error(`Edge function failed: ${funcError.message}`);
+      }
+
+      if (!data?.fixedCode) {
+        throw new Error('No fixed code returned from edge function');
+      }
 
       console.log('[Mermaid] ✅ Received fixed code:', data.fixedCode);
       
-      // Re-render with fixed code
-      const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const { svg } = await mermaid.render(uniqueId, data.fixedCode);
+      // STEP 2: Validate fixed code BEFORE attempting render
+      const sanitizedFixed = sanitizeMermaidCode(data.fixedCode);
       
+      if (!sanitizedFixed || sanitizedFixed.length < 10) {
+        throw new Error('Fixed code is still invalid after sanitization');
+      }
+      
+      // STEP 3: Attempt render with timeout protection
+      const uniqueId = `mermaid-fix-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      const renderPromise = mermaid.render(uniqueId, sanitizedFixed);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Render timeout')), 5000)
+      );
+      
+      const { svg } = await Promise.race([renderPromise, timeoutPromise]) as { svg: string };
+      
+      // STEP 4: Success - update DOM
       if (ref.current) {
         ref.current.innerHTML = svg;
       }
       
       setError(null);
       
+      toast({
+        title: 'Diagrama corrigido! ✅',
+        description: 'O diagrama foi renderizado com sucesso',
+      });
+      
     } catch (err) {
       console.error('[Mermaid] ❌ Regeneration failed:', err);
-      alert('Não foi possível corrigir o diagrama automaticamente. Por favor, edite manualmente.');
+      
+      // Keep placeholder visible, don't crash
+      setError('hidden');
+      
+      toast({
+        title: 'Não foi possível corrigir 😔',
+        description: 'Este diagrama contém erros complexos. Tente editar manualmente.',
+        variant: 'destructive',
+      });
+      
     } finally {
       setIsRegenerating(false);
     }
