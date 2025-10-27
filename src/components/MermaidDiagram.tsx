@@ -9,27 +9,20 @@ interface MermaidDiagramProps {
   icon: string;
 }
 
+// ✅ FASE 4: Simplificar - remover validação, confiar no backend
 const sanitizeMermaidCode = (code: string): string => {
   if (!code || code.trim().length < 10) {
     console.warn('[Mermaid] Code too short or empty');
     return '';
   }
-  
-  // Remove code block markers if present
+
+  // APENAS remover markers, SEM validação
   let sanitized = code.trim()
     .replace(/^```mermaid\s*/i, '')
     .replace(/^```\s*$/, '')
     .replace(/```$/, '');
-  
-  // ONLY validate - do NOT correct (backend already did corrections)
-  const hasValidType = /^(graph|flowchart|sequenceDiagram|stateDiagram-v2|classDiagram|gantt|pie|erDiagram)/m.test(sanitized);
-  
-  if (!hasValidType) {
-    console.warn('[Mermaid] No valid diagram type detected');
-    return '';
-  }
-  
-  console.log('[Mermaid] ✅ Basic validation passed');
+
+  console.log('[Mermaid] ✅ Code sanitized (no validation)');
   return sanitized.trim();
 };
 
@@ -64,6 +57,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
     };
   }, []);
 
+  // ✅ FASE 4: Simplificar validação - confiar no backend
   useEffect(() => {
     const renderDiagram = async () => {
       if (!ref.current || !code) return;
@@ -71,50 +65,32 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
       try {
         const sanitizedCode = sanitizeMermaidCode(code);
         
-        // Minimal validation (only extreme cases)
         if (!sanitizedCode || sanitizedCode.length < 10) {
           console.warn('[Mermaid] Empty code, showing placeholder');
           setError('invalid');
           return;
         }
 
-        if (!sanitizedCode.match(/^(graph|flowchart|sequenceDiagram|stateDiagram-v2|classDiagram|gantt)/m)) {
-          console.warn('[Mermaid] Invalid diagram type, showing placeholder');
-          setError('invalid');
-          return;
-        }
-
-        // ✅ REMOVED Unicode validation - trust backend sanitization
-        // We now attempt to render even if there are minor issues
-        
-        // Configure Mermaid with tolerant settings
+        // ✅ TENTAR RENDERIZAR SEMPRE (backend já validou/corrigiu)
         mermaid.initialize({ 
           theme: 'default',
-          logLevel: 'fatal',
+          logLevel: 'error', // Aumentar verbosidade para debug
           startOnLoad: false,
           securityLevel: 'loose',
         });
 
         const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        // Timeout de 5s
         const renderTimeout = setTimeout(() => {
           console.error('[Mermaid] Render timeout');
           setError('timeout');
-        }, 5000);
+        }, 8000); // Aumentar timeout para 8s
 
         try {
           const { svg } = await mermaid.render(uniqueId, sanitizedCode);
           clearTimeout(renderTimeout);
           
-          // Validate AFTER render (check IF it rendered with errors)
-          if (svg.includes('Syntax error') || svg.includes('error-icon') || svg.includes('Parse error')) {
-            console.warn('[Mermaid] Error detected in SVG, showing placeholder');
-            setError('render_error');
-            return;
-          }
-          
-          // ✅ SUCCESS
+          // ✅ REMOVER validação de erro no SVG - se renderizou, aceitar
           if (ref.current) {
             ref.current.innerHTML = svg;
           }
@@ -123,6 +99,10 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         } catch (renderErr) {
           clearTimeout(renderTimeout);
           console.error('[Mermaid] Render failed:', renderErr);
+          
+          // ✅ Log do código que falhou para debug
+          console.error('[Mermaid] Failed code:', sanitizedCode);
+          
           setError('hidden');
         }
       } catch (err) {

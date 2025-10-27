@@ -122,14 +122,41 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
 
   const renderBlock = (bloco: ContentBlock, index: number) => {
     switch (bloco.tipo) {
-      case 'h2':
-        return <h2 key={index} className="text-3xl font-bold mt-8 mb-4 text-foreground scroll-mt-20">{bloco.texto}</h2>;
-      
-      case 'h3':
-        return <h3 key={index} className="text-2xl font-bold mt-6 mb-3 text-foreground/90 scroll-mt-20">{bloco.texto}</h3>;
-      
-      case 'h4':
-        return <h4 key={index} className="text-xl font-bold mt-4 mb-2 text-foreground/80 scroll-mt-20">{bloco.texto}</h4>;
+      case 'h2': {
+        // ✅ FASE 5: Processar markdown em títulos
+        const h2Html = convertMarkdownToHtml(bloco.texto || '');
+        return (
+          <h2 
+            key={index} 
+            className="text-3xl font-bold mt-8 mb-4 text-foreground scroll-mt-20"
+            dangerouslySetInnerHTML={{ __html: h2Html }}
+          />
+        );
+      }
+
+      case 'h3': {
+        // ✅ FASE 5: Processar markdown em títulos
+        const h3Html = convertMarkdownToHtml(bloco.texto || '');
+        return (
+          <h3 
+            key={index} 
+            className="text-2xl font-bold mt-6 mb-3 text-foreground/90 scroll-mt-20"
+            dangerouslySetInnerHTML={{ __html: h3Html }}
+          />
+        );
+      }
+
+      case 'h4': {
+        // ✅ FASE 5: Processar markdown em títulos
+        const h4Html = convertMarkdownToHtml(bloco.texto || '');
+        return (
+          <h4 
+            key={index} 
+            className="text-xl font-bold mt-4 mb-2 text-foreground/80 scroll-mt-20"
+            dangerouslySetInnerHTML={{ __html: h4Html }}
+          />
+        );
+      }
       
       case 'paragrafo':
         const htmlContent = convertMarkdownToHtml(bloco.texto || '');

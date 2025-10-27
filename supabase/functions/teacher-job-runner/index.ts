@@ -198,7 +198,7 @@ async function saveReportToLecture(
   
   // ETAPA 3: Convert to structured JSON (for StructuredContentRenderer)
   console.log(`[Job ${jobId}] 🔄 Converting to structured JSON...`);
-  const structuredJSON = convertMarkdownToStructuredJSON(fixedReport, 'Material Didático');
+  const structuredJSON = await convertMarkdownToStructuredJSON(fixedReport, 'Material Didático');
   
   // ETAPA 4: Save structured JSON
   const { error: updateError } = await supabase
@@ -459,7 +459,15 @@ async function generateEducationalReport(
 
 ## Corpo do Texto:
 
-**⛔ PROIBIDO: NÃO CRIE ÍNDICE, SUMÁRIO OU LISTA DE TÓPICOS NO INÍCIO! Comece direto com a introdução.**
+⛔ **PROIBIDO ABSOLUTAMENTE:**
+- NÃO CRIE ÍNDICE, SUMÁRIO, TABLE OF CONTENTS ou LISTA DE SEÇÕES
+- NÃO NUMERE SEÇÕES COMO "1. Introdução, 2. Conceitos..."
+- COMECE DIRETAMENTE COM O PRIMEIRO TÍTULO: "## Introdução ao Tópico"
+
+✅ **FORMATO CORRETO:**
+- Use ## para títulos principais (SEM números, SEM asteriscos)
+- Use ### para subtítulos (SEM números, SEM asteriscos)
+- Títulos devem ser DESCRITIVOS, não genéricos
 
 - Use **markdown profissional** (##, ###, **negrito**, listas numeradas)
 - Inclua equações LaTeX INLINE com delimitadores duplos: $$E = mc^2$$ ou $$\Delta U = Q - W$$
@@ -960,15 +968,44 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
 }
 
 // Convert Markdown to Structured JSON (for StructuredContentRenderer - same logic as TeacherAnnotations)
-function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
+async function convertMarkdownToStructuredJSON(markdown: string, title: string): Promise<any> {
   console.log('[convertToStructured] 🔄 Converting markdown to structured JSON...');
   
-  // PRÉ-PROCESSAMENTO: Limpar markdown ANTES de parsear
-  let cleanedMarkdown = markdown
+  // ✅ FASE 2: Normalizar LaTeX PRIMEIRO
+  const normalizeLatexSyntax = (text: string): string => {
+    console.log('[LaTeX Normalizer] 🔄 Cleaning LaTeX syntax...');
+    
+    let fixed = text;
+    
+    // 1. Remover $ extras dentro de $$...$$
+    fixed = fixed.replace(/\$\$\s*\$(.+?)\$/g, '$$$$1');
+    
+    // 2. Corrigir $ expr $ com espaços → $$expr$$
+    fixed = fixed.replace(/\$\s+(.+?)\s+\$/g, '$$$$1$$');
+    
+    // 3. Adicionar $$ em fórmulas sem delimitadores (LaTeX cru)
+    fixed = fixed.replace(/([^$\n])(\\\w+(?:\{[^}]*\})?(?:[^$\n\s]|\s+(?=[^\n]))*?)(?=\s{2,}|$|\n)/g, (match, before, formula) => {
+      if (!formula.includes('$$') && formula.match(/\\[a-zA-Z]+/)) {
+        return `${before}$$${formula.trim()}$$`;
+      }
+      return match;
+    });
+    
+    console.log('[LaTeX Normalizer] ✅ LaTeX normalized');
+    return fixed;
+  };
+
+  const latexNormalized = normalizeLatexSyntax(markdown);
+  
+  // PRÉ-PROCESSAMENTO: Limpar markdown APÓS normalizar LaTeX
+  let cleanedMarkdown = latexNormalized
     // 1. Normalizar LaTeX: $ expr $ → $$expr$$
     .replace(/\$\s+(.+?)\s+\$/g, '$$$$1$$')
-    // 2. Remover asteriscos extras em títulos (ex: **2. Título** → 2. Título)
-    .replace(/^(#{1,4})\s*\*\*(.+?)\*\*\s*$/gm, '$1 $2')
+    // 2. ✅ FASE 1: Remover TODOS os asteriscos de títulos
+    .replace(/^(#{1,4})\s*(.+)$/gm, (match, hashes, content) => {
+      const cleanContent = content.replace(/\*\*/g, '').trim();
+      return `${hashes} ${cleanContent}`;
+    })
     // 3. Limpar linhas com apenas "---"
     .replace(/^-{3,}$/gm, '');
   
@@ -1014,7 +1051,7 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
       continue;
     }
     
-    // H2 headings (## ) - Remover asteriscos residuais
+    // H2 headings (## ) - ✅ FASE 1: Remover TODOS os asteriscos
     if (line.startsWith('## ')) {
       if (currentParagraph) {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
@@ -1022,13 +1059,13 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
       }
       const cleanTitle = line
         .replace('## ', '')
-        .replace(/^\*\*|\*\*$/g, '') // Remove ** do início/fim
+        .replace(/\*\*/g, '') // Remove TODOS os asteriscos
         .trim();
       conteudo.push({ tipo: 'h2', texto: cleanTitle });
       continue;
     }
     
-    // H3 headings (### ) - NORMALIZE TO H2 for compatibility
+    // H3 headings (### ) - NORMALIZE TO H2 for compatibility + ✅ FASE 1
     if (line.startsWith('### ')) {
       if (currentParagraph) {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
@@ -1036,13 +1073,13 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
       }
       const cleanTitle = line
         .replace('### ', '')
-        .replace(/^\*\*|\*\*$/g, '')
+        .replace(/\*\*/g, '') // Remove TODOS os asteriscos
         .trim();
       conteudo.push({ tipo: 'h2', texto: cleanTitle });
       continue;
     }
     
-    // H4 headings (#### ) - NORMALIZE TO H2
+    // H4 headings (#### ) - NORMALIZE TO H2 + ✅ FASE 1
     if (line.startsWith('#### ')) {
       if (currentParagraph) {
         conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
@@ -1074,17 +1111,57 @@ function convertMarkdownToStructuredJSON(markdown: string, title: string): any {
       const validation = validateAndFixMermaidSyntax(mermaidCode);
       
       if (!validation.valid) {
-        console.warn('[convertToStructured] ⚠️ Invalid Mermaid, adding placeholder:', validation.errors);
-        conteudo.push({
-          tipo: 'caixa_de_destaque',
-          titulo: '📊 Diagrama Visual',
-          texto: 'Um diagrama foi planejado para esta seção mas requer ajustes técnicos.'
-        });
-        continue;
+        console.warn('[convertToStructured] ⚠️ Invalid Mermaid, attempting AI fix...');
+        
+        // ✅ FASE 3: CHAMAR EDGE FUNCTION para correção com AI
+        try {
+          const fixResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/fix-mermaid-diagram`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+            },
+            body: JSON.stringify({
+              brokenCode: mermaidCode,
+              context: title,
+              strategy: 'Fix sintaxe mantendo estrutura original',
+              attempt: 1
+            })
+          });
+          
+          if (fixResponse.ok) {
+            const { fixedCode } = await fixResponse.json();
+            console.log('[convertToStructured] ✅ AI fixed Mermaid code');
+            
+            // Re-validar código corrigido
+            const revalidation = validateAndFixMermaidSyntax(fixedCode);
+            if (revalidation.valid) {
+              mermaidCode = revalidation.fixed;
+            } else {
+              mermaidCode = fixedCode; // Usar mesmo se não passar validação estrita
+            }
+          } else {
+            console.error('[convertToStructured] ❌ AI fix failed, using placeholder');
+            conteudo.push({
+              tipo: 'caixa_de_destaque',
+              titulo: '📊 Diagrama Visual',
+              texto: 'Um diagrama foi planejado mas requer ajustes técnicos.'
+            });
+            continue;
+          }
+        } catch (err) {
+          console.error('[convertToStructured] ❌ AI fix error:', err);
+          conteudo.push({
+            tipo: 'caixa_de_destaque',
+            titulo: '📊 Diagrama Visual',
+            texto: 'Um diagrama foi planejado mas requer ajustes técnicos.'
+          });
+          continue;
+        }
+      } else {
+        // Use FIXED code
+        mermaidCode = validation.fixed;
       }
-      
-      // Use FIXED code
-      mermaidCode = validation.fixed;
       
       // Detect correct diagram type
       let tipo = 'diagrama';
