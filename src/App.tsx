@@ -38,6 +38,7 @@ import TeacherLessonPlanEditor from "./pages/TeacherLessonPlanEditor";
 import LectureTranscriptionPage from "./pages/LectureTranscriptionPage";
 import TeacherAnnotationsPage from "./pages/TeacherAnnotationsPage";
 import TeacherAnnotationPage from "./pages/TeacherAnnotationPage";
+import TeacherMyLectures from "./pages/TeacherMyLectures";
 import AdminDashboard from "./pages/AdminDashboard";
 import TeacherValidation from "./pages/TeacherValidation";
 import NotFound from "./pages/NotFound";
@@ -93,6 +94,7 @@ const App = () => (
           <Route path="/teacherconfigurations" element={<ProtectedRoute role="teacher"><TeacherConfigurations /></ProtectedRoute>} />
           <Route path="/teacher/annotations" element={<ProtectedRoute role="teacher"><TeacherAnnotationsPage /></ProtectedRoute>} />
           <Route path="/teacher/annotation/:id" element={<ProtectedRoute role="teacher"><TeacherAnnotationPage /></ProtectedRoute>} />
+          <Route path="/teacher/my-lectures" element={<ProtectedRoute role="teacher"><TeacherMyLectures /></ProtectedRoute>} />
           
           {/* Teacher validation route (protected but accessible to unvalidated teachers) */}
           <Route path="/teacher/validate" element={<ProtectedRoute role="teacher"><TeacherValidation /></ProtectedRoute>} />

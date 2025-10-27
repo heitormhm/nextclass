@@ -31,6 +31,7 @@ const studentNavigationItems = [
 const teacherNavigationItems = [
   { label: "Home", href: "/teacherdashboard", icon: Home },
   { label: "Gravar Aula", href: "__modal__", icon: Mic }, // Special handling for modal
+  { label: "Minhas Aulas", href: "/teacher/my-lectures", icon: BookOpen },
   { label: "Calendário", href: "/teachercalendar", icon: Calendar },
   { label: "Anotações", href: "/teacher/annotations", icon: StickyNote },
   { label: "Mia IA", href: "/teacher/ai-chat", icon: Sparkles },

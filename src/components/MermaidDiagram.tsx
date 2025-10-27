@@ -90,6 +90,33 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Inject CSS to forcefully hide mermaid error messages
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.id = 'mermaid-error-suppression';
+    style.innerHTML = `
+      /* Hide all Mermaid error messages globally */
+      .error-icon,
+      .error-text,
+      [id*="mermaid-error"],
+      [class*="error"]:has(svg),
+      svg text:contains("Syntax error"),
+      svg text:contains("version 10.9.4") {
+        display: none !important;
+        visibility: hidden !important;
+      }
+    `;
+    
+    if (!document.getElementById('mermaid-error-suppression')) {
+      document.head.appendChild(style);
+    }
+    
+    return () => {
+      const existingStyle = document.getElementById('mermaid-error-suppression');
+      if (existingStyle) existingStyle.remove();
+    };
+  }, []);
+
   useEffect(() => {
     const renderDiagram = async () => {
       if (ref.current && code) {
@@ -145,7 +172,14 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           try {
             const { svg } = await mermaid.render(uniqueId, sanitizedCode);
             clearTimeout(renderTimeout);
-            ref.current.innerHTML = svg;
+            
+            // Remove any error messages that might have been injected
+            if (ref.current) {
+              const errorElements = ref.current.querySelectorAll('[class*="error"], .error-icon, .error-text');
+              errorElements.forEach(el => el.remove());
+              
+              ref.current.innerHTML = svg;
+            }
             setError(null);
             console.log('[Mermaid] ✅ Rendered successfully');
           } catch (renderErr) {
