@@ -40,6 +40,21 @@ All colors MUST be HSL. Design tokens for consistent theming.
   scrollbar-color: rgba(148, 163, 184, 0.15) transparent;
 }
 
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 0.05;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.15;
+    transform: scale(1.02);
+  }
+}
+
+.grid-cell {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @layer base {
   :root {
     /* Core brand colors */

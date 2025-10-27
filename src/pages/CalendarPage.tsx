@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WeekCalendarView } from '@/components/WeekCalendarView';
 import { useLocation } from 'react-router-dom';
+import { StudentBackgroundGrid } from '@/components/ui/student-background-grid';
 
 interface CalendarEvent {
   id: string;
@@ -418,8 +419,17 @@ const CalendarPage = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8 lg:items-start">
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+        {/* Gradient Blobs */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40" />
+        
+        {/* Background Grid */}
+        <StudentBackgroundGrid />
+        
+        <div className="relative z-10">
+          <div className="container mx-auto px-4 py-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8 lg:items-start">
           {/* Main Calendar View */}
           <div className="lg:col-span-3 space-y-6 order-2 lg:order-1">
                    {isLoading ? (
@@ -739,9 +749,11 @@ const CalendarPage = () => {
               </Card>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Event Creation Modal */}
-          <CalendarEventModal
+      {/* Event Creation Modal */}
+      <CalendarEventModal
             open={showEventModal}
             onOpenChange={setShowEventModal}
             selectedDate={selectedDate}

@@ -11,6 +11,7 @@ import MainLayout from '@/components/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { StudentBackgroundGrid } from '@/components/ui/student-background-grid';
 
 interface LibraryMaterial {
   id: string;
@@ -114,6 +115,12 @@ const LibraryPage = () => {
 
   return (
     <MainLayout>
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40" />
+        <StudentBackgroundGrid />
+        
+        <div className="relative z-10 container mx-auto px-4 py-8">
       <div className="container mx-auto px-6 py-8">
         {/* Header Section - ALINHADO */}
         <div className="mb-8 max-w-xl">
@@ -260,6 +267,7 @@ const LibraryPage = () => {
             </div>
           )}
         </div>
+      </div>
     </MainLayout>
   );
 };

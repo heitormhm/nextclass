@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { StudentBackgroundGrid } from '@/components/ui/student-background-grid';
 
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -2096,9 +2097,9 @@ const AIChatPage = () => {
               </div>
             </div>
           </div>
+          </div>
         </div>
       </div>
-
 
       <QuizModal
         open={isQuizModalOpen}

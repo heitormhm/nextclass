@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, Loader2 } from 'lucide-react';
+import { StudentBackgroundGrid } from '@/components/ui/student-background-grid';
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -192,179 +193,190 @@ export default function ProfilePage() {
 
   return (
     <MainLayout>
-      <div className="container max-w-4xl mx-auto py-8 px-4 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Meu Perfil</h1>
-          <p className="text-muted-foreground mt-1">Gerencie suas informações pessoais e acadêmicas</p>
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+        {/* Gradient Blobs */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40" />
+        
+        {/* Background Grid */}
+        <StudentBackgroundGrid />
+        
+        <div className="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Meu Perfil</h1>
+              <p className="text-muted-foreground mt-1">Gerencie suas informações pessoais e acadêmicas</p>
+            </div>
+
+            {/* Profile Picture */}
+            <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle>Foto de Perfil</CardTitle>
+                <CardDescription>Atualize sua foto de perfil</CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center gap-6">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={avatarUrl} alt={fullName} />
+                  <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    id="avatar-upload"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleProfilePictureChange}
+                    disabled={uploading}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('avatar-upload')?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4 mr-2" />
+                        Alterar Foto
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    JPG, PNG ou GIF. Máximo 2MB.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Personal Information */}
+            <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle>Informações Pessoais</CardTitle>
+                <CardDescription>Atualize seus dados pessoais</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="student-id">ID do Estudante</Label>
+                    <Input
+                      id="student-id"
+                      value={user?.id.slice(0, 8).toUpperCase()}
+                      disabled
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="full-name">Nome Completo</Label>
+                    <Input
+                      id="full-name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF</Label>
+                  <Input
+                    id="cpf"
+                    value={cpf}
+                    onChange={(e) => setCpf(e.target.value)}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSavePersonalInfo} disabled={saving}>
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      'Salvar Alterações'
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Academic Information */}
+            <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle>Informações Acadêmicas</CardTitle>
+                <CardDescription>Visualize suas informações acadêmicas</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="university">Faculdade/Universidade</Label>
+                  <Input
+                    id="university"
+                    value={university}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="course">Curso</Label>
+                    <Input
+                      id="course"
+                      value={course}
+                      disabled
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="period">Período</Label>
+                    <Input
+                      id="period"
+                      value={period}
+                      disabled
+                      className="bg-muted"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="city">Cidade</Label>
+                  <Input
+                    id="city"
+                    value={city}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        {/* Profile Picture */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Foto de Perfil</CardTitle>
-            <CardDescription>Atualize sua foto de perfil</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center gap-6">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={avatarUrl} alt={fullName} />
-              <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <input
-                type="file"
-                id="avatar-upload"
-                className="hidden"
-                accept="image/*"
-                onChange={handleProfilePictureChange}
-                disabled={uploading}
-              />
-              <Button
-                variant="outline"
-                onClick={() => document.getElementById('avatar-upload')?.click()}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <Camera className="w-4 h-4 mr-2" />
-                    Alterar Foto
-                  </>
-                )}
-              </Button>
-              <p className="text-sm text-muted-foreground mt-2">
-                JPG, PNG ou GIF. Máximo 2MB.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Personal Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações Pessoais</CardTitle>
-            <CardDescription>Atualize seus dados pessoais</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="student-id">ID do Estudante</Label>
-                <Input
-                  id="student-id"
-                  value={user?.id.slice(0, 8).toUpperCase()}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="full-name">Nome Completo</Label>
-                <Input
-                  id="full-name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="(00) 00000-0000"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
-              <Input
-                id="cpf"
-                value={cpf}
-                onChange={(e) => setCpf(e.target.value)}
-                placeholder="000.000.000-00"
-                maxLength={14}
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <Button onClick={handleSavePersonalInfo} disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar Alterações'
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Academic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações Acadêmicas</CardTitle>
-            <CardDescription>Visualize suas informações acadêmicas</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="university">Faculdade/Universidade</Label>
-              <Input
-                id="university"
-                value={university}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="course">Curso</Label>
-                <Input
-                  id="course"
-                  value={course}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="period">Período</Label>
-                <Input
-                  id="period"
-                  value={period}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="city">Cidade</Label>
-              <Input
-                id="city"
-                value={city}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </MainLayout>
   );
