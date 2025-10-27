@@ -14,6 +14,11 @@ import { sanitizeHTML } from '@/utils/sanitize';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { StudentBackgroundGrid } from '@/components/ui/student-background-grid';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 interface TranscriptItem {
   timestamp: string;
@@ -41,6 +46,7 @@ const LecturePage = () => {
   const [lectureData, setLectureData] = useState<any>(null);
   const [isLoadingLecture, setIsLoadingLecture] = useState(true);
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
+  const [playbackRate, setPlaybackRate] = useState(1);
 
   // Load lecture from database
   useEffect(() => {
@@ -191,6 +197,16 @@ const LecturePage = () => {
         console.log('[LecturePage] 🎉 Final lecture data:', lectureWithRelations);
       
         setLectureData(lectureWithRelations);
+
+        // ✅ FASE 2: Convert duration from minutes to seconds
+        if (lectureWithRelations.duration) {
+          const durationInSeconds = lectureWithRelations.duration * 60;
+          setAudioDuration(durationInSeconds);
+          console.log('[LecturePage] ⏱️ Duration converted:', {
+            minutes: lectureWithRelations.duration,
+            seconds: durationInSeconds
+          });
+        }
 
         // ✅ FASE 2: Process transcript from database
         if (lectureWithRelations.raw_transcript) {
@@ -457,10 +473,17 @@ Distúrbios do ritmo cardíaco que podem ser:
 *[1] Referência: Braunwald's Heart Disease: A Textbook of Cardiovascular Medicine*
   `;
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  const formatTime = (seconds: number): string => {
+    if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '00:00';
+    
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handlePlayPause = () => {
@@ -654,9 +677,38 @@ Distúrbios do ritmo cardíaco que podem ser:
                   </div>
                   
                   <div className="flex items-center gap-2">
+                    {/* FASE 4: Controle de Velocidade */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
+                            const currentIndex = rates.indexOf(playbackRate);
+                            const nextRate = rates[(currentIndex + 1) % rates.length];
+                            setPlaybackRate(nextRate);
+                            if (audioRef.current) {
+                              audioRef.current.playbackRate = nextRate;
+                            }
+                            toast.success(`Velocidade: ${nextRate}x`);
+                          }}
+                          className="h-8 w-8"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Velocidade: {playbackRate}x</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <span className="text-xs text-foreground-muted font-medium min-w-[32px]">
+                      {playbackRate}x
+                    </span>
+                    
                     <Badge variant="secondary" className="text-xs">
                       <Clock className="h-3 w-3 mr-1" />
-                      {displayLectureData.duration}
+                      {audioDuration > 0 ? Math.floor(audioDuration / 60) : 0} min
                     </Badge>
                   </div>
                 </div>
@@ -666,7 +718,11 @@ Distúrbios do ritmo cardíaco que podem ser:
                   ref={audioRef}
                   src={lectureData?.audio_url}
                   onTimeUpdate={handleAudioTimeUpdate}
-                  onLoadedMetadata={handleAudioLoadedMetadata}
+                  onLoadedMetadata={(e) => {
+                    const duration = Math.floor(e.currentTarget.duration);
+                    setAudioDuration(duration);
+                    e.currentTarget.playbackRate = playbackRate;
+                  }}
                 />
               </CardContent>
             </Card>
@@ -709,11 +765,11 @@ Distúrbios do ritmo cardíaco que podem ser:
                           <span className="text-sm">Transcrição</span>
                         </TabsTrigger>
                         <TabsTrigger 
-                          value="summary"
+                          value="content"
                           className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary transition-all"
                         >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          <span className="text-sm">Resumo</span>
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          <span className="text-sm">Conteúdo da Aula</span>
                         </TabsTrigger>
                         <TabsTrigger 
                           value="anexos" 
@@ -758,121 +814,111 @@ Distúrbios do ritmo cardíaco que podem ser:
                       </div>
                     </TabsContent>
 
-                    {/* Summary Tab - FASE 6: Dados Reais */}
-                    <TabsContent value="summary" className="flex-1 p-0 m-0">
-                      <div className="p-4 max-h-[600px] overflow-y-auto">
-                        <div className="prose prose-sm max-w-none">
-                          <h3 className="text-lg font-semibold mb-3">Resumo da Aula</h3>
-                          
-                          {/* Resumo Principal */}
-                          {lectureData?.structured_content?.resumo && (
-                            <div className="bg-primary/5 border-l-4 border-primary p-4 rounded-r-lg mb-4">
-                              <p className="text-foreground-muted leading-relaxed">
-                                {lectureData.structured_content.resumo}
-                              </p>
-                            </div>
-                          )}
-                          
-                          {/* Tópicos Principais */}
-                          {lectureData?.structured_content?.topicos_principais && 
-                           lectureData.structured_content.topicos_principais.length > 0 && (
-                            <div className="mb-4">
-                              <h4 className="text-base font-semibold mb-3 flex items-center gap-2">
-                                <BookOpen className="h-4 w-4 text-primary" />
-                                Tópicos Principais
-                              </h4>
-                              <ul className="space-y-3">
-                                {lectureData.structured_content.topicos_principais.map((topico: any, index: number) => (
-                                  <li key={index} className="bg-white/80 border border-primary/10 rounded-lg p-3">
-                                    <div className="flex items-start gap-2">
-                                      <Badge variant="secondary" className="mt-0.5">
-                                        {index + 1}
-                                      </Badge>
-                                      <div className="flex-1">
-                                        <div className="font-medium text-sm mb-1">
-                                          {topico.conceito || topico}
-                                        </div>
-                                        {topico.descricao && (
-                                          <div className="text-xs text-foreground-muted">
-                                            {topico.descricao}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {/* Conceitos-Chave */}
-                          {lectureData?.structured_content?.conceitos_chave && 
-                           lectureData.structured_content.conceitos_chave.length > 0 && (
-                            <div className="mt-6 p-4 bg-purple-50/50 rounded-lg border border-purple-200/50">
-                              <h4 className="text-base font-semibold mb-3 flex items-center gap-2">
-                                <Brain className="h-4 w-4 text-purple-600" />
-                                Conceitos-Chave
-                              </h4>
-                              <div className="grid grid-cols-1 gap-2">
-                                {lectureData.structured_content.conceitos_chave.map((conceito: string, index: number) => (
-                                  <div key={index} className="flex items-start gap-2 text-sm">
-                                    <span className="text-purple-600 mt-1">•</span>
-                                    <span>{conceito}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </TabsContent>
-
-                    {/* Anexos Tab - FASE 3: Material Didático Real */}
-                    <TabsContent value="anexos" className="flex-1 p-0 m-0">
-                      <div className="p-4 space-y-4 max-h-[600px] overflow-y-auto">
-                        {/* Material Didático Gerado */}
-                        {lectureData?.structured_content?.material_didatico && (
-                          <div className="mb-6">
-                            <div className="flex items-center justify-between mb-3">
-                              <h3 className="text-base font-semibold flex items-center gap-2">
+                    {/* FASE 3: Conteúdo da Aula Tab - Material Didático com Markdown */}
+                    <TabsContent value="content" className="flex-1 p-0 m-0">
+                      <div className="p-6 max-h-[600px] overflow-y-auto">
+                        {lectureData?.structured_content?.material_didatico ? (
+                          <div className="space-y-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-lg font-semibold flex items-center gap-2">
                                 <BookOpen className="h-5 w-5 text-primary" />
                                 Material Didático
                               </h3>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={handleAddToAnnotations}
-                                className="text-xs"
+                                onClick={() => {
+                                  navigate(`/annotation/${id}`, {
+                                    state: {
+                                      prePopulatedContent: lectureData.structured_content.material_didatico,
+                                      lectureTitle: lectureData.title
+                                    }
+                                  });
+                                  toast.success('Redirecionando para anotações...');
+                                }}
                               >
-                                <PenTool className="h-3 w-3 mr-1" />
+                                <PenTool className="h-4 w-4 mr-2" />
                                 Adicionar às Anotações
                               </Button>
                             </div>
-                            
+
+                            {/* Renderizar Material com React Markdown */}
                             <Card className="border-primary/20 bg-white/80">
-                              <CardContent className="p-4">
-                                <div className="prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-                                  {lectureData.structured_content.material_didatico}
+                              <CardContent className="p-6">
+                                <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground-muted prose-strong:text-foreground prose-li:text-foreground-muted prose-a:text-primary">
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkGfm, remarkMath]}
+                                    rehypePlugins={[rehypeKatex]}
+                                  >
+                                    {lectureData.structured_content.material_didatico}
+                                  </ReactMarkdown>
                                 </div>
                               </CardContent>
                             </Card>
+
+                            {/* Tópicos Principais (abaixo do material) */}
+                            {lectureData.structured_content?.topicos_principais && 
+                             lectureData.structured_content.topicos_principais.length > 0 && (
+                              <div className="mt-6">
+                                <h4 className="text-base font-semibold mb-4 flex items-center gap-2">
+                                  <Brain className="h-4 w-4 text-primary" />
+                                  Tópicos Principais
+                                </h4>
+                                <div className="grid gap-3">
+                                  {lectureData.structured_content.topicos_principais.map((topico: any, index: number) => (
+                                    <Card key={index} className="border-primary/10 bg-white/60">
+                                      <CardContent className="p-4">
+                                        <div className="flex items-start gap-3">
+                                          <Badge variant="secondary" className="mt-0.5">
+                                            {index + 1}
+                                          </Badge>
+                                          <div className="flex-1">
+                                            <div className="font-medium text-sm mb-1">
+                                              {topico.conceito || topico}
+                                            </div>
+                                            {topico.descricao && (
+                                              <div className="text-xs text-foreground-muted">
+                                                {topico.descricao}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-[400px] text-center">
+                            <BookOpen className="h-16 w-16 text-foreground-muted/30 mb-4" />
+                            <p className="text-foreground-muted">
+                              Material didático não disponível para esta aula
+                            </p>
                           </div>
                         )}
+                      </div>
+                    </TabsContent>
 
+                    {/* FASE 5: Anexos Tab - Apenas Flashcards e Downloads */}
+                    <TabsContent value="anexos" className="flex-1 p-0 m-0">
+                      <div className="p-4 space-y-6 max-h-[600px] overflow-y-auto">
+                        
                         {/* Flashcards Gerados */}
                         {lectureData?.structured_content?.flashcards && 
                          lectureData.structured_content.flashcards.length > 0 && (
-                          <div className="mb-6">
+                          <div>
                             <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
                               <Sparkles className="h-5 w-5 text-primary" />
-                              Flashcards ({lectureData.structured_content.flashcards.length})
+                              Flashcards Gerados ({lectureData.structured_content.flashcards.length})
                             </h3>
                             
-                            <div className="grid grid-cols-1 gap-3">
+                            <div className="grid grid-cols-1 gap-3 mb-4">
                               {lectureData.structured_content.flashcards.slice(0, 3).map((card: any, index: number) => (
-                                <Card key={index} className="border-primary/10 hover:border-primary/30 transition-colors">
-                                  <CardContent className="p-3">
-                                    <div className="font-medium text-sm mb-1 text-primary">
+                                <Card key={index} className="border-primary/10 hover:border-primary/30 transition-colors bg-white/60">
+                                  <CardContent className="p-4">
+                                    <div className="font-medium text-sm mb-2 text-primary">
                                       {card.termo || card.front}
                                     </div>
                                     <div className="text-xs text-foreground-muted line-clamp-2">
@@ -888,122 +934,86 @@ Distúrbios do ritmo cardíaco que podem ser:
                                 variant="outline"
                                 size="sm"
                                 onClick={() => navigate(`/review?lectureId=${id}`)}
-                                className="w-full mt-3"
+                                className="w-full"
                               >
                                 Ver todos os {lectureData.structured_content.flashcards.length} flashcards
+                                <Sparkles className="h-3 w-3 ml-2" />
                               </Button>
                             )}
                           </div>
                         )}
-                        
-                        <h3 className="text-base font-semibold mb-3">Recursos Adicionais</h3>
-                        
-                        <div className="space-y-3">
-                          <Card 
-                            className="hover:shadow-md transition-all cursor-pointer border border-primary/20 hover:border-primary" 
-                            onClick={handleDownload}
-                          >
-                            <CardContent className="p-3 flex items-center gap-3">
-                              <Download className="h-5 w-5 text-primary shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm mb-0.5 truncate">Slides da Aula</h4>
-                                <p className="text-xs text-foreground-muted">PDF • 12.5 MB</p>
-                              </div>
-                            </CardContent>
-                          </Card>
 
-                          <Card 
-                            className="hover:shadow-md transition-all cursor-pointer border border-primary/20 hover:border-primary" 
-                            onClick={handleDownload}
-                          >
-                            <CardContent className="p-3 flex items-center gap-3">
-                              <Download className="h-5 w-5 text-primary shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm mb-0.5 truncate">Notas de Aula</h4>
-                                <p className="text-xs text-foreground-muted">PDF • 2.3 MB</p>
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <Card 
-                            className="hover:shadow-md transition-all cursor-pointer border border-primary/20 hover:border-primary" 
-                            onClick={handleDownload}
-                          >
-                            <CardContent className="p-3 flex items-center gap-3">
-                              <Download className="h-5 w-5 text-primary shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm mb-0.5 truncate">Artigos Científicos</h4>
-                                <p className="text-xs text-foreground-muted">ZIP • 8.7 MB</p>
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <Card 
-                            className="hover:shadow-md transition-all cursor-pointer border border-primary/20 hover:border-primary" 
-                            onClick={handleDownload}
-                          >
-                            <CardContent className="p-3 flex items-center gap-3">
-                              <Download className="h-5 w-5 text-primary shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm mb-0.5 truncate">Exercícios Práticos</h4>
-                                <p className="text-xs text-foreground-muted">PDF • 1.8 MB</p>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-
-                        <div className="mt-6">
-                          <h3 className="text-base font-semibold mb-3">Bibliografia Recomendada</h3>
+                        {/* Recursos para Download */}
+                        <div>
+                          <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                            <Download className="h-5 w-5 text-primary" />
+                            Recursos Adicionais
+                          </h3>
                           <div className="space-y-3">
-                            {bibliography.map((ref, index) => (
-                              <Card key={index} className="border-primary/10">
-                                <CardContent className="p-3">
-                                  <Badge variant="secondary" className="text-xs mb-2">
-                                    {ref.type}
-                                  </Badge>
-                                  <h4 className="font-semibold text-sm mb-1">{ref.title}</h4>
-                                  <p className="text-xs text-foreground-muted">
-                                    {ref.authors || ref.organization}
-                                  </p>
-                                  <p className="text-xs text-foreground-muted">
-                                    {ref.publisher && `${ref.publisher} • `}
-                                    {ref.journal && `${ref.journal} • `}
-                                    {ref.year}
-                                  </p>
-                                </CardContent>
-                              </Card>
-                            ))}
+                            <Card className="border-primary/10 hover:border-primary/30 transition-colors cursor-pointer bg-white/60">
+                              <CardContent className="p-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
+                                    <FileText className="h-5 w-5 text-red-600" />
+                                  </div>
+                                  <div>
+                                    <div className="font-medium text-sm">Slides da Aula</div>
+                                    <div className="text-xs text-foreground-muted">PDF • 12.5 MB</div>
+                                  </div>
+                                </div>
+                                <Download className="h-4 w-4 text-foreground-muted" />
+                              </CardContent>
+                            </Card>
+                            
+                            <Card className="border-primary/10 hover:border-primary/30 transition-colors cursor-pointer bg-white/60">
+                              <CardContent className="p-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                                    <FileText className="h-5 w-5 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <div className="font-medium text-sm">Exercícios Complementares</div>
+                                    <div className="text-xs text-foreground-muted">PDF • 3.2 MB</div>
+                                  </div>
+                                </div>
+                                <Download className="h-4 w-4 text-foreground-muted" />
+                              </CardContent>
+                            </Card>
                           </div>
                         </div>
                       </div>
                     </TabsContent>
-
-                    {/* Action Bar - FASE 5: Responsivo */}
-                    <div className="border-t p-4 bg-background/50">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <Button 
-                          className="bg-primary hover:bg-primary/90 transition-all w-full"
-                          asChild
-                        >
-                          <Link to={`/quiz/${id}`}>
-                            <Brain className="h-4 w-4 mr-2" />
-                            Fazer Quiz
-                          </Link>
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          className="hover:bg-accent transition-all w-full"
-                          onClick={() => navigate(`/review?lectureId=${id}`)}
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Ver Flashcards
-                        </Button>
-                      </div>
-                    </div>
                   </Tabs>
                 </CardContent>
               </Card>
             </div>
+          </div>
+
+          {/* Action Bar - Responsivo */}
+          <div className="xl:col-span-5">
+            <Card className="border-0 shadow-sm bg-white/60 backdrop-blur-xl">
+              <CardContent className="p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button 
+                    className="bg-primary hover:bg-primary/90 transition-all w-full"
+                    asChild
+                  >
+                    <Link to={`/quiz/${id}`}>
+                      <Brain className="h-4 w-4 mr-2" />
+                      Fazer Quiz
+                    </Link>
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="hover:bg-accent transition-all w-full"
+                    onClick={() => navigate(`/review?lectureId=${id}`)}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Ver Flashcards
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
         
