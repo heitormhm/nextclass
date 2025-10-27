@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Upload, FileIcon, X, Plus, Loader2, BookOpen, FileText, ClipboardCheck } from "lucide-react";
+import { Upload, FileIcon, X, Plus, Loader2, BookOpen, FileText, ClipboardCheck, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -59,6 +60,9 @@ export const PublishMaterialModal = ({
   const [showCreateDisciplina, setShowCreateDisciplina] = useState(false);
   const [newDisciplinaName, setNewDisciplinaName] = useState("");
   const [newDisciplinaCodigo, setNewDisciplinaCodigo] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [generatingTags, setGeneratingTags] = useState(false);
+  const [tagsInput, setTagsInput] = useState("");
 
   useEffect(() => {
     if (isOpen && user) {
@@ -116,6 +120,47 @@ export const PublishMaterialModal = ({
     } catch (error) {
       console.error('Error loading disciplinas:', error);
       toast.error('Erro ao carregar disciplinas');
+    }
+  };
+
+  // Auto-generate tags when title, turma, and disciplina are filled
+  useEffect(() => {
+    const shouldGenerateTags = 
+      title.trim().length >= 10 && 
+      selectedTurmaId && 
+      selectedDisciplinaId &&
+      tags.length === 0 &&
+      !generatingTags;
+    
+    if (shouldGenerateTags) {
+      handleGenerateTags();
+    }
+  }, [title, selectedTurmaId, selectedDisciplinaId]);
+
+  const handleGenerateTags = async () => {
+    if (!title || !selectedDisciplinaId) return;
+    
+    setGeneratingTags(true);
+    try {
+      const disciplinaData = disciplinas.find(d => d.id === selectedDisciplinaId);
+      const turmaData = turmas.find(t => t.id === selectedTurmaId);
+      
+      const { data, error } = await supabase.functions.invoke('generate-lecture-tags', {
+        body: {
+          theme: title,
+          discipline: `${disciplinaData?.nome} - ${turmaData?.curso}`,
+        }
+      });
+      
+      if (error) throw error;
+      
+      setTags(data.tags || []);
+      toast.success('✨ Tags geradas automaticamente!');
+    } catch (error) {
+      console.error('Error generating tags:', error);
+      setTags([]);
+    } finally {
+      setGeneratingTags(false);
     }
   };
 
@@ -237,6 +282,7 @@ export const PublishMaterialModal = ({
           turma_id: selectedTurmaId,
           disciplina_id: selectedDisciplinaId,
           teacher_id: user?.id,
+          tags: tags,
         });
 
       if (error) throw error;
@@ -254,14 +300,8 @@ export const PublishMaterialModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white/90 backdrop-blur-xl border-purple-100/30 shadow-[0_8px_30px_rgb(147,51,234,0.15)]
-        [&::-webkit-scrollbar]:w-2 
-        [&::-webkit-scrollbar-track]:bg-transparent 
-        [&::-webkit-scrollbar-thumb]:bg-purple-200/50 
-        [&::-webkit-scrollbar-thumb]:rounded-full 
-        [&::-webkit-scrollbar-thumb]:hover:bg-purple-300/70
-        [&::-webkit-scrollbar-thumb]:transition-colors">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col bg-white/90 backdrop-blur-xl border-purple-100/30 shadow-[0_8px_30px_rgb(147,51,234,0.15)]">
+        <DialogHeader className="flex-shrink-0 pb-4 border-b">
           <DialogTitle className="text-2xl font-bold flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
               <Upload className="h-6 w-6 text-white" />
@@ -272,7 +312,13 @@ export const PublishMaterialModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+        <div className="flex-1 overflow-y-auto px-1 py-4
+          [&::-webkit-scrollbar]:w-2 
+          [&::-webkit-scrollbar-track]:bg-transparent 
+          [&::-webkit-scrollbar-thumb]:bg-purple-200/60 
+          [&::-webkit-scrollbar-thumb]:rounded-full 
+          [&::-webkit-scrollbar-thumb]:hover:bg-purple-300/80">
+          <div className="space-y-6">
           {/* Material Details */}
           <div className="space-y-4">
             <div>
@@ -454,8 +500,92 @@ export const PublishMaterialModal = ({
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t">
+          {/* Tags Section - Auto-Generated */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="tags" className="flex items-center gap-2">
+                Tags
+                {generatingTags && (
+                  <Loader2 className="h-3 w-3 animate-spin text-purple-600" />
+                )}
+              </Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleGenerateTags}
+                disabled={!title || !selectedDisciplinaId || generatingTags}
+                className="text-xs h-7"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                Regenerar Tags
+              </Button>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-purple-50/50 rounded-lg border border-purple-100">
+              {tags.length > 0 ? (
+                tags.map((tag, index) => (
+                  <Badge 
+                    key={index} 
+                    variant="secondary"
+                    className="bg-purple-100 text-purple-700 hover:bg-purple-200"
+                  >
+                    {tag}
+                    <button
+                      onClick={() => setTags(tags.filter((_, i) => i !== index))}
+                      className="ml-2 hover:text-purple-900"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  {generatingTags ? 'Gerando tags...' : 'Tags serão geradas automaticamente'}
+                </p>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              <Input
+                id="tags"
+                placeholder="Adicionar tag manualmente"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && tagsInput.trim()) {
+                    e.preventDefault();
+                    setTags([...tags, tagsInput.trim()]);
+                    setTagsInput("");
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  if (tagsInput.trim()) {
+                    setTags([...tags, tagsInput.trim()]);
+                    setTagsInput("");
+                  }
+                }}
+                disabled={!tagsInput.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              💡 Tags ajudam alunos a encontrar materiais. Pressione Enter para adicionar.
+            </p>
+          </div>
+          </div>
+        </div>
+
+        <div className="flex-shrink-0 pt-4 border-t">
+          <div className="flex gap-3">
             <Button
               variant="outline"
               onClick={onClose}

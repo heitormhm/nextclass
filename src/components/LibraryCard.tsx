@@ -11,6 +11,8 @@ interface LibraryMaterial {
   type: 'PDF' | 'Vídeo' | 'Áudio' | 'Imagem';
   category: string;
   teacher: string;
+  file_url?: string;
+  tags?: string[];
 }
 
 interface LibraryCardProps {
@@ -50,10 +52,35 @@ const LibraryCard: React.FC<LibraryCardProps> = ({ material }) => {
     }
   };
 
-  const handleDownload = () => {
-    // Placeholder function for download action
-    console.log(`Downloading: ${material.title}`);
-    // In a real application, this would trigger the actual download
+  const handleDownload = async () => {
+    if (!material.file_url) {
+      console.error('No file URL available');
+      return;
+    }
+    
+    try {
+      const response = await fetch(material.file_url);
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const filename = material.file_url.split('/').pop() || 
+                      `${material.title.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log(`Downloaded: ${material.title}`);
+    } catch (error) {
+      console.error('Download error:', error);
+      window.open(material.file_url, '_blank');
+    }
   };
 
   return (
@@ -89,6 +116,26 @@ const LibraryCard: React.FC<LibraryCardProps> = ({ material }) => {
             <span>{material.teacher}</span>
           </div>
         </div>
+
+        {/* Tags Display */}
+        {material.tags && material.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3 pb-3 border-b border-border/50">
+            {material.tags.slice(0, 3).map((tag, index) => (
+              <Badge 
+                key={index}
+                variant="outline"
+                className="text-[10px] px-1.5 py-0.5"
+              >
+                {tag}
+              </Badge>
+            ))}
+            {material.tags.length > 3 && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">
+                +{material.tags.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
 
         {/* Download Button */}
         <div className="mt-auto">

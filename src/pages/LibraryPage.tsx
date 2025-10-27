@@ -21,6 +21,7 @@ interface LibraryMaterial {
   teacher_id: string;
   created_at: string;
   description?: string;
+  tags?: string[];
   turmas?: {
     nome_turma: string;
     periodo: string;
@@ -240,7 +241,9 @@ const LibraryPage = () => {
                     description: material.disciplinas?.nome || material.turmas?.nome_turma || 'Material da turma',
                     type: material.file_type as any,
                     category: material.disciplinas?.nome || '',
-                    teacher: ''
+                    teacher: material.turmas?.curso || '',
+                    file_url: material.file_url,
+                    tags: material.tags as string[] || [],
                   }} 
                 />
               ))}
