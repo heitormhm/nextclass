@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
+import { Button } from './ui/button';
+import { RefreshCw, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MermaidDiagramProps {
   code: string;
@@ -89,6 +92,7 @@ const sanitizeMermaidCode = (code: string): string => {
 export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagramProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // Inject CSS to forcefully hide mermaid error messages
   useEffect(() => {
@@ -157,8 +161,15 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           console.log('[Mermaid] Sanitized code:', sanitizedCode);
           
           // PRE-RENDER VALIDATION: Check if diagram type is valid
-          if (!sanitizedCode.match(/^(graph|flowchart|mindmap|gantt)/m)) {
+          if (!sanitizedCode.match(/^(graph|flowchart|sequenceDiagram|stateDiagram-v2|classDiagram|gantt|mindmap)/m)) {
             console.warn('[Mermaid] Invalid diagram type detected, skipping render');
+            setError('invalid');
+            return;
+          }
+
+          // NEW: Check for remaining problematic syntax
+          if (sanitizedCode.match(/[→←↔⇒⇐⇔Δ∆Σαβγθλμπσω]/)) {
+            console.warn('[Mermaid] Problematic characters still present after sanitization');
             setError('invalid');
             return;
           }
@@ -173,12 +184,27 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
             const { svg } = await mermaid.render(uniqueId, sanitizedCode);
             clearTimeout(renderTimeout);
             
-            // Remove any error messages that might have been injected
+            // AGGRESSIVE ERROR CLEANUP
             if (ref.current) {
-              const errorElements = ref.current.querySelectorAll('[class*="error"], .error-icon, .error-text');
-              errorElements.forEach(el => el.remove());
-              
               ref.current.innerHTML = svg;
+              
+              const svgElement = ref.current.querySelector('svg');
+              if (svgElement) {
+                // Remove all text elements containing error messages
+                const textElements = svgElement.querySelectorAll('text');
+                textElements.forEach(text => {
+                  const content = text.textContent || '';
+                  if (content.includes('Syntax error') || 
+                      content.includes('version 10.9.4') ||
+                      content.includes('Parse error')) {
+                    text.remove();
+                  }
+                });
+                
+                // Remove error icons
+                const errorCircles = svgElement.querySelectorAll('circle[class*="error"]');
+                errorCircles.forEach(circle => circle.remove());
+              }
             }
             setError(null);
             console.log('[Mermaid] ✅ Rendered successfully');
@@ -198,14 +224,67 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
     renderDiagram();
   }, [code]);
 
+  const handleRegenerateDiagram = async () => {
+    setIsRegenerating(true);
+    try {
+      console.log('[Mermaid] Requesting diagram fix...');
+      
+      const { data, error: funcError } = await supabase.functions.invoke('fix-mermaid-diagram', {
+        body: {
+          brokenCode: code,
+          context: `${title} - ${description}`
+        }
+      });
+
+      if (funcError) throw funcError;
+
+      console.log('[Mermaid] ✅ Received fixed code:', data.fixedCode);
+      
+      // Re-render with fixed code
+      const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const { svg } = await mermaid.render(uniqueId, data.fixedCode);
+      
+      if (ref.current) {
+        ref.current.innerHTML = svg;
+      }
+      
+      setError(null);
+      
+    } catch (err) {
+      console.error('[Mermaid] ❌ Regeneration failed:', err);
+      alert('Não foi possível corrigir o diagrama automaticamente. Por favor, edite manualmente.');
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   return (
     <div className="bg-muted/30 p-6 rounded-xl border-2 border-border my-6">
       <h4 className="font-bold text-foreground mb-2 text-lg">{icon} {title}</h4>
       <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
       {error ? (
-        <div className="flex flex-col items-center justify-center min-h-[200px] bg-muted/10 rounded-lg p-4">
-          <div className="text-5xl mb-2 opacity-50">{icon}</div>
-          <p className="text-xs text-muted-foreground/70">Visualização em construção</p>
+        <div className="flex flex-col items-center justify-center min-h-[200px] bg-red-50 rounded-lg p-4 border-2 border-red-200">
+          <div className="text-5xl mb-2 opacity-50">⚠️</div>
+          <p className="text-sm text-red-700 font-medium mb-3">Diagrama com erro de sintaxe</p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-red-300 text-red-700 hover:bg-red-100"
+            onClick={handleRegenerateDiagram}
+            disabled={isRegenerating}
+          >
+            {isRegenerating ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                Corrigindo...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-3 w-3 mr-2" />
+                Gerar Novo Diagrama
+              </>
+            )}
+          </Button>
         </div>
       ) : (
         <div ref={ref} className="flex justify-center items-center min-h-[200px] bg-white rounded-lg p-4" />
