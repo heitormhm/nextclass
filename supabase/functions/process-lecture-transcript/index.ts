@@ -249,16 +249,11 @@ Retorne um JSON com esta estrutura exata:
       return cleanedMarkdown;
     }
 
-    // Update lecture with structured content
+    // Step 1: Save raw content first
     const { error: updateError } = await supabase
       .from('lectures')
       .update({ 
-        structured_content: {
-          ...structuredContent,
-          material_didatico: structuredContent.material_didatico 
-            ? validateAndCleanMermaidDiagrams(structuredContent.material_didatico)
-            : null
-        },
+        structured_content: structuredContent,
         status: 'ready',
         updated_at: new Date().toISOString()
       })
@@ -267,6 +262,44 @@ Retorne um JSON com esta estrutura exata:
     if (updateError) {
       console.error('Database update error:', updateError);
       throw updateError;
+    }
+
+    // Step 2: Post-process diagrams asynchronously (if material_didatico exists)
+    if (structuredContent.material_didatico) {
+      console.log('[process-lecture-transcript] Invoking format-lecture-content for post-processing...');
+      
+      try {
+        const formatResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/format-lecture-content`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ markdown: structuredContent.material_didatico })
+        });
+        
+        if (formatResponse.ok) {
+          const { cleanedMarkdown } = await formatResponse.json();
+          
+          // Update with cleaned version
+          await supabase
+            .from('lectures')
+            .update({ 
+              structured_content: {
+                ...structuredContent,
+                material_didatico: cleanedMarkdown
+              }
+            })
+            .eq('id', lectureId);
+          
+          console.log('[process-lecture-transcript] ✅ Material didatico post-processed successfully');
+        } else {
+          console.warn('[process-lecture-transcript] ⚠️ format-lecture-content returned error, keeping raw content');
+        }
+      } catch (postProcessError) {
+        console.error('[process-lecture-transcript] ⚠️ Post-processing failed, keeping raw content:', postProcessError);
+        // Non-fatal: raw content is still saved
+      }
     }
 
     console.log(`Lecture ${lectureId} processed successfully`);

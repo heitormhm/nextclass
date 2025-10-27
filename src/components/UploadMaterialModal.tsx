@@ -231,180 +231,183 @@ export const UploadMaterialModal = ({ isOpen, onClose, classes }: UploadMaterial
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white/70 backdrop-blur-xl border-white/30 text-gray-900 shadow-2xl max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[60vh] flex flex-col bg-white/90 backdrop-blur-xl border-white/30 text-gray-900 shadow-2xl">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl font-bold text-gray-900">
             Adicionar Material à Biblioteca
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-5">
-          {/* Título do Material com Voice Input */}
-          <div>
-            <Label htmlFor="title" className="text-gray-800 font-semibold mb-2 block">
-              Título do Material
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ex: Apostila de Resistência dos Materiais"
-                className="flex-1 bg-white/90 border-purple-200 text-gray-900 placeholder:text-gray-500 focus:border-purple-400 focus:ring-purple-400"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleVoiceInput}
-                className={cn(
-                  "shrink-0 border-purple-200 hover:bg-purple-50",
-                  isRecording && "bg-purple-100 border-purple-400"
-                )}
-                title="Input por voz"
-              >
-                <Mic className={cn(
-                  "h-4 w-4 text-purple-600",
-                  isRecording && "animate-pulse"
-                )} />
-              </Button>
-            </div>
-          </div>
-
-          {/* Turma */}
-          <div>
-            <Label htmlFor="class" className="text-gray-800 font-semibold mb-2 block">
-              Turma
-            </Label>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="bg-white/90 border-purple-200 text-gray-900 focus:border-purple-400 focus:ring-purple-400">
-                <SelectValue placeholder="Selecione a turma" />
-              </SelectTrigger>
-              <SelectContent className="bg-white/95 backdrop-blur-xl border-purple-200">
-                {classes.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id} className="text-gray-900 hover:bg-purple-50">
-                    {cls.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Disciplina - NOVO */}
-          <div>
-            <Label htmlFor="disciplina" className="text-gray-800 font-semibold mb-2 block">
-              Disciplina
-            </Label>
-            <Select value={selectedDisciplina} onValueChange={setSelectedDisciplina} disabled={!selectedClass}>
-              <SelectTrigger className="bg-white/90 border-purple-200 text-gray-900 focus:border-purple-400 focus:ring-purple-400">
-                <SelectValue placeholder={selectedClass ? "Selecione a disciplina" : "Selecione uma turma primeiro"} />
-              </SelectTrigger>
-              <SelectContent className="bg-white/95 backdrop-blur-xl border-purple-200">
-                {disciplinas.map((disc) => (
-                  <SelectItem key={disc.id} value={disc.id} className="text-gray-900 hover:bg-purple-50">
-                    {disc.nome} {disc.codigo ? `(${disc.codigo})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Tags - NOVO */}
-          <div>
-            <Label htmlFor="tags" className="text-gray-800 font-semibold mb-2 block">
-              Tags (separadas por vírgula)
-            </Label>
-            <Input
-              id="tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="Ex: apostila, mecânica, resistência"
-              className="bg-white/90 border-purple-200 text-gray-900 placeholder:text-gray-500 focus:border-purple-400 focus:ring-purple-400"
-            />
-            <p className="text-xs text-gray-600 mt-1">
-              As tags ajudam os alunos a encontrar o material
-            </p>
-          </div>
-
-          {/* Upload Area - FUNCIONAL */}
-          <div 
-            className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer",
-              isDragging ? "border-purple-500 bg-purple-50/50" : "border-purple-300 bg-white/40 hover:bg-purple-50/30"
-            )}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={handleFileSelect}
-              accept=".pdf,.docx,.mp4,.mp3,.pptx,.xlsx"
-            />
-            
-            {selectedFile ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-center gap-2 text-green-600">
-                  <CheckCircle className="h-6 w-6" />
-                  <span className="font-semibold">{selectedFile.name}</span>
-                </div>
-                <p className="text-sm text-gray-600">
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </p>
+        
+        <div className="flex-1 overflow-y-auto px-1 py-3 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-purple-200/60 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="space-y-3">
+            {/* Título do Material com Voice Input */}
+            <div>
+              <Label htmlFor="title" className="text-gray-800 font-semibold mb-2 block">
+                Título do Material
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Ex: Apostila de Resistência dos Materiais"
+                  className="flex-1 bg-white/90 border-purple-200 text-gray-900 placeholder:text-gray-500 focus:border-purple-400 focus:ring-purple-400"
+                />
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedFile(null);
-                  }}
-                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleVoiceInput}
+                  className={cn(
+                    "shrink-0 border-purple-200 hover:bg-purple-50",
+                    isRecording && "bg-purple-100 border-purple-400"
+                  )}
+                  title="Input por voz"
                 >
-                  Remover arquivo
+                  <Mic className={cn(
+                    "h-4 w-4 text-purple-600",
+                    isRecording && "animate-pulse"
+                  )} />
                 </Button>
               </div>
-            ) : (
-              <>
-                <Upload className="h-10 w-10 mx-auto mb-3 text-purple-500" />
-                <p className="text-base text-gray-700 font-medium mb-1">
-                  Arraste arquivos aqui ou clique para fazer upload
-                </p>
-                <p className="text-sm text-gray-600">
-                  PDF, DOCX, PPTX, XLSX, MP4, MP3 (máx. 50MB)
-                </p>
-              </>
-            )}
-          </div>
+            </div>
 
-          {/* Botões de Ação */}
-          <div className="flex gap-3 justify-end pt-4">
-            <Button 
-              variant="outline" 
-              onClick={onClose} 
-              className="border-purple-200 text-gray-700 hover:bg-purple-50"
-              disabled={isUploading}
+            {/* Turma */}
+            <div>
+              <Label htmlFor="class" className="text-gray-800 font-semibold mb-2 block">
+                Turma
+              </Label>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="bg-white/90 border-purple-200 text-gray-900 focus:border-purple-400 focus:ring-purple-400">
+                  <SelectValue placeholder="Selecione a turma" />
+                </SelectTrigger>
+                <SelectContent className="bg-white/95 backdrop-blur-xl border-purple-200">
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id} className="text-gray-900 hover:bg-purple-50">
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Disciplina */}
+            <div>
+              <Label htmlFor="disciplina" className="text-gray-800 font-semibold mb-2 block">
+                Disciplina
+              </Label>
+              <Select value={selectedDisciplina} onValueChange={setSelectedDisciplina} disabled={!selectedClass}>
+                <SelectTrigger className="bg-white/90 border-purple-200 text-gray-900 focus:border-purple-400 focus:ring-purple-400">
+                  <SelectValue placeholder={selectedClass ? "Selecione a disciplina" : "Selecione uma turma primeiro"} />
+                </SelectTrigger>
+                <SelectContent className="bg-white/95 backdrop-blur-xl border-purple-200">
+                  {disciplinas.map((disc) => (
+                    <SelectItem key={disc.id} value={disc.id} className="text-gray-900 hover:bg-purple-50">
+                      {disc.nome} {disc.codigo ? `(${disc.codigo})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tags */}
+            <div>
+              <Label htmlFor="tags" className="text-gray-800 font-semibold mb-2 block">
+                Tags (separadas por vírgula)
+              </Label>
+              <Input
+                id="tags"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="Ex: apostila, mecânica, resistência"
+                className="bg-white/90 border-purple-200 text-gray-900 placeholder:text-gray-500 focus:border-purple-400 focus:ring-purple-400"
+              />
+              <p className="text-xs text-gray-600 mt-1">
+                As tags ajudam os alunos a encontrar o material
+              </p>
+            </div>
+
+            {/* Upload Area */}
+            <div 
+              className={cn(
+                "border-2 border-dashed rounded-lg p-4 text-center transition-all cursor-pointer",
+                isDragging ? "border-purple-500 bg-purple-50/50" : "border-purple-300 bg-white/40 hover:bg-purple-50/30"
+              )}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
             >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleUpload} 
-              disabled={isUploading || !selectedFile}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enviando...
-                </>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileSelect}
+                accept=".pdf,.docx,.mp4,.mp3,.pptx,.xlsx"
+              />
+              
+              {selectedFile ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-green-600">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="font-semibold text-sm">{selectedFile.name}</span>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedFile(null);
+                    }}
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  >
+                    Remover arquivo
+                  </Button>
+                </div>
               ) : (
                 <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Fazer Upload
+                  <Upload className="h-8 w-8 mx-auto mb-2 text-purple-500" />
+                  <p className="text-sm text-gray-700 font-medium mb-1">
+                    Arraste arquivos aqui ou clique para fazer upload
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    PDF, DOCX, PPTX, XLSX, MP4, MP3 (máx. 50MB)
+                  </p>
                 </>
               )}
-            </Button>
+            </div>
           </div>
+        </div>
+
+        {/* Footer Fixo */}
+        <div className="flex-shrink-0 pt-3 border-t flex flex-col-reverse sm:flex-row gap-2 justify-end">
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            className="border-purple-200 text-gray-700 hover:bg-purple-50"
+            disabled={isUploading}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleUpload} 
+            disabled={isUploading || !selectedFile}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg"
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Enviando...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Fazer Upload
+              </>
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -33,6 +33,7 @@ function validateAndFixMermaidDiagrams(markdown: string): string {
     // FIX PHASE 2: Greek letters replacement GLOBALLY (not just in labels)
     fixedCode = fixedCode
       .replace(/Δ|∆/g, 'Delta')
+      .replace(/Ω/g, 'Omega')
       .replace(/Σ/g, 'Sigma')
       .replace(/α/g, 'alpha')
       .replace(/β/g, 'beta')
@@ -42,8 +43,7 @@ function validateAndFixMermaidDiagrams(markdown: string): string {
       .replace(/μ/g, 'mu')
       .replace(/π/g, 'pi')
       .replace(/σ/g, 'sigma')
-      .replace(/ω/g, 'omega')
-      .replace(/Ω/g, 'Omega');
+      .replace(/ω/g, 'omega');
     
     // FIX PHASE 3: Clean problematic chars in labels
     fixedCode = fixedCode.replace(/(\[[^\]]+\])/g, (label: string) => {
@@ -84,10 +84,21 @@ function validateAndFixMermaidDiagrams(markdown: string): string {
     // VALIDATION: Valid diagram type (try to auto-fix if missing)
     const validTypes = /^(flowchart|graph|sequenceDiagram|stateDiagram-v2|classDiagram|gantt|mindmap)/m;
     if (!validTypes.test(fixedCode)) {
-      console.warn(`[format-lecture-content] Block ${blocksFound} has invalid type - AUTO-FIXING by adding "flowchart TD"`);
-      fixedCode = `flowchart TD\n${fixedCode}`;
+      console.warn(`[format-lecture-content] Block ${blocksFound} has invalid type - AUTO-FIXING`);
+      
+      // Try to detect intent from keywords
+      if (fixedCode.includes('sequenceDiagram') || fixedCode.match(/participant|actor/i)) {
+        // Already has sequenceDiagram, just needs formatting
+        fixedCode = fixedCode.replace(/^[\s\S]*?(sequenceDiagram)/m, 'sequenceDiagram');
+      } else {
+        // Default to flowchart
+        fixedCode = `flowchart TD\n${fixedCode}`;
+      }
       blocksFixed++;
     }
+    
+    // FIX PHASE 5: Remove HTML tags that might have leaked
+    fixedCode = fixedCode.replace(/<[^>]*>/g, '');
     
     // SUCCESS LOGGING
     if (fixedCode !== originalCode) {

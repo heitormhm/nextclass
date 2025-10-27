@@ -10,80 +10,26 @@ interface MermaidDiagramProps {
 }
 
 const sanitizeMermaidCode = (code: string): string => {
-  let sanitized = code;
-  
-  // STEP 1: Replace ALL unicode arrows FIRST
-  const unicodeArrows: Record<string, string> = {
-    '→': '-->',
-    '←': '<--',
-    '↔': '<-->',
-    '⇒': '==>',
-    '⇐': '<==',
-    '⇔': '<==>'
-  };
-  
-  Object.entries(unicodeArrows).forEach(([unicode, ascii]) => {
-    sanitized = sanitized.replace(new RegExp(unicode, 'g'), ascii);
-  });
-  
-  // STEP 2: Replace Greek letters in labels
-  const greekLetters: Record<string, string> = {
-    'Δ': 'Delta',
-    '∆': 'Delta',
-    'Σ': 'Sigma',
-    'α': 'alpha',
-    'β': 'beta',
-    'γ': 'gamma',
-    'θ': 'theta',
-    'λ': 'lambda',
-    'μ': 'mu',
-    'π': 'pi',
-    'σ': 'sigma',
-    'ω': 'omega'
-  };
-  
-  // Only replace Greek letters inside labels []
-  sanitized = sanitized.replace(/(\[)([^\]]+)(\])/g, (match, open, content, close) => {
-    let cleanContent = content;
-    Object.entries(greekLetters).forEach(([greek, spelled]) => {
-      cleanContent = cleanContent.replace(new RegExp(greek, 'g'), spelled);
-    });
-    return `${open}${cleanContent}${close}`;
-  });
-  
-  // STEP 3: Clean problematic chars in labels
-  sanitized = sanitized.replace(/(\[)([^\]]+)(\])/g, (match, open, content, close) => {
-    let cleanContent = content
-      .replace(/[&<>"']/g, '') // Remove HTML-problematic chars
-      .replace(/\(/g, '')       // Remove opening parenthesis
-      .replace(/\)/g, '')       // Remove closing parenthesis
-      .replace(/\s+/g, ' ')     // Normalize whitespace
-      .trim();
-    
-    return `${open}${cleanContent}${close}`;
-  });
-
-  // Clean up any potential HTML tags
-  sanitized = sanitized.replace(/<[^>]*>/g, '');
-  
-  // Replace common problematic patterns
-  sanitized = sanitized
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, 'and')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
-
-  // Ensure proper spacing around mermaid syntax elements
-  sanitized = sanitized.replace(/-->/g, ' --> ');
-  sanitized = sanitized.replace(/\|/g, ' | ');
-  
-  // STEP 4: Validate basic structure
-  if (!sanitized.match(/^(graph|flowchart|sequenceDiagram|stateDiagram)/m)) {
-    console.warn('[Mermaid] ⚠️ No valid diagram type found');
-    return ''; // Return empty to trigger placeholder
+  if (!code || code.trim().length < 10) {
+    console.warn('[Mermaid] Code too short or empty');
+    return '';
   }
   
-  console.log('[Mermaid] ✅ Sanitization complete');
+  // Remove code block markers if present
+  let sanitized = code.trim()
+    .replace(/^```mermaid\s*/i, '')
+    .replace(/^```\s*$/, '')
+    .replace(/```$/, '');
+  
+  // ONLY validate - do NOT correct (backend already did corrections)
+  const hasValidType = /^(graph|flowchart|sequenceDiagram|stateDiagram-v2|classDiagram|gantt|pie|erDiagram)/m.test(sanitized);
+  
+  if (!hasValidType) {
+    console.warn('[Mermaid] No valid diagram type detected');
+    return '';
+  }
+  
+  console.log('[Mermaid] ✅ Basic validation passed');
   return sanitized.trim();
 };
 

@@ -517,10 +517,10 @@ const LectureTranscriptionPage = () => {
       if (data?.structured_content) {
         console.log('[LectureTranscription] Structured content loaded');
         
-        // Check if material_didatico contains Mermaid diagrams
+        // Always post-process material_didatico (don't rely on regex detection)
         const materialDidatico = data.structured_content.material_didatico;
-        if (materialDidatico && materialDidatico.includes('```mermaid')) {
-          console.log('[LectureTranscription] Mermaid diagrams detected, post-processing...');
+        if (materialDidatico) {
+          console.log('[LectureTranscription] Post-processing material didatico (always)...');
           
           // Post-process to sanitize diagrams
           const cleanedMarkdown = await postProcessMaterialDidatico(materialDidatico);

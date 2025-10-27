@@ -249,8 +249,8 @@ RESTRIÇÕES:
      - ❌ NUNCA: → ← ↔ ⇒ ⇐ ⇔ (Unicode)
   
   **2. LETRAS GREGAS (ESCREVER POR EXTENSO):**
-     - ✅ USE: Delta, Sigma, theta, pi, alpha, beta, gamma, lambda, mu, omega
-     - ❌ NUNCA: Δ Σ θ π α β γ λ μ ω (símbolos Unicode)
+     - ✅ USE: Delta, Omega, Sigma, theta, pi, alpha, beta, gamma, lambda, mu
+     - ❌ NUNCA: Δ Ω Σ θ π α β γ λ μ (símbolos Unicode)
   
   **3. LABELS (TEXTO DENTRO DE []):**
      - ✅ PERMITIDO: letras, números, espaços, ponto, vírgula, hífen
@@ -270,6 +270,25 @@ RESTRIÇÕES:
   
   **USE APENAS:** --> <-- ==> para setas, IDs simples (A, B, C), texto ASCII em labels
 
+  **EXEMPLO COMPLETO CORRETO:**
+  \`\`\`mermaid
+  flowchart TD
+      A[Estado Inicial] --> B{Condicao Verifica}
+      B -->|Sim| C[Processa Delta T com formula simplificada]
+      B -->|Nao| D[Aguarda entrada]
+      C --> E[Aplica correcao e calcula Omega total]
+      E --> F[Fim do processo]
+      D --> A
+  \`\`\`
+
+  **EXEMPLO INCORRETO (NUNCA FAZER):**
+  \`\`\`mermaid
+  graph TD
+      A[Sistema Q→W] → B{Δ>0}    ❌ Setas Unicode, parênteses, símbolo grego
+      B → C[Calcula ∫ρdV]        ❌ Símbolo integral
+  \`\`\`
+
+  **REGRA DE OURO:** Mentalmente substitua TODOS os símbolos por texto ASCII ANTES de escrever. Se tiver dúvida, NÃO inclua diagrama.
 
   **ONDE INSERIR DIAGRAMAS:**
   - Material 1 (Estudo de Caso): Diagrama de fluxo do processo técnico principal
