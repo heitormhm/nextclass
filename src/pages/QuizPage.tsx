@@ -47,6 +47,8 @@ const QuizPage = () => {
   const location = useLocation();
   const fromChat = location.state?.fromChat || false;
   const conversationId = location.state?.conversationId;
+  const lectureIdFromState = location.state?.lectureId;
+  const lectureTitle = location.state?.lectureTitle;
   const lectureId = id || '1';
 
   useEffect(() => {
@@ -412,13 +414,15 @@ const QuizPage = () => {
                           onClick={() => {
                             if (fromChat && conversationId) {
                               navigate('/aichat', { state: { conversationId } });
+                            } else if (lectureIdFromState) {
+                              navigate(`/lecture/${lectureIdFromState}`);
                             } else {
                               navigate('/courses');
                             }
                           }}
                         >
                           <ChevronLeft className="h-4 w-4 mr-2" />
-                          Voltar {fromChat ? 'ao Chat' : 'aos Cursos'}
+                          Voltar {fromChat ? 'ao Chat' : lectureIdFromState ? 'para a Aula' : 'aos Cursos'}
                         </Button>
                         <Button 
                           onClick={() => window.location.reload()}
@@ -522,12 +526,14 @@ const QuizPage = () => {
         <div className="relative z-20 container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center gap-4 mb-8 animate-fade-in">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 onClick={() => {
                   if (fromChat && conversationId) {
                     navigate('/aichat', { state: { conversationId } });
+                  } else if (lectureIdFromState) {
+                    navigate(`/lecture/${lectureIdFromState}`);
                   } else {
                     navigate('/courses');
                   }

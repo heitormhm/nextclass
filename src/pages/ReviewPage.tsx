@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,9 @@ interface Review {
 
 const ReviewPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const lectureIdFromState = location.state?.lectureId;
+  const lectureTitle = location.state?.lectureTitle;
   const [reviews, setReviews] = useState<Review[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -192,21 +195,34 @@ const ReviewPage = () => {
               )}
 
               <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => navigate('/dashboard')}
-                >
-                  <Home className="h-4 w-4 mr-2" />
-                  Dashboard
-                </Button>
-                <Button
-                  className="flex-1 bg-primary hover:bg-primary/90"
-                  onClick={() => navigate('/courses')}
-                >
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Ver Cursos
-                </Button>
+                {lectureIdFromState ? (
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+                    onClick={() => navigate(`/lecture/${lectureIdFromState}`)}
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Voltar para a Aula
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => navigate('/dashboard')}
+                    >
+                      <Home className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </Button>
+                    <Button
+                      className="flex-1 bg-primary hover:bg-primary/90"
+                      onClick={() => navigate('/courses')}
+                    >
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Ver Cursos
+                    </Button>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

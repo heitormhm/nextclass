@@ -706,10 +706,10 @@ Distúrbios do ritmo cardíaco que podem ser:
                       {playbackRate}x
                     </span>
                     
-                    <Badge variant="secondary" className="text-xs">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {audioDuration > 0 ? Math.floor(audioDuration / 60) : 0} min
-                    </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {lectureData?.duration || 0} min
+                </Badge>
                   </div>
                 </div>
 
@@ -848,7 +848,13 @@ Distúrbios do ritmo cardíaco que podem ser:
                                 <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground-muted prose-strong:text-foreground prose-li:text-foreground-muted prose-a:text-primary">
                                   <ReactMarkdown
                                     remarkPlugins={[remarkGfm, remarkMath]}
-                                    rehypePlugins={[rehypeKatex]}
+  rehypePlugins={[
+    [rehypeKatex, {
+      throwOnError: false,
+      errorColor: '#cc0000',
+      strict: false
+    }]
+  ]}
                                   >
                                     {lectureData.structured_content.material_didatico}
                                   </ReactMarkdown>
@@ -856,39 +862,6 @@ Distúrbios do ritmo cardíaco que podem ser:
                               </CardContent>
                             </Card>
 
-                            {/* Tópicos Principais (abaixo do material) */}
-                            {lectureData.structured_content?.topicos_principais && 
-                             lectureData.structured_content.topicos_principais.length > 0 && (
-                              <div className="mt-6">
-                                <h4 className="text-base font-semibold mb-4 flex items-center gap-2">
-                                  <Brain className="h-4 w-4 text-primary" />
-                                  Tópicos Principais
-                                </h4>
-                                <div className="grid gap-3">
-                                  {lectureData.structured_content.topicos_principais.map((topico: any, index: number) => (
-                                    <Card key={index} className="border-primary/10 bg-white/60">
-                                      <CardContent className="p-4">
-                                        <div className="flex items-start gap-3">
-                                          <Badge variant="secondary" className="mt-0.5">
-                                            {index + 1}
-                                          </Badge>
-                                          <div className="flex-1">
-                                            <div className="font-medium text-sm mb-1">
-                                              {topico.conceito || topico}
-                                            </div>
-                                            {topico.descricao && (
-                                              <div className="text-xs text-foreground-muted">
-                                                {topico.descricao}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </CardContent>
-                                    </Card>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
                           </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center h-[400px] text-center">
@@ -998,7 +971,10 @@ Distúrbios do ritmo cardíaco que podem ser:
                     className="bg-primary hover:bg-primary/90 transition-all w-full"
                     asChild
                   >
-                    <Link to={`/quiz/${id}`}>
+                    <Link 
+                      to={`/quiz/${id}`}
+                      state={{ lectureId: id, lectureTitle: lectureData?.title }}
+                    >
                       <Brain className="h-4 w-4 mr-2" />
                       Fazer Quiz
                     </Link>
@@ -1006,7 +982,12 @@ Distúrbios do ritmo cardíaco que podem ser:
                   <Button 
                     variant="outline"
                     className="hover:bg-accent transition-all w-full"
-                    onClick={() => navigate(`/review?lectureId=${id}`)}
+                    onClick={() => navigate(`/review`, {
+                      state: { 
+                        lectureId: id,
+                        lectureTitle: lectureData?.title 
+                      }
+                    })}
                   >
                     <Sparkles className="h-4 w-4 mr-2" />
                     Ver Flashcards
