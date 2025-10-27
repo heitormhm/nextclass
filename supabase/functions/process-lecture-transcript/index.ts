@@ -147,25 +147,24 @@ Retorne um JSON com esta estrutura exata:
 
     console.log('Parsed response:', structuredContent);
 
-    // Validate and clean Mermaid diagrams with AUTO-FIX capability
+    // Validate and clean Mermaid diagrams with AGGRESSIVE NON-DESTRUCTIVE fixes
     function validateAndCleanMermaidDiagrams(markdown: string): string {
-      console.log('[Mermaid Validation] Starting SMART validation with auto-fix...');
+      console.log('[Mermaid Validation] Starting NON-DESTRUCTIVE validation with AGGRESSIVE fixes...');
       
       const mermaidBlockRegex = /```mermaid\s*\n([\s\S]*?)```/g;
       
       let cleanedMarkdown = markdown;
       let blocksFound = 0;
       let blocksFixed = 0;
-      let blocksRemoved = 0;
+      let blocksKept = 0;
       
       cleanedMarkdown = cleanedMarkdown.replace(mermaidBlockRegex, (match, code) => {
         blocksFound++;
         const originalCode = code;
-        
-        // STEP 1: Auto-fix common issues
         let fixedCode = code;
         
-        // Fix 1.1: Replace Unicode arrows with ASCII
+        // FIX PHASE 1: Basic replacements (ALWAYS APPLY)
+        // 1.1: Replace Unicode arrows
         fixedCode = fixedCode
           .replace(/→/g, '-->')
           .replace(/←/g, '<--')
@@ -174,67 +173,78 @@ Retorne um JSON com esta estrutura exata:
           .replace(/⇐/g, '<==')
           .replace(/⇔/g, '<=>');
         
-        // Fix 1.2: Replace Greek letters ONLY in labels (inside [])
+        // FIX PHASE 2: Replace Greek letters GLOBALLY (not just in labels)
+        fixedCode = fixedCode
+          .replace(/Δ|∆/g, 'Delta')
+          .replace(/Σ/g, 'Sigma')
+          .replace(/α/g, 'alpha')
+          .replace(/β/g, 'beta')
+          .replace(/γ/g, 'gamma')
+          .replace(/θ/g, 'theta')
+          .replace(/λ/g, 'lambda')
+          .replace(/μ/g, 'mu')
+          .replace(/π/g, 'pi')
+          .replace(/σ/g, 'sigma')
+          .replace(/ω/g, 'omega')
+          .replace(/Ω/g, 'Omega');
+        
+        // FIX PHASE 3: Clean problematic chars in labels
         fixedCode = fixedCode.replace(/(\[[^\]]+\])/g, (label: string) => {
-          return label
-            .replace(/Δ|∆/g, 'Delta')
-            .replace(/Σ/g, 'Sigma')
-            .replace(/α/g, 'alpha')
-            .replace(/β/g, 'beta')
-            .replace(/γ/g, 'gamma')
-            .replace(/θ/g, 'theta')
-            .replace(/λ/g, 'lambda')
-            .replace(/μ/g, 'mu')
-            .replace(/π/g, 'pi')
-            .replace(/σ/g, 'sigma')
-            .replace(/ω/g, 'omega');
+          let cleanedLabel = label;
+          
+          // Remove HTML-problematic chars
+          cleanedLabel = cleanedLabel.replace(/[<>"'&]/g, '');
+          
+          // Simplify formulas
+          if (cleanedLabel.match(/[\/\^²³⁴⁵⁶⁷⁸⁹⁰]/)) {
+            // Extract key terms before replacing
+            const terms = cleanedLabel.match(/[A-Z][a-z]*/g);
+            if (terms && terms.length > 0) {
+              return `[${terms.join(' ')}]`;
+            }
+            return '[Formula]';
+          }
+          
+          // Remove parentheses
+          cleanedLabel = cleanedLabel.replace(/\(/g, '').replace(/\)/g, '');
+          
+          return cleanedLabel;
         });
         
-        // Fix 1.3: Clean problematic chars in labels (preserves content)
-        fixedCode = fixedCode.replace(/(\[[^\]]+\])/g, (label: string) => {
-          return label
-            .replace(/[<>"'&]/g, '') // Remove HTML-problematic chars
-            .replace(/\(/g, '')
-            .replace(/\)/g, '');
-        });
+        // FIX PHASE 4: Remove mathematical symbols
+        fixedCode = fixedCode
+          .replace(/[²³⁴⁵⁶⁷⁸⁹⁰₀₁₂₃₄₅₆₇₈₉]/g, '')
+          .replace(/[×÷±≈≠≤≥∞∫∂∑∏√]/g, ' ')
+          .replace(/\s+/g, ' ') // Normalize spaces
+          .trim();
         
-        // STEP 2: Validate AFTER fixes
-        
-        // Validation 2.1: Minimum length
+        // VALIDATION: Minimum length (but keep it anyway)
         if (fixedCode.trim().length < 20) {
-          console.warn(`[Mermaid Validation] Block ${blocksFound} too short after fixes. Removing.`);
-          blocksRemoved++;
-          return '';
+          console.warn(`[Mermaid Validation] Block ${blocksFound} too short (${fixedCode.length} chars) - KEEPING with warning`);
         }
         
-        // Validation 2.2: Valid diagram type
-        const validTypes = /^(flowchart|graph|sequenceDiagram|stateDiagram-v2|classDiagram|gantt)/m;
+        // VALIDATION: Valid diagram type (auto-fix by adding flowchart TD)
+        const validTypes = /^(flowchart|graph|sequenceDiagram|stateDiagram-v2|classDiagram|gantt|mindmap)/m;
         if (!validTypes.test(fixedCode)) {
-          console.warn(`[Mermaid Validation] Block ${blocksFound} has invalid diagram type. Removing.`);
-          blocksRemoved++;
-          return '';
+          console.warn(`[Mermaid Validation] Block ${blocksFound} has invalid type - AUTO-FIXING by adding "flowchart TD"`);
+          fixedCode = `flowchart TD\n${fixedCode}`;
+          blocksFixed++;
         }
         
-        // Validation 2.3: Check for REMAINING problematic chars (after all fixes)
-        const stillProblematic = /[→←↔⇒⇐⇔ΔΣαβγθλμπσω]/;
-        if (stillProblematic.test(fixedCode)) {
-          console.warn(`[Mermaid Validation] Block ${blocksFound} still has unfixable Unicode. Removing.`);
-          blocksRemoved++;
-          return '';
-        }
-        
-        // SUCCESS
+        // SUCCESS LOGGING
         if (fixedCode !== originalCode) {
-          console.log(`[Mermaid Validation] Block ${blocksFound} auto-fixed ✅`);
+          console.log(`[Mermaid Validation] Block ${blocksFound} AGGRESSIVELY FIXED ✅`);
+          console.log(`  Original length: ${originalCode.length} → Fixed length: ${fixedCode.length}`);
           blocksFixed++;
         } else {
-          console.log(`[Mermaid Validation] Block ${blocksFound} valid, no fixes needed ✅`);
+          console.log(`[Mermaid Validation] Block ${blocksFound} already valid ✅`);
         }
         
+        blocksKept++;
         return `\`\`\`mermaid\n${fixedCode}\n\`\`\``;
       });
       
-      console.log(`[Mermaid Validation] Summary: ${blocksFound} found, ${blocksFixed} auto-fixed, ${blocksRemoved} removed, ${blocksFound - blocksRemoved} kept`);
+      console.log(`[Mermaid Validation] ✅ NON-DESTRUCTIVE Summary: ${blocksFound} found, ${blocksFixed} fixed, ${blocksKept} kept (0 removed)`);
       
       return cleanedMarkdown;
     }

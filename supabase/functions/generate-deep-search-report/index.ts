@@ -242,32 +242,34 @@ RESTRIÇÕES:
 
   **5. DIAGRAMAS MERMAID - OBRIGATÓRIO (MÍNIMO 2 DIAGRAMAS POR MATERIAL):**
   
-  **REGRAS ABSOLUTAS PARA DIAGRAMAS MERMAID:**
-  1. **TIPOS PERMITIDOS:** flowchart TD, flowchart LR, sequenceDiagram, stateDiagram-v2
-  2. **SETAS:** Use APENAS --> (direita), <-- (esquerda), ==> (bold) [ASCII puro, NUNCA → ← ⇒]
-  3. **IDs DE NÓS:** Apenas letras e números (A, B, Estado1, Etapa2) - SEM espaços ou caracteres especiais
-  4. **LABELS (texto dentro de []):**
-     - Podem conter: letras, números, espaços, ponto, vírgula
-     - EVITE: parênteses (), aspas "", símbolos <>, &
-     - Letras gregas: escreva por extenso (Delta, theta, pi) EM VEZ DE símbolos (Δ, θ, π)
-  5. **VALIDAÇÃO MENTAL:** Antes de gerar, pergunte-se: "Este código funcionaria em https://mermaid.live?"
+  **⚠️ REGRAS ABSOLUTAS PARA DIAGRAMAS MERMAID (CRÍTICO - LEIA DUAS VEZES):**
   
-  **FORMATO DO BLOCO:**
-  - Inicie com: três backticks + palavra "mermaid"
-  - Próxima linha: tipo do diagrama (ex: flowchart TD)
-  - Defina nós e conexões usando sintaxe válida
-  - Feche com: três backticks
+  **1. SETAS (OBRIGATÓRIO ASCII-ONLY):**
+     - ✅ USE: --> , <-- , <--> , ==> , <== , <=>
+     - ❌ NUNCA: → ← ↔ ⇒ ⇐ ⇔ (Unicode)
   
-  **EXEMPLO DE ESTRUTURA VÁLIDA:**
-  - Nó A conectado a decisão B: A[Inicio] --> B{Condicao}
-  - Decisão B com duas saídas: B -->|Sim| C[Acao1] e B -->|Nao| D[Acao2]
-  - Use apenas caracteres ASCII simples em IDs (A, B, C) e texto legível em labels [Texto aqui]
+  **2. LETRAS GREGAS (ESCREVER POR EXTENSO):**
+     - ✅ USE: Delta, Sigma, theta, pi, alpha, beta, gamma, lambda, mu, omega
+     - ❌ NUNCA: Δ Σ θ π α β γ λ μ ω (símbolos Unicode)
   
-  **O QUE EVITAR:**
-  - Setas Unicode: → ← ⇒ (use --> <-- ==>)
-  - Símbolos gregos: Δ θ π (escreva Delta theta pi)
-  - Parênteses em labels: (evite) substitua por texto simples
-  - Espaços em IDs de nós: use A1 A2 Estado1 (não "Estado 1")
+  **3. LABELS (TEXTO DENTRO DE []):**
+     - ✅ PERMITIDO: letras, números, espaços, ponto, vírgula, hífen
+     - ❌ EVITAR: parênteses (), aspas "", símbolos <>, &
+     - FÓRMULAS: Simplifique (ex: [Pressao P dividida por gamma])
+  
+  **4. IDS DE NÓS:**
+     - ✅ USE: A, B, C, Node1, Estado1, Etapa2
+     - ❌ NUNCA: Números sozinhos, espaços, caracteres especiais
+  
+  **5. TIPOS VÁLIDOS:** flowchart TD, flowchart LR, sequenceDiagram, stateDiagram-v2
+  
+  **6. VALIDAÇÃO MENTAL:**
+     Pergunte-se: "Este código usa APENAS ASCII básico?" Se não, corrija.
+  
+  **FORMATO:** Inicie com três backticks + "mermaid", linha do tipo, nós e conexões, feche com três backticks
+  
+  **USE APENAS:** --> <-- ==> para setas, IDs simples (A, B, C), texto ASCII em labels
+
 
   **ONDE INSERIR DIAGRAMAS:**
   - Material 1 (Estudo de Caso): Diagrama de fluxo do processo técnico principal

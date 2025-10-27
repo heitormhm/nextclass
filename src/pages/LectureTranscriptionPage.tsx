@@ -459,6 +459,28 @@ const LectureTranscriptionPage = () => {
     }
   };
 
+  // Post-process material didatico to sanitize Mermaid diagrams
+  const postProcessMaterialDidatico = async (markdown: string): Promise<string> => {
+    console.log('[LectureTranscription] Post-processing material with format-lecture-content...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('format-lecture-content', {
+        body: { markdown }
+      });
+      
+      if (error) {
+        console.error('[LectureTranscription] Post-processing failed:', error);
+        return markdown; // Fallback to original
+      }
+      
+      console.log('[LectureTranscription] ✅ Material post-processed successfully');
+      return data.cleanedMarkdown || markdown;
+    } catch (err) {
+      console.error('[LectureTranscription] Post-processing exception:', err);
+      return markdown; // Fallback to original
+    }
+  };
+
   const loadLectureData = async () => {
     try {
       setIsLoading(true);
@@ -492,7 +514,25 @@ const LectureTranscriptionPage = () => {
       }
 
       if (data?.structured_content) {
-        setStructuredContent(data.structured_content as StructuredContent);
+        console.log('[LectureTranscription] Structured content loaded');
+        
+        // Check if material_didatico contains Mermaid diagrams
+        const materialDidatico = data.structured_content.material_didatico;
+        if (materialDidatico && materialDidatico.includes('```mermaid')) {
+          console.log('[LectureTranscription] Mermaid diagrams detected, post-processing...');
+          
+          // Post-process to sanitize diagrams
+          const cleanedMarkdown = await postProcessMaterialDidatico(materialDidatico);
+          
+          // Update structured content with cleaned version
+          setStructuredContent({
+            ...data.structured_content,
+            material_didatico: cleanedMarkdown
+          } as StructuredContent);
+        } else {
+          setStructuredContent(data.structured_content as StructuredContent);
+        }
+        
         setLectureTitle(data.structured_content.titulo_aula || data?.title || 'Nova Aula');
       } else if (data?.status === 'processing' && data?.raw_transcript) {
         console.log('🔄 Lecture is processing, calling processTranscript...');

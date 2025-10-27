@@ -156,7 +156,7 @@ verify_jwt = false
 [functions.generate-single-flashcard]
 verify_jwt = false
 
-[functions.fix-mermaid-diagram]
+[functions.format-lecture-content]
 verify_jwt = false
 
 [api]
