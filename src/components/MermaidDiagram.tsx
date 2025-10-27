@@ -170,6 +170,13 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           const { svg } = await mermaid.render(uniqueId, sanitizedCode);
           clearTimeout(renderTimeout);
           
+          // Validate SVG doesn't contain errors before inserting
+          if (svg.includes('Syntax error') || svg.includes('error-icon') || svg.includes('Parse error')) {
+            console.warn('[Mermaid] ⚠️ Error detected in rendered SVG, showing placeholder');
+            setError('render_error');
+            return;
+          }
+          
           if (ref.current) {
             ref.current.innerHTML = svg;
           }
@@ -221,7 +228,15 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         throw new Error('Fixed code is still invalid after sanitization');
       }
       
-      // STEP 3: Attempt render with timeout protection
+      // STEP 3: Re-initialize Mermaid before attempting render
+      mermaid.initialize({ 
+        theme: 'default',
+        logLevel: 'fatal',
+        startOnLoad: false,
+        securityLevel: 'loose',
+      });
+      
+      // Attempt render with timeout protection
       const uniqueId = `mermaid-fix-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       const renderPromise = mermaid.render(uniqueId, sanitizedFixed);
@@ -229,11 +244,16 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         setTimeout(() => reject(new Error('Render timeout')), 5000)
       );
       
-      const { svg } = await Promise.race([renderPromise, timeoutPromise]) as { svg: string };
+      const result = await Promise.race([renderPromise, timeoutPromise]) as { svg: string };
       
-      // STEP 4: Success - update DOM
+      // STEP 4: Validate rendered SVG doesn't contain errors
+      if (result.svg.includes('Syntax error') || result.svg.includes('error-icon') || result.svg.includes('Parse error')) {
+        throw new Error('Rendered SVG contains syntax errors');
+      }
+      
+      // STEP 5: Success - update DOM
       if (ref.current) {
-        ref.current.innerHTML = svg;
+        ref.current.innerHTML = result.svg;
       }
       
       setError(null);
@@ -246,12 +266,10 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
     } catch (err) {
       console.error('[Mermaid] ❌ Regeneration failed:', err);
       
-      // Keep placeholder visible, don't crash
-      setError('hidden');
-      
+      // Don't change error state - keep button visible for retry
       toast({
         title: 'Não foi possível corrigir 😔',
-        description: 'Este diagrama contém erros complexos. Tente editar manualmente.',
+        description: 'Tente novamente ou edite manualmente. ' + (err as Error).message,
         variant: 'destructive',
       });
       

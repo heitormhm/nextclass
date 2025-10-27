@@ -121,11 +121,11 @@ export const PublishLectureModal = ({
     setPublishing(true);
 
     try {
+      // Update lecture - class_id removed to fix FK constraint error
       const { error } = await supabase
         .from('lectures')
         .update({
           title: title.trim(),
-          class_id: selectedTurma,
           turma_id: selectedTurma,
           disciplina_id: selectedDisciplina || null,
           status: 'published',
@@ -151,12 +151,12 @@ export const PublishLectureModal = ({
         return;
       }
 
-      // Verificar se publicação foi bem-sucedida
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('lectures')
-        .select('status, class_id, turma_id, disciplina_id')
-        .eq('id', lectureId)
-        .single();
+    // Verificar se publicação foi bem-sucedida
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('lectures')
+      .select('status, turma_id, disciplina_id')
+      .eq('id', lectureId)
+      .single();
 
       if (verifyError) {
         console.error('[Publish] ❌ Verification failed:', verifyError);
