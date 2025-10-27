@@ -268,73 +268,86 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       console.warn(`[Job ${job.id}] ⚠️ Mermaid syntax issues detected:`, validation.errors);
     }
     
-    // ✅ FASE 6: Validar qualidade das referências
-    const validateReferences = (text: string): { valid: boolean; issues: string[] } => {
-      const issues: string[] = [];
+    // ✅ FASE 6: Validação de Referências com REJEIÇÃO
+    const validateReferences = (markdown: string): { valid: boolean; academicPercentage: number; errors: string[] } => {
+      console.log('[References Validator] 🔍 Checking reference quality...');
       
-      // Fontes banidas (baixa qualidade acadêmica)
-      const bannedSources = [
+      const refSection = markdown.match(/##\s*\d+\.\s*Fontes e Referências(.+?)$/s)?.[1] || '';
+      
+      if (!refSection || refSection.trim().length < 50) {
+        return { valid: false, academicPercentage: 0, errors: ['Seção de referências não encontrada ou vazia'] };
+      }
+      
+      const allRefs = refSection.match(/\[\d+\].+/g) || [];
+      
+      if (allRefs.length < 5) {
+        return { valid: false, academicPercentage: 0, errors: ['Menos de 5 referências fornecidas'] };
+      }
+      
+      // Domínios banidos (baixa qualidade)
+      const bannedDomains = [
         'brasilescola.uol.com.br',
-        'pt.wikipedia.org',
         'mundoeducacao.uol.com.br',
-        'infoescola.com',
         'todamateria.com.br',
+        'wikipedia.org',
+        'blogspot.com',
+        'wordpress.com',
+        'uol.com.br/educacao',
       ];
       
-      // Fontes acadêmicas preferidas
-      const academicSources = [
+      // Domínios acadêmicos (alta qualidade)
+      const academicDomains = [
         'ieee.org',
+        'ieeexplore.ieee.org',
         'sciencedirect.com',
         'springer.com',
-        '.edu',
+        'springerlink.com',
         'researchgate.net',
         'doi.org',
-        'scholar.google',
+        '.edu',
+        'nature.com',
+        'science.org',
       ];
       
-      // Extrair todas as URLs do texto
-      const urlRegex = /https?:\/\/[^\s\)]+/g;
-      const urls = text.match(urlRegex) || [];
+      let bannedCount = 0;
+      let academicCount = 0;
+      const errors: string[] = [];
       
-      // Contar fontes banidas
-      const bannedCount = urls.filter(url => 
-        bannedSources.some(banned => url.includes(banned))
-      ).length;
-      
-      // Contar fontes acadêmicas
-      const academicCount = urls.filter(url => 
-        academicSources.some(academic => url.includes(academic))
-      ).length;
-      
-      const totalUrls = urls.length;
-      const academicPercentage = totalUrls > 0 ? (academicCount / totalUrls) * 100 : 0;
-      
-      console.log(`[Reference Validation] 📊 Stats:`, {
-        total: totalUrls,
-        banned: bannedCount,
-        academic: academicCount,
-        academicPercentage: academicPercentage.toFixed(1) + '%'
+      allRefs.forEach((ref, idx) => {
+        const isBanned = bannedDomains.some(domain => ref.includes(domain));
+        const isAcademic = academicDomains.some(domain => ref.includes(domain));
+        
+        if (isBanned) {
+          bannedCount++;
+          errors.push(`Referência [${idx + 1}] é de fonte banida: ${ref.substring(0, 80)}...`);
+        }
+        
+        if (isAcademic) academicCount++;
       });
       
-      // REGRA 1: Mais de 2 fontes banidas = rejeitar
-      if (bannedCount > 2) {
-        issues.push(`Muitas fontes de baixa qualidade (${bannedCount}). Use fontes acadêmicas.`);
+      const academicPercentage = (academicCount / allRefs.length) * 100;
+      
+      // ✅ CRITÉRIOS DE REJEIÇÃO
+      const isValid = bannedCount <= 2 && academicPercentage >= 40;
+      
+      if (!isValid) {
+        errors.push(`REJECTED: ${bannedCount} fontes banidas (máx: 2), ${academicPercentage.toFixed(0)}% acadêmicas (mín: 40%)`);
       }
       
-      // REGRA 2: Menos de 40% de fontes acadêmicas = avisar
-      if (academicPercentage < 40 && totalUrls > 5) {
-        issues.push(`Apenas ${academicPercentage.toFixed(1)}% de fontes acadêmicas. Mínimo recomendado: 40%`);
+      console.log(`[References] ${academicCount}/${allRefs.length} academic (${academicPercentage.toFixed(0)}%), ${bannedCount} banned`);
+      
+      if (!isValid) {
+        console.error('[References Validator] ❌ INVALID REFERENCES:', errors);
+      } else {
+        console.log('[References Validator] ✅ References validated');
       }
       
-      return {
-        valid: issues.length === 0,
-        issues
-      };
+      return { valid: isValid, academicPercentage, errors };
     };
     
     const refValidation = validateReferences(report);
     if (!refValidation.valid) {
-      console.warn(`[Job ${job.id}] ⚠️ Reference quality issues:`, refValidation.issues);
+      console.warn(`[Job ${job.id}] ⚠️ Reference quality issues:`, refValidation.errors);
       // NÃO bloquear, apenas avisar
     }
 
@@ -588,6 +601,43 @@ A energia $\\Delta U$ varia... ($ simples)
 \`\`\`
 
 **IMPORTANTE:** Se você gerar fórmulas fora deste formato, o sistema REJEITARÁ o material!
+
+# ⚠️ FASE 5: REGRAS CRÍTICAS MERMAID (MATERIAL SERÁ REJEITADO SE VIOLAR)
+
+## 1. Sintaxe OBRIGATÓRIA para grafos:
+✅ CORRETO:
+\`\`\`mermaid
+graph TD
+    A["Início do Processo"]
+    B["Segunda Etapa"]
+    A --> B
+\`\`\`
+
+❌ PROIBIDO:
+- "graphTDA[...]" (tipo colado no node)
+- "graph TDA[...]" (sem quebra de linha)
+- Usar tags HTML (<br/>, <strong>) - use \\n para quebra de linha
+
+## 2. Labels SEMPRE entre aspas duplas se contiverem:
+- Espaços: ["Meu Label"]
+- Acentos: ["Pressão"]
+- Símbolos: ["Energia > 0"]
+- Quebras: ["Linha 1\\nLinha 2"] (use \\n, NÃO <br/>)
+
+## 3. Nodes sem espaços: SistemaFechado, não "Sistema Fechado"
+
+## 4. Subgraphs: Sempre com nome único, sem espaços
+\`\`\`
+subgraph ProcessoIsobarico
+    A["..."]
+end
+\`\`\`
+
+**VALIDAÇÃO**: Código Mermaid será REJEITADO se:
+- Tiver "graph" sem tipo TD/LR/TB/BT imediatamente após
+- Tiver tags HTML (<br/>, <b>, <strong>)
+- Tiver labels com acentos/espaços SEM aspas
+
   * Conceitos Fundamentais: 1200-1500 palavras (maior seção)
   * Aplicações Práticas: 1000-1300 palavras
   * Exemplos Resolvidos: 800-1000 palavras
@@ -1000,27 +1050,49 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
   
   console.log('[Mermaid Validator] 🔍 Checking syntax...');
   
-  // 0. ✅ FASE 1: Corrigir falta de espaço após tipo de diagrama + CAPTURAR ASPAS
-  // Ex: "graphTDA[...]" → "graph TD A[...]" ou "graphTDA["...]" → "graph TD A["..."]"
-  fixed = fixed.replace(/^graph([A-Z]+)\[["']?/gm, (match, type) => {
-    console.log(`[Fix] Detected: "${match}" → type: "${type}"`);
+  // 0. ✅ FASE 2: Corrigir LINHA INTEIRA de graph com tipo colado
+  // Ex: "graphTDA["Identificar Sistema"]" → "graph TD\n    A["Identificar Sistema"]"
+  fixed = fixed.replace(/^graphTD([A-Z]+)\[([^\]]*)\]/gm, (match, nodeName, label) => {
+    console.log(`[Fix] Full line detected: "${match}"`);
+    console.log(`[Fix] → nodeName: "${nodeName}", label: "${label}"`);
     
-    // Se tipo é TD/LR/TB/BT sem espaço
+    // Extrair tipo de diagrama (TD/LR/TB/BT) se estiver colado no início
+    // Ex: "graphTDA[...]" → tipo = "TD", nodeName = "A"
+    const typeMatch = nodeName.match(/^(TD|LR|TB|BT)(.*)$/);
+    
+    if (typeMatch) {
+      const [, graphType, restOfName] = typeMatch;
+      const actualNode = restOfName || 'A';
+      
+      // Verificar se label tem aspas
+      const hasQuotes = label.includes('"') || label.includes("'");
+      const cleanLabel = label.replace(/^["']|["']$/g, ''); // Remover aspas nas pontas
+      
+      console.log(`[Fix] Corrected to: graph ${graphType}\\n    ${actualNode}["${cleanLabel}"]`);
+      return `graph ${graphType}\n    ${actualNode}["${cleanLabel}"]`;
+    }
+    
+    // Fallback: não conseguiu extrair tipo
+    console.warn(`[Fix] Could not extract graph type from: ${match}`);
+    return `graph TD\n    ${nodeName}["${label}"]`;
+  });
+
+  // Corrigir casos onde graph já tem espaço mas tipo está colado no node
+  // Ex: "graph TDA[...]" → "graph TD\n    A[...]"
+  fixed = fixed.replace(/^graph\s+([A-Z]{2,})([A-Z]+)\[([^\]]*)\]/gm, (match, type, nodeName, label) => {
+    // Se type é TD/LR/TB/BT válido
     if (['TD', 'LR', 'TB', 'BT'].includes(type)) {
-      // Preservar aspas se existirem no match
-      const hasQuote = match.includes('"') || match.includes("'");
-      return hasQuote ? `graph ${type}\n    A["` : `graph ${type}\n    A[`;
+      const hasQuotes = label.includes('"') || label.includes("'");
+      const cleanLabel = label.replace(/^["']|["']$/g, '');
+      console.log(`[Fix] Space-separated corrected: graph ${type}\\n    ${nodeName}["${cleanLabel}"]`);
+      return `graph ${type}\n    ${nodeName}["${cleanLabel}"]`;
     }
     
-    // Se é algo como graphTDA ou graphTDA["
-    if (type.length > 2) {
-      const graphType = type.slice(0, 2); // TD
-      const nodeName = type.slice(2); // A
-      const hasQuote = match.includes('"') || match.includes("'");
-      return hasQuote ? `graph ${graphType}\n    ${nodeName}["` : `graph ${graphType}\n    ${nodeName}[`;
-    }
-    
-    return match;
+    // Se não, o tipo está colado (ex: TDA)
+    const graphType = type.slice(0, 2); // TD
+    const restNode = type.slice(2) + nodeName; // A + resto
+    const cleanLabel = label.replace(/^["']|["']$/g, '');
+    return `graph ${graphType}\n    ${restNode}["${cleanLabel}"]`;
   });
 
   // Corrigir subgraph sem espaço
@@ -1118,28 +1190,41 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
     errors.push(`Parênteses desbalanceados: ${openBraces} { vs ${closeBraces} }`);
   }
   
-  // ✅ FASE 2: Validações OBRIGATÓRIAS FORTALECIDAS - capturar aspas em node names
+  // ✅ FASE 3: Validações OBRIGATÓRIAS - verificar código ORIGINAL, não fixado
   const criticalErrors = [
-    fixed.match(/graph[A-Z]+\[["']?/), // graphTDA[..." ou graphTDA["..." sem espaço
-    fixed.match(/subgraph[A-Z]+\[/), // subgraphNome[...] sem espaço
-    // NOVO: Verificar se graph existe mas NÃO tem tipo correto
-    (!fixed.match(/^graph\s+(TD|LR|TB|BT)\s/m) && fixed.includes('graph')),
+    // Detectar no código ORIGINAL (antes de fixes)
+    code.match(/graph[A-Z]{3,}\[/), // graphTDA[, graphLRA[, etc.
+    code.match(/graph[A-Z]{2}[A-Z]+\[/), // graphTDA[, graph TD A[ (sem quebra)
+    code.match(/subgraph[A-Z]+\[/), // subgraphNome[
+    // Verificar se, APÓS os fixes, ainda não tem tipo correto
+    (!fixed.match(/^graph\s+(TD|LR|TB|BT)\s+/m) && fixed.includes('graph')),
   ];
 
+  // Adicionar detecção de tags HTML em labels (comum quando AI gera <br/>)
+  if (code.includes('<br/>') || code.includes('<br>')) {
+    errors.push('CRITICAL: Tags HTML detectadas em código Mermaid (usar \\n)');
+  }
+
   if (criticalErrors.some(Boolean)) {
-    errors.push('CRITICAL: Estrutura Mermaid inválida - espaçamento incorreto ou tipo ausente (TD/LR/TB/BT)');
-    console.error('[Mermaid Validator] CRITICAL syntax errors detected:', {
-      hasGraphWithoutSpace: !!fixed.match(/graph[A-Z]+\[["']?/),
-      hasSubgraphWithoutSpace: !!fixed.match(/subgraph[A-Z]+\[/),
-      missingGraphType: !fixed.match(/^graph\s+(TD|LR|TB|BT)\s/m) && fixed.includes('graph'),
+    errors.push('CRITICAL: Estrutura Mermaid inválida - sintaxe incorreta detectada no código ORIGINAL');
+    console.error('[Mermaid Validator] CRITICAL errors in ORIGINAL code:', {
+      originalCode: code.substring(0, 150),
+      fixedCode: fixed.substring(0, 150),
+      hasGraphWithoutProperSpacing: !!code.match(/graph[A-Z]{2,}\[/),
+      hasSubgraphIssue: !!code.match(/subgraph[A-Z]+\[/),
+      hasHTMLTags: code.includes('<br'),
     });
   }
   
   const valid = errors.length === 0;
-  console.log(`[Mermaid Validator] ${valid ? '✅ Valid' : '❌ Invalid'} - Fixed ${Math.abs(fixed.length - code.length)} chars`);
+  console.log(`[Mermaid Validator] ${valid ? '✅ Valid' : '❌ Invalid'} - Errors: ${errors.length}`);
   
   if (!valid) {
-    console.warn('[Mermaid Validator] Errors:', errors);
+    console.warn('[Mermaid Validator] Full errors:', errors);
+    console.warn('[Mermaid Validator] Original vs Fixed:', {
+      original: code.substring(0, 200),
+      fixed: fixed.substring(0, 200)
+    });
   }
   
   return { valid, fixed, errors };
@@ -1158,6 +1243,7 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
     // 1. Remover placeholders corrompidos: ** 1$ **, ___LATEX_DOUBLE_2___, etc.
     fixed = fixed.replace(/\*\*\s*\d+\$\s*\*\*/g, ''); // ** 1$ **
     fixed = fixed.replace(/___LATEX_DOUBLE_\d+___/g, ''); // ___LATEX_DOUBLE_2___
+    fixed = fixed.replace(/___LATEX_SINGLE_\d+___/g, ''); // ___LATEX_SINGLE_X___
     fixed = fixed.replace(/\*\*\s*\\\w+.*?\$\s*\*\*/g, (match) => {
       // ** \command ...$ ** → $$\command ...$$
       const formula = match.replace(/\*\*/g, '').replace(/\$/g, '').trim();
@@ -1169,82 +1255,55 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
     fixed = fixed.replace(
       /(?:^|\n|\s)(\\[A-Za-z]+(?:\{[^}]*\})?(?:\s*[=+\-*/^_]\s*\\?[A-Za-z0-9{}]+)+)/gm,
       (match, formula) => {
+        // Só envolver se já não estiver em $$
         if (!match.includes('$$')) {
-          return match.replace(formula, `$$${formula.trim()}$$`);
+          return match.replace(formula, ` $$${formula.trim()}$$ `);
         }
         return match;
       }
     );
     
-    // 3. Converter $ simples em duplo: $expr$ → $$expr$$
-    // Mas SOMENTE se não estiver já dentro de $$
-    fixed = fixed.replace(/(?<!\$)\$([^$\n]+?)\$(?!\$)/g, '$$$$1$$');
+    // 3. Converter $ simples para $$ (mas evitar duplicação)
+    fixed = fixed.replace(/\$([^$\n]+?)\$/g, (match, content) => {
+      // Se já está em $$, pular
+      if (match.startsWith('$$')) return match;
+      return `$$${content}$$`;
+    });
     
-    // 4. Limpar espaços extras dentro de fórmulas
-    fixed = fixed.replace(/\$\$\s+/g, '$$');
-    fixed = fixed.replace(/\s+\$\$/g, '$$');
+    // 4. Limpar espaços extras ao redor de fórmulas
+    fixed = fixed.replace(/\s+\$\$/g, ' $$');
+    fixed = fixed.replace(/\$\$\s+/g, '$$ ');
     
-    // 5. Garantir espaçamento ao redor de fórmulas (para não grudar no texto)
-    fixed = fixed.replace(/(\w)(\$\$)/g, '$1 $2');
-    fixed = fixed.replace(/(\$\$)(\w)/g, '$1 $2');
-    
-    console.log('[AGGRESSIVE LaTeX Fix] ✅ Corrupted LaTeX cleaned');
+    console.log('[AGGRESSIVE LaTeX Fix] ✅ Completed aggressive fix');
     return fixed;
   };
   
-  // Aplicar fix agressivo PRIMEIRO
   const aggressiveFixed = aggressiveLatexFix(markdown);
   
-  // ✅ FASE 3: Normalizar LaTeX DEPOIS com detecção agressiva
+  // Normalizar sintaxe LaTeX
   const normalizeLatexSyntax = (text: string): string => {
-    console.log('[LaTeX Normalizer] 🔄 Cleaning LaTeX syntax...');
+    let normalized = text;
     
-    let fixed = text;
+    // Normalizar $ expr $ → $$expr$$
+    normalized = normalized.replace(/\$\s+(.+?)\s+\$/g, '$$$$1$$');
     
-    // 1. Remover $ extras dentro de $$...$$
-    fixed = fixed.replace(/\$\$\s*\$(.+?)\$/g, '$$$$1');
+    // Garantir espaço antes e depois de $$
+    normalized = normalized.replace(/([^\s])\$\$/g, '$1 $$');
+    normalized = normalized.replace(/\$\$([^\s])/g, '$$ $1');
     
-    // 2. Corrigir $ expr $ com espaços → $$expr$$
-    fixed = fixed.replace(/\$\s+(.+?)\s+\$/g, '$$$$1$$');
-    
-    // 3. ✅ FASE 3: Detectar comandos LaTeX comuns SEM delimitadores
-    const latexCommands = /\\(Delta|sum|int|frac|times|cdot|alpha|beta|gamma|theta|omega|pi|sigma|sqrt|partial|nabla|infty|rightarrow|leftarrow|leftrightarrow|dot|vec|operatorname)/g;
-    
-    // Processar linha por linha para detectar LaTeX cru
-    fixed = fixed.split('\n').map(line => {
-      // Se linha tem comando LaTeX mas não tem $$
-      if (latexCommands.test(line) && !line.includes('$$')) {
-        // Extrair fórmulas após : ou = ou "Onde"
-        const formulaMatch = line.match(/(?:[:\=]|Onde)\s*(.+?)(?=\s{2,}|$|\n|,)/);
-        if (formulaMatch) {
-          const formula = formulaMatch[1].trim();
-          // Só adicionar $$ se tiver comando LaTeX e não estiver já delimitado
-          if (formula.match(/\\[a-zA-Z]+/) && !formula.includes('$$')) {
-            return line.replace(formula, `$$${formula}$$`);
-          }
-        }
-      }
-      return line;
-    }).join('\n');
-    
-    // 4. ✅ FASE 3: Casos específicos - fórmulas isoladas em parágrafos
-    // Ex: "A equação \Delta U = Q - W representa..."
-    fixed = fixed.replace(
-      /([^$\n])(\\\w+(?:\{[^}]*\})?(?:\s*[=\+\-\*\/]\s*\S+)*)/g,
-      (match, before, formula) => {
-        // Verificar se fórmula tem comando LaTeX e não está já em $$
-        if (formula.match(/\\[a-zA-Z]+/) && !formula.includes('$$')) {
-          return `${before}$$${formula.trim()}$$`;
-        }
-        return match;
-      }
-    );
-    
-    console.log('[LaTeX Normalizer] ✅ LaTeX normalized with aggressive detection');
-    return fixed;
+    return normalized;
   };
-
+  
   const latexNormalized = normalizeLatexSyntax(aggressiveFixed);
+  
+  // ✅ FASE 7: Logging detalhado de conversão
+  console.log('[convertToStructured] 📊 Conversion Summary:', {
+    markdownLength: latexNormalized.length,
+    hasLaTeX: latexNormalized.includes('$$'),
+    hasMermaid: latexNormalized.includes('```mermaid'),
+    mermaidCount: (latexNormalized.match(/```mermaid/g) || []).length,
+    latexCount: (latexNormalized.match(/\$\$/g) || []).length / 2,
+  });
   
   // PRÉ-PROCESSAMENTO: Limpar markdown APÓS normalizar LaTeX
   let cleanedMarkdown = latexNormalized
@@ -1360,13 +1419,17 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
       const validation = validateAndFixMermaidSyntax(mermaidCode);
       
       if (!validation.valid) {
-        // ✅ FASE 5: Log detalhado de debug
-        console.warn('[convertToStructured] ⚠️ Invalid Mermaid:', validation.errors);
-        console.warn('[convertToStructured] 📋 Original code:', mermaidCode.substring(0, 200));
-        console.warn('[convertToStructured] 🔧 Fixed code:', validation.fixed.substring(0, 200));
-        console.warn('[convertToStructured] ⏭️ Calling AI fix...');
+        // ✅ FASE 7: Log detalhado de debug Mermaid
+        console.warn('[convertToStructured] ⚠️ Mermaid validation failed:', {
+          errors: validation.errors,
+          originalCodePreview: mermaidCode.substring(0, 150),
+          fixedCodePreview: validation.fixed.substring(0, 150),
+        });
         
-        // ✅ FASE 3: CHAMAR EDGE FUNCTION para correção com AI
+        // ✅ CHAMAR AI FIX
+        console.log('[convertToStructured] 🤖 Calling AI to fix Mermaid...');
+        
+        // ✅ CHAMAR EDGE FUNCTION para correção com AI
         try {
           const fixResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/fix-mermaid-diagram`, {
             method: 'POST',

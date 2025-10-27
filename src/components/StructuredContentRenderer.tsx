@@ -4,47 +4,72 @@ import { MermaidDiagram } from './MermaidDiagram';
 import { MermaidErrorBoundary } from './MermaidErrorBoundary';
 import { InteractiveChart } from './InteractiveChart';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
-// Função para converter marcação Markdown básica para HTML
+// ✅ FASE 4: Renderizar LaTeX com KaTeX (não apenas CSS)
 const convertMarkdownToHtml = (text: string): string => {
   if (!text) return '';
   
   let processed = text;
+  
+  // 1. PROCESSAR LaTeX INLINE COM KATEX - RENDERIZAÇÃO REAL
+  // Capturar $$...$$
+  const doubleDollarMatches = processed.match(/\$\$(.*?)\$\$/gs) || [];
   const latexReplacements: Record<string, string> = {};
   
-  // 1. PROCESSAR LaTeX INLINE - AMBAS SINTAXES
-  // Capturar $$...$$
-  const doubleDollarMatches = processed.match(/\$\$(.+?)\$\$/g) || [];
   doubleDollarMatches.forEach((match, idx) => {
     const formula = match.replace(/\$\$/g, '');
     const placeholder = `___LATEX_DOUBLE_${idx}___`;
-    latexReplacements[placeholder] = `<span class="math-inline-rendered">${formula}</span>`;
+    
+    try {
+      // ✅ RENDERIZAR COM KATEX
+      const rendered = katex.renderToString(formula, {
+        throwOnError: false,
+        displayMode: false,
+        errorColor: '#cc0000',
+      });
+      
+      latexReplacements[placeholder] = `<span class="math-inline-katex">${rendered}</span>`;
+    } catch (err) {
+      console.error('[KaTeX Render Error]', formula, err);
+      // Fallback: mostrar fórmula crua com estilo de erro
+      latexReplacements[placeholder] = `<span class="math-inline-error" title="Erro de renderização">$$${formula}$$</span>`;
+    }
+    
     processed = processed.replace(match, placeholder);
   });
   
-  // Capturar $ ... $ (com espaços ou não)
-  const singleDollarMatches = processed.match(/\$\s*(.+?)\s*\$/g) || [];
+  // Capturar $ ... $ (single dollar - tratar como inline também)
+  const singleDollarMatches = processed.match(/\$([^$\n]+?)\$/g) || [];
   singleDollarMatches.forEach((match, idx) => {
-    // Evitar capturar $$ novamente
-    if (match.startsWith('$$')) return;
+    if (match.startsWith('$$')) return; // Evitar capturar $$ novamente
     const formula = match.replace(/\$/g, '').trim();
     const placeholder = `___LATEX_SINGLE_${idx}___`;
-    latexReplacements[placeholder] = `<span class="math-inline-rendered">${formula}</span>`;
+    
+    try {
+      const rendered = katex.renderToString(formula, {
+        throwOnError: false,
+        displayMode: false,
+        errorColor: '#cc0000',
+      });
+      latexReplacements[placeholder] = `<span class="math-inline-katex">${rendered}</span>`;
+    } catch (err) {
+      console.error('[KaTeX Render Error]', formula, err);
+      latexReplacements[placeholder] = `<span class="math-inline-error">$${formula}$</span>`;
+    }
+    
     processed = processed.replace(match, placeholder);
   });
   
   // 2. Processar markdown básico
   processed = processed
-    // Negrito com cor roxa
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-purple-700">$1</strong>')
-    // Itálico (só * simples, não **)
     .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em class="italic text-slate-700">$1</em>')
-    // Código inline
     .replace(/`(.+?)`/g, '<code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono text-purple-600">$1</code>')
-    // Quebras de linha
     .replace(/\n/g, '<br>');
   
-  // 3. Restaurar LaTeX processado
+  // 3. Restaurar LaTeX renderizado
   Object.entries(latexReplacements).forEach(([placeholder, html]) => {
     processed = processed.replace(placeholder, html);
   });
