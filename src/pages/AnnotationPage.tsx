@@ -692,15 +692,20 @@ const AnnotationPage = () => {
   if (isLoadingAnnotation) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Carregando anotação...</p>
+        <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40" />
+          <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40" />
+          <StudentBackgroundGrid />
+          
+          <div className="relative z-10 flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+              <p className="text-muted-foreground">Carregando anotação...</p>
+            </div>
           </div>
         </div>
-      </div>
-    </MainLayout>
-  );
-};
+      </MainLayout>
+    );
+  }
 
 export default AnnotationPage;

@@ -121,7 +121,6 @@ const LibraryPage = () => {
         <StudentBackgroundGrid />
         
         <div className="relative z-10 container mx-auto px-4 py-8">
-      <div className="container mx-auto px-6 py-8">
         {/* Header Section - ALINHADO */}
         <div className="mb-8 max-w-xl">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">
