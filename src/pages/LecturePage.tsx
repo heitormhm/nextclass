@@ -13,6 +13,7 @@ import { FlashcardModal } from '@/components/FlashcardModal';
 import { sanitizeHTML } from '@/utils/sanitize';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { StudentBackgroundGrid } from '@/components/ui/student-background-grid';
 
 interface TranscriptItem {
   timestamp: string;
@@ -418,7 +419,16 @@ Distúrbios do ritmo cardíaco que podem ser:
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6">
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+        {/* Grid (z-0) */}
+        <StudentBackgroundGrid />
+        
+        {/* Blobs (z-10) */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40 z-10" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40 z-10" />
+        
+        {/* Content (z-20) */}
+        <div className="relative z-20 container mx-auto px-4 py-6">
         {/* Two-Panel Layout */}
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
           {/* Left Panel - Video Player */}
@@ -733,12 +743,13 @@ Distúrbios do ritmo cardíaco que podem ser:
             </div>
           </div>
         </div>
-
+        
         {/* Flashcard Modal */}
         <FlashcardModal
           open={isFlashcardModalOpen}
           onOpenChange={setIsFlashcardModalOpen}
         />
+      </div>
       </div>
     </MainLayout>
   );

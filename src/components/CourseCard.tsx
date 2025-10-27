@@ -23,8 +23,8 @@ interface CourseCardProps {
 }
 
 const CourseCard = ({ course, type = 'lesson' }: CourseCardProps) => {
-  // Navigate to course page
-  const navigationPath = `/course/${course.id}`;
+  // Navigate to lecture page
+  const navigationPath = `/lecture/${course.id}`;
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return 'bg-success';
     if (progress >= 50) return 'bg-primary';
@@ -45,13 +45,13 @@ const CourseCard = ({ course, type = 'lesson' }: CourseCardProps) => {
         {/* Thumbnail Section */}
         <div className="relative aspect-video overflow-hidden flex-shrink-0">
           {/* Background Image */}
-          {course.thumbnail ? (
+          {course.thumbnail && course.thumbnail.startsWith('http') ? (
             <div 
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: `url(${course.thumbnail})` }}
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-400/30 to-purple-400/30" />
           )}
           
           {/* Semi-transparent overlay for text readability */}

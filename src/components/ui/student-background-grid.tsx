@@ -11,6 +11,8 @@ const STUDENT_GRID_COLORS = [
   '232, 121, 249',  // fuchsia-400
   '45, 212, 191',   // teal-400
   '251, 191, 36',   // amber-400
+  '59, 130, 246',   // blue-500
+  '139, 92, 246',   // violet-500
 ];
 
 export const StudentBackgroundGrid: React.FC<StudentBackgroundGridProps> = ({ className }) => {
@@ -28,14 +30,14 @@ export const StudentBackgroundGrid: React.FC<StudentBackgroundGridProps> = ({ cl
       
       (cell as HTMLElement).style.animationDelay = `${delay}s`;
       (cell as HTMLElement).style.animationDuration = `${duration}s`;
-      (cell as HTMLElement).style.fill = `rgba(${color}, 0.12)`;
+      (cell as HTMLElement).style.fill = `rgba(${color}, 0.15)`;
     });
   }, []);
   
   return (
     <svg
       ref={gridRef}
-      className={`absolute inset-0 w-full h-full opacity-70 pointer-events-none z-0 ${className || ''}`}
+      className={`absolute inset-0 w-full h-full opacity-90 pointer-events-none z-0 ${className || ''}`}
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="xMidYMid slice"
     >
@@ -50,8 +52,8 @@ export const StudentBackgroundGrid: React.FC<StudentBackgroundGridProps> = ({ cl
             width="60" 
             height="60" 
             fill="none" 
-            stroke="rgba(168, 85, 247, 0.06)" 
-            strokeWidth="0.5" 
+            stroke="rgba(232, 121, 249, 0.15)" 
+            strokeWidth="1" 
           />
         </pattern>
         
@@ -65,20 +67,28 @@ export const StudentBackgroundGrid: React.FC<StudentBackgroundGridProps> = ({ cl
       {/* Base grid pattern */}
       <rect width="100%" height="100%" fill="url(#student-grid-pattern)" />
       
-      {/* Animated cells - soft pulsing orbs */}
-      {Array.from({ length: 24 }).map((_, i) => (
-        <circle
-          key={i}
-          className="grid-cell"
-          cx={`${(i * 11 + 10) % 95}%`}
-          cy={`${(i * 13 + 15) % 90}%`}
-          r={Math.random() * 20 + 25}
-          style={{ 
-            animation: 'pulse-soft 5s ease-in-out infinite',
-            transformOrigin: 'center'
-          }}
-        />
-      ))}
+      {/* Animated cells - soft pulsing SQUARES */}
+      {Array.from({ length: 20 }).map((_, i) => {
+        const size = 40 + Math.random() * 30; // 40-70px
+        const x = (i * 17 + 5) % 90;
+        const y = (i * 13 + 10) % 85;
+        
+        return (
+          <rect
+            key={i}
+            className="grid-cell"
+            x={`${x}%`}
+            y={`${y}%`}
+            width={size}
+            height={size}
+            rx="8"
+            style={{ 
+              animation: 'pulse-soft 5s ease-in-out infinite',
+              transformOrigin: 'center'
+            }}
+          />
+        );
+      })}
       
       {/* Gradient overlay for depth */}
       <rect 

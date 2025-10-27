@@ -42,12 +42,12 @@ All colors MUST be HSL. Design tokens for consistent theming.
 
 @keyframes pulse-soft {
   0%, 100% {
-    opacity: 0.05;
+    opacity: 0.3;
     transform: scale(1);
   }
   50% {
-    opacity: 0.15;
-    transform: scale(1.02);
+    opacity: 0.6;
+    transform: scale(1.05);
   }
 }
 
