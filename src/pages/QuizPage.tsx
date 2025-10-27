@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import MainLayout from '@/components/MainLayout';
-import { StudentBackgroundRipple } from '@/components/ui/student-background-ripple';
+import { StudentBackgroundGrid } from '@/components/ui/student-background-grid';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -329,15 +329,15 @@ const QuizPage = () => {
   if (loading) {
     return (
       <MainLayout>
-        <div className="relative min-h-screen bg-slate-50 flex items-center justify-center">
-          {/* Gradient Blobs */}
-          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full filter blur-3xl opacity-50 animate-float" />
-          <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50 animate-float" style={{ animationDelay: '2s' }} />
-          <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40 animate-float" style={{ animationDelay: '4s' }} />
+        <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30 flex items-center justify-center">
+          {/* Grid PRIMEIRO (z-0) */}
+          <StudentBackgroundGrid className="z-0" />
           
-          <StudentBackgroundRipple />
+          {/* Gradient Blobs DEPOIS (z-10) */}
+          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
+          <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
           
-          <Card className="relative z-10 border-0 shadow-sm bg-white/20 backdrop-blur-xl p-8 animate-fade-in">
+          <Card className="relative z-20 border-0 shadow-sm bg-white/20 backdrop-blur-xl p-8 animate-fade-in">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
               <div className="text-center">
@@ -358,15 +358,15 @@ const QuizPage = () => {
     
     return (
       <MainLayout>
-        <div className="relative min-h-screen bg-slate-50">
-          {/* Gradient Blobs */}
-          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full filter blur-3xl opacity-50 animate-float" />
-          <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50 animate-float" style={{ animationDelay: '2s' }} />
-          <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40 animate-float" style={{ animationDelay: '4s' }} />
+        <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+          {/* Grid PRIMEIRO (z-0) */}
+          <StudentBackgroundGrid className="z-0" />
           
-          <StudentBackgroundRipple />
+          {/* Gradient Blobs DEPOIS (z-10) */}
+          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
+          <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
           
-          <div className="relative z-10 container mx-auto px-4 py-8">
+          <div className="relative z-20 container mx-auto px-4 py-8">
             <div className="max-w-3xl mx-auto space-y-6">
               {/* Score Card */}
               <Card className="border-0 shadow-sm bg-white/20 backdrop-blur-xl overflow-hidden animate-fade-in">
@@ -511,15 +511,15 @@ const QuizPage = () => {
 
   return (
     <MainLayout>
-      <div className="relative min-h-screen bg-slate-50">
-        {/* Gradient Blobs */}
-        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-300 to-purple-300 rounded-full filter blur-3xl opacity-50 animate-float" />
-        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full filter blur-3xl opacity-50 animate-float" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full filter blur-3xl opacity-40 animate-float" style={{ animationDelay: '4s' }} />
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+        {/* Grid PRIMEIRO (z-0) */}
+        <StudentBackgroundGrid className="z-0" />
         
-        <StudentBackgroundRipple />
+        {/* Gradient Blobs DEPOIS (z-10) */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
         
-        <div className="relative z-10 container mx-auto px-4 py-8">
+        <div className="relative z-20 container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center gap-4 mb-8 animate-fade-in">
               <Button 

@@ -116,11 +116,15 @@ const LibraryPage = () => {
   return (
     <MainLayout>
       <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40" />
-        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40" />
-        <StudentBackgroundGrid />
+        {/* Grid PRIMEIRO (z-0) */}
+        <StudentBackgroundGrid className="z-0" />
         
-        <div className="relative z-10 container mx-auto px-4 py-8">
+        {/* Gradient Blobs DEPOIS (z-10) */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
+        
+        {/* Conteúdo (z-20) */}
+        <div className="relative z-20 container mx-auto px-4 py-8">
         {/* Header Section - ALINHADO */}
         <div className="mb-8 max-w-xl">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">

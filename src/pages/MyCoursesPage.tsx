@@ -9,6 +9,7 @@ import CourseCard from '@/components/CourseCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { StudentBackgroundGrid } from '@/components/ui/student-background-grid';
 
 interface Course {
   id: string;
@@ -89,7 +90,16 @@ const MyCoursesPage = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+        {/* Grid PRIMEIRO (z-0) */}
+        <StudentBackgroundGrid className="z-0" />
+        
+        {/* Gradient Blobs DEPOIS (z-10) */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40 z-10 pointer-events-none" />
+        
+        {/* Conteúdo (z-20) */}
+        <div className="relative z-20 container mx-auto px-4 py-8">
         {/* Header Section */}
         <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Minhas Aulas</h1>
@@ -209,6 +219,7 @@ const MyCoursesPage = () => {
             </Card>
           )}
         </div>
+      </div>
     </MainLayout>
   );
 };

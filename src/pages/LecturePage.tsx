@@ -53,7 +53,7 @@ const LecturePage = () => {
           return;
         }
         
-        // Load lecture with teacher info and turma
+        // ✅ Load lecture WITHOUT foreign key lookup
         const { data: lecture, error: lectureError } = await supabase
           .from('lectures')
           .select(`
@@ -65,8 +65,8 @@ const LecturePage = () => {
             duration,
             raw_transcript,
             turma_id,
-            users!teacher_id(full_name),
-            turmas(nome_turma, periodo, curso)
+            teacher_id,
+            disciplina_id
           `)
           .eq('id', id)
           .eq('status', 'published')
@@ -78,6 +78,27 @@ const LecturePage = () => {
           navigate('/dashboard');
           return;
         }
+
+        // ✅ Fetch teacher info separately
+        const { data: teacher } = await supabase
+          .from('users')
+          .select('full_name')
+          .eq('id', lecture.teacher_id)
+          .single();
+
+        // ✅ Fetch turma info separately
+        const { data: turma } = await supabase
+          .from('turmas')
+          .select('nome_turma, periodo, curso')
+          .eq('id', lecture.turma_id)
+          .single();
+
+        // ✅ Merge data
+        const lectureWithRelations = {
+          ...lecture,
+          users: teacher ? { full_name: teacher.full_name } : null,
+          turmas: turma
+        };
         
         // Check if student is enrolled in the turma
       const { data: enrollment, error: enrollmentError } = await supabase
@@ -97,7 +118,7 @@ const LecturePage = () => {
         return;
       }
       
-      setLectureData(lecture);
+      setLectureData(lectureWithRelations);
       
       // Register view
       const { error: viewError } = await supabase

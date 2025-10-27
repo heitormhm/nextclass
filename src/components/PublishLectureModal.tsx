@@ -34,6 +34,9 @@ export const PublishLectureModal = ({
   const [selectedDisciplina, setSelectedDisciplina] = useState(initialDisciplinaId);
   const [turmas, setTurmas] = useState<any[]>([]);
   const [disciplinas, setDisciplinas] = useState<any[]>([]);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -89,6 +92,37 @@ export const PublishLectureModal = ({
     }
   };
 
+  const handleThumbnailUpload = async (file: File): Promise<string | null> => {
+    try {
+      setUploadingThumbnail(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${lectureId}_${Date.now()}.${fileExt}`;
+      const filePath = `lecture-thumbnails/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('library-materials')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('library-materials')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading thumbnail:', error);
+      toast({
+        title: 'Erro no upload',
+        description: 'Não foi possível fazer upload da imagem',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
   const handlePublish = async () => {
     // Validação mais rigorosa
     if (!title.trim()) {
@@ -115,12 +149,33 @@ export const PublishLectureModal = ({
       title: title.trim(),
       selectedTurma,
       selectedDisciplina: selectedDisciplina || 'none',
+      hasThumbnail: !!thumbnailFile,
       timestamp: new Date().toISOString()
     });
 
     setPublishing(true);
 
     try {
+      // Upload thumbnail if exists
+      let thumbnailUrl = '';
+      if (thumbnailFile) {
+        thumbnailUrl = await handleThumbnailUpload(thumbnailFile) || '';
+      }
+
+      // Fetch current structured_content
+      const { data: currentLecture } = await supabase
+        .from('lectures')
+        .select('structured_content')
+        .eq('id', lectureId)
+        .single();
+
+      const currentContent = (currentLecture?.structured_content as Record<string, any>) || {};
+      
+      const updatedContent = {
+        ...currentContent,
+        thumbnail: thumbnailUrl || currentContent.thumbnail || ''
+      };
+
       // Update lecture - class_id removed to fix FK constraint error
       const { error } = await supabase
         .from('lectures')
@@ -128,6 +183,7 @@ export const PublishLectureModal = ({
           title: title.trim(),
           turma_id: selectedTurma,
           disciplina_id: selectedDisciplina || null,
+          structured_content: updatedContent,
           status: 'published',
           updated_at: new Date().toISOString()
         })
@@ -270,10 +326,62 @@ export const PublishLectureModal = ({
                   </SelectItem>
                 )}
               </SelectContent>
-            </Select>
-          </div>
+          </Select>
+        </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+        {/* Thumbnail Upload */}
+        <div className="space-y-2">
+          <Label>Imagem de Capa (Thumbnail) - Opcional</Label>
+          <div className="border-2 border-dashed rounded-lg p-4">
+            {thumbnailPreview ? (
+              <div className="relative">
+                <img 
+                  src={thumbnailPreview} 
+                  alt="Preview" 
+                  className="w-full h-32 object-cover rounded"
+                />
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={() => {
+                    setThumbnailFile(null);
+                    setThumbnailPreview('');
+                  }}
+                >
+                  Remover
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setThumbnailFile(file);
+                      setThumbnailPreview(URL.createObjectURL(file));
+                    }
+                  }}
+                  className="hidden"
+                  id="thumbnail-upload"
+                />
+                <Label 
+                  htmlFor="thumbnail-upload"
+                  className="cursor-pointer inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  📷 Adicionar imagem de capa
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recomendado: 1280x720px (JPG, PNG)
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <p className="text-sm text-blue-800 dark:text-blue-200">
               <strong>Atenção:</strong> Ao publicar, a aula ficará imediatamente disponível 
               para todos os alunos matriculados na turma selecionada.
@@ -281,11 +389,16 @@ export const PublishLectureModal = ({
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={publishing}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={publishing || uploadingThumbnail}>
               Cancelar
             </Button>
-            <Button onClick={handlePublish} disabled={publishing || !title || !selectedTurma}>
-              {publishing ? (
+            <Button onClick={handlePublish} disabled={publishing || uploadingThumbnail || !title || !selectedTurma}>
+              {uploadingThumbnail ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Enviando imagem...
+                </>
+              ) : publishing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Publicando...
