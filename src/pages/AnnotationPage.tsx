@@ -708,4 +708,358 @@ const AnnotationPage = () => {
     );
   }
 
+  // Main annotation editor
+  return (
+    <MainLayout>
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-purple-50/30">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-100/40 to-purple-100/40 rounded-full filter blur-3xl opacity-40" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-gradient-to-br from-purple-100/40 to-teal-100/40 rounded-full filter blur-3xl opacity-40" />
+        <StudentBackgroundGrid />
+        
+        <div className="relative z-10 container mx-auto px-4 py-6 max-w-6xl">
+          <Card className="shadow-lg">
+            <CardHeader className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/annotations')}
+                  className="gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Voltar
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUndo}
+                    disabled={historyIndex <= 0}
+                    className="gap-2"
+                  >
+                    <Undo className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRedo}
+                    disabled={historyIndex >= history.length - 1}
+                    className="gap-2"
+                  >
+                    <Redo className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleVoiceToggle}
+                    className={cn("gap-2", isRecording && "bg-red-100 text-red-600 border-red-300")}
+                  >
+                    <Mic className={cn("h-4 w-4", isRecording && "animate-pulse")} />
+                    {isRecording ? 'Parar' : 'Voz'}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="gap-2"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Salvar
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    onClick={handleSaveAndExit}
+                    disabled={isSaving}
+                    className="gap-2"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                    Salvar e Sair
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Título da anotação..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="flex-1 text-lg font-semibold"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={generateTitleWithAI}
+                    disabled={isGeneratingTitle || !content.trim()}
+                    className="gap-2 whitespace-nowrap"
+                  >
+                    {isGeneratingTitle ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Gerar Título
+                  </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-2 items-center">
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="gap-1">
+                        {tag}
+                        <X
+                          className="h-3 w-3 cursor-pointer hover:text-destructive"
+                          onClick={() => handleRemoveTag(tag)}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Adicionar tag..."
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                      className="w-32"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddTag}
+                      disabled={!tagInput.trim()}
+                    >
+                      <Tag className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={generateTagsWithAI}
+                      disabled={isGeneratingTags || !content.trim()}
+                      className="gap-2"
+                    >
+                      {isGeneratingTags ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {suggestedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 items-center pt-2 border-t">
+                    <span className="text-sm text-muted-foreground">Sugestões:</span>
+                    {suggestedTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="outline"
+                        className="cursor-pointer hover:bg-accent"
+                        onClick={() => {
+                          if (!tags.includes(tag)) {
+                            setTags([...tags, tag]);
+                          }
+                        }}
+                      >
+                        + {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2 border-t">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      IA
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuLabel>Melhorar com IA</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleAIAction('improve')}>
+                      Melhorar Texto
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAIAction('simplify')}>
+                      Simplificar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAIAction('expand')}>
+                      Expandir
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAIAction('correct')}>
+                      Corrigir Gramática
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => executeCommand('bold')}
+                  className="gap-2"
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => executeCommand('italic')}
+                  className="gap-2"
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => executeCommand('underline')}
+                  className="gap-2"
+                >
+                  <Underline className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleHighlight}
+                  className="gap-2"
+                >
+                  <Highlighter className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => executeCommand('insertUnorderedList')}
+                  className="gap-2"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => executeCommand('insertOrderedList')}
+                  className="gap-2"
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleImageUpload}
+                  className="gap-2"
+                >
+                  <ImagePlus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddTextbox}
+                  className="gap-2"
+                >
+                  <Type className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              {isProcessingAI && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  <span className="text-sm text-blue-600">Processando com IA...</span>
+                </div>
+              )}
+
+              <div
+                ref={editorRef}
+                contentEditable
+                onInput={handleInput}
+                className="min-h-[500px] p-6 border-2 border-border rounded-lg focus:outline-none focus:border-primary bg-background prose prose-slate max-w-none"
+                style={{
+                  whiteSpace: 'pre-wrap',
+                  wordWrap: 'break-word',
+                }}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Salvar Anotação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Título</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Tags</Label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {dialogTags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="gap-1">
+                    {tag}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setDialogTags(dialogTags.filter((t) => t !== tag))}
+                    />
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Adicionar tag..."
+                  value={dialogTagInput}
+                  onChange={(e) => setDialogTagInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && dialogTagInput.trim()) {
+                      setDialogTags([...dialogTags, dialogTagInput.trim()]);
+                      setDialogTagInput('');
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (dialogTagInput.trim()) {
+                      setDialogTags([...dialogTags, dialogTagInput.trim()]);
+                      setDialogTagInput('');
+                    }
+                  }}
+                >
+                  <Tag className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleFinalSave} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </MainLayout>
+  );
+};
+
 export default AnnotationPage;
