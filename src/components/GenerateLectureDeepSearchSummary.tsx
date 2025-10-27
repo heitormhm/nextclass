@@ -41,6 +41,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   const hasProcessedCompletion = useRef(false);
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
+  const abortPolling = useRef(false);
   
   // Use refs to avoid re-creating the effect when these change
   const onUpdateRef = useRef(onUpdate);
@@ -53,6 +54,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
 
   // Helper function to stop polling
   const stopPolling = () => {
+    abortPolling.current = true;
     if (pollInterval.current) {
       console.log('🛑 [Deep Search] Stopping polling explicitly');
       clearInterval(pollInterval.current);
@@ -76,8 +78,8 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
     console.log('🔔 [Deep Search] Subscribing to job:', jobId);
 
     const handleJobUpdate = (job: any) => {
-      if (!isMounted.current) {
-        console.log('⚠️ [Deep Search] Component unmounted, ignoring update');
+      if (!isMounted.current || abortPolling.current) {
+        console.log('⚠️ [Deep Search] Polling aborted, ignoring update');
         return;
       }
       
@@ -98,6 +100,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
           return;
         }
         hasProcessedCompletion.current = true;
+        abortPolling.current = true;
         
         console.log('✅ [Deep Search] Job COMPLETED!');
         
@@ -192,6 +195,7 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
     setError(null);
     setProgressMessage('');
     hasProcessedCompletion.current = false;
+    abortPolling.current = false;
     
     try {
       setIsGenerating(true);

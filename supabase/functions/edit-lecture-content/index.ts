@@ -26,50 +26,62 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const systemPrompt = `Você é Mia, assistente especializada em edição de material didático.
+    const systemPrompt = `Você é Mia, especialista em criar materiais visuais educacionais para engenharia.
 
-TAREFA: Editar o conteúdo com base nas instruções do professor.
+TAREFA: Adicionar gráficos Mermaid, tabelas e diagramas ao material didático.
 
-FORMATO DE RESPOSTA OBRIGATÓRIO (JSON válido):
-{
-  "response": "Breve descrição do que foi alterado (max 100 caracteres)",
-  "updatedContent": {
-    "material_didatico": "conteúdo atualizado aqui com gráficos Mermaid integrados"
-  }
-}
+REQUISITOS:
+1. Adicione NO MÍNIMO 2 gráficos Mermaid relevantes
+2. Use diferentes tipos: flowchart, sequence diagram, graph
+3. Posicione gráficos após seções explicativas
+4. Mantenha TODO o conteúdo original (não remova nada)
+5. Use sintaxe Mermaid válida
 
-REGRAS CRÍTICAS DE FORMATAÇÃO:
-1. SEMPRE retorne JSON válido no formato acima
-2. NUNCA adicione texto fora do JSON
-3. NUNCA use markdown code blocks (sem \`\`\`json)
-4. Para gráficos Mermaid, use blocos: \`\`\`mermaid\\ngraph TD\\nA-->B\`\`\`
-5. Use \\n para quebras de linha dentro do JSON
-6. Escape aspas duplas dentro do conteúdo: \\"
-7. Mantenha o conteúdo original e adicione elementos visuais
-8. Use no mínimo 2 diagramas Mermaid relevantes
+EXEMPLO DE GRÁFICO MERMAID:
+\`\`\`mermaid
+graph TD
+    A[Entrada de Calor Q] --> B{Processo Termodinâmico}
+    B --> C[Trabalho Realizado W]
+    B --> D[Variação de Energia Interna ΔU]
+    C --> E[ΔU = Q - W]
+    D --> E
+\`\`\`
 
-IMPORTANTE: 
-- Sua resposta DEVE ser JSON puro válido
-- Inicie com { e termine com }
-- Use escape correto para todos os caracteres especiais`;
+Use a função 'update_material' para retornar o conteúdo atualizado.`;
 
-    const userPrompt = `Seção: ${sectionTitle}
-
-Conteúdo Atual:
-${currentContent}
-
-Instrução de Edição:
-${editInstruction}
-
-Aplique a edição solicitada e retorne o resultado no formato especificado.`;
-
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...(conversationHistory || []),
-      { role: 'user', content: userPrompt }
-    ];
+    // Define tool for structured output
+    const updateMaterialTool = {
+      type: "function",
+      function: {
+        name: "update_material",
+        description: "Retorna o material didático atualizado com gráficos Mermaid integrados",
+        parameters: {
+          type: "object",
+          properties: {
+            response: {
+              type: "string",
+              description: "Breve descrição das mudanças (max 150 chars)"
+            },
+            updatedContent: {
+              type: "object",
+              properties: {
+                material_didatico: {
+                  type: "string",
+                  description: "Material completo com gráficos Mermaid adicionados"
+                }
+              },
+              required: ["material_didatico"]
+            }
+          },
+          required: ["response", "updatedContent"]
+        }
+      }
+    };
 
     console.log('Calling Lovable AI for content editing...');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s timeout
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -78,80 +90,48 @@ Aplique a edição solicitada e retorne o resultado no formato especificado.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages,
+        model: 'google/gemini-2.5-pro',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: `Material atual:\n\n${currentContent}\n\nInstrução: ${editInstruction}`
+          }
+        ],
+        tools: [updateMaterialTool],
+        tool_choice: { type: "function", function: { name: "update_material" } },
+        max_completion_tokens: 16000,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('Lovable AI error:', aiResponse.status, errorText);
-      throw new Error(`Lovable AI request failed: ${aiResponse.status}`);
+      console.error('[Edit Content] AI API error:', aiResponse.status, errorText.substring(0, 200));
+      throw new Error(`AI API error: ${aiResponse.status}`);
     }
 
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content;
+    const data = await aiResponse.json();
+    const message = data.choices?.[0]?.message;
 
-    if (!aiContent) {
-      throw new Error('No content in AI response');
+    if (!message?.tool_calls || message.tool_calls.length === 0) {
+      console.error('[Edit Content] No tool calls in response');
+      throw new Error('AI did not call update_material function');
     }
 
-    // Parse the JSON response
-    let result;
-    try {
-      // Remover markdown code blocks se existirem
-      let cleanedContent = aiContent.trim();
-      
-      // Remover ```json ... ``` ou ``` ... ```
-      const jsonMatch = cleanedContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
-        cleanedContent = jsonMatch[1].trim();
-      }
-      
-      // Tentar encontrar JSON válido
-      const jsonStart = cleanedContent.indexOf('{');
-      const jsonEnd = cleanedContent.lastIndexOf('}');
-      
-      if (jsonStart === -1 || jsonEnd === -1 || jsonStart > jsonEnd) {
-        throw new Error('No valid JSON structure found (missing { or })');
-      }
-      
-      cleanedContent = cleanedContent.substring(jsonStart, jsonEnd + 1);
-      
-      // Tentar parsing incremental para detectar onde falha
-      console.log('[Edit Content] Attempting to parse JSON...');
-      console.log('[Edit Content] JSON length:', cleanedContent.length);
-      
-      try {
-        result = JSON.parse(cleanedContent);
-      } catch (parseError1) {
-        // Se falhar, tentar remover o último caractere (pode estar truncado)
-        console.warn('[Edit Content] First parse attempt failed, trying without last char...');
-        try {
-          result = JSON.parse(cleanedContent.slice(0, -1) + '}');
-        } catch (parseError2) {
-          // Se ainda falhar, logar mais detalhes
-          console.error('[Edit Content] ❌ Both parse attempts failed');
-          console.error('[Edit Content] Last 200 chars:', cleanedContent.slice(-200));
-          throw parseError1;
-        }
-      }
-      
-      // Validar estrutura
-      if (!result.updatedContent || !result.updatedContent.material_didatico) {
-        throw new Error('Invalid response structure: missing updatedContent.material_didatico');
-      }
-      
-      console.log('✅ Successfully parsed AI response');
-      console.log('[Edit Content] Response description:', result.response);
-      console.log('[Edit Content] Material length:', result.updatedContent.material_didatico.length);
-      
-    } catch (parseError) {
-      console.error('❌ Failed to parse AI response:', parseError);
-      console.error('📋 First 500 chars:', aiContent.substring(0, 500));
-      console.error('📋 Last 500 chars:', aiContent.substring(Math.max(0, aiContent.length - 500)));
-      
-      throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+    // Extract result from tool call
+    const toolCall = message.tool_calls[0];
+    const result = JSON.parse(toolCall.function.arguments);
+
+    console.log('[Edit Content] ✅ Tool call successful');
+    console.log('[Edit Content] Response:', result.response);
+    console.log('[Edit Content] Material length:', result.updatedContent?.material_didatico?.length || 0);
+
+    // Validate structure
+    if (!result.updatedContent?.material_didatico) {
+      throw new Error('Invalid tool response: missing updatedContent.material_didatico');
     }
 
     // Update lecture in database if content was modified
@@ -194,6 +174,14 @@ Aplique a edição solicitada e retorne o resultado no formato especificado.`;
     );
 
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('Error editing content: timeout');
+      return new Response(
+        JSON.stringify({ error: 'AI request timeout (90s). Material muito extenso.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     console.error('Error editing content:', error);
     return new Response(
       JSON.stringify({ 

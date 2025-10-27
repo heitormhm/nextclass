@@ -146,14 +146,16 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
           console.log(`[Job ${job.id}] ✅ Graphics added automatically, updated length: ${editData.updatedContent.material_didatico.length}`);
           await updateJobProgress(supabase, job.id, 0.95, 'Gráficos adicionados com sucesso...');
         } else {
-          console.warn(`[Job ${job.id}] ⚠️ Graphics enrichment returned invalid structure, using original report`);
+          console.warn(`[Job ${job.id}] ⚠️ Graphics enrichment returned invalid structure`);
           await saveReportToLecture(supabase, lectureId, report, job.id);
+          await updateJobProgress(supabase, job.id, 0.95, 'Concluído sem gráficos automáticos');
         }
       } else {
         const errorText = await editResponse.text();
-        console.warn(`[Job ${job.id}] ⚠️ Graphics enrichment failed (${editResponse.status}): ${errorText}`);
-        console.log(`[Job ${job.id}] Falling back to original report without graphics`);
+        console.warn(`[Job ${job.id}] ⚠️ Graphics enrichment failed (${editResponse.status}): ${errorText.substring(0, 200)}`);
+        
         await saveReportToLecture(supabase, lectureId, report, job.id);
+        await updateJobProgress(supabase, job.id, 0.95, 'Concluído (gráficos não adicionados)');
       }
     } catch (graphicsError) {
       console.error(`[Job ${job.id}] ❌ Error adding graphics:`, graphicsError);
@@ -296,7 +298,7 @@ async function generateEducationalReport(
     .join('\n\n');
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s timeout
 
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
