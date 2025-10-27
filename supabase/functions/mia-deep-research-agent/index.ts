@@ -24,8 +24,9 @@ async function executeWebSearch(
   console.log(`  → Executing Brave Search for: "${query}"`);
   
   const url = new URL('https://api.search.brave.com/res/v1/web/search');
-  // ✅ FASE 4: Priorizar domínios acadêmicos
-  const academicQuery = `${query} (site:ieee.org OR site:sciencedirect.com OR site:springer.com OR site:.edu OR site:researchgate.net)`;
+  // ✅ FASE 4: Priorizar domínios acadêmicos (sintaxe corrigida sem parênteses)
+  const academicSites = 'site:ieee.org OR site:sciencedirect.com OR site:springer.com OR site:.edu OR site:researchgate.net';
+  const academicQuery = `${query} ${academicSites}`;
   url.searchParams.set('q', academicQuery);
   url.searchParams.set('count', numResults.toString());
   url.searchParams.set('search_lang', 'en');
