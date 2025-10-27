@@ -51,7 +51,14 @@ const CourseCard = ({ course, type = 'lesson' }: CourseCardProps) => {
               style={{ backgroundImage: `url(${course.thumbnail})` }}
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-400/30 to-purple-400/30" />
+            <>
+              {/* Gradiente padrão quando não há thumbnail */}
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-400/30 to-purple-400/30" />
+              {/* Indicador visual de que não há thumbnail */}
+              <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-foreground-muted">
+                📷 Sem capa
+              </div>
+            </>
           )}
           
           {/* Semi-transparent overlay for text readability */}

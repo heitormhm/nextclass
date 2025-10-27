@@ -50,6 +50,18 @@ const MyCoursesPage = () => {
       }
 
       if (data?.classes) {
+        console.log('[MyCoursesPage] 🔍 DEBUG - Aulas recebidas:', data.classes);
+        console.log('[MyCoursesPage] Número de aulas:', data.classes.length);
+        data.classes.forEach((course: any, index: number) => {
+          console.log(`[MyCoursesPage] Aula ${index + 1}:`, {
+            id: course.id,
+            title: course.title,
+            thumbnail: course.thumbnail,
+            instructor: course.instructor,
+            topic: course.topic,
+            turmaId: course.turmaId
+          });
+        });
         setCourses(data.classes);
       }
     } catch (error) {
@@ -194,15 +206,24 @@ const MyCoursesPage = () => {
               ))}
             </div>
           ) : sortedCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sortedCourses.map((course) => (
-                <CourseCard 
-                  key={course.id} 
-                  course={course} 
-                  type="lesson"
-                />
-              ))}
-            </div>
+            <>
+              <div className="mb-4 text-sm text-foreground-muted">
+                Mostrando {sortedCourses.length} aula(s)
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sortedCourses.map((course) => {
+                  console.log('[MyCoursesPage] Renderizando card:', course.id);
+                  return (
+                    <CourseCard 
+                      key={course.id} 
+                      course={course} 
+                      type="lesson"
+                    />
+                  );
+                })}
+              </div>
+            </>
+          
           ) : (
             <Card className="p-12 text-center border-0 shadow-sm">
               <div className="text-foreground-muted">

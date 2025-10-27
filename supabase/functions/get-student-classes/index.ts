@@ -147,10 +147,24 @@ serve(async (req) => {
             thumbnail = sectionWithImage.image;
           }
         }
-        // Priority 4: If has flashcards, use default indicator
-        else if (lecture.structured_content.flashcards && lecture.structured_content.flashcards.length > 0) {
-          thumbnail = 'flashcard-default';
-        }
+      }
+
+      // NOVO: Se não há thumbnail, usar imagem padrão baseada na disciplina
+      if (!thumbnail) {
+        const disciplinaNome = disciplinaMap.get(lecture.disciplina_id) || '';
+        
+        // Mapeamento de disciplinas para imagens padrão
+        const disciplinaImages: Record<string, string> = {
+          'Termodinâmica': 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800',
+          'Mecânica dos Fluidos': 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800',
+          'Resistência dos Materiais': 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800',
+          'Circuitos Elétricos': 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800',
+          'Estruturas': 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800',
+          // Fallback genérico para Engenharia
+          'default': 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800'
+        };
+        
+        thumbnail = disciplinaImages[disciplinaNome] || disciplinaImages['default'];
       }
       
       return {

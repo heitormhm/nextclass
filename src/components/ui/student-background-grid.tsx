@@ -19,20 +19,22 @@ export const StudentBackgroundGrid: React.FC<StudentBackgroundGridProps> = ({ cl
   const gridRef = useRef<SVGSVGElement>(null);
   
   useEffect(() => {
-    // FASE 6: Remover animações pulsantes - apenas aplicar cor estática
+    // Grid estática - sem animações, opacidade ultra-sutil
     const cells = gridRef.current?.querySelectorAll('.grid-cell');
     if (!cells) return;
     
     cells.forEach((cell, index) => {
       const color = STUDENT_GRID_COLORS[index % STUDENT_GRID_COLORS.length];
-      (cell as HTMLElement).style.fill = `rgba(${color}, 0.08)`; // Opacidade reduzida e estática
+      (cell as HTMLElement).style.fill = `rgba(${color}, 0.03)`; // Ultra-sutil
+      (cell as HTMLElement).style.transition = 'none';
+      (cell as HTMLElement).style.opacity = '0.5';
     });
   }, []);
   
   return (
     <svg
       ref={gridRef}
-      className={`absolute inset-0 w-full h-full opacity-90 pointer-events-none z-0 ${className || ''}`}
+      className={`absolute inset-0 w-full h-full opacity-60 pointer-events-none z-0 ${className || ''}`}
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="xMidYMid slice"
     >

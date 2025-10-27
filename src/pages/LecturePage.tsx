@@ -76,7 +76,6 @@ const LecturePage = () => {
             status
           `)
           .eq('id', id)
-          .eq('status', 'published')
           .maybeSingle();
         
         console.log('[LecturePage] 📊 Lecture query result:', {
@@ -93,14 +92,25 @@ const LecturePage = () => {
             hint: lectureError.hint
           });
           toast.error('Erro ao carregar aula');
-          navigate('/dashboard');
+          navigate('/courses');
           return;
         }
 
         if (!lecture) {
-          console.error('[LecturePage] ❌ Lecture not found or not published:', { lectureId: id });
-          toast.error('Aula não encontrada ou ainda não publicada');
-          navigate('/dashboard');
+          console.error('[LecturePage] ❌ Lecture not found in database:', { lectureId: id });
+          toast.error('Aula não encontrada no banco de dados');
+          navigate('/courses');
+          return;
+        }
+
+        // Verificar se está publicada APÓS buscar a aula
+        if (lecture.status !== 'published') {
+          console.error('[LecturePage] ❌ Lecture not published:', {
+            lectureId: id,
+            status: lecture.status
+          });
+          toast.error('Esta aula ainda não foi publicada pelo professor');
+          navigate('/courses');
           return;
         }
 
@@ -142,31 +152,31 @@ const LecturePage = () => {
           turmaId: lecture.turma_id
         });
 
-        const { data: enrollments, error: enrollmentError } = await supabase
+        const { data: enrollment, error: enrollmentError } = await supabase
           .from('turma_enrollments')
-          .select('*')
+          .select('id')
           .eq('aluno_id', user.id)
-          .eq('turma_id', lecture.turma_id);
+          .eq('turma_id', lecture.turma_id)
+          .maybeSingle();
       
         console.log('[LecturePage] 📋 Enrollment check result:', {
-          enrollments,
+          enrollment,
           error: enrollmentError,
-          hasEnrollment: enrollments && enrollments.length > 0,
-          enrollmentCount: enrollments?.length || 0
+          hasEnrollment: !!enrollment
         });
 
         if (enrollmentError) {
           console.error('[LecturePage] ❌ Error checking enrollment:', enrollmentError);
         }
         
-        if (!enrollments || enrollments.length === 0) {
+        if (!enrollment) {
           console.error('[LecturePage] ❌ No enrollment found for user');
           toast.error('Você não tem acesso a esta aula. Verifique sua matrícula.');
-          navigate('/dashboard');
+          navigate('/courses');
           return;
         }
 
-        console.log('[LecturePage] ✅ Access granted');
+        console.log('[LecturePage] ✅ Access granted - Loading lecture data');
 
         // ✅ Merge data
         const lectureWithRelations = {
