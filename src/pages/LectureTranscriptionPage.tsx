@@ -1507,15 +1507,18 @@ const LectureTranscriptionPage = () => {
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="resumo" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-0.5 gap-1">
-              <TabsTrigger value="resumo" className="text-sm sm:text-base data-[state=active]:shadow-none">
-                <FileText className="h-4 w-4 mr-2" />
-                Transcrição da Aula
-              </TabsTrigger>
+                      <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 gap-1 h-full min-h-[52px]">
+                        <TabsTrigger 
+                          value="resumo" 
+                          className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Transcrição da Aula
+                        </TabsTrigger>
                         <TabsTrigger 
                           value="material" 
                           disabled={!structuredContent.material_didatico}
-                          className="text-sm sm:text-base data-[state=active]:shadow-none"
+                          className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center"
                         >
                           <Brain className="h-4 w-4 mr-2" />
                           <span className="hidden sm:inline">Material Didático</span>

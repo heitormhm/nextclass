@@ -48,6 +48,32 @@ DIRETRIZES:
 6. Formule 9 a 11 perguntas de múltipla escolha que apresentem cenários práticos ou problemas que exijam aplicação dos conceitos
 7. Crie flashcards (termo e definição) baseados nos conceitos-chave
 
+**DIAGRAMAS MERMAID - REGRAS CRÍTICAS (SE INCLUIR DIAGRAMAS NO MATERIAL DIDÁTICO):**
+- Use APENAS sintaxe Mermaid ESTRITAMENTE válida (flowchart TD/LR, graph TD/LR, sequenceDiagram, stateDiagram-v2)
+- Use APENAS setas ASCII simples: --> (direita), <-- (esquerda), <--> (ambos), ==> (bold)
+- NUNCA use setas Unicode: ❌ → ← ↔ ⇒ ⇐ ⇔
+- Use APENAS IDs de nós alfanuméricos SIMPLES: A, B, C, Node1, Estado1 (SEM espaços, SEM caracteres especiais)
+- LABELS devem conter APENAS texto ASCII básico (A-Z, a-z, 0-9, espaços)
+- REMOVA parênteses (), aspas "", colchetes [] do CONTEÚDO de labels
+- SUBSTITUA letras gregas por nomes: Δ→Delta, π→pi, α→alpha, θ→theta
+- REMOVA caracteres especiais: &, <, >, ", '
+- TESTE mentalmente o diagrama antes de gerar
+- Se houver QUALQUER dúvida sobre a sintaxe, NÃO inclua o diagrama
+
+**EXEMPLO CORRETO:**
+\`\`\`mermaid
+flowchart TD
+    A[Sistema Inicial] --> B{Verifica Estado}
+    B -->|Sim| C[Processa Delta T]
+    B -->|Nao| D[Aguarda]
+\`\`\`
+
+**EXEMPLO INCORRETO (NÃO FAZER):**
+\`\`\`mermaid
+graph TD
+    A[Sistema (Q→W)] → B{Δ Estado}
+\`\`\`
+
 IMPORTANTE: Retorne APENAS o JSON, sem texto adicional antes ou depois.`;
 
     const userPrompt = `Analise esta transcrição de aula e gere material didático estruturado:
@@ -119,11 +145,63 @@ Retorne um JSON com esta estrutura exata:
       throw new Error('Failed to parse AI response as JSON');
     }
 
+    console.log('Parsed response:', structuredContent);
+
+    // Validate and clean Mermaid diagrams
+    function validateAndCleanMermaidDiagrams(markdown: string): string {
+      console.log('[Mermaid Validation] Starting validation...');
+      
+      const mermaidBlockRegex = /```mermaid\s*\n([\s\S]*?)```/g;
+      const problematicCharsRegex = /[→←↔⇒⇐⇔ΔΣαβγθλμπσω&<>"']/;
+      
+      let cleanedMarkdown = markdown;
+      let blocksFound = 0;
+      let blocksRemoved = 0;
+      
+      cleanedMarkdown = cleanedMarkdown.replace(mermaidBlockRegex, (match, code) => {
+        blocksFound++;
+        
+        // Validação 1: Verifica caracteres problemáticos
+        if (problematicCharsRegex.test(code)) {
+          console.warn(`[Mermaid Validation] Block ${blocksFound} contains problematic characters. Removing.`);
+          blocksRemoved++;
+          return '';
+        }
+        
+        // Validação 2: Verifica tipo de diagrama válido
+        const validDiagramTypes = /^(flowchart|graph|sequenceDiagram|stateDiagram-v2|classDiagram)/m;
+        if (!validDiagramTypes.test(code)) {
+          console.warn(`[Mermaid Validation] Block ${blocksFound} has invalid diagram type. Removing.`);
+          blocksRemoved++;
+          return '';
+        }
+        
+        // Validação 3: Verifica se tem conteúdo mínimo
+        if (code.trim().length < 20) {
+          console.warn(`[Mermaid Validation] Block ${blocksFound} is too short. Removing.`);
+          blocksRemoved++;
+          return '';
+        }
+        
+        console.log(`[Mermaid Validation] Block ${blocksFound} passed validation ✅`);
+        return match;
+      });
+      
+      console.log(`[Mermaid Validation] Summary: ${blocksFound} blocks found, ${blocksRemoved} removed, ${blocksFound - blocksRemoved} kept`);
+      
+      return cleanedMarkdown;
+    }
+
     // Update lecture with structured content
     const { error: updateError } = await supabase
       .from('lectures')
       .update({ 
-        structured_content: structuredContent,
+        structured_content: {
+          ...structuredContent,
+          material_didatico: structuredContent.material_didatico 
+            ? validateAndCleanMermaidDiagrams(structuredContent.material_didatico)
+            : null
+        },
         status: 'ready',
         updated_at: new Date().toISOString()
       })

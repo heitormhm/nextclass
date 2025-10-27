@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
-import { Button } from './ui/button';
-import { RefreshCw, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { MermaidErrorBoundary } from './MermaidErrorBoundary';
-import { useToast } from '@/hooks/use-toast';
 
 interface MermaidDiagramProps {
   code: string;
@@ -94,8 +90,6 @@ const sanitizeMermaidCode = (code: string): string => {
 export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagramProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const { toast } = useToast();
 
   // Inject CSS to forcefully hide mermaid error messages
   useEffect(() => {
@@ -196,100 +190,6 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
     renderDiagram();
   }, [code]);
 
-  const handleRegenerateDiagram = async () => {
-    setIsRegenerating(true);
-    
-    const MAX_ATTEMPTS = 3;
-    const STRATEGIES = [
-      'Reescreva o diagrama do zero seguindo sintaxe Mermaid estrita',
-      'Corrija apenas os erros de sintaxe mantendo a estrutura',
-      'Simplifique o diagrama removendo elementos problemáticos'
-    ];
-    
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      try {
-        console.log(`[Mermaid] 🔄 Attempt ${attempt + 1}/${MAX_ATTEMPTS} using strategy: ${STRATEGIES[attempt]}`);
-        
-        const { data, error: funcError } = await supabase.functions.invoke('fix-mermaid-diagram', {
-          body: {
-            brokenCode: code,
-            context: `${title} - ${description}`,
-            strategy: STRATEGIES[attempt],
-            attempt: attempt + 1
-          }
-        });
-
-        if (funcError) {
-          console.error(`[Mermaid] ❌ Attempt ${attempt + 1} failed:`, funcError);
-          continue;
-        }
-
-        if (!data?.fixedCode) {
-          console.warn(`[Mermaid] ⚠️ Attempt ${attempt + 1} returned no code`);
-          continue;
-        }
-
-        console.log(`[Mermaid] ✅ Attempt ${attempt + 1} returned code`);
-        
-        const sanitizedFixed = sanitizeMermaidCode(data.fixedCode);
-        
-        if (!sanitizedFixed || sanitizedFixed.length < 10) {
-          console.warn(`[Mermaid] ⚠️ Attempt ${attempt + 1} sanitization failed`);
-          continue;
-        }
-        
-        mermaid.initialize({ 
-          theme: 'default',
-          logLevel: 'fatal',
-          startOnLoad: false,
-          securityLevel: 'loose',
-        });
-        
-        const uniqueId = `mermaid-fix-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        const renderPromise = mermaid.render(uniqueId, sanitizedFixed);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Render timeout')), 5000)
-        );
-        
-        const result = await Promise.race([renderPromise, timeoutPromise]) as { svg: string };
-        
-        if (result.svg.includes('Syntax error') || result.svg.includes('Parse error') || result.svg.includes('error-icon')) {
-          console.warn(`[Mermaid] ⚠️ Attempt ${attempt + 1} rendered with errors`);
-          continue;
-        }
-        
-        if (ref.current) {
-          ref.current.innerHTML = result.svg;
-        }
-        
-        setError(null);
-        
-        toast({
-          title: 'Diagrama corrigido! ✅',
-          description: `Resolvido usando estratégia ${attempt + 1}`,
-        });
-        
-        setIsRegenerating(false);
-        return;
-        
-      } catch (err) {
-        console.error(`[Mermaid] ❌ Attempt ${attempt + 1} exception:`, err);
-      }
-    }
-    
-    console.error('[Mermaid] ❌ All attempts failed');
-    
-    toast({
-      title: 'Não foi possível corrigir 😔',
-      description: 'Este diagrama possui erros muito complexos. A visualização ficará simplificada.',
-      variant: 'destructive',
-    });
-    
-    setError('hidden');
-    setIsRegenerating(false);
-  };
-
   return (
     <MermaidErrorBoundary>
       <div className="bg-muted/30 p-6 rounded-xl border-2 border-border my-6">
@@ -298,26 +198,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         {error ? (
           <div className="flex flex-col items-center justify-center min-h-[200px] bg-muted/10 rounded-lg p-4">
             <div className="text-5xl mb-2 opacity-50">📊</div>
-            <p className="text-xs text-muted-foreground/70 mb-3">Visualização em construção</p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-muted-foreground/30 text-muted-foreground/70 hover:bg-muted/20"
-              onClick={handleRegenerateDiagram}
-              disabled={isRegenerating}
-            >
-              {isRegenerating ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                  Corrigindo...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-3 w-3 mr-2" />
-                  Tentar Novamente
-                </>
-              )}
-            </Button>
+            <p className="text-xs text-muted-foreground/70">Visualização em construção</p>
           </div>
         ) : (
           <div ref={ref} className="flex justify-center items-center min-h-[200px] bg-white rounded-lg p-4" />
