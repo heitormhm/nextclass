@@ -108,6 +108,9 @@ verify_jwt = true
 [functions.teacher-ai-text-formatting]
 verify_jwt = true
 
+[functions.teacher-generate-activity]
+verify_jwt = true
+
 [functions.validate-formatted-content]
 verify_jwt = true
 

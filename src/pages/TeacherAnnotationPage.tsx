@@ -595,19 +595,30 @@ const TeacherAnnotationPage = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
       
+      // Determinar qual função chamar baseado no actionType
+      const functionName = actionType === 'generate_activity' 
+        ? 'teacher-generate-activity' 
+        : 'teacher-ai-text-formatting';
+
+      console.log(`[AI Action] Chamando função: ${functionName} (action: ${actionType})`);
+
       let data, error;
       try {
-        const response = await supabase.functions.invoke('teacher-ai-text-formatting', {
-          body: { 
-            content, 
-            action: actionType 
-          },
+        const response = await supabase.functions.invoke(functionName, {
+          body: actionType === 'generate_activity'
+            ? { content } // Nova função só precisa de content
+            : { content, action: actionType }, // Função antiga precisa de action
           // @ts-ignore - AbortSignal is supported but not in types
           signal: controller.signal
         });
         data = response.data;
         error = response.error;
         clearTimeout(timeoutId);
+
+        // Log de sucesso específico por função
+        if (!error) {
+          console.log(`[AI Action] ✅ ${functionName} retornou resposta de ${data?.formattedText?.length || 0} caracteres`);
+        }
       } catch (invokeError: any) {
         clearTimeout(timeoutId);
         if (invokeError.name === 'AbortError') {
