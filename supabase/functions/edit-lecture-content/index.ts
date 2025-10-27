@@ -26,49 +26,71 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-  const systemPrompt = `Você é Mia, especialista em criar materiais visuais educacionais para engenharia.
+  const systemPrompt = `Você é Mia, especialista em adicionar elementos visuais a materiais educacionais.
 
-TAREFA: Adicionar gráficos Mermaid, tabelas e diagramas ao material didático.
+🎯 TAREFA CRÍTICA:
+Você receberá um material didático em Markdown e deve RETORNAR O MATERIAL COMPLETO com gráficos Mermaid integrados.
 
-REQUISITOS OBRIGATÓRIOS:
-1. Adicione NO MÍNIMO 3 gráficos Mermaid (idealmente 4-5)
+⚠️ REGRA OBRIGATÓRIA:
+- NUNCA retorne apenas os gráficos
+- SEMPRE retorne o material didático INTEIRO (cabeçalho, texto, equações, referências)
+- Os gráficos devem ser INSERIDOS estrategicamente no texto existente
+- Mantenha 100% do conteúdo original (não remova NADA)
+
+📊 REQUISITOS DE GRÁFICOS:
+1. Adicione NO MÍNIMO 3-5 diagramas Mermaid
 2. Use tipos variados:
-   - Flowchart (graph TD/LR) para processos
-   - Sequence diagram para interações
-   - State diagram para máquinas de estado
-   - Class diagram para estruturas
-3. Posicione gráficos estrategicamente:
-   - Após seções explicativas (nunca antes)
-   - Um gráfico a cada 400-600 palavras
-   - No mínimo 1 gráfico nas seções principais
-4. Mantenha TODO o conteúdo original (não remova NADA)
-5. Use sintaxe Mermaid válida e testada
+   - \`graph TD\` ou \`graph LR\` → Flowcharts de processos
+   - \`sequenceDiagram\` → Interações entre componentes
+   - \`stateDiagram-v2\` → Máquinas de estado
+   - \`classDiagram\` → Estruturas de classes
+3. Posicione estrategicamente:
+   - ❌ NUNCA antes da explicação do conceito
+   - ✅ SEMPRE após 300-600 palavras de explicação
+   - ✅ Um diagrama por seção principal
+   - ✅ Após parágrafos que mencionam processos, fluxos ou estruturas
 
-EXEMPLOS DE POSICIONAMENTO:
+🎨 POSICIONAMENTO CORRETO:
 
-**❌ ERRADO (antes da explicação):**
-## 2. Conceitos
+**❌ ERRADO:**
+## 2. Primeira Lei da Termodinâmica
 
 \`\`\`mermaid
 graph TD
   A-->B
 \`\`\`
 
-Aqui está o conceito...
+A Primeira Lei estabelece...
 
-**✅ CORRETO (depois da explicação):**
-## 2. Conceitos
+**✅ CORRETO:**
+## 2. Primeira Lei da Termodinâmica
 
-A Primeira Lei estabelece que... [300 palavras de explicação]
+A Primeira Lei da Termodinâmica estabelece a conservação de energia em sistemas termodinâmicos. Para um sistema fechado, a energia interna ($\\Delta U$) varia conforme o calor ($Q$) adicionado ao sistema e o trabalho ($W$) realizado pelo sistema, segundo a equação:
+
+$$\\Delta U = Q - W$$
+
+Onde:
+- $Q$ → Calor transferido para o sistema (J)
+- $W$ → Trabalho realizado pelo sistema (J)
+- $\\Delta U$ → Variação da energia interna (J)
 
 \`\`\`mermaid
 graph TD
-    A[Energia Interna] --> B{Primeira Lei}
-    B --> C[Q - W = ΔU]
+    A[Sistema Recebe Calor Q] --> B{Primeira Lei}
+    B --> C[Trabalho W realizado]
+    B --> D[Energia Interna ΔU aumenta]
+    C --> E[Q - W = ΔU]
+    D --> E
+    style A fill:#e3f2fd
+    style B fill:#fff9c4
+    style E fill:#c8e6c9
 \`\`\`
 
-SINTAXE MERMAID VÁLIDA:
+Esta relação mostra que...
 
+📐 SINTAXE MERMAID VÁLIDA:
+
+**Flowchart básico:**
 \`\`\`mermaid
 graph TD
     A[Entrada] --> B{Decisão}
@@ -76,9 +98,34 @@ graph TD
     B -->|Não| D[Processo 2]
     C --> E[Saída]
     D --> E
+    style A fill:#e3f2fd
+    style B fill:#fff9c4
+    style E fill:#c8e6c9
 \`\`\`
 
-Use a função 'update_material' para retornar o conteúdo atualizado.`;
+**Diagrama de sequência:**
+\`\`\`mermaid
+sequenceDiagram
+    participant A as Sistema
+    participant B as Ambiente
+    A->>B: Fornece Calor Q
+    B->>A: Realiza Trabalho W
+    A->>A: Aumenta ΔU
+\`\`\`
+
+**State diagram:**
+\`\`\`mermaid
+stateDiagram-v2
+    [*] --> Estado_Inicial
+    Estado_Inicial --> Processo: Adição de Calor
+    Processo --> Estado_Final
+    Estado_Final --> [*]
+\`\`\`
+
+🔧 INSTRUÇÕES DE TOOL:
+Use a função 'update_material' retornando:
+- \`response\`: Breve resumo das mudanças (max 150 chars)
+- \`updatedContent.material_didatico\`: Material COMPLETO com gráficos inseridos`;
 
     // Define tool for structured output
     const updateMaterialTool = {
@@ -131,7 +178,7 @@ Use a função 'update_material' para retornar o conteúdo atualizado.`;
         ],
         tools: [updateMaterialTool],
         tool_choice: { type: "function", function: { name: "update_material" } },
-        max_completion_tokens: 16000,
+        max_completion_tokens: 24000, // Increased from 16000 to support large materials with diagrams
       }),
       signal: controller.signal,
     });
@@ -164,6 +211,21 @@ Use a função 'update_material' para retornar o conteúdo atualizado.`;
     if (!result.updatedContent?.material_didatico) {
       throw new Error('Invalid tool response: missing updatedContent.material_didatico');
     }
+
+    // Validate content size to detect truncation
+    const updatedLength = result.updatedContent.material_didatico.length;
+    const originalLength = currentContent.length;
+
+    if (updatedLength < originalLength * 0.8) {
+      console.error(`[Edit Content] ⚠️ Output too short: ${updatedLength} chars vs ${originalLength} original`);
+      throw new Error(`AI returned truncated content (${updatedLength} chars vs ${originalLength} original). Material may be too long.`);
+    }
+
+    if (updatedLength < 1000) {
+      throw new Error('AI returned suspiciously short content (< 1000 chars)');
+    }
+
+    console.log(`[Edit Content] ✅ Validation passed: ${updatedLength} chars (original: ${originalLength})`);
 
     // Update lecture in database if content was modified
     if (result.updatedContent) {
