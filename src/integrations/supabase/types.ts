@@ -909,51 +909,54 @@ export type Database = {
       }
       library_materials: {
         Row: {
-          class_id: string
           created_at: string | null
           description: string | null
           disciplina_id: string | null
           file_type: string
           file_url: string
           id: string
+          tags: string[] | null
           teacher_id: string
           title: string
+          turma_id: string
         }
         Insert: {
-          class_id: string
           created_at?: string | null
           description?: string | null
           disciplina_id?: string | null
           file_type: string
           file_url: string
           id?: string
+          tags?: string[] | null
           teacher_id: string
           title: string
+          turma_id: string
         }
         Update: {
-          class_id?: string
           created_at?: string | null
           description?: string | null
           disciplina_id?: string | null
           file_type?: string
           file_url?: string
           id?: string
+          tags?: string[] | null
           teacher_id?: string
           title?: string
+          turma_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "library_materials_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "library_materials_disciplina_id_fkey"
             columns: ["disciplina_id"]
             isOneToOne: false
             referencedRelation: "disciplinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "library_materials_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "turmas"
             referencedColumns: ["id"]
           },
         ]

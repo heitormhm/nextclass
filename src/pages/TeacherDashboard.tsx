@@ -291,7 +291,7 @@ const TeacherDashboard = () => {
         const { count: materialsCount } = await supabase
           .from('library_materials')
           .select('*', { count: 'exact', head: true })
-          .eq('class_id', selectedClass)
+          .eq('turma_id', selectedClass)
           .eq('teacher_id', user.id)
           .gte('created_at', thirtyDaysAgo.toISOString());
 
@@ -442,6 +442,14 @@ const TeacherDashboard = () => {
       onClick: () => navigate('/teacher/annotations'),
     },
     {
+      icon: BookOpen,
+      title: 'Minhas Aulas',
+      description: 'Gerencie rascunhos e aulas publicadas',
+      gradientFrom: 'from-yellow-500',
+      gradientTo: 'to-amber-600',
+      onClick: () => navigate('/teacher/my-lectures'),
+    },
+    {
       icon: Upload,
       title: 'Biblioteca',
       description: 'Adicione materiais à biblioteca',
@@ -494,7 +502,7 @@ const TeacherDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {actionCards.map((action, index) => (
                       <ActionCard key={index} {...action} index={index} />
                     ))}

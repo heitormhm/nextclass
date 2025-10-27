@@ -234,7 +234,7 @@ export const PublishMaterialModal = ({
           description: description.trim() || null,
           file_url: fileUrl,
           file_type: getFileType(selectedFile),
-          class_id: selectedTurmaId,
+          turma_id: selectedTurmaId,
           disciplina_id: selectedDisciplinaId,
           teacher_id: user?.id,
         });

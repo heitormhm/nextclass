@@ -17,12 +17,14 @@ interface LibraryMaterial {
   title: string;
   file_type: string;
   file_url: string;
-  class_id: string;
+  turma_id: string;
   teacher_id: string;
   created_at: string;
   description?: string;
-  classes?: {
-    name: string;
+  turmas?: {
+    nome_turma: string;
+    periodo: string;
+    curso: string;
   };
   disciplinas?: {
     nome: string;
@@ -45,10 +47,12 @@ const LibraryPage = () => {
       setIsLoading(true);
       try {
         // 1. Buscar turmas do aluno
-        const { data: enrollments } = await supabase
+        const { data: enrollments, error: enrollError } = await supabase
           .from('turma_enrollments')
           .select('turma_id')
           .eq('aluno_id', user.id);
+        
+        if (enrollError) throw enrollError;
         
         if (!enrollments || enrollments.length === 0) {
           setMaterials([]);
@@ -58,36 +62,34 @@ const LibraryPage = () => {
         
         const turmaIds = enrollments.map(e => e.turma_id);
         
-        // 2. Buscar classes das turmas (usando o campo correto)
-        const { data: classes } = await supabase
-          .from('classes')
-          .select('id')
-          .in('id', turmaIds);
-        
-        if (!classes || classes.length === 0) {
-          setMaterials([]);
-          setIsLoading(false);
-          return;
-        }
-        
-        const classIds = classes.map(c => c.id);
-        
-        // 3. Buscar materiais das classes
-        const { data: libraryData, error } = await supabase
+        // 2. Buscar materiais das turmas (usando turma_id após migration)
+        const { data: libraryData, error: libraryError } = await supabase
           .from('library_materials')
-          .select('*, classes(name), disciplinas(nome, codigo)')
-          .in('class_id', classIds)
+          .select(`
+            id,
+            title,
+            file_type,
+            file_url,
+            turma_id,
+            disciplina_id,
+            teacher_id,
+            created_at,
+            description,
+            tags,
+            turmas(nome_turma, periodo, curso),
+            disciplinas(nome, codigo)
+          `)
+          .in('turma_id', turmaIds)
           .order('created_at', { ascending: false });
         
-        if (error) {
-          console.error('Error fetching library materials:', error);
-          toast.error('Erro ao carregar materiais');
-        } else {
-          setMaterials(libraryData || []);
-        }
+        if (libraryError) throw libraryError;
+        
+        setMaterials(libraryData || []);
+        
       } catch (error) {
-        console.error('Unexpected error:', error);
+        console.error('Error fetching materials:', error);
         toast.error('Erro ao carregar materiais');
+        setMaterials([]);
       } finally {
         setIsLoading(false);
       }
@@ -101,7 +103,7 @@ const LibraryPage = () => {
     const matchesSearch = material.title.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesSubject = selectedSubjects.length === 0 || 
-                          selectedSubjects.includes(material.classes?.name || '');
+                          selectedSubjects.includes(material.disciplinas?.nome || '');
     
     const matchesType = selectedTypes.length === 0 || 
                        selectedTypes.includes(material.file_type);
@@ -143,9 +145,9 @@ const LibraryPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Filtro por Matéria */}
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Matéria</Label>
+                  <Label className="text-sm font-medium mb-2 block">Disciplina</Label>
                   <div className="flex flex-wrap gap-2">
-                    {Array.from(new Set(materials.map(m => m.classes?.name).filter(Boolean))).map(subject => (
+                    {Array.from(new Set(materials.map(m => m.disciplinas?.nome).filter(Boolean))).map(subject => (
                       <Badge
                         key={subject}
                         variant={selectedSubjects.includes(subject!) ? "default" : "outline"}
@@ -235,9 +237,9 @@ const LibraryPage = () => {
                   material={{
                     id: material.id,
                     title: material.title,
-                    description: material.classes?.name || 'Material da turma',
+                    description: material.disciplinas?.nome || material.turmas?.nome_turma || 'Material da turma',
                     type: material.file_type as any,
-                    category: material.classes?.name || '',
+                    category: material.disciplinas?.nome || '',
                     teacher: ''
                   }} 
                 />

@@ -1855,10 +1855,14 @@ INSTRUÇÕES:
 
   return (
     <MainLayout>
-      <div className="flex h-[calc(100vh-4rem)] overflow-hidden w-full">
+      <div className="flex h-[calc(100vh-4rem)] overflow-hidden w-full relative">
+        {/* Background com z-index controlado */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <TeacherBackgroundRipple />
+        </div>
         
         {/* ========== SIDEBAR ESQUERDA ========== */}
-        <div className="hidden lg:flex lg:w-80 xl:w-96 flex-col border-r border-border/40 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30">
+        <div className="hidden lg:flex lg:w-80 xl:w-96 flex-col border-r border-border/40 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30 z-[9999] relative">
           
           <div className="p-6 pb-4">
             <div className="flex items-center gap-3 mb-2">
@@ -2416,7 +2420,7 @@ INSTRUÇÕES:
         </button>
 
         <Sheet open={showMobileHistory} onOpenChange={setShowMobileHistory}>
-          <SheetContent side="left" className="w-full sm:w-80 p-0 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30">
+          <SheetContent side="left" className="w-full sm:w-80 p-0 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30 z-[9999]">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
