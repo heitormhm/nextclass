@@ -2390,7 +2390,10 @@ const LectureTranscriptionPage = () => {
                 {/* Lesson plan comparison */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 font-bold text-sm">Análise da Aula</CardTitle>
+                    <CardTitle className="text-lg text-slate-900 font-bold flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      Análise da Aula
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Dialog open={isComparisonModalOpen} onOpenChange={setIsComparisonModalOpen}>
