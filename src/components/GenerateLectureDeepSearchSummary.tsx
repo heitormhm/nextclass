@@ -129,105 +129,148 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
   }, [jobId, toast, onUpdate]);
 
   const handleGenerate = async () => {
+    console.log('🚀 [Deep Search] === INÍCIO DO PROCESSO ===');
+    console.log('📋 [Deep Search] Parâmetros:', {
+      lectureId,
+      lectureTitle,
+      tags: tags?.length || 0,
+      currentMaterial: !!currentMaterial
+    });
+
     setError(null);
     setProgressMessage('');
     
     try {
-      console.log('🚀 [Deep Search] Starting with JOB system...');
-      console.log('📋 [Deep Search] Lecture:', { id: lectureId, title: lectureTitle, tags });
-      
       setIsGenerating(true);
       setCurrentStep(0);
 
-      // Validate data
+      // Validar dados básicos
       if (!lectureId || !lectureTitle) {
+        console.error('❌ [Deep Search] Dados incompletos:', { lectureId, lectureTitle });
         throw new Error('Dados da aula incompletos');
       }
+      console.log('✅ [Deep Search] Dados básicos validados');
 
-      console.log('👤 [Deep Search] Getting authenticated user...');
+      // Obter usuário
+      console.log('👤 [Deep Search] Obtendo usuário autenticado...');
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
-      if (userError || !user) {
-        console.error('❌ [Deep Search] User error:', userError);
-        throw new Error('Usuário não autenticado. Por favor, faça login novamente.');
+      if (userError) {
+        console.error('❌ [Deep Search] Erro ao obter usuário:', userError);
+        throw new Error(`Erro de autenticação: ${userError.message}`);
+      }
+      
+      if (!user) {
+        console.error('❌ [Deep Search] Usuário não encontrado (NULL)');
+        throw new Error('Usuário não autenticado. Faça login novamente.');
       }
 
-      console.log('✅ [Deep Search] User authenticated:', user.id);
+      console.log('✅ [Deep Search] Usuário autenticado:', {
+        userId: user.id,
+        email: user.email
+      });
 
-      // Validate user role
+      // Verificar role
+      console.log('🔐 [Deep Search] Verificando role do usuário...');
       const { data: userRole, error: roleError } = await supabase
         .from('user_roles')
-        .select('role')
+        .select('role, is_validated')
         .eq('user_id', user.id)
         .single();
 
-      if (roleError || !userRole) {
-        console.error('❌ [Deep Search] Role error:', roleError);
-        throw new Error('Não foi possível verificar permissões.');
+      if (roleError) {
+        console.error('❌ [Deep Search] Erro ao buscar role:', roleError);
+        throw new Error(`Erro ao verificar permissões: ${roleError.message}`);
       }
 
+      if (!userRole) {
+        console.error('❌ [Deep Search] Role não encontrada (NULL)');
+        throw new Error('Permissões não configuradas. Entre em contato com suporte.');
+      }
+
+      console.log('✅ [Deep Search] Role encontrada:', {
+        role: userRole.role,
+        isValidated: userRole.is_validated
+      });
+
       if (userRole.role !== 'teacher') {
+        console.error('❌ [Deep Search] Role inválida:', userRole.role);
         throw new Error('Apenas professores podem gerar material didático.');
       }
 
-      console.log('✅ [Deep Search] User role validated: teacher');
+      if (!userRole.is_validated) {
+        console.warn('⚠️ [Deep Search] Professor não validado');
+        throw new Error('Sua conta de professor ainda não foi validada. Aguarde aprovação.');
+      }
 
-      // Create JOB
-      console.log('💾 [Deep Search] Creating job in database...');
-      console.log('📊 [Deep Search] Job payload:', {
+      console.log('✅ [Deep Search] Permissões validadas');
+
+      // Preparar payload do job
+      const jobPayload = {
         teacher_id: user.id,
         lecture_id: lectureId,
         job_type: 'GENERATE_LECTURE_DEEP_SEARCH',
         status: 'PENDING',
+        input_payload: {
+          lectureId,
+          lectureTitle,
+          tags,
+          userId: user.id
+        },
         progress: 0,
-        progress_message: 'Iniciando pesquisa profunda...',
-        input_payload: { lectureId, lectureTitle, tags, userId: user.id }
-      });
-      
+        progress_message: 'Iniciando pesquisa profunda...'
+      };
+
+      console.log('💾 [Deep Search] Criando job no database...');
+      console.log('📊 [Deep Search] Job payload:', JSON.stringify(jobPayload, null, 2));
+
+      // Criar job
       const { data: job, error: jobError } = await supabase
         .from('teacher_jobs')
-        .insert({
-          teacher_id: user.id,
-          lecture_id: lectureId,
-          job_type: 'GENERATE_LECTURE_DEEP_SEARCH',
-          status: 'PENDING',
-          input_payload: {
-            lectureId,
-            lectureTitle,
-            tags,
-            userId: user.id
-          },
-          progress: 0,
-          progress_message: 'Iniciando pesquisa profunda...'
-        })
+        .insert(jobPayload)
         .select()
         .single();
 
+      // Tratar erro de inserção
       if (jobError) {
-        console.error('❌ [Deep Search] Job creation FAILED');
-        console.error('📋 [Deep Search] Full error:', jobError);
+        console.error('❌ [Deep Search] ===== JOB CREATION FAILED =====');
+        console.error('📋 [Deep Search] Error object:', jobError);
         console.error('📋 [Deep Search] Error details:', {
           message: jobError.message,
           code: jobError.code,
           details: jobError.details,
           hint: jobError.hint,
         });
-        console.error('👤 [Deep Search] User context:', {
+        console.error('📋 [Deep Search] User context:', {
           userId: user.id,
-          lectureId: lectureId,
-          lectureTitle: lectureTitle
+          email: user.email,
+          role: userRole.role
         });
+        console.error('📋 [Deep Search] Lecture context:', {
+          lectureId: lectureId,
+          lectureTitle: lectureTitle,
+          tagsCount: tags?.length || 0
+        });
+        
         setError(`Erro ao criar job: ${jobError.message}`);
-        throw new Error(`Erro ao criar job: ${jobError.message}`);
+        throw new Error(`Falha ao criar job no database: ${jobError.message}`);
       }
 
-      console.log('✅ [Deep Search] Job created:', job.id);
+      if (!job) {
+        console.error('❌ [Deep Search] Job criado mas data é NULL');
+        throw new Error('Job criado mas sem dados retornados');
+      }
+
+      console.log('✅ [Deep Search] Job criado com sucesso!');
+      console.log('📋 [Deep Search] Job ID:', job.id);
+      console.log('📋 [Deep Search] Job data:', job);
+      
       setJobId(job.id);
       setProgressMessage('Job criado. Iniciando processamento...');
 
-      // Call job runner edge function to start processing
-      console.log('🔄 [Deep Search] Invoking job runner...');
-      const { error: runnerError } = await supabase.functions.invoke('teacher-job-runner', {
+      // Invocar edge function
+      console.log('🔄 [Deep Search] Invocando teacher-job-runner...');
+      const { data: runnerData, error: runnerError } = await supabase.functions.invoke('teacher-job-runner', {
         body: { jobId: job.id }
       });
 
@@ -236,15 +279,19 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
         throw new Error(`Erro ao iniciar processamento: ${runnerError.message}`);
       }
 
-      console.log('✅ [Deep Search] Job runner invoked successfully');
+      console.log('✅ [Deep Search] Job runner invocado com sucesso');
+      console.log('📋 [Deep Search] Runner response:', runnerData);
       setProgressMessage('Processamento iniciado...');
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      console.error('❌ [Deep Search] Error:', errorMessage);
-      console.error('❌ [Deep Search] Error stack:', error);
+      console.error('❌ [Deep Search] ===== FATAL ERROR =====');
+      console.error('📋 [Deep Search] Error message:', errorMessage);
+      console.error('📋 [Deep Search] Error stack:', error);
+      
       setError(errorMessage);
       setIsGenerating(false);
+      
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar material didático',
@@ -273,10 +320,20 @@ export const GenerateLectureDeepSearchSummary: React.FC<GenerateLectureDeepSearc
       <DialogTrigger asChild>
         <Button 
           size="sm"
-          className="gap-2 h-10 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-0 hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-xl transition-all"
+          disabled={isGenerating}
+          className="gap-2 h-10 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-0 hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
         >
-          <Brain className="h-4 w-4" />
-          Gerar Material Didático
+          {isGenerating ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Processando...
+            </>
+          ) : (
+            <>
+              <Brain className="h-4 w-4" />
+              Gerar Material Didático
+            </>
+          )}
         </Button>
       </DialogTrigger>
 

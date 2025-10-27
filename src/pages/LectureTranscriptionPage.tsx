@@ -24,7 +24,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Plus, Play, Pause, Download } from 'lucide-react';
+import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3 } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -2511,7 +2511,10 @@ const LectureTranscriptionPage = () => {
                 {/* Stats */}
                 <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 font-bold text-sm">Estatísticas</CardTitle>
+                    <CardTitle className="text-lg text-slate-900 font-bold flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-purple-600" />
+                      Estatísticas
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-xs">
                     <div className="flex justify-between">
