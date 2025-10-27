@@ -128,16 +128,32 @@ export const PublishLectureModal = ({
         console.error('[Publish] Database error:', error);
         throw error;
       }
-      
-      console.log('[Publish] ✅ Successfully published lecture');
+
+      // Verificar se a publicação foi bem-sucedida
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('lectures')
+        .select('status')
+        .eq('id', lectureId)
+        .single();
+
+      if (verifyError || verifyData?.status !== 'published') {
+        throw new Error('Failed to verify publication status');
+      }
+
+      console.log('[Publish] ✅ Successfully published lecture, status verified');
 
       toast({
-        title: 'Sucesso!',
-        description: 'Aula publicada com sucesso',
+        title: 'Sucesso! 🎉',
+        description: 'Aula publicada e disponível para os alunos',
       });
 
       onOpenChange(false);
-      navigate('/teacher-dashboard');
+
+      // Aguardar 1 segundo para garantir propagação no banco
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Redirecionar para dashboard
+      navigate('/teacher-dashboard', { replace: true });
     } catch (error) {
       console.error('Error publishing lecture:', error);
       toast({

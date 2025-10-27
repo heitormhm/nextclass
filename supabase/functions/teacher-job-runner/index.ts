@@ -104,6 +104,29 @@ async function saveReportToLecture(
   }
 
   const existingContent = lecture?.structured_content || {};
+
+  // Validate Mermaid diagrams
+  const validation = validateMermaidDiagrams(report);
+  if (!validation.valid) {
+    console.warn(`[Job ${jobId}] ⚠️ Mermaid syntax issues detected:`, validation.errors);
+  }
+
+  // Validate material length (minimum 3000 words, excluding code blocks)
+  const materialText = report.replace(/```[\s\S]*?```/g, ''); // Remove code blocks
+  const wordCount = materialText.split(/\s+/).filter(word => word.length > 0).length;
+
+  console.log(`[Job ${jobId}] 📏 Material word count: ${wordCount} words`);
+
+  if (wordCount < 3000) {
+    console.warn(`[Job ${jobId}] ⚠️ Material too short: ${wordCount} words (minimum: 3000)`);
+    throw new Error(`Material didático muito curto (${wordCount} palavras). Mínimo exigido: 3000 palavras.`);
+  }
+
+  if (wordCount < 3500) {
+    console.warn(`[Job ${jobId}] ⚠️ Material below ideal length: ${wordCount} words (ideal: 4000-5000)`);
+  }
+
+  console.log(`[Job ${jobId}] ✅ Material length validated: ${wordCount} words`);
   
   const { error: updateError } = await supabase
     .from('lectures')
@@ -377,7 +400,16 @@ async function generateEducationalReport(
 - Inclua equações LaTeX quando relevante: $$E = mc^2$$
 - Crie tabelas comparativas para conceitos similares
 - Use blocos de código para algoritmos/pseudocódigo
-- **Extensão mínima:** 2500-3500 palavras (conteúdo denso e técnico)
+- **Extensão mínima:** 4000-5000 palavras (conteúdo denso e técnico)
+- **Páginas equivalentes:** Mínimo 4 páginas impressas (A4, fonte 12pt)
+- **Distribuição por seção:**
+  * Introdução: 400-600 palavras
+  * Conceitos Fundamentais: 1200-1500 palavras (maior seção)
+  * Aplicações Práticas: 1000-1300 palavras
+  * Exemplos Resolvidos: 800-1000 palavras
+  * Exercícios Propostos: 400-500 palavras
+  * Conclusão: 300-400 palavras
+  * Referências: 100-200 palavras
 
 # 🎓 SISTEMA DE REFERÊNCIAS (OBRIGATÓRIO)
 
@@ -626,6 +658,73 @@ B -->|Realiza Trabalho W| C
 5. **Quebras de linha:**
    - ✅ Use \`<br/>\` dentro de labels
    - ❌ NUNCA múltiplas linhas diretas
+
+**TESTE CADA DIAGRAMA ANTES DE GERAR:**
+- Leia o código linha por linha
+- Confirme que todos os node IDs são alfanuméricos
+- Confirme que labels usam apenas ASCII
+- Confirme que setas usam sintaxe ASCII (\`-->\`, \`->\`)
+
+# 📏 REQUISITOS DE VOLUME E DENSIDADE
+
+**EXTENSÃO OBRIGATÓRIA:**
+- Total: **4000-5000 palavras** (não conte código Mermaid ou equações LaTeX)
+- Equivale a: **4-5 páginas impressas** em formato A4, fonte 12pt
+
+**COMO EXPANDIR CADA SEÇÃO:**
+
+### 1. Conceitos Fundamentais (1200-1500 palavras)
+- Definição formal do conceito (100-150 palavras)
+- Contexto histórico e desenvolvimento (150-200 palavras)
+- Explicação detalhada de cada componente (300-400 palavras)
+- Relação com outras áreas da engenharia (200-250 palavras)
+- Limitações e casos especiais (150-200 palavras)
+- Exemplo ilustrativo (200-300 palavras)
+
+### 2. Aplicações Práticas (1000-1300 palavras)
+- Mínimo **3-4 aplicações industriais** diferentes
+- Cada aplicação deve ter:
+  * Descrição do sistema (150-200 palavras)
+  * Como o conceito é aplicado (150-200 palavras)
+  * Dados numéricos reais (valores típicos, faixas de operação)
+  * Desafios práticos e soluções (100-150 palavras)
+
+### 3. Exemplos Resolvidos (800-1000 palavras)
+- Mínimo **2 exemplos completos**
+- Cada exemplo deve ter:
+  * Enunciado claro do problema (80-100 palavras)
+  * Dados fornecidos e incógnitas (50 palavras)
+  * Raciocínio passo a passo (200-300 palavras)
+  * Cálculos detalhados com unidades
+  * Discussão do resultado (80-100 palavras)
+  * Verificação/validação (50 palavras)
+
+**TÉCNICAS PARA AUMENTAR DENSIDADE:**
+1. Adicione **parágrafos de transição** entre conceitos
+2. Expanda definições com **sinônimos e reformulações**
+3. Inclua **comparações** entre métodos/abordagens
+4. Adicione **contexto industrial** para cada conceito teórico
+5. Use **exemplos numéricos** com cálculos intermediários
+6. Inclua **discussões sobre limitações** de cada método
+7. Adicione **dicas práticas** para engenheiros
+
+**VERIFICAÇÃO FINAL:**
+Antes de retornar, conte as palavras de cada seção:
+- Se Conceitos Fundamentais < 1200 palavras → Adicione mais exemplos
+- Se Aplicações Práticas < 1000 palavras → Adicione mais casos industriais
+- Se Exemplos Resolvidos < 800 palavras → Expanda raciocínios
+
+**❌ NÃO FAÇA:**
+- Repetir informações (seja denso, não redundante)
+- Adicionar "fluff" sem conteúdo técnico
+- Copiar definições de dicionário
+- Usar frases genéricas ("é muito importante", "existem diversos")
+
+**✅ FAÇA:**
+- Adicionar dados numéricos reais (faixas de operação, valores típicos)
+- Explicar "por quê" além do "o quê"
+- Conectar conceitos com aplicações reais
+- Incluir detalhes de implementação prática
 
 # 🎯 OBJETIVO FINAL
 

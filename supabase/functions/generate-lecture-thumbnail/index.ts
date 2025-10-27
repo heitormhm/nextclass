@@ -26,35 +26,45 @@ serve(async (req) => {
     }
 
     // Generate PHOTOREALISTIC image using Gemini 2.5 Flash Image Preview (Nano banana)
-    const imagePrompt = `Generate a high-quality, PHOTOREALISTIC image of REAL industrial equipment or engineering infrastructure related to "${topic}".
+    const imagePrompt = `Generate a PHOTOREALISTIC photograph (NOT an illustration, NOT a diagram) of REAL industrial equipment related to "${topic}".
 
-**CRITICAL REQUIREMENTS:**
-- Style: Photorealistic, professional engineering photography
-- Subject: MUST show a REAL physical object (machine, equipment, construction, industrial plant)
+**STYLE REQUIREMENTS:**
+- Style: Professional engineering photography (like Getty Images industrial photos)
+- Camera: DSLR, professional lighting, shallow depth of field
+- Quality: 4K resolution, ultra-realistic textures, real materials (metal, concrete, glass)
+
+**SUBJECT REQUIREMENTS:**
+- MUST be a REAL PHYSICAL OBJECT that exists in the real world
 - Examples by topic:
-  * Thermodynamics → Industrial boiler, heat exchanger, steam turbine, power plant cooling towers
-  * Fluid Mechanics → Pump station, hydraulic system, pipeline network, water treatment plant
-  * Electrical Circuits → Electrical substation, transformer bank, control panel, circuit breakers
-  * Structural Analysis → Bridge structure, building frame, steel truss, construction site
-  * Materials Science → Steel mill, metallurgy equipment, materials testing machine
-  * Control Systems → Industrial automation equipment, PLC panel, SCADA control room
+  * Thermodynamics → Industrial boiler in factory, steam turbine cutaway, power plant cooling towers
+  * Fluid Mechanics → Industrial pump station, hydraulic press, water treatment plant pipes
+  * Electrical Circuits → Electrical substation transformers, industrial control panel, circuit breakers array
+  * Structural Analysis → Steel bridge construction, building concrete frame, truss structure
+  * Materials Science → Steel manufacturing plant, metallurgy furnace, materials testing lab
 
-**VISUAL REQUIREMENTS:**
-- Lighting: Natural industrial lighting or well-lit factory environment
-- Perspective: Professional 3/4 angle showing scale and detail
-- Background: Industrial environment context (factory floor, construction site, power plant)
-- Quality: 4K photographic quality, sharp focus on main equipment
-- Colors: Natural industrial colors (steel gray, machinery green, safety yellow accents)
-- NO text, NO labels, NO diagrams, NO illustrations
-- NO people in the image (focus on equipment only)
+**PHOTOGRAPHIC SPECIFICATIONS:**
+- Lighting: Natural industrial environment lighting (warehouse, factory floor, outdoor industrial site)
+- Perspective: 3/4 angle showing scale and engineering detail
+- Composition: Main equipment centered, industrial background with slight bokeh
+- Colors: Natural industrial palette (weathered steel gray, machinery green, safety yellow, rust orange)
+- Textures: Show real material properties (metal grain, concrete roughness, paint wear, rust)
 
-**TECHNICAL SPECIFICATIONS:**
-- Aspect ratio: 16:9 (landscape)
-- Resolution: High resolution suitable for lecture cover
-- Composition: Rule of thirds, main subject in focus
-- Depth of field: Slight bokeh on background to emphasize main equipment
+**CRITICAL PROHIBITIONS:**
+❌ NO technical drawings or schematics
+❌ NO vector illustrations or flat design
+❌ NO diagrams with arrows and labels
+❌ NO cartoon or stylized graphics
+❌ NO symbols or icons (⚡, 🔧, etc.)
+❌ NO text overlays or typography
+❌ NO people or human figures
+❌ NO abstract representations
 
-The image should immediately convey "this is real industrial engineering equipment" to university students.`;
+**VALIDATION:**
+✅ Ask yourself: "Could this be a photo from an engineering documentary?"
+✅ Should look like: Discovery Channel, Engineering Explained, Industrial Photography
+✅ Should NOT look like: Textbook diagram, PowerPoint slide, infographic
+
+Generate a photograph that an engineering professor would use as a realistic visual reference for students.`;
 
     console.log('Calling Lovable AI for image generation...');
 

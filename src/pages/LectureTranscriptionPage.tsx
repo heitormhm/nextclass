@@ -1432,10 +1432,10 @@ const LectureTranscriptionPage = () => {
                   <CardContent>
                     <Tabs defaultValue="resumo" className="w-full">
                       <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-0.5 gap-1">
-                        <TabsTrigger value="resumo" className="text-sm sm:text-base data-[state=active]:shadow-none">
-                          <FileText className="h-4 w-4 mr-2" />
-                          Resumo
-                        </TabsTrigger>
+              <TabsTrigger value="resumo" className="text-sm sm:text-base data-[state=active]:shadow-none">
+                <FileText className="h-4 w-4 mr-2" />
+                Transcrição da Aula
+              </TabsTrigger>
                         <TabsTrigger 
                           value="material" 
                           disabled={!structuredContent.material_didatico}
@@ -1451,39 +1451,17 @@ const LectureTranscriptionPage = () => {
                       </TabsList>
                       
                       <TabsContent value="resumo" className="overflow-x-auto mt-4">
-                        <div className="min-w-0 bg-white p-4 rounded-lg prose prose-sm max-w-none overflow-x-auto">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm, remarkMath]}
-                            rehypePlugins={[rehypeKatex]}
-                            components={{
-                              h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
-                              h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
-                              h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1 text-slate-900" {...props} />,
-                              p: ({node, ...props}) => <p className="mb-2 text-slate-900 leading-relaxed" {...props} />,
-                              strong: ({node, ...props}) => <strong className="font-bold text-purple-700" {...props} />,
-                              ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
-                              ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
-                              li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
-                              code: ({node, inline, ...props}: any) => 
-                                inline ? 
-                                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props} /> :
-                                <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props} />,
-                              blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
-                            }}
-                          >
-                            {structuredContent.resumo}
-                          </ReactMarkdown>
-                        </div>
-                        <div className="flex justify-end mt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9"
-                            onClick={() => openEditModal('Resumo', { resumo: structuredContent.resumo })}
-                          >
-                            <Sparkles className="h-4 w-4 mr-1" />
-                            Editar com IA
-                          </Button>
+                        <div className="min-w-0 bg-white p-4 rounded-lg">
+                          {lecture?.raw_transcript ? (
+                            <div className="prose prose-sm max-w-none text-slate-900 leading-relaxed">
+                              <p className="whitespace-pre-wrap">{lecture.raw_transcript}</p>
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-slate-500">
+                              <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                              <p className="font-medium">Nenhuma transcrição disponível</p>
+                            </div>
+                          )}
                         </div>
                       </TabsContent>
                       
