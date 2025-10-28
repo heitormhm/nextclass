@@ -421,7 +421,12 @@ const LectureTranscriptionPage = () => {
             title: quizManagement.quiz.title,
             questions: quizManagement.quiz.questions.map(q => ({
               question: q.pergunta,
-              options: { A: q.opcoes[0], B: q.opcoes[1], C: q.opcoes[2], D: q.opcoes[3] },
+              options: { 
+                A: q.opcoes?.[0] || '', 
+                B: q.opcoes?.[1] || '', 
+                C: q.opcoes?.[2] || '', 
+                D: q.opcoes?.[3] || '' 
+              },
               correctAnswer: q.resposta_correta,
               explanation: q.explicacao || ''
             }))
