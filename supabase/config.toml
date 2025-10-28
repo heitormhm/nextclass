@@ -159,6 +159,9 @@ verify_jwt = false
 [functions.format-lecture-content]
 verify_jwt = false
 
+[functions.fix-latex-formulas]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321

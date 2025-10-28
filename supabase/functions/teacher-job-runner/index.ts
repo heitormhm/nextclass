@@ -107,76 +107,103 @@ async function preprocessMermaidBlocks(markdown: string, jobId: string): Promise
 }
 
 // ============================================================================
-// HELPER: Final Content Sanitization (FASE 1)
+// FASE 1 (REFATORADA): Sanitização Segura de JSON - Object-Based
 // ============================================================================
 function finalContentSanitization(structuredContent: any, jobId: string): any {
-  console.log(`[Job ${jobId}] [Final Sanitization] 🧹 Cleaning structured content JSON...`);
-  
-  const jsonStr = JSON.stringify(structuredContent, null, 2);
-  
-  // 1. Detectar problemas ANTES de corrigir
-  const issues = {
-    latexDoublePlaceholders: (jsonStr.match(/___LATEX_DOUBLE_\d+___/g) || []).length,
-    latexSinglePlaceholders: (jsonStr.match(/___LATEX_SINGLE_\d+___/g) || []).length,
-    corruptedDollarSigns: (jsonStr.match(/\d+\$+\s*\d*/g) || []).length,
-    isolatedVariables: (jsonStr.match(/"\s*[a-z]\s+[a-z]\s+[a-z]\s*"/gi) || []).length,
-    rawLatexCommands: (jsonStr.match(/\\(Delta|sum|int|frac|times|cdot)[^$]/g) || []).length,
-  };
-  
-  if (Object.values(issues).some(count => count > 0)) {
-    console.error(`[Job ${jobId}] [Final Sanitization] ❌ ISSUES DETECTED:`, issues);
-  }
-  
-  // 2. Remover TODOS os artefatos corrompidos
-  let cleaned = jsonStr
-    .replace(/___LATEX_DOUBLE_\d+___/g, '')
-    .replace(/___LATEX_SINGLE_\d+___/g, '')
-    .replace(/\d+\$\$\s*\d*/g, '')
-    .replace(/\$\s*\d+\s*\$/g, '')
-    .replace(/\*\*\s*\d+\$\s*\*\*/g, '')
-    .replace(/\d+\$\s+\d+\$/g, '');
-  
-  // 3. Envolver comandos LaTeX soltos em $$...$$
-  cleaned = cleaned.replace(
-    /"texto":\s*"([^"]*)(\\(?:Delta|sum|int|frac|times|cdot|alpha|beta|gamma)[^$\n"]{0,50})([^"]*)"/g,
-    (match, before, latexCommand, after) => {
-      if (!before.includes('$$') && !after.includes('$$')) {
-        return `"texto": "${before}$$${latexCommand}$$${after}"`;
-      }
-      return match;
-    }
-  );
-  
-  // 4. Limpar variáveis isoladas (e a e → removidas se não estão em LaTeX)
-  cleaned = cleaned.replace(/"texto":\s*"([^"]*)\s+([a-z])\s+([a-z])\s+([a-z])\s*([^"]*)"/gi, (match, before, var1, var2, var3, after) => {
-    if (!before.includes('$$') && !after.includes('$$')) {
-      console.warn(`[Job ${jobId}] [Sanitization] Removed isolated variables: ${var1} ${var2} ${var3}`);
-      return `"texto": "${before.trim()} ${after.trim()}"`;
-    }
-    return match;
-  });
+  console.log(`[Job ${jobId}] [Safe Sanitization] 🛡️ Validating structured content...`);
   
   try {
-    const parsed = JSON.parse(cleaned);
+    // Approach: trabalhar com o objeto diretamente, não com string
+    const sanitized = safeSanitizeObject(structuredContent, jobId);
     
-    // 5. Verificação final
-    const finalStr = JSON.stringify(parsed);
-    const remaining = {
-      latexPlaceholders: (finalStr.match(/___LATEX_/g) || []).length,
-      corruptedDollars: (finalStr.match(/\d+\$\$/g) || []).length,
-    };
+    // Validar que ainda é JSON válido
+    const testStr = JSON.stringify(sanitized);
+    JSON.parse(testStr); // Vai lançar erro se inválido
     
-    if (remaining.latexPlaceholders > 0 || remaining.corruptedDollars > 0) {
-      console.error(`[Job ${jobId}] [Final Sanitization] ⚠️ STILL HAS ISSUES:`, remaining);
-    } else {
-      console.log(`[Job ${jobId}] [Final Sanitization] ✅ Clean - No placeholders detected`);
-    }
+    console.log(`[Job ${jobId}] [Safe Sanitization] ✅ Content validated successfully`);
+    return sanitized;
     
-    return parsed;
   } catch (err) {
-    console.error(`[Job ${jobId}] [Final Sanitization] ❌ Invalid JSON after cleaning:`, err);
-    throw new Error('Final sanitization produced invalid JSON');
+    console.error(`[Job ${jobId}] [Safe Sanitization] ❌ Validation failed:`, err);
+    throw new Error(`Safe sanitization failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
+}
+
+/**
+ * FASE 1: Sanitização recursiva baseada em objetos (preserva estrutura JSON)
+ */
+function safeSanitizeObject(obj: any, jobId: string, depth: number = 0): any {
+  if (depth > 50) {
+    console.warn(`[Job ${jobId}] Max recursion depth reached`);
+    return obj;
+  }
+  
+  // Se é string, sanitizar conteúdo
+  if (typeof obj === 'string') {
+    return sanitizeTextSafely(obj);
+  }
+  
+  // Se é array, sanitizar cada elemento
+  if (Array.isArray(obj)) {
+    return obj.map(item => safeSanitizeObject(item, jobId, depth + 1));
+  }
+  
+  // Se é objeto, sanitizar cada propriedade
+  if (obj !== null && typeof obj === 'object') {
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[key] = safeSanitizeObject(value, jobId, depth + 1);
+    }
+    return sanitized;
+  }
+  
+  // Outros tipos (number, boolean, null) passam direto
+  return obj;
+}
+
+/**
+ * Sanitiza texto sem quebrar estrutura JSON
+ */
+function sanitizeTextSafely(text: string): string {
+  if (!text || text.length === 0) return text;
+  
+  let cleaned = text;
+  
+  // 1. Remover placeholders LaTeX corrompidos
+  cleaned = cleaned.replace(/___LATEX_(DOUBLE|SINGLE)_\d+___/g, '');
+  
+  // 2. Remover padrões de $ + números corrompidos (ex: "12$ ", "$ 34")
+  cleaned = cleaned.replace(/\d+\s*\$\s*\d*/g, '');
+  cleaned = cleaned.replace(/\$\s*\d+\s*/g, '');
+  
+  // 3. Remover variáveis isoladas APENAS se fora de contexto LaTeX
+  // Padrão: " e " ou " a " sem estar em $$...$$
+  const parts = cleaned.split('$$');
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) { // Partes fora de $$
+      // Remover variáveis isoladas de 1 letra
+      parts[i] = parts[i].replace(/\s([a-z])\s+([a-z])\s+([a-z])\s/gi, ' ');
+    }
+  }
+  cleaned = parts.join('$$');
+  
+  // 4. Garantir que comandos LaTeX estão dentro de $$
+  // Detectar \command fora de $$ e envolver
+  const latexCommands = /\\(Delta|sum|int|frac|times|cdot|alpha|beta|gamma|theta|lambda|pi|sigma)/g;
+  const outsideLatex = cleaned.split('$$').filter((_, i) => i % 2 === 0).join(' ');
+  
+  if (latexCommands.test(outsideLatex)) {
+    // Envolver comandos soltos
+    cleaned = cleaned.replace(
+      /([^$])(\\(?:Delta|sum|int|frac|times|cdot|alpha|beta|gamma|theta|lambda|pi|sigma)(?:\{[^}]*\}|\[[^\]]*\])*)/g,
+      '$1$$$$2$$'
+    );
+  }
+  
+  // 5. Limpar espaços excessivos (sem afetar LaTeX)
+  cleaned = cleaned.replace(/\s{3,}/g, '  ');
+  
+  return cleaned.trim();
 }
 
 // Fix common LaTeX errors in markdown content
@@ -1137,175 +1164,191 @@ Criar um material que:
 }
 
 /**
- * Valida e corrige sintaxe Mermaid antes de salvar
+ * FASE 2 (REFATORADA): Validação e Correção Mermaid com Fallback Seguro
  */
-function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: string; errors: string[] } {
+async function validateAndFixMermaidSyntax(code: string, jobId: string = 'manual'): Promise<{ valid: boolean; fixed: string; errors: string[] }> {
   const errors: string[] = [];
   let fixed = code.trim();
   
   console.log('[Mermaid Validator] 🔍 Checking syntax...');
   
-  // 0. ✅ Corrigir 'end' colado: "endA[...]" → "end\n    A[...]"
-  fixed = fixed.replace(/^(\s*)(end)([A-Z][a-zA-Z0-9]*\[)/gm, (match, indent, endKw, rest) => {
-    console.log(`[Mermaid Fix] 'end' colado: "${match}"`);
-    return `${indent}${endKw}\n${indent}    ${rest}`;
-  });
+  // CRÍTICO: Validar ANTES de modificar
+  const preValidation = validateMermaidStructure(code);
+  
+  if (!preValidation.valid) {
+    console.warn('[Mermaid Validator] ⚠️ Pre-validation failed:', preValidation.errors);
+    errors.push(...preValidation.errors);
+    
+    // Tentar AI fix apenas para erros críticos
+    if (preValidation.errors.some(e => e.includes('CRITICAL'))) {
+      console.log('[convertToStructured] 🤖 Calling AI to fix Mermaid...');
+      try {
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        if (LOVABLE_API_KEY) {
+          const aiResponse = await fetch(`${Deno.env.get('SUPABASE_URL') || ''}/functions/v1/fix-mermaid-diagram`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`
+            },
+            body: JSON.stringify({ brokenCode: code, errors: preValidation.errors })
+          });
+          
+          if (aiResponse.ok) {
+            const data = await aiResponse.json();
+            if (data.fixedCode) {
+              console.log('[convertToStructured] ✅ AI fixed Mermaid code');
+              fixed = data.fixedCode;
+              // Re-validar após fix
+              const postValidation = validateMermaidStructure(fixed);
+              if (!postValidation.valid) {
+                console.warn('[convertToStructured] ⚠️ Mermaid validation failed:', {
+                  errors: postValidation.errors,
+                  originalCodePreview: code.substring(0, 200),
+                  fixedCodePreview: fixed.substring(0, 200)
+                });
+                return { valid: false, fixed: code, errors: postValidation.errors };
+              }
+              return { valid: true, fixed, errors: [] };
+            }
+          }
+        }
+      } catch (aiError) {
+        console.error('[convertToStructured] ❌ AI fix failed:', aiError);
+        // Continuar com fixes básicos
+      }
+    }
+  }
+  
+  // Aplicar correções básicas
+  fixed = applyBasicMermaidFixes(fixed);
+  
+  // Validação final
+  const finalValidation = validateMermaidStructure(fixed);
+  
+  if (!finalValidation.valid) {
+    console.error('[Mermaid Validator] ❌ Invalid - Errors:', finalValidation.errors.length);
+    console.warn('[Mermaid Validator] Full errors:', finalValidation.errors);
+    console.warn('[Mermaid Validator] Original vs Fixed:', {
+      original: code.substring(0, 200),
+      fixed: fixed.substring(0, 200)
+    });
+  } else {
+    console.log('[Mermaid Validator] ✅ Valid - Errors: 0');
+  }
+  
+  return {
+    valid: finalValidation.valid,
+    fixed,
+    errors: finalValidation.errors
+  };
+}
 
-  // 0.5. ✅ Corrigir 'direction' colado: "directionLRS[...]" → "direction LR\n    S[...]"
-  fixed = fixed.replace(/^(\s*)(direction)([A-Z]{2})([A-Z][a-zA-Z0-9]*\[)/gm, (match, indent, dirKw, dirType, rest) => {
-    console.log(`[Mermaid Fix] 'direction' colado: "${match}"`);
-    return `${indent}${dirKw} ${dirType}\n${indent}    ${rest}`;
-  });
+/**
+ * Validação estrutural do Mermaid (sem modificações)
+ */
+function validateMermaidStructure(code: string): { valid: boolean; errors: string[] } {
+  const validationErrors: string[] = [];
   
-  // 0.6. ✅ Corrigir 'subgraph' colado: "subgraphNome" → "subgraph Nome"
-  fixed = fixed.replace(/^(\s*)(subgraph)([A-Z][a-zA-Z0-9]*)/gm, (match, indent, sgKw, name) => {
-    console.log(`[Mermaid Fix] 'subgraph' colado: "${match}"`);
-    return `${indent}${sgKw} ${name}`;
-  });
+  // Validação 1: Tipo de diagrama válido
+  if (!code.match(/^(graph|flowchart|sequenceDiagram|stateDiagram-v2|classDiagram|gantt)/m)) {
+    validationErrors.push('Tipo de diagrama não reconhecido');
+    return { valid: false, errors: validationErrors };
+  }
   
-  // Detectar padrão inválido: graphTYPEA[ onde TYPE+A estão colados
-  fixed = fixed.replace(/^graph([A-Z]{2,})([A-Z]+)\[/gm, (match, type, node) => {
-    // Ex: "graphTDA[" → type="TD", node="A" ou type="TDA", node=""
-    if (['TD', 'LR', 'TB', 'BT'].includes(type)) {
-      // Tipo válido encontrado
-      console.log(`[Fix] Valid type detected: graph ${type}\\n    ${node}[`);
-      return `graph ${type}\n    ${node}[`;
+  // Validação 2: Graph deve ter espaço após tipo
+  if (code.includes('graph')) {
+    if (!code.match(/^graph\s+(TD|LR|TB|BT)\s/m)) {
+      validationErrors.push('Sintaxe inválida: "graph" deve ser seguido de TD/LR/TB/BT e espaço');
     }
     
-    // Tipo inválido ou colado (ex: "graphABC" ou "graphTDA")
-    // Extrair os 2 primeiros chars como tipo
-    const graphType = type.slice(0, 2);
-    const restNode = type.slice(2) + node;
-    console.log(`[Fix] Invalid pattern detected: "${match}" → graph ${graphType}\\n    ${restNode}[`);
-    return `graph ${graphType}\n    ${restNode}[`;
+    // Validação 3: Deve ter pelo menos um nó
+    if (!code.match(/[A-Z0-9_]+\[/)) {
+      validationErrors.push('Nenhum nó encontrado (formato: A[Label])');
+    }
+  }
+  
+  // Validação 4: ClassDiagram deve ter classes
+  if (code.includes('classDiagram')) {
+    if (!code.match(/class\s+\w+/)) {
+      validationErrors.push('Nenhuma classe definida em classDiagram');
+    }
+  }
+  
+  // Validação 5: Parênteses balanceados
+  const openBraces = (code.match(/\{/g) || []).length;
+  const closeBraces = (code.match(/\}/g) || []).length;
+  if (openBraces !== closeBraces) {
+    validationErrors.push(`Parênteses desbalanceados: ${openBraces} { vs ${closeBraces} }`);
+  }
+  
+  // Validação 6: Detectar padrões corrompidos críticos
+  const criticalPatterns = [
+    { pattern: /graph[A-Z]{2,}\[/, error: 'CRITICAL: graphTYPE colado sem espaço' },
+    { pattern: /<br\/?>|<strong>|<b>|<\w+>/, error: 'CRITICAL: Tags HTML detectadas em código Mermaid (usar \\n para quebras)' },
+    { pattern: /subgraph[A-Z]+\[/, error: 'CRITICAL: subgraph sem espaço antes do nome' }
+  ];
+  
+  criticalPatterns.forEach(({ pattern, error }) => {
+    if (pattern.test(code)) {
+      validationErrors.push(error);
+    }
   });
+  
+  // Se houver erros críticos, adicionar contexto
+  if (validationErrors.some(e => e.includes('CRITICAL'))) {
+    validationErrors.push('CRITICAL: Estrutura Mermaid inválida - sintaxe incorreta detectada no código ORIGINAL');
+  }
+  
+  return {
+    valid: validationErrors.length === 0,
+    errors: validationErrors
+  };
+}
 
-  // Corrigir subgraph sem espaço
-  // Ex: "subgraphSistema[...]" → "subgraph Sistema\n    A[...]"
-  fixed = fixed.replace(/^subgraph([A-Z]\w+)\[/gm, (match, name) => {
-    return `subgraph ${name}\n    A[`;
+/**
+ * Aplicar correções básicas sem quebrar código válido
+ */
+function applyBasicMermaidFixes(code: string): string {
+  let fixed = code;
+  
+  // Fix 1: 'end' colado: "endA[...]" → "end\n    A[...]"
+  fixed = fixed.replace(/^(\s*)(end)([A-Z][a-zA-Z0-9]*\[)/gm, '$1$2\n$1    $3');
+  
+  // Fix 2: 'direction' colado: "directionLR" → "direction LR"
+  fixed = fixed.replace(/^(\s*)(direction)([A-Z]{2})/gm, '$1$2 $3');
+  
+  // Fix 3: 'subgraph' colado: "subgraphNome" → "subgraph Nome"
+  fixed = fixed.replace(/^(\s*)(subgraph)([A-Z][a-zA-Z0-9]*)/gm, '$1$2 $3');
+  
+  // Fix 4: graphTYPEA[ → graph TYPE\n    A[
+  fixed = fixed.replace(/^graph([A-Z]{2})([A-Z]+)\[/gm, (match, type, node) => {
+    if (['TD', 'LR', 'TB', 'BT'].includes(type)) {
+      return `graph ${type}\n    ${node}[`;
+    }
+    return match;
   });
   
-  // 1. Corrigir caracteres proibidos em nomes de métodos/atributos
-  // Ex: +trocaMassa() → trocaMassa()
-  fixed = fixed.replace(/\+(\w+)\(/g, '$1(');
+  // Fix 5: Remover HTML tags
+  fixed = fixed.replace(/<br\s*\/?>/gi, '\\n');
+  fixed = fixed.replace(/<\/?(?:strong|b|em|i)>/gi, '');
   
-  // 2. Corrigir espaços em definições de classe
-  // Ex: "class Sistema Fechado" → "class SistemaFechado"
-  fixed = fixed.replace(/class\s+([A-Z]\w+)\s+([A-Z]\w+)/g, (match, word1, word2) => {
-    return `class ${word1}${word2}`;
-  });
-  
-  // 3. Corrigir espaços em nomes de nós/classes (ex: "Sistema Fechado" → "SistemaFechado")
-  fixed = fixed.replace(/(\w+)\s+(\w+)(?=\s*[\[\{:])/g, '$1$2');
-  
-  // 4. Remover caracteres especiais em labels que não estão entre aspas
-  fixed = fixed.replace(/([^"'\[])(\+)(\w+)/g, '$1$3');
-  
-  // 5. Corrigir sintaxe de subgrafos (subgraph deve ter nome sem espaços)
-  fixed = fixed.replace(/subgraph\s+([^[\n]+)\s+([A-Z]\w+)/g, (match, word1, word2) => {
-    const combinedName = word1.trim().replace(/\s+/g, '') + word2;
-    return `subgraph ${combinedName}`;
-  });
-  
-  // 6. Garantir que labels com caracteres especiais/acentos estejam entre aspas
+  // Fix 6: Corrigir labels com caracteres especiais
   fixed = fixed.replace(/\[([^\]]*[áéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ][^\]]*)\]/gi, (match, content) => {
     if (content.includes('"') || content.includes("'")) return match;
     return `["${content}"]`;
   });
   
-  // 7. Corrigir atributos de classe com espaços (ex: +energia_total E → +energia_total)
-  if (fixed.includes('classDiagram')) {
-    // Remover texto após espaço em linhas de atributos/métodos
-    fixed = fixed.replace(/^\s*([\+\-\#\~])(\w+)\s+([A-Z]\w+)$/gm, '$1$2');
-    // Remover espaços em nomes de classes (ex: "Sistema Fechado" → "SistemaFechado")
-    fixed = fixed.replace(/class\s+(\w+)\s+(\w+)/g, 'class $1$2');
-  }
+  // Fix 7: Remover linhas vazias excessivas
+  fixed = fixed.replace(/\n{3,}/g, '\n\n');
   
-  // 8. Corrigir sintaxe de relacionamentos em classDiagrams
-  if (fixed.includes('classDiagram')) {
-    // Garantir que relacionamentos não tenham espaços nos nomes
-    fixed = fixed.replace(/(\w+)\s+(\w+)\s*(--|\.\.|\*--|o--)/g, '$1$2 $3');
-  }
-  
-  // 9. Validar estrutura básica
-  if (!fixed.includes('graph') && !fixed.includes('classDiagram') && !fixed.includes('sequenceDiagram') && !fixed.includes('gantt')) {
-    errors.push('Tipo de diagrama não reconhecido');
-    return { valid: false, fixed, errors };
-  }
-  
-  // ✅ FASE 1: Validação estrita de sintaxe básica
-  if (fixed.includes('graph')) {
-    // DEVE ter: "graph TD" ou "graph LR" com espaço
-    if (!fixed.match(/^graph\s+(TD|LR|TB|BT)\s/m)) {
-      errors.push('Sintaxe inválida: "graph" deve ser seguido de TD/LR/TB/BT e espaço');
-    }
-    
-    // DEVE ter pelo menos um nó: A[...]
-    if (!fixed.match(/[A-Z]\[/)) {
-      errors.push('Nenhum nó encontrado (formato: A[Label])');
-    }
-  }
+  return fixed.trim();
+}
 
-  if (fixed.includes('classDiagram')) {
-    // DEVE ter pelo menos uma declaração de classe
-    if (!fixed.match(/class\s+\w+/)) {
-      errors.push('Nenhuma classe definida em classDiagram');
-    }
-  }
-  
-  // 10. Validar nodes (não podem ter espaços sem aspas)
-  const nodeRegex = /(\w+)\s+([A-Z]\w+)\s*\[/g;
-  const matches = fixed.match(nodeRegex);
-  if (matches) {
-    matches.forEach(match => {
-      const fixedMatch = match.replace(/\s+/g, '');
-      fixed = fixed.replace(match, fixedMatch);
-    });
-  }
-  
-  // 11. Verificar linhas vazias excessivas
-  fixed = fixed.replace(/\n\n+/g, '\n');
-  
-  // 12. Validar fechamentos de blocos
-  const openBraces = (fixed.match(/\{/g) || []).length;
-  const closeBraces = (fixed.match(/\}/g) || []).length;
-  
-  if (openBraces !== closeBraces) {
-    errors.push(`Parênteses desbalanceados: ${openBraces} { vs ${closeBraces} }`);
-  }
-  
-  // ✅ FASE 3: Validações OBRIGATÓRIAS - verificar código ORIGINAL, não fixado
-  const criticalErrors = [
-    // Detectar no código ORIGINAL (antes de fixes)
-    code.match(/graph[A-Z]{3,}\[/), // graphTDA[, graphLRA[, etc.
-    code.match(/graph[A-Z]{2}[A-Z]+\[/), // graphTDA[, graph TD A[ (sem quebra)
-    code.match(/subgraph[A-Z]+\[/), // subgraphNome[
-    // Verificar se, APÓS os fixes, ainda não tem tipo correto
-    (!fixed.match(/^graph\s+(TD|LR|TB|BT)\s+/m) && fixed.includes('graph')),
-  ];
-
-  // ✅ FASE 2: Adicionar detecção de tags HTML em labels (comum quando AI gera <br/>)
-  if (code.includes('<br/>') || code.includes('<br>') || code.includes('<strong>') || code.includes('<b>')) {
-    errors.push('CRITICAL: Tags HTML detectadas em código Mermaid (usar \\n para quebras)');
-  }
-
-  if (criticalErrors.some(Boolean)) {
-    errors.push('CRITICAL: Estrutura Mermaid inválida - sintaxe incorreta detectada no código ORIGINAL');
-    console.error('[Mermaid Validator] CRITICAL errors in ORIGINAL code:', {
-      originalCode: code.substring(0, 150),
-      fixedCode: fixed.substring(0, 150),
-      hasGraphWithoutProperSpacing: !!code.match(/graph[A-Z]{2,}\[/),
-      hasSubgraphIssue: !!code.match(/subgraph[A-Z]+\[/),
-      hasHTMLTags: code.includes('<br'),
-    });
-  }
-  
-  const valid = errors.length === 0;
-  console.log(`[Mermaid Validator] ${valid ? '✅ Valid' : '❌ Invalid'} - Errors: ${errors.length}`);
-  
-  if (!valid) {
-    console.warn('[Mermaid Validator] Full errors:', errors);
+// ============================================================================
+// Convert Markdown to Structured JSON
+// ============================================================================
+async function convertMarkdownToStructuredJSON(markdown: string, title: string): Promise<any> {
     console.warn('[Mermaid Validator] Original vs Fixed:', {
       original: code.substring(0, 200),
       fixed: fixed.substring(0, 200)
