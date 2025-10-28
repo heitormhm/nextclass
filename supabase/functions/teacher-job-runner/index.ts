@@ -229,6 +229,94 @@ async function fixLatexErrors(markdown: string, jobId: string): Promise<string> 
   return fixed;
 }
 
+/**
+ * FASE 7: Calcular métricas de qualidade do material gerado
+ */
+function calculateQualityMetrics(structuredJSON: any, report: string, jobId: string): any {
+  console.log(`[Job ${jobId}] [Quality Metrics] 📊 Calculating content quality...`);
+  
+  // 1. Contar fórmulas LaTeX
+  const latexMatches = report.match(/\$\$[^$]+\$\$/g) || [];
+  const validLatex = latexMatches.filter(formula => {
+    // Verificar se não é placeholder
+    return !formula.includes('___LATEX_') && !formula.match(/\d+\$/);
+  }).length;
+  
+  // 2. Contar diagramas Mermaid
+  const mermaidBlocks = structuredJSON.conteudo?.filter((b: any) => 
+    ['fluxograma', 'diagrama', 'cronograma_gantt'].includes(b.tipo) && b.definicao_mermaid
+  ) || [];
+  const placeholders = structuredJSON.conteudo?.filter((b: any) => 
+    b.tipo === 'caixa_de_destaque' && b.titulo?.includes('Diagrama')
+  ) || [];
+  
+  // 3. Analisar referências
+  const referencesBlock = structuredJSON.conteudo?.find((b: any) => 
+    b.tipo === 'referencias' || b.titulo?.toLowerCase().includes('referências')
+  );
+  
+  const refText = referencesBlock?.texto || JSON.stringify(referencesBlock?.lista || []);
+  const allRefs = refText.match(/https?:\/\/[^\s)]+/g) || [];
+  const academicDomains = ['.edu', '.gov', 'scielo', 'ieee', 'springer', 'elsevier', '.ac.uk'];
+  const academicRefs = allRefs.filter((ref: string) => 
+    academicDomains.some(domain => ref.includes(domain))
+  );
+  
+  const academicPercentage = allRefs.length > 0 
+    ? (academicRefs.length / allRefs.length) * 100 
+    : 0;
+  
+  // 4. Contar palavras
+  const wordCount = report
+    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+    .split(/\s+/)
+    .filter(w => w.length > 0).length;
+  
+  const metrics = {
+    latex: {
+      total: latexMatches.length,
+      valid: validLatex,
+      percentage: latexMatches.length > 0 ? (validLatex / latexMatches.length) * 100 : 100
+    },
+    mermaid: {
+      total: mermaidBlocks.length + placeholders.length,
+      rendered: mermaidBlocks.length,
+      placeholders: placeholders.length,
+      percentage: mermaidBlocks.length + placeholders.length > 0
+        ? (mermaidBlocks.length / (mermaidBlocks.length + placeholders.length)) * 100
+        : 100
+    },
+    references: {
+      total: allRefs.length,
+      academic: academicRefs.length,
+      percentage: academicPercentage
+    },
+    content: {
+      wordCount,
+      meetsMinimum: wordCount >= 3000,
+      isIdeal: wordCount >= 4000 && wordCount <= 6000
+    },
+    overallScore: 0 // Calculado abaixo
+  };
+  
+  // 5. Calcular score geral (0-100)
+  metrics.overallScore = Math.round(
+    (metrics.latex.percentage * 0.25) +
+    (metrics.mermaid.percentage * 0.25) +
+    (metrics.references.percentage * 0.30) +
+    (metrics.content.meetsMinimum ? 20 : 0)
+  );
+  
+  console.log(`[Job ${jobId}] [Quality Metrics] ✅ Metrics calculated:`, {
+    latex: `${validLatex}/${latexMatches.length} (${metrics.latex.percentage.toFixed(0)}%)`,
+    mermaid: `${mermaidBlocks.length}/${mermaidBlocks.length + placeholders.length} (${metrics.mermaid.percentage.toFixed(0)}%)`,
+    references: `${academicRefs.length}/${allRefs.length} (${academicPercentage.toFixed(0)}%)`,
+    score: metrics.overallScore
+  });
+  
+  return metrics;
+}
+
 // Helper function to update job progress
 async function updateJobProgress(
   supabase: any,
@@ -277,7 +365,38 @@ async function saveReportToLecture(
   const preprocessedReport = await preprocessMermaidBlocks(report, jobId);
   
   // ETAPA 1.5: Fix LaTeX errors
-  const fixedReport = await fixLatexErrors(preprocessedReport, jobId);
+  let fixedReport = await fixLatexErrors(preprocessedReport, jobId);
+  
+  // ✅ FASE 3: Integrar Edge Function fix-latex-formulas
+  console.log(`[Job ${jobId}] 🤖 Calling LaTeX AI corrector...`);
+  
+  try {
+    const latexFixResponse = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/functions/v1/fix-latex-formulas`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+        },
+        body: JSON.stringify({
+          content: fixedReport,
+          jobId: jobId
+        })
+      }
+    );
+
+    if (latexFixResponse.ok) {
+      const { correctedContent } = await latexFixResponse.json();
+      fixedReport = correctedContent;
+      console.log(`[Job ${jobId}] ✅ LaTeX AI correction complete`);
+    } else {
+      console.warn(`[Job ${jobId}] ⚠️ LaTeX AI correction failed, using regex fallback`);
+    }
+  } catch (aiError) {
+    console.error(`[Job ${jobId}] ❌ LaTeX AI correction error:`, aiError);
+    // Continuar com fallback (não bloquear)
+  }
 
   // ETAPA 2: Validate material length (minimum 3000 words, excluding code blocks)
   const materialText = fixedReport.replace(/```[\s\S]*?```/g, ''); // Remove code blocks
@@ -303,13 +422,17 @@ async function saveReportToLecture(
   // ✅ FASE 1: SANITIZAÇÃO FINAL DO JSON antes de salvar
   structuredJSON = finalContentSanitization(structuredJSON, jobId);
   
+  // ✅ FASE 7: Calcular métricas de qualidade
+  const qualityMetrics = calculateQualityMetrics(structuredJSON, fixedReport, jobId);
+  
   // ETAPA 4: Save structured JSON
   const { error: updateError } = await supabase
     .from('lectures')
     .update({
       structured_content: {
         ...existingContent,
-        material_didatico: JSON.stringify(structuredJSON)
+        material_didatico: structuredJSON,  // ✅ FASE 1: Objeto direto (não stringificar)
+        quality_metrics: qualityMetrics    // ✅ FASE 7: Adicionar métricas
       },
       updated_at: new Date().toISOString()
     })
@@ -430,8 +553,8 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       
       const academicPercentage = (academicCount / allRefs.length) * 100;
       
-      // ✅ CRITÉRIOS DE REJEIÇÃO
-      const isValid = bannedCount <= 2 && academicPercentage >= 40;
+      // ✅ FASE 5: CRITÉRIOS DE REJEIÇÃO MAIS RIGOROSOS
+      const isValid = bannedCount <= 2 && academicPercentage >= 70;
       
       if (!isValid) {
         errors.push(`REJECTED: ${bannedCount} fontes banidas (máx: 2), ${academicPercentage.toFixed(0)}% acadêmicas (mín: 40%)`);
@@ -571,8 +694,11 @@ async function executeWebSearches(questions: string[], braveApiKey: string, jobI
   
   for (const question of questions) {
     try {
+      // ✅ FASE 5: Modificar query para priorizar domínios acadêmicos
+      const searchQuery = `${question} (site:.edu OR site:.gov OR site:scielo.org OR site:ieeexplore.ieee.org OR site:springer.com OR site:.ac.uk)`;
+      
       const response = await fetch(
-        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(question)}&count=5`,
+        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=10&safesearch=strict`,
         {
           headers: {
             'Accept': 'application/json',
@@ -862,6 +988,107 @@ Para um **sistema fechado**, a massa permanece constante...
 - **Listas:** Numere passos de processos, use bullets para características
 
 **IDIOMA OBRIGATÓRIO:** Português brasileiro (pt-BR).
+
+# ✅ FASE 6: REGRAS RIGOROSAS DE FORMATAÇÃO MATEMÁTICA (CRÍTICO)
+
+## CORRETO - LaTeX
+
+Todas as expressões matemáticas DEVEM usar delimitadores \`$$...$$\`:
+
+**Exemplos Corretos:**
+\`\`\`
+✅ A Primeira Lei é expressa por $$\\Delta U = Q - W$$
+✅ Para um gás ideal, $$PV = nRT$$
+✅ A eficiência é $$\\eta = 1 - \\frac{T_C}{T_H}$$
+✅ O trabalho é $$W = \\int_{V_1}^{V_2} P \\, dV$$
+\`\`\`
+
+## PROIBIDO - LaTeX
+
+**Exemplos PROIBIDOS:**
+\`\`\`
+❌ $ representa a variação... (NUNCA use $ isolado)
+❌ 1$ ou $2 ou ** 1$ ** (NUNCA misture $ com números/asteriscos)
+❌ \\Delta U = Q - W (NUNCA use \\ fora de $$)
+❌ dU ou dT isolados (SEMPRE envolver em $$dU$$, $$dT$$)
+❌ ___LATEX_DOUBLE_2___ (placeholders são BUG crítico)
+\`\`\`
+
+**REGRA ABSOLUTA:** Toda fórmula, variável isolada (ex: P, T, V), comando LaTeX (\\Delta, \\frac, \\int) DEVE estar dentro de \`$$...$$\`.
+
+# 📊 FASE 6: REGRAS RIGOROSAS DE DIAGRAMAS MERMAID (CRÍTICO)
+
+## SINTAXE VÁLIDA OBRIGATÓRIA
+
+**1. Tipos de Diagrama Permitidos:**
+\`\`\`
+✅ flowchart TD (fluxograma vertical)
+✅ flowchart LR (fluxograma horizontal)
+✅ sequenceDiagram (diagrama de sequência)
+✅ classDiagram (diagrama de classes)
+✅ stateDiagram-v2 (diagrama de estados)
+\`\`\`
+
+**2. Setas APENAS ASCII:**
+\`\`\`
+✅ A --> B (seta simples)
+✅ A ==> B (seta destacada)
+✅ A -.-> B (seta tracejada)
+❌ A → B (Unicode PROIBIDO)
+❌ A ⇒ B (Unicode PROIBIDO)
+\`\`\`
+
+**3. Nomes de Nós:**
+\`\`\`
+✅ A[Bomba] (alfanumérico)
+✅ Estado1[Inicial] (alfanumérico)
+❌ Nó Δ[Sistema] (símbolos Unicode PROIBIDOS)
+❌ [Sistema (Q→W)] (caracteres especiais (, ), → PROIBIDOS)
+\`\`\`
+
+**4. Labels APENAS Texto Simples:**
+\`\`\`
+✅ A -->|Agua pressurizada| B
+❌ A -->|Água ΔP=200kPa| B (símbolos Unicode e caracteres especiais PROIBIDOS)
+\`\`\`
+
+## ERROS COMUNS A EVITAR
+
+**NUNCA FAÇA ISSO:**
+\`\`\`
+❌ graph TD (use flowchart TD)
+❌ A --> B{Decisão Δ} (Unicode Δ PROIBIDO)
+❌ subgraphCicloRankine (faltando espaço: "subgraph Ciclo Rankine")
+❌ A -->|Q→W| B (seta Unicode PROIBIDA em label)
+\`\`\`
+
+**REGRA ABSOLUTA:** Apenas ASCII, nomes alfanuméricos, labels em português simples SEM acentos críticos.
+
+# ⛔ FASE 5: FONTES ACADÊMICAS OBRIGATÓRIAS (CRÍTICO)
+
+## FONTES PROIBIDAS (BANIDAS):
+- ❌ Wikipédia (wikipedia.org, pt.wikipedia.org)
+- ❌ Brasil Escola (brasilescola.uol.com.br)
+- ❌ Mundo Educação (mundoeducacao.uol.com.br)
+- ❌ Info Escola (infoescola.com)
+- ❌ Toda Matéria (todamateria.com.br)
+- ❌ Aprova Total (aprovatotal.com.br)
+- ❌ YouTube, blogs pessoais, fóruns
+
+## FONTES PRIORIZADAS (70%+ das referências DEVEM ser destas):
+- ✅ Artigos de revistas acadêmicas (SciELO, IEEE, Springer, Elsevier)
+- ✅ Livros-texto universitários publicados (Çengel, Moran, Halliday, etc.)
+- ✅ Teses e dissertações de universidades reconhecidas
+- ✅ Sites .edu (universidades), .gov (governos), .ac.uk (universidades UK)
+- ✅ Normas técnicas (ABNT, ISO, ASME, ANSI)
+
+**INSTRUÇÕES CRÍTICAS PARA REFERÊNCIAS:**
+1. **MÍNIMO 70% de referências acadêmicas** (verifique URLs)
+2. **MÁXIMO 2 referências de fontes banidas** (evite sempre que possível)
+3. Quando usar fontes banidas, **SEMPRE indique "Fonte complementar não-acadêmica"**
+4. **PRIORIZE artigos científicos recentes (últimos 10 anos)**
+5. **SEMPRE inclua DOI quando disponível**
+6. **Cite livros-texto clássicos da engenharia** (ex: Çengel, Thermodynamics: An Engineering Approach)
 
 # 📊 DIAGRAMAS MERMAID OBRIGATÓRIOS
 
@@ -1349,7 +1576,7 @@ function applyBasicMermaidFixes(code: string): string {
 async function convertMarkdownToStructuredJSON(markdown: string, title: string): Promise<any> {
   console.log('[convertToStructured] 🔄 Converting markdown to structured JSON...');
   
-  // ✅ FASE 4: AGGRESSIVE LaTeX Fix - EXECUTAR ANTES da normalização normal
+  // ✅ FASE 2: AGGRESSIVE LaTeX Fix - EXPANDIDO
   const aggressiveLatexFix = (text: string): string => {
     console.log('[AGGRESSIVE LaTeX Fix] 🔥 Fixing corrupted LaTeX...');
     
@@ -1364,6 +1591,28 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
       const formula = match.replace(/\*\*/g, '').replace(/\$/g, '').trim();
       return ` $$${formula}$$ `;
     });
+    
+    // ✅ FASE 2.1: Detectar e remover $ isolados com espaços
+    fixed = fixed.replace(/\$\s+/g, ''); // "$ " → ""
+    fixed = fixed.replace(/\s+\$/g, ''); // " $" → ""
+    
+    // ✅ FASE 2.2: Detectar $ sem fechamento (ex: "$dU " sem "$$")
+    fixed = fixed.replace(/\$([^$\n]{1,50})(?!\$)/g, '$$$$1$$'); // "$dU " → "$$dU$$"
+    
+    // ✅ FASE 2.3: Remover variáveis de 1 letra isoladas FORA de LaTeX
+    const parts = fixed.split('$$');
+    for (let i = 0; i < parts.length; i++) {
+      if (i % 2 === 0) { // Apenas partes fora de $$
+        parts[i] = parts[i].replace(/\s([a-z])\s+/gi, ' '); // " e " → " "
+      }
+    }
+    fixed = parts.join('$$');
+    
+    // ✅ FASE 2.4: Completar fórmulas incompletas (ex: "dU = Q - W" sem $$)
+    fixed = fixed.replace(
+      /\b([A-Z][a-z]?)\s*=\s*([A-Z][a-z]?)\s*[-+]\s*([A-Z][a-z]?)/g,
+      '$$$$1 = $$2 - $$3$$'
+    );
     
     // 2. Detectar expressões matemáticas isoladas (sem $$)
     // Ex: "Onde: \Delta U = Q - W" → "Onde: $$\Delta U = Q - W$$"
@@ -1530,62 +1779,63 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
         i++;
       }
       
-      // ✅ VALIDATE AND FIX Mermaid syntax
-      const validation = validateAndFixMermaidSyntax(mermaidCode);
+      // ✅ VALIDATE AND FIX Mermaid syntax (await corrigido)
+      const validation = await validateAndFixMermaidSyntax(mermaidCode);
       
       if (!validation.valid) {
-        // ✅ FASE 7: Log detalhado de debug Mermaid
         console.warn('[convertToStructured] ⚠️ Mermaid validation failed:', {
           errors: validation.errors,
           originalCodePreview: mermaidCode.substring(0, 150),
-          fixedCodePreview: validation.fixed.substring(0, 150),
         });
         
-        // ✅ CHAMAR AI FIX
-        console.log('[convertToStructured] 🤖 Calling AI to fix Mermaid...');
-        
-        // ✅ CHAMAR EDGE FUNCTION para correção com AI
+        // ✅ FASE 4: ESTRATÉGIA 1 - Tentar AI Fix
         try {
-          const fixResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/fix-mermaid-diagram`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
-            },
-            body: JSON.stringify({
-              brokenCode: mermaidCode,
-              context: title,
-              strategy: 'Fix sintaxe mantendo estrutura original',
-              attempt: 1
-            })
-          });
-          
+          const fixResponse = await fetch(
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/fix-mermaid-diagram`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+              },
+              body: JSON.stringify({
+                brokenCode: mermaidCode,
+                context: 'Engineering educational material',
+                strategy: 'Fix syntax errors, ensure ASCII arrows, remove special chars',
+                attempt: 1
+              }),
+              signal: AbortSignal.timeout(10000) // 10s timeout
+            }
+          );
+
           if (fixResponse.ok) {
             const { fixedCode } = await fixResponse.json();
-            console.log('[convertToStructured] ✅ AI fixed Mermaid code');
+            const revalidation = validateMermaidStructure(fixedCode);
             
-            // Re-validar código corrigido
-            const revalidation = validateAndFixMermaidSyntax(fixedCode);
             if (revalidation.valid) {
-              mermaidCode = revalidation.fixed;
+              console.log('[convertToStructured] ✅ Mermaid fixed by AI');
+              mermaidCode = fixedCode;
             } else {
-              mermaidCode = fixedCode; // Usar mesmo se não passar validação estrita
+              throw new Error('AI fix did not pass validation');
             }
           } else {
-            console.error('[convertToStructured] ❌ AI fix failed, using placeholder');
-            conteudo.push({
-              tipo: 'caixa_de_destaque',
-              titulo: '📊 Diagrama Visual',
-              texto: 'Um diagrama foi planejado mas requer ajustes técnicos.'
-            });
-            continue;
+            throw new Error(`AI fix HTTP ${fixResponse.status}`);
           }
-        } catch (err) {
-          console.error('[convertToStructured] ❌ AI fix error:', err);
+        } catch (aiError) {
+          console.error('[convertToStructured] ❌ AI fix failed:', aiError);
+          
+          // ✅ FASE 4: ESTRATÉGIA 2 - Fallback para Descrição Textual Enriquecida
+          console.log('[convertToStructured] 📝 Using textual fallback for Mermaid');
+          
+          // Extrair informação semântica do código Mermaid
+          const diagramType = mermaidCode.match(/^(graph|flowchart|sequenceDiagram|classDiagram)/)?.[1] || 'diagram';
+          const nodes = mermaidCode.match(/\[([^\]]+)\]/g) || [];
+          const descriptions = nodes.map(n => n.replace(/[\[\]]/g, '')).join(', ');
+          
           conteudo.push({
             tipo: 'caixa_de_destaque',
-            titulo: '📊 Diagrama Visual',
-            texto: 'Um diagrama foi planejado mas requer ajustes técnicos.'
+            titulo: `📊 Diagrama ${diagramType}`,
+            texto: `Representação visual do conceito: ${descriptions.substring(0, 200)}${descriptions.length > 200 ? '...' : ''}`
           });
           continue;
         }
