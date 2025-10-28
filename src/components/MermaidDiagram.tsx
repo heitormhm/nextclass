@@ -191,27 +191,19 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         </h4>
         <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
         {error ? (
-          <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="text-4xl opacity-40">📊</div>
+          <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="text-5xl text-purple-400">📊</div>
               <div>
-                <p className="text-sm font-semibold text-slate-700">Diagrama temporariamente indisponível</p>
-                {/* ✅ FASE 10.3: Mostrar description como fallback semântico */}
-                {description && description !== 'Diagrama técnico ilustrando os conceitos' && (
-                  <p className="text-xs text-slate-600 mt-2 italic">{description}</p>
+                <p className="text-sm font-semibold text-purple-800">Visualização em construção</p>
+                {description && description.length > 50 && (
+                  <p className="text-sm text-purple-700 mt-2 leading-relaxed italic bg-purple-100/50 p-3 rounded border-l-4 border-purple-400">
+                    {description}
+                  </p>
                 )}
-                <p className="text-xs text-slate-500 mt-1">O sistema está processando este conteúdo visual</p>
+                <p className="text-xs text-purple-600 mt-2">O sistema está processando este conteúdo visual</p>
               </div>
             </div>
-            {/* Preview do código para debug */}
-            <details className="mt-3">
-              <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-700">
-                Ver código-fonte (debug)
-              </summary>
-              <pre className="mt-2 text-xs bg-slate-100 p-2 rounded overflow-x-auto max-h-40">
-                <code>{code.substring(0, 300)}{code.length > 300 ? '...' : ''}</code>
-              </pre>
-            </details>
           </div>
         ) : (
           <div className="w-full overflow-x-auto overflow-y-hidden">

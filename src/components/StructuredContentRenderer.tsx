@@ -149,24 +149,22 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
   const renderBlock = (bloco: ContentBlock, index: number) => {
     switch (bloco.tipo) {
       case 'h2': {
-        // ✅ FASE 5: Processar markdown em títulos
         const h2Html = convertMarkdownToHtml(bloco.texto || '');
         return (
           <h2 
             key={index} 
-            className="text-3xl font-bold mt-8 mb-4 text-foreground scroll-mt-20"
+            className="text-3xl font-bold mt-10 mb-6 pb-3 border-b-4 border-purple-500 bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent flex items-center gap-3 scroll-mt-20"
             dangerouslySetInnerHTML={{ __html: h2Html }}
           />
         );
       }
 
       case 'h3': {
-        // ✅ FASE 5: Processar markdown em títulos
         const h3Html = convertMarkdownToHtml(bloco.texto || '');
         return (
           <h3 
             key={index} 
-            className="text-2xl font-bold mt-6 mb-3 text-foreground/90 scroll-mt-20"
+            className="text-2xl font-bold mt-8 mb-4 text-purple-700 flex items-center gap-2 before:content-['▸'] before:text-purple-500 before:mr-2 scroll-mt-20"
             dangerouslySetInnerHTML={{ __html: h3Html }}
           />
         );
@@ -190,14 +188,15 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
       
       case 'caixa_de_destaque':
         return (
-          <div key={index} className="bg-gradient-to-br from-amber-100/80 to-amber-200/80 dark:from-amber-900/30 dark:to-amber-800/30 border-l-4 border-amber-600 dark:border-amber-500 p-5 rounded-xl shadow-md my-6">
-            <h4 className="font-bold text-amber-900 dark:text-amber-100 mb-3 text-lg">📌 {bloco.titulo}</h4>
-            <div className="text-amber-800 dark:text-amber-200 leading-relaxed" dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(bloco.texto || '') }} />
+          <div key={index} className="bg-gradient-to-br from-purple-50 to-purple-100 border-l-4 border-purple-600 p-6 rounded-xl shadow-lg my-6">
+            <h4 className="font-bold text-purple-900 mb-3 text-xl flex items-center gap-2">
+              🔑 {bloco.titulo || 'Conceito Importante'}
+            </h4>
+            <div className="text-purple-800 leading-relaxed" dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(bloco.texto || '') }} />
           </div>
         );
       
       case 'post_it':
-        // Detectar tipo de post-it por keywords
         let postItType = 'info';
         let postItIcon = '💡';
         const textoLower = bloco.texto?.toLowerCase() || '';
@@ -217,15 +216,15 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
         }
         
         const postItColors: Record<string, string> = {
-          warning: 'from-red-100/80 to-red-200/80 dark:from-red-900/30 dark:to-red-800/30 border-red-500 dark:border-red-400 text-red-900 dark:text-red-100',
-          tip: 'from-green-100/80 to-green-200/80 dark:from-green-900/30 dark:to-green-800/30 border-green-500 dark:border-green-400 text-green-900 dark:text-green-100',
-          reflection: 'from-purple-100/80 to-purple-200/80 dark:from-purple-900/30 dark:to-purple-800/30 border-purple-500 dark:border-purple-400 text-purple-900 dark:text-purple-100',
-          application: 'from-blue-100/80 to-blue-200/80 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-500 dark:border-blue-400 text-blue-900 dark:text-blue-100',
-          info: 'from-yellow-100/80 to-yellow-200/80 dark:from-yellow-900/30 dark:to-yellow-800/30 border-yellow-500 dark:border-yellow-400 text-yellow-900 dark:text-yellow-100'
+          warning: 'from-red-100/80 to-red-200/80 border-red-500 text-red-900',
+          tip: 'from-purple-100/80 to-purple-200/80 border-purple-500 text-purple-900',
+          reflection: 'from-indigo-100/80 to-indigo-200/80 border-indigo-500 text-indigo-900',
+          application: 'from-blue-100/80 to-blue-200/80 border-blue-500 text-blue-900',
+          info: 'from-purple-100/80 to-purple-200/80 border-purple-500 text-purple-900'
         };
         
         return (
-          <div key={index} className={`bg-gradient-to-br ${postItColors[postItType]} border-2 border-dashed dark:border-opacity-60 p-4 rounded-lg shadow-sm my-4`}>
+          <div key={index} className={`bg-gradient-to-br ${postItColors[postItType]} border-2 border-dashed p-4 rounded-lg shadow-sm my-4`}>
             <p className="italic leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: `${postItIcon} ${convertMarkdownToHtml(bloco.texto || '')}` }} />
           </div>
         );
@@ -459,42 +458,19 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
       case 'referencias':
         const referencesContent = bloco.itens || (bloco.texto ? [bloco.texto] : []);
         
-        // Log para debug
-        console.log('[Referencias] Conteúdo recebido:', referencesContent);
-        console.log('[Referencias] Tem <br> tags?', referencesContent.some((r: string) => r.includes('<br>')));
-        
         return (
-          <div key={index} className="bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-900/50 dark:to-slate-800/50 border-l-4 border-slate-600 dark:border-slate-500 rounded-xl shadow-md my-8 mt-12">
-            <div className="p-6 pb-0">
-              <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-4 text-xl flex items-center gap-2">
-                📚 {bloco.titulo || 'Referências Bibliográficas'}
-              </h4>
-            </div>
-            <ScrollArea className="h-[400px] px-6 pb-6">
-              <div className="space-y-6 pr-4">
-                {referencesContent.map((ref: string, i: number) => {
-                  let refHtml = convertMarkdownToHtml(ref)
-                    // Garantir espaçamento mínimo entre seções
-                    .replace(/<br><br>/gi, '<br><br><span style="display:block;height:8px;"></span>');
-                  
-                  console.log(`[Referencias] Item ${i} após limpeza:`, refHtml.substring(0, 100));
-                  
-                  return (
-                    <div 
-                      key={i} 
-                      className="text-slate-800 dark:text-slate-200 text-sm pl-4 border-l-2 border-slate-400 dark:border-slate-600 mb-6"
-                      style={{ 
-                        whiteSpace: 'normal',
-                        display: 'block',
-                        lineHeight: '1.8',
-                        minHeight: '60px'
-                      }}
-                      dangerouslySetInnerHTML={{ __html: refHtml }}
-                    />
-                  );
-                })}
-              </div>
-            </ScrollArea>
+          <div key={index} className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 p-6 rounded-xl shadow-md my-8">
+            <h3 className="text-2xl font-bold text-purple-900 mb-4 flex items-center gap-2 pb-2 border-b-2 border-purple-400">
+              📚 {bloco.titulo || 'Referências Bibliográficas'}
+            </h3>
+            <ol className="space-y-3 text-sm">
+              {referencesContent.map((ref: string, i: number) => (
+                <li key={i} className="flex gap-3 items-start">
+                  <span className="font-bold text-purple-600 min-w-[24px]">[{i + 1}]</span>
+                  <span className="text-purple-800 leading-relaxed" dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(ref) }} />
+                </li>
+              ))}
+            </ol>
           </div>
         );
       

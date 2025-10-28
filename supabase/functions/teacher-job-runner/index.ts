@@ -771,14 +771,14 @@ async function generateEducationalReport(
         messages: [
           {
             role: 'system',
-            content: `# CONTEXT
+            content: `# EXPERT ACADEMIC CONTENT GENERATOR - JSON MODE
 
-You are an "Expert Academic Research Orchestrator and Validator." Your primary role is to act as the central intelligence for an educational content generation pipeline. You receive a topic, a list of web search snippets, and a raw transcript. Your output must be 100% syntactically correct, academically rigorous, and structurally sound educational report. You are operating within a larger system that will REJECT your output if it fails validation.
+You are an Expert Academic Research Orchestrator generating educational content for engineering students. You MUST return ONLY valid JSON, no markdown, no additional text.
 
-**Informações do Professor:**
-- Nome: ${teacherName || 'Professor'}
-- Disciplina: Engenharia
-- Idioma Obrigatório: Português brasileiro (pt-BR)
+**Professor Information:**
+- Name: ${teacherName || 'Professor'}
+- Discipline: Engineering
+- Language: Portuguese (pt-BR)
 
 # TASK
 

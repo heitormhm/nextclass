@@ -118,15 +118,15 @@ interface MetricCardProps {
 
 const MetricCard = ({ title, value, count, icon, color }: MetricCardProps) => {
   const colorClasses = {
-    emerald: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800',
-    amber: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800',
-    rose: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800'
+    emerald: 'bg-purple-50 border-purple-200',
+    amber: 'bg-purple-50 border-purple-300',
+    rose: 'bg-purple-50 border-purple-200'
   };
 
   const textColorClasses = {
-    emerald: 'text-emerald-700 dark:text-emerald-300',
-    amber: 'text-amber-700 dark:text-amber-300',
-    rose: 'text-rose-700 dark:text-rose-300'
+    emerald: 'text-purple-700',
+    amber: 'text-purple-600',
+    rose: 'text-purple-700'
   };
 
   return (
