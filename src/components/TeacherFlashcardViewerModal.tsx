@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Layers } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Convert markdown to HTML for flashcard text formatting
 const convertMarkdownToHtml = (text: string): string => {
@@ -36,14 +37,24 @@ interface TeacherFlashcardViewerModalProps {
 }
 
 export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, hasQuiz, onViewQuiz }: TeacherFlashcardViewerModalProps) => {
+  const [viewMode, setViewMode] = useState<'list' | 'interactive'>('list');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
   const handleClose = () => {
+    setViewMode('list');
     setCurrentIndex(0);
     setIsFlipped(false);
     onClose();
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      setViewMode('list');
+      setCurrentIndex(0);
+      setIsFlipped(false);
+    }
+  }, [isOpen]);
 
   if (!flashcardSet || !flashcardSet.cards || flashcardSet.cards.length === 0) {
     return (
@@ -60,6 +71,100 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
     );
   }
 
+  // VIEW MODE: Lista de Flashcards
+  if (viewMode === 'list') {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <Layers className="h-6 w-6 text-purple-600" />
+              {flashcardSet.title}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 py-6">
+            {/* Estatísticas */}
+            <div className="flex items-center justify-between bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-200">
+              <div>
+                <p className="text-sm text-muted-foreground">Total de Flashcards</p>
+                <p className="text-3xl font-bold text-purple-600">{flashcardSet.cards.length}</p>
+              </div>
+              <Button
+                onClick={() => setViewMode('interactive')}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+              >
+                🃏 Modo Interativo
+              </Button>
+            </div>
+
+            {/* Lista de Flashcards */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {flashcardSet.cards.map((card, index) => (
+                <div key={index} className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                  {/* Front */}
+                  <div className="bg-gradient-to-br from-purple-100 to-pink-100 p-4 border-b-2 border-purple-300">
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 mb-2">
+                      Card {index + 1}
+                    </Badge>
+                    {card.tags && card.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {card.tags.map((tag, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-xs bg-purple-200 text-purple-900">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <div 
+                      className="text-base font-semibold text-slate-900" 
+                      dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(card.front) }}
+                    />
+                  </div>
+                  
+                  {/* Back */}
+                  <div className="bg-gradient-to-br from-emerald-100 to-teal-100 p-4">
+                    <div 
+                      className="text-sm text-slate-800 leading-relaxed" 
+                      dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(card.back) }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-between pt-4 border-t gap-3">
+            <Button variant="outline" onClick={handleClose}>
+              Fechar
+            </Button>
+            <div className="flex gap-3">
+              {hasQuiz && onViewQuiz && (
+                <Button 
+                  variant="outline"
+                  className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700"
+                  onClick={() => {
+                    handleClose();
+                    onViewQuiz();
+                  }}
+                >
+                  📝 Ver Quiz
+                </Button>
+              )}
+              <Button
+                onClick={() => setViewMode('interactive')}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+              >
+                🃏 Modo Interativo
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // VIEW MODE: Visualização Interativa
   const currentCard = flashcardSet.cards[currentIndex];
   const totalCards = flashcardSet.cards.length;
 
@@ -84,6 +189,15 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setViewMode('list')}
+          className="absolute top-4 left-4 z-10"
+        >
+          ← Ver Todos
+        </Button>
+
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5 text-primary" />

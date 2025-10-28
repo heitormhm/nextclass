@@ -38,27 +38,31 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex flex-col items-center gap-3">
           <Button
             onClick={onGenerate}
             disabled={isGenerating}
-            variant={quiz ? 'outline' : 'default'}
+            className="gap-2 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold border-0 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 min-w-[240px]"
           >
             {isGenerating ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Gerando...
               </>
-          ) : (
-            <>
-              <FileCheck className="mr-2 h-4 w-4" />
-              {quiz ? 'Gerar Novo Quiz' : 'Gerar Quiz'}
-            </>
-          )}
+            ) : (
+              <>
+                <FileCheck className="h-4 w-4" />
+                {quiz ? 'Gerar Novo Quiz' : 'Gerar Quiz'}
+              </>
+            )}
           </Button>
           
           {quiz && !isGenerating && (
-            <Button onClick={onViewQuiz} variant="secondary">
+            <Button 
+              onClick={onViewQuiz} 
+              variant="outline"
+              className="min-w-[240px] border-purple-300 text-purple-700 hover:bg-purple-50"
+            >
               <Eye className="mr-2 h-4 w-4" />
               Visualizar Quiz
             </Button>

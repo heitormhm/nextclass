@@ -38,27 +38,31 @@ export const FlashcardsSection: React.FC<FlashcardsSectionProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex flex-col items-center gap-3">
           <Button
             onClick={onGenerate}
             disabled={isGenerating}
-            variant={flashcards ? 'outline' : 'default'}
+            className="gap-2 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold border-0 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 min-w-[240px]"
           >
             {isGenerating ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Gerando Flashcards...
               </>
             ) : (
               <>
-                <Layers className="mr-2 h-4 w-4" />
+                <Layers className="h-4 w-4" />
                 {flashcards ? 'Gerar Novos Flashcards' : 'Gerar Flashcards'}
               </>
             )}
           </Button>
           
           {flashcards && !isGenerating && (
-            <Button onClick={onViewFlashcards} variant="secondary">
+            <Button 
+              onClick={onViewFlashcards} 
+              variant="outline"
+              className="min-w-[240px] border-purple-300 text-purple-700 hover:bg-purple-50"
+            >
               <Eye className="mr-2 h-4 w-4" />
               Visualizar Flashcards
             </Button>

@@ -425,6 +425,14 @@ const LectureTranscriptionPage = () => {
                 onViewFlashcards={() => setShowFlashcardsModal(true)}
               />
             </div>
+            
+            {/* 5. Comparar com Plano de Aula */}
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <LessonPlanComparisonSection 
+                onCompare={handleCompareLessonPlan}
+                isComparing={isComparing}
+              />
+            </div>
           </div>
           
           {/* Sidebar */}
@@ -457,15 +465,7 @@ const LectureTranscriptionPage = () => {
               <AudioPlayerCard audioUrl={lecture.audio_url} />
             </div>
             
-            {/* 4. Lesson Plan Comparison */}
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <LessonPlanComparisonSection 
-                onCompare={handleCompareLessonPlan}
-                isComparing={isComparing}
-              />
-            </div>
-            
-            {/* 5. References */}
+            {/* 4. References */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
               <ReferencesSection
                 references={structuredContent?.referencias_externas as any}
