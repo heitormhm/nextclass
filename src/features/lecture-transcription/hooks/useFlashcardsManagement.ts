@@ -108,11 +108,16 @@ export const useFlashcardsManagement = (
     toast({ title: '✅ Flashcard atualizado' });
   };
 
-  const handleJobCompletion = () => {
+  const handleJobCompletion = useCallback(() => {
+    console.log('[FlashcardsManagement] Job completed, reloading flashcards...');
     setIsGenerating(false);
     setCurrentJobId(null);
-    loadFlashcards();
-  };
+    
+    // Delay reload to ensure DB has been updated
+    setTimeout(() => {
+      loadFlashcards();
+    }, 500);
+  }, [loadFlashcards]);
 
   const handleJobFailure = () => {
     setIsGenerating(false);

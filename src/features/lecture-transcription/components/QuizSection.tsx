@@ -7,6 +7,7 @@ import type { GeneratedQuiz } from '../types/quiz.types';
 interface QuizSectionProps {
   quiz: GeneratedQuiz | null;
   isGenerating: boolean;
+  isLoading?: boolean;
   onGenerate: () => void;
   onViewQuiz: () => void;
 }
@@ -14,6 +15,7 @@ interface QuizSectionProps {
 export const QuizSection: React.FC<QuizSectionProps> = ({
   quiz,
   isGenerating,
+  isLoading = false,
   onGenerate,
   onViewQuiz,
 }) => {
@@ -22,19 +24,25 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileCheck className="h-5 w-5 text-purple-600" />
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 text-purple-600 animate-spin" />
+            ) : (
+              <FileCheck className="h-5 w-5 text-purple-600" />
+            )}
             <CardTitle>Quiz</CardTitle>
           </div>
-          {quiz && (
-            <Badge variant="secondary">
-              {quiz.questions.length} questões
+          {quiz && !isLoading && (
+            <Badge className="bg-green-100 text-green-700 border-green-300">
+              ✓ {quiz.questions.length} questões
             </Badge>
           )}
         </div>
         <CardDescription>
-          {quiz 
-            ? 'Visualize e gerencie o quiz desta aula' 
-            : 'Gere um quiz automaticamente com IA'}
+          {isLoading 
+            ? 'Carregando quiz...'
+            : quiz 
+              ? 'Visualize e gerencie o quiz desta aula' 
+              : 'Gere um quiz automaticamente com IA'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -57,7 +65,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
             )}
           </Button>
           
-          {quiz && !isGenerating && (
+          {quiz && !isGenerating && !isLoading && (
             <Button 
               onClick={onViewQuiz} 
               variant="outline"

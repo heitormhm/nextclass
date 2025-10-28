@@ -50,6 +50,8 @@ const LectureTranscriptionPage = () => {
   const [isComparing, setIsComparing] = useState(false);
   const [isProcessingTranscript, setIsProcessingTranscript] = useState(false);
   const [isGeneratingMaterial, setIsGeneratingMaterial] = useState(false);
+  const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
+  const [isLoadingFlashcards, setIsLoadingFlashcards] = useState(false);
 
   // Data Hooks
   const { lecture, isLoading, reloadLecture, structuredContent: initialContent, setStructuredContent: setLectureContent } = useLectureData(id);
@@ -88,11 +90,23 @@ const LectureTranscriptionPage = () => {
 
   // Auto-load quiz and flashcards on mount
   React.useEffect(() => {
-    if (id && lecture) {
-      quizManagement.loadQuiz();
-      flashcardsManagement.loadFlashcards();
-    }
-  }, [id, lecture, quizManagement.loadQuiz, flashcardsManagement.loadFlashcards]);
+    const loadContent = async () => {
+      if (id && lecture) {
+        console.log('[LecturePage] Auto-loading Quiz and Flashcards for lecture:', id);
+        
+        setIsLoadingQuiz(true);
+        await quizManagement.loadQuiz();
+        setIsLoadingQuiz(false);
+        
+        setIsLoadingFlashcards(true);
+        await flashcardsManagement.loadFlashcards();
+        setIsLoadingFlashcards(false);
+      }
+    };
+    
+    loadContent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, lecture]);
 
   // Debug logging
   React.useEffect(() => {
@@ -411,6 +425,7 @@ const LectureTranscriptionPage = () => {
               <QuizSection
                 quiz={quizManagement.quiz}
                 isGenerating={quizManagement.isGenerating}
+                isLoading={isLoadingQuiz}
                 onGenerate={quizManagement.generateQuiz}
                 onViewQuiz={() => setShowQuizModal(true)}
               />
@@ -421,6 +436,7 @@ const LectureTranscriptionPage = () => {
               <FlashcardsSection
                 flashcards={flashcardsManagement.flashcards}
                 isGenerating={flashcardsManagement.isGenerating}
+                isLoading={isLoadingFlashcards}
                 onGenerate={flashcardsManagement.generateFlashcards}
                 onViewFlashcards={() => setShowFlashcardsModal(true)}
               />

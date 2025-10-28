@@ -7,6 +7,7 @@ import type { GeneratedFlashcards } from '../types/flashcards.types';
 interface FlashcardsSectionProps {
   flashcards: GeneratedFlashcards | null;
   isGenerating: boolean;
+  isLoading?: boolean;
   onGenerate: () => void;
   onViewFlashcards: () => void;
 }
@@ -14,6 +15,7 @@ interface FlashcardsSectionProps {
 export const FlashcardsSection: React.FC<FlashcardsSectionProps> = ({
   flashcards,
   isGenerating,
+  isLoading = false,
   onGenerate,
   onViewFlashcards,
 }) => {
@@ -22,19 +24,25 @@ export const FlashcardsSection: React.FC<FlashcardsSectionProps> = ({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Layers className="h-5 w-5 text-purple-600" />
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 text-purple-600 animate-spin" />
+            ) : (
+              <Layers className="h-5 w-5 text-purple-600" />
+            )}
             <CardTitle>Flashcards</CardTitle>
           </div>
-          {flashcards && (
-            <Badge variant="secondary">
-              {flashcards.cards.length} cards
+          {flashcards && !isLoading && (
+            <Badge className="bg-green-100 text-green-700 border-green-300">
+              ✓ {flashcards.cards.length} cards
             </Badge>
           )}
         </div>
         <CardDescription>
-          {flashcards 
-            ? `${flashcards.cards.length} flashcard${flashcards.cards.length !== 1 ? 's' : ''} • Clique para visualizar ou gerar novos` 
-            : 'Gere flashcards automaticamente baseados no conteúdo da aula'}
+          {isLoading 
+            ? 'Carregando flashcards...'
+            : flashcards 
+              ? 'Visualize e gerencie os flashcards desta aula' 
+              : 'Gere flashcards automaticamente com IA'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -57,7 +65,7 @@ export const FlashcardsSection: React.FC<FlashcardsSectionProps> = ({
             )}
           </Button>
           
-          {flashcards && !isGenerating && (
+          {flashcards && !isGenerating && !isLoading && (
             <Button 
               onClick={onViewFlashcards} 
               variant="outline"

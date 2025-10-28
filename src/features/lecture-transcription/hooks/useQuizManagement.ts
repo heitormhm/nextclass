@@ -86,11 +86,16 @@ export const useQuizManagement = (lectureId: string | undefined, lectureTitle: s
     toast({ title: '✅ Pergunta atualizada' });
   };
 
-  const handleJobCompletion = () => {
+  const handleJobCompletion = useCallback(() => {
+    console.log('[QuizManagement] Job completed, reloading quiz...');
     setIsGenerating(false);
     setCurrentJobId(null);
-    loadQuiz();
-  };
+    
+    // Delay reload to ensure DB has been updated
+    setTimeout(() => {
+      loadQuiz();
+    }, 500);
+  }, [loadQuiz]);
 
   const handleJobFailure = () => {
     setIsGenerating(false);
