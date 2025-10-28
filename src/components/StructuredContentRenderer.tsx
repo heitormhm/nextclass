@@ -8,59 +8,39 @@ import { QualityMetricsDisplay } from './QualityMetricsDisplay';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
-// ✅ FASE 4: Renderizar LaTeX com KaTeX (não apenas CSS)
+// ✅ FASE 10.1: Renderizar LaTeX diretamente sem placeholders intermediários
 const convertMarkdownToHtml = (text: string): string => {
   if (!text) return '';
   
   let processed = text;
   
-  // 1. PROCESSAR LaTeX INLINE COM KATEX - RENDERIZAÇÃO REAL
-  // Capturar $$...$$
-  const doubleDollarMatches = processed.match(/\$\$(.*?)\$\$/gs) || [];
-  const latexReplacements: Record<string, string> = {};
-  
-  doubleDollarMatches.forEach((match, idx) => {
-    const formula = match.replace(/\$\$/g, '');
-    const placeholder = `___LATEX_DOUBLE_${idx}___`;
-    
+  // 1. RENDERIZAR LaTeX INLINE DIRETAMENTE (SEM PLACEHOLDERS)
+  // Processar $$formula$$ (double dollar)
+  processed = processed.replace(/\$\$(.*?)\$\$/gs, (match, formula) => {
     try {
-      // ✅ RENDERIZAR COM KATEX
       const rendered = katex.renderToString(formula, {
         throwOnError: false,
         displayMode: false,
         errorColor: '#cc0000',
       });
-      
-      latexReplacements[placeholder] = `<span class="math-inline-katex">${rendered}</span>`;
+      return `<span class="math-inline-katex">${rendered}</span>`;
     } catch (err) {
       console.error('[KaTeX Render Error]', formula, err);
-      // Fallback: mostrar fórmula crua com estilo de erro
-      latexReplacements[placeholder] = `<span class="math-inline-error" title="Erro de renderização">$$${formula}$$</span>`;
+      return `<span class="math-inline-error" title="Erro de renderização">$$${formula}$$</span>`;
     }
-    
-    processed = processed.replace(match, placeholder);
   });
   
-  // Capturar $ ... $ (single dollar - tratar como inline também)
-  const singleDollarMatches = processed.match(/\$([^$\n]+?)\$/g) || [];
-  singleDollarMatches.forEach((match, idx) => {
-    if (match.startsWith('$$')) return; // Evitar capturar $$ novamente
-    const formula = match.replace(/\$/g, '').trim();
-    const placeholder = `___LATEX_SINGLE_${idx}___`;
-    
+  // Processar $formula$ (single dollar)
+  processed = processed.replace(/\$([^$\n]+?)\$/g, (match, formula) => {
     try {
-      const rendered = katex.renderToString(formula, {
+      const rendered = katex.renderToString(formula.trim(), {
         throwOnError: false,
         displayMode: false,
-        errorColor: '#cc0000',
       });
-      latexReplacements[placeholder] = `<span class="math-inline-katex">${rendered}</span>`;
+      return `<span class="math-inline-katex">${rendered}</span>`;
     } catch (err) {
-      console.error('[KaTeX Render Error]', formula, err);
-      latexReplacements[placeholder] = `<span class="math-inline-error">$${formula}$</span>`;
+      return `<span class="math-inline-error">$${formula}$</span>`;
     }
-    
-    processed = processed.replace(match, placeholder);
   });
   
   // 2. Processar markdown básico
@@ -70,21 +50,13 @@ const convertMarkdownToHtml = (text: string): string => {
     .replace(/`(.+?)`/g, '<code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono text-purple-600">$1</code>')
     .replace(/\n/g, '<br>');
   
-  // 3. ✅ FASE 2: Processar referências bibliográficas [1], [2], [1, 2]
+  // 3. Processar referências bibliográficas [1], [2], [1, 2]
   processed = processed.replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (match, nums) => {
-    // Dividir se houver múltiplas refs: [1, 2, 3]
     const refNumbers = nums.split(',').map((n: string) => n.trim());
-    
     const refsHtml = refNumbers.map((num: string) => 
       `<sup class="citation-ref" data-ref="${num}">${num}</sup>`
     ).join(',');
-    
     return refsHtml;
-  });
-  
-  // 4. Restaurar LaTeX renderizado
-  Object.entries(latexReplacements).forEach(([placeholder, html]) => {
-    processed = processed.replace(placeholder, html);
   });
   
   return processed;

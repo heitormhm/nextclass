@@ -1928,6 +1928,34 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
         mermaidCode = validation.fixed;
       }
       
+      // ✅ FASE 10.2: EXTRAIR SEMANTIC DESCRIPTION PARA DIAGRAMAS VÁLIDOS
+      const diagramTypeMatch = mermaidCode.match(/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|gantt)/);
+      const diagramType = diagramTypeMatch ? diagramTypeMatch[1] : 'diagram';
+      
+      const nodes = mermaidCode.match(/\[([^\]]+)\]/g) || [];
+      const nodeLabels = nodes.map(n => n.replace(/[\[\]"']/g, '').trim());
+      const connections = mermaidCode.match(/--[>-]/g) || [];
+      
+      let semanticDescription = '';
+      if (nodeLabels.length > 0) {
+        const nodeList = nodeLabels.slice(0, 5).join(', ');
+        const moreNodes = nodeLabels.length > 5 ? ` e outros ${nodeLabels.length - 5} elementos` : '';
+        semanticDescription = `Este diagrama de tipo ${diagramType} ilustra a relação entre: ${nodeList}${moreNodes}`;
+        if (connections.length > 0) {
+          semanticDescription += `. Contém ${connections.length} conexão(ões) mostrando o fluxo e as interdependências entre os conceitos`;
+        }
+      } else {
+        const typeNames: Record<string, string> = {
+          'graph': 'grafo conceitual',
+          'flowchart': 'fluxograma de processo',
+          'sequenceDiagram': 'diagrama de sequência temporal',
+          'classDiagram': 'diagrama de classes e estruturas',
+          'stateDiagram': 'diagrama de estados',
+          'gantt': 'cronograma de atividades'
+        };
+        semanticDescription = `Representação visual do tipo ${typeNames[diagramType] || diagramType} relacionada ao tópico da aula`;
+      }
+      
       // Detect correct diagram type
       let tipo = 'diagrama';
       let titulo = '📊 Diagrama Visual';
@@ -1954,7 +1982,7 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
         tipo: tipo,
         definicao_mermaid: mermaidCode.trim(),
         titulo: titulo,
-        descricao: 'Representação visual do conceito'
+        descricao: semanticDescription // ✅ USAR semanticDescription extraída
       });
       continue;
     }

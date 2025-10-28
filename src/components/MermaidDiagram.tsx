@@ -196,7 +196,11 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
               <div className="text-4xl opacity-40">📊</div>
               <div>
                 <p className="text-sm font-semibold text-slate-700">Diagrama temporariamente indisponível</p>
-                <p className="text-xs text-slate-500">O sistema está processando este conteúdo visual</p>
+                {/* ✅ FASE 10.3: Mostrar description como fallback semântico */}
+                {description && description !== 'Diagrama técnico ilustrando os conceitos' && (
+                  <p className="text-xs text-slate-600 mt-2 italic">{description}</p>
+                )}
+                <p className="text-xs text-slate-500 mt-1">O sistema está processando este conteúdo visual</p>
               </div>
             </div>
             {/* Preview do código para debug */}
