@@ -94,6 +94,25 @@ const LectureTranscriptionPage = () => {
     }
   }, [id, lecture, quizManagement.loadQuiz, flashcardsManagement.loadFlashcards]);
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[LectureTranscription] State Debug:', {
+      lectureId: id,
+      hasLecture: !!lecture,
+      hasStructuredContent: !!structuredContent,
+      quiz: {
+        exists: !!quizManagement.quiz,
+        isGenerating: quizManagement.isGenerating,
+        questionCount: quizManagement.quiz?.questions.length
+      },
+      flashcards: {
+        exists: !!flashcardsManagement.flashcards,
+        isGenerating: flashcardsManagement.isGenerating,
+        cardCount: flashcardsManagement.flashcards?.cards.length
+      }
+    });
+  }, [id, lecture, structuredContent, quizManagement.quiz, flashcardsManagement.flashcards]);
+
   // Check for active PROCESS_TRANSCRIPT job
   React.useEffect(() => {
     if (!id || structuredContent) return;
@@ -410,7 +429,16 @@ const LectureTranscriptionPage = () => {
           
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* 1. Thumbnail da Aula */}
+            {/* 1. Publishing Controls - NO TOPO */}
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg overflow-hidden">
+              <PublishingControls 
+                onSave={handleSave}
+                onPublish={() => setOpenPublishModal(true)}
+                hasUnsavedChanges={hasUnsavedChanges}
+              />
+            </div>
+            
+            {/* 2. Thumbnail da Aula */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
               <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <ImageIcon className="h-5 w-5 text-purple-600" />
@@ -421,15 +449,6 @@ const LectureTranscriptionPage = () => {
                 isGenerating={isGeneratingThumbnail}
                 onRegenerate={() => structuredContent?.titulo_aula && generateThumbnail(structuredContent.titulo_aula)}
                 onUpload={handleThumbnailUpload}
-              />
-            </div>
-            
-            {/* 2. Publishing Controls */}
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg overflow-hidden">
-              <PublishingControls 
-                onSave={handleSave}
-                onPublish={() => setOpenPublishModal(true)}
-                hasUnsavedChanges={hasUnsavedChanges}
               />
             </div>
             
@@ -476,43 +495,39 @@ const LectureTranscriptionPage = () => {
         initialTitle={lectureTitle}
       />
       
-      {quizManagement.quiz && (
-        <TeacherQuizModal 
-          open={showQuizModal}
-          onOpenChange={setShowQuizModal}
-          quizData={{
-            id: quizManagement.quiz.id,
-            title: quizManagement.quiz.title,
-            questions: quizManagement.quiz.questions.map(q => ({
-              question: q.pergunta,
-              options: { 
-                A: q.opcoes?.[0] || '', 
-                B: q.opcoes?.[1] || '', 
-                C: q.opcoes?.[2] || '', 
-                D: q.opcoes?.[3] || '' 
-              },
-              correctAnswer: q.resposta_correta,
-              explanation: q.explicacao || ''
-            }))
-          }}
-        />
-      )}
+      <TeacherQuizModal 
+        open={showQuizModal}
+        onOpenChange={setShowQuizModal}
+        quizData={quizManagement.quiz ? {
+          id: quizManagement.quiz.id,
+          title: quizManagement.quiz.title,
+          questions: quizManagement.quiz.questions.map(q => ({
+            question: q.pergunta,
+            options: { 
+              A: q.opcoes?.[0] || '', 
+              B: q.opcoes?.[1] || '', 
+              C: q.opcoes?.[2] || '', 
+              D: q.opcoes?.[3] || '' 
+            },
+            correctAnswer: q.resposta_correta,
+            explanation: q.explicacao || ''
+          }))
+        } : null}
+      />
       
-      {flashcardsManagement.flashcards && (
-        <TeacherFlashcardViewerModal
-          isOpen={showFlashcardsModal}
-          onClose={() => setShowFlashcardsModal(false)}
-          flashcardSet={{
-            id: flashcardsManagement.flashcards.id,
-            title: flashcardsManagement.flashcards.title,
-            cards: flashcardsManagement.flashcards.cards.map(c => ({
-              front: c.front || c.termo || '',
-              back: c.back || c.definicao || '',
-              tags: c.tags
-            }))
-          }}
-        />
-      )}
+      <TeacherFlashcardViewerModal
+        isOpen={showFlashcardsModal}
+        onClose={() => setShowFlashcardsModal(false)}
+        flashcardSet={flashcardsManagement.flashcards ? {
+          id: flashcardsManagement.flashcards.id,
+          title: flashcardsManagement.flashcards.title,
+          cards: flashcardsManagement.flashcards.cards.map(c => ({
+            front: c.front || c.termo || '',
+            back: c.back || c.definicao || '',
+            tags: c.tags
+          }))
+        } : null}
+      />
     </MainLayout>
   );
 };

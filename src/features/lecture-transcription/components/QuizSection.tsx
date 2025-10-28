@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Eye, Plus, Trash2, Loader2 } from 'lucide-react';
+import { FileCheck, Eye, Plus, Trash2, Loader2 } from 'lucide-react';
 import type { GeneratedQuiz } from '../types/quiz.types';
 
 interface QuizSectionProps {
@@ -22,8 +22,8 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            <CardTitle>Quiz Gerado</CardTitle>
+            <FileCheck className="h-5 w-5 text-purple-600" />
+            <CardTitle>Quiz</CardTitle>
           </div>
           {quiz && (
             <Badge variant="secondary">
@@ -49,12 +49,12 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Gerando...
               </>
-            ) : (
-              <>
-                <Brain className="mr-2 h-4 w-4" />
-                {quiz ? 'Gerar Novo Quiz' : 'Gerar Quiz'}
-              </>
-            )}
+          ) : (
+            <>
+              <FileCheck className="mr-2 h-4 w-4" />
+              {quiz ? 'Gerar Novo Quiz' : 'Gerar Quiz'}
+            </>
+          )}
           </Button>
           
           {quiz && !isGenerating && (

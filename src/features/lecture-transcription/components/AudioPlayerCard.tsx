@@ -59,6 +59,9 @@ export const AudioPlayerCard: React.FC<AudioPlayerCardProps> = ({ audioUrl }) =>
   };
 
   const formatTime = (time: number) => {
+    if (!time || !isFinite(time) || time < 0) {
+      return '--:--';
+    }
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -87,7 +90,9 @@ export const AudioPlayerCard: React.FC<AudioPlayerCardProps> = ({ audioUrl }) =>
           <div>
             <CardTitle className="text-base">Áudio da Aula</CardTitle>
             <CardDescription className="text-xs">
-              Gravação original • {formatTime(duration)}
+              {duration && isFinite(duration) && duration > 0 
+                ? `Gravação original • ${formatTime(duration)}`
+                : 'Gravação original'}
             </CardDescription>
           </div>
         </div>
@@ -114,14 +119,15 @@ export const AudioPlayerCard: React.FC<AudioPlayerCardProps> = ({ audioUrl }) =>
         <div className="space-y-2">
           <Slider
             value={[currentTime]}
-            max={duration || 100}
+            max={duration && isFinite(duration) && duration > 0 ? duration : 100}
             step={0.1}
             onValueChange={handleSeek}
+            disabled={!duration || !isFinite(duration)}
             className="cursor-pointer [&_[role=slider]]:bg-purple-600 [&_[role=slider]]:border-purple-600"
           />
           <div className="flex justify-between text-xs text-muted-foreground font-medium">
             <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
+            <span>{duration && isFinite(duration) ? formatTime(duration) : '--:--'}</span>
           </div>
         </div>
 

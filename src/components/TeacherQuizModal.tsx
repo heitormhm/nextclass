@@ -114,7 +114,18 @@ export const TeacherQuizModal = ({ open, onOpenChange, quizData }: TeacherQuizMo
   };
 
   if (!quizData) {
-    return null;
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Quiz não disponível</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-4">
+            Nenhum quiz foi gerado ainda. Por favor, gere um quiz primeiro.
+          </p>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   if (quizCompleted) {

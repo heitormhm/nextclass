@@ -39,8 +39,25 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
+  const handleClose = () => {
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    onClose();
+  };
+
   if (!flashcardSet || !flashcardSet.cards || flashcardSet.cards.length === 0) {
-    return null;
+    return (
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Flashcards não disponíveis</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-4">
+            Nenhum flashcard foi gerado ainda. Por favor, gere flashcards primeiro.
+          </p>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   const currentCard = flashcardSet.cards[currentIndex];
@@ -62,12 +79,6 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
-  };
-
-  const handleClose = () => {
-    setCurrentIndex(0);
-    setIsFlipped(false);
-    onClose();
   };
 
   return (
