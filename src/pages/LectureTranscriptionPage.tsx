@@ -11,7 +11,6 @@ import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripp
 import { PublishLectureModal } from '@/components/PublishLectureModal';
 import { TeacherQuizModal } from '@/components/TeacherQuizModal';
 import { TeacherFlashcardViewerModal } from '@/components/TeacherFlashcardViewerModal';
-import { MaterialGenerationContainer } from '@/features/material-didatico-generation/components/MaterialGenerationContainer';
 import { Button } from '@/components/ui/button';
 
 // Custom Hooks
@@ -26,14 +25,12 @@ import { useJobSubscription } from '@/features/lecture-transcription/hooks/useJo
 
 // Components
 import { LectureHeader } from '@/features/lecture-transcription/components/LectureHeader';
-import { LectureTitleEditor } from '@/features/lecture-transcription/components/LectureTitleEditor';
+import { LectureHeaderCard } from '@/features/lecture-transcription/components/LectureHeaderCard';
 import { QuizSection } from '@/features/lecture-transcription/components/QuizSection';
 import { FlashcardsSection } from '@/features/lecture-transcription/components/FlashcardsSection';
 import { TopicsSection } from '@/features/lecture-transcription/components/TopicsSection';
 import { ReferencesSection } from '@/features/lecture-transcription/components/ReferencesSection';
 import { ContentTabs } from '@/features/lecture-transcription/components/ContentTabs';
-import { ThumbnailDisplay } from '@/features/lecture-transcription/components/ThumbnailDisplay';
-import { QualityMetricsCard } from '@/features/lecture-transcription/components/QualityMetricsCard';
 import { AudioPlayerCard } from '@/features/lecture-transcription/components/AudioPlayerCard';
 import { PublishingControls } from '@/features/lecture-transcription/components/PublishingControls';
 import { LessonPlanComparisonSection } from '@/features/lecture-transcription/components/LessonPlanComparisonSection';
@@ -51,6 +48,7 @@ const LectureTranscriptionPage = () => {
   const [lectureTitle, setLectureTitle] = useState('');
   const [isComparing, setIsComparing] = useState(false);
   const [isProcessingTranscript, setIsProcessingTranscript] = useState(false);
+  const [isGeneratingMaterial, setIsGeneratingMaterial] = useState(false);
 
   // Data Hooks
   const { lecture, isLoading, reloadLecture, structuredContent: initialContent, setStructuredContent: setLectureContent } = useLectureData(id);
@@ -86,6 +84,14 @@ const LectureTranscriptionPage = () => {
       setStructuredContent(initialContent);
     }
   }, [initialContent]);
+
+  // Auto-load quiz and flashcards on mount
+  React.useEffect(() => {
+    if (id) {
+      quizManagement.loadQuiz();
+      flashcardsManagement.loadFlashcards();
+    }
+  }, [id]);
 
   // Check for active PROCESS_TRANSCRIPT job
   React.useEffect(() => {
@@ -183,6 +189,65 @@ const LectureTranscriptionPage = () => {
         title: 'Erro ao fazer upload',
         description: 'Não foi possível atualizar a thumbnail',
       });
+    }
+  };
+
+  // Handle material generation
+  const handleGenerateMaterial = async () => {
+    if (!id || !lectureTitle || !lecture?.raw_transcript) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Dados insuficientes para gerar material didático',
+      });
+      return;
+    }
+
+    try {
+      setIsGeneratingMaterial(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      const { data: jobData, error } = await supabase
+        .from('teacher_jobs')
+        .insert({
+          teacher_id: user.id,
+          lecture_id: id,
+          job_type: 'GENERATE_MATERIAL',
+          status: 'PENDING',
+          input_payload: { 
+            lectureId: id, 
+            lectureTitle,
+            transcript: lecture.raw_transcript 
+          },
+          progress: 0,
+          progress_message: 'Iniciando geração de material didático...'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await supabase.functions.invoke('teacher-job-runner', {
+        body: { jobId: jobData.id },
+      });
+
+      toast({
+        title: '🤖 Geração iniciada',
+        description: 'Gerando material didático...',
+      });
+
+      await reloadLecture();
+    } catch (err) {
+      console.error('Material generation failed:', err);
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: err instanceof Error ? err.message : 'Erro ao gerar material',
+      });
+    } finally {
+      setIsGeneratingMaterial(false);
     }
   };
 
@@ -304,21 +369,31 @@ const LectureTranscriptionPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 mt-8">
           {/* Main Content */}
           <div className="space-y-6">
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <LectureTitleEditor
-                title={lectureTitle}
-                onTitleChange={setLectureTitle}
-              />
-            </div>
-            
-            <MaterialGenerationContainer
-              lectureId={id || ''}
-              lectureTitle={lectureTitle}
-              transcript={lecture.raw_transcript}
-              currentMaterial={typeof structuredContent?.material_didatico === 'string' ? structuredContent.material_didatico : undefined}
-              onSuccess={reloadLecture}
+            {/* 1. Header unificado - Título + Thumbnail */}
+            <LectureHeaderCard
+              title={lectureTitle}
+              onTitleChange={setLectureTitle}
+              thumbnailUrl={thumbnailUrl}
+              isGeneratingThumbnail={isGeneratingThumbnail}
+              onRegenerateThumbnail={() => structuredContent?.titulo_aula && generateThumbnail(structuredContent.titulo_aula)}
+              onUploadThumbnail={handleThumbnailUpload}
+              createdAt={lecture.created_at}
             />
             
+            {/* 2. Tópicos Principais */}
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <TopicsSection topics={structuredContent?.topicos_principais} />
+            </div>
+            
+            {/* 3. Conteúdo - Transcrição + Material Didático */}
+            <ContentTabs 
+              rawTranscript={lecture.raw_transcript}
+              structuredContent={structuredContent}
+              onGenerateMaterial={handleGenerateMaterial}
+              isGenerating={isGeneratingMaterial}
+            />
+            
+            {/* 4. Quiz */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
               <QuizSection
                 quiz={quizManagement.quiz}
@@ -328,6 +403,7 @@ const LectureTranscriptionPage = () => {
               />
             </div>
             
+            {/* 5. Flashcards */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
               <FlashcardsSection
                 flashcards={flashcardsManagement.flashcards}
@@ -336,11 +412,33 @@ const LectureTranscriptionPage = () => {
                 onViewFlashcards={() => setShowFlashcardsModal(true)}
               />
             </div>
-            
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <TopicsSection topics={structuredContent?.topicos_principais} />
+          </div>
+          
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* 1. Publishing Controls - TOPO */}
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg overflow-hidden">
+              <PublishingControls 
+                onSave={handleSave}
+                onPublish={() => setOpenPublishModal(true)}
+                hasUnsavedChanges={hasUnsavedChanges}
+              />
             </div>
             
+            {/* 2. Audio Player */}
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg overflow-hidden">
+              <AudioPlayerCard audioUrl={lecture.audio_url} />
+            </div>
+            
+            {/* 3. Lesson Plan Comparison */}
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <LessonPlanComparisonSection 
+                onCompare={handleCompareLessonPlan}
+                isComparing={isComparing}
+              />
+            </div>
+            
+            {/* 4. References */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
               <ReferencesSection 
                 references={structuredContent?.referencias_externas as any}
@@ -355,48 +453,6 @@ const LectureTranscriptionPage = () => {
                 onAddReference={referencesManagement.addReference}
                 onEditReference={referencesManagement.editReference}
                 onDeleteReference={referencesManagement.deleteReference}
-              />
-            </div>
-            
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <ContentTabs 
-                rawTranscript={lecture.raw_transcript}
-                structuredContent={structuredContent}
-              />
-            </div>
-            
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <LessonPlanComparisonSection 
-                onCompare={handleCompareLessonPlan}
-                isComparing={isComparing}
-              />
-            </div>
-          </div>
-          
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <ThumbnailDisplay 
-                url={thumbnailUrl} 
-                isGenerating={isGeneratingThumbnail}
-                onRegenerate={() => structuredContent?.titulo_aula && generateThumbnail(structuredContent.titulo_aula)}
-                onUpload={handleThumbnailUpload}
-              />
-            </div>
-            
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <QualityMetricsCard metrics={(lecture as any).quality_metrics} />
-            </div>
-            
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <AudioPlayerCard audioUrl={lecture.audio_url} />
-            </div>
-            
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <PublishingControls 
-                onSave={handleSave}
-                onPublish={() => setOpenPublishModal(true)}
-                hasUnsavedChanges={hasUnsavedChanges}
               />
             </div>
           </div>
