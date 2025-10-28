@@ -30,6 +30,25 @@ const convertMarkdownToHtml = (text: string): string => {
     }
   });
   
+  // ✅ FASE 12.1: Processar $formula$ (single dollar) - APÓS processar $$...$$
+  processed = processed.replace(/\$([^$\n]+?)\$/g, (match, formula) => {
+    // Ignorar se for placeholder corrompido como $$2$
+    if (formula.trim() === '2' || formula.trim().length < 2) {
+      return match; // Manter literal
+    }
+    
+    try {
+      const rendered = katex.renderToString(formula.trim(), {
+        throwOnError: false,
+        displayMode: false,
+      });
+      return `<span class="math-inline-katex">${rendered}</span>`;
+    } catch (err) {
+      console.warn('[KaTeX Single Dollar Error]', formula, err);
+      return `<span class="math-inline-error" title="Fórmula inválida">$${formula}$</span>`;
+    }
+  });
+  
   // 2. Processar markdown básico
   processed = processed
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-purple-700">$1</strong>')
@@ -74,7 +93,16 @@ interface StructuredContentRendererProps {
 export const StructuredContentRenderer = ({ structuredData }: StructuredContentRendererProps) => {
   // Preparar blocos com objetivos de aprendizagem da metadata se disponíveis
   const blocosComObjetivos = React.useMemo(() => {
-    const blocos = [...structuredData.conteudo];
+    // ✅ FASE 12.4: COMPATIBILIDADE - Aceitar `conteudo` OU `material_didatico.conteudo`
+    const rawConteudo = structuredData.conteudo 
+      || (structuredData as any).material_didatico?.conteudo 
+      || [];
+    
+    if (rawConteudo.length === 0) {
+      console.warn('[StructuredContentRenderer] Nenhum conteúdo encontrado em `conteudo` ou `material_didatico.conteudo`');
+    }
+    
+    const blocos = [...rawConteudo];
     
     // Se metadata contém objetivos_aprendizagem estruturados, adicionar bloco dedicado
     if ((structuredData as any).metadata?.objetivos_aprendizagem || (structuredData as any).objetivos_aprendizagem) {

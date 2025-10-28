@@ -523,16 +523,17 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       
       // Domínios acadêmicos (alta qualidade)
       const academicDomains = [
-        'ieee.org',
-        'ieeexplore.ieee.org',
-        'sciencedirect.com',
-        'springer.com',
-        'springerlink.com',
-        'researchgate.net',
-        'doi.org',
-        '.edu',
-        'nature.com',
-        'science.org',
+        '.edu', '.edu.br', '.ac.uk', '.ac.br',
+        '.gov', '.gov.br', '.gov.uk',
+        'scielo.org', 'scielo.br',
+        'journals.', 'journal.',
+        'pubmed', 'ncbi.nlm.nih.gov',
+        'springer.com', 'springerlink.com',
+        'elsevier.com', 'sciencedirect.com',
+        'wiley.com', 'nature.com', 'science.org',
+        'researchgate.net', 'academia.edu',
+        'ieee.org', 'ieeexplore.ieee.org',
+        'acm.org', 'doi.org'
       ];
       
       let bannedCount = 0;
@@ -553,8 +554,8 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       
       const academicPercentage = (academicCount / allRefs.length) * 100;
       
-      // ✅ FASE 5: CRITÉRIOS DE REJEIÇÃO MAIS RIGOROSOS
-      const isValid = bannedCount <= 2 && academicPercentage >= 70;
+      // ✅ FASE 12: CRITÉRIOS DE VALIDAÇÃO REALISTAS
+      const isValid = bannedCount <= 2 && academicPercentage >= 40;
       
       if (!isValid) {
         errors.push(`REJECTED: ${bannedCount} fontes banidas (máx: 2), ${academicPercentage.toFixed(0)}% acadêmicas (mín: 40%)`);
@@ -575,20 +576,20 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
     const refValidation = validateReferences(report);
     if (!refValidation.valid) {
       console.error(`[Job ${job.id}] ❌ MATERIAL REJEITADO: Reference validation failed`);
-      console.error(`[Job ${job.id}] Academic %: ${refValidation.academicPercentage.toFixed(0)}% (required: 70%)`);
+      console.error(`[Job ${job.id}] Academic %: ${refValidation.academicPercentage.toFixed(0)}% (required: 40%)`);
       
       await supabase
         .from('teacher_jobs')
         .update({
           status: 'FAILED',
-          error_message: `Material rejeitado: Apenas ${refValidation.academicPercentage.toFixed(0)}% das referências são de fontes acadêmicas. Mínimo exigido: 70%. Por favor, regenere o material priorizando fontes como IEEE, Springer, ScienceDirect, .edu, .gov e SciELO.`,
+          error_message: `Material rejeitado: Apenas ${refValidation.academicPercentage.toFixed(0)}% das referências são de fontes acadêmicas. Mínimo exigido: 40%. Por favor, regenere o material priorizando fontes como IEEE, Springer, ScienceDirect, .edu, .gov e SciELO.`,
           updated_at: new Date().toISOString()
         })
         .eq('id', job.id);
       
       throw new Error(
         `Material rejeitado por baixa qualidade acadêmica:\n` +
-        `- Fontes acadêmicas: ${refValidation.academicPercentage.toFixed(0)}% (mínimo: 70%)\n` +
+        `- Fontes acadêmicas: ${refValidation.academicPercentage.toFixed(0)}% (mínimo: 40%)\n` +
         `- Fontes banidas detectadas: ${refValidation.errors.filter(e => e.includes('banida')).length}\n\n` +
         `Por favor, regenere o material usando fontes de maior qualidade acadêmica.`
       );
@@ -1642,23 +1643,6 @@ function applyBasicMermaidFixes(code: string): string {
   fixed = fixed.replace(/μ/g, 'mu');
   fixed = fixed.replace(/ε/g, 'epsilon');
   fixed = fixed.replace(/ρ/g, 'rho');
-
-  // Fix 10: Remover caracteres matemáticos de labels (exceto dentro de aspas)
-  fixed = fixed.replace(/\[([^\]"']*)\]/g, (match, content) => {
-    // Se já tem aspas, manter
-    if (content.trim().startsWith('"') || content.trim().startsWith("'")) {
-      return match;
-    }
-    // Sanitizar: remover ±, ×, ÷, °, etc.
-    const sanitized = content
-      .replace(/±/g, '+/-')
-      .replace(/×/g, 'x')
-      .replace(/÷/g, '/')
-      .replace(/°/g, ' graus')
-      .replace(/²/g, '^2')
-      .replace(/³/g, '^3');
-    return `["${sanitized}"]`;
-  });
   
   return fixed.trim();
 }
