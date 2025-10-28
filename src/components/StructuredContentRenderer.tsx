@@ -4,6 +4,7 @@ import { MermaidDiagram } from './MermaidDiagram';
 import { MermaidErrorBoundary } from './MermaidErrorBoundary';
 import { InteractiveChart } from './InteractiveChart';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { QualityMetricsDisplay } from './QualityMetricsDisplay';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -107,6 +108,7 @@ interface StructuredContentRendererProps {
   structuredData: {
     titulo_geral: string;
     conteudo: ContentBlock[];
+    quality_metrics?: any;
   };
 }
 
@@ -691,6 +693,24 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
   return (
     <div className="structured-content prose prose-slate dark:prose-invert max-w-none">
       <h1 className="text-4xl font-bold mb-8 text-foreground border-b pb-4 scroll-mt-20">{structuredData.titulo_geral}</h1>
+      
+      {/* ✅ FASE 8 - CORREÇÃO 5: Exibir métricas de qualidade */}
+      {structuredData.quality_metrics && (
+        <div className="mb-8">
+          <QualityMetricsDisplay 
+            metrics={{
+              latex_formulas_valid: structuredData.quality_metrics.latex?.valid || 0,
+              latex_formulas_total: structuredData.quality_metrics.latex?.total || 0,
+              mermaid_diagrams_rendered: structuredData.quality_metrics.mermaid?.rendered || 0,
+              mermaid_diagrams_total: structuredData.quality_metrics.mermaid?.total || 0,
+              academic_references_percent: structuredData.quality_metrics.references?.percentage || 0,
+              total_references: structuredData.quality_metrics.references?.total || 0,
+              word_count: structuredData.quality_metrics.content?.wordCount || 0,
+            }} 
+          />
+        </div>
+      )}
+      
       <div className="space-y-4">
         {blocosComObjetivos.map((bloco, index) => renderBlock(bloco, index))}
       </div>

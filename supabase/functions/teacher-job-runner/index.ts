@@ -571,10 +571,27 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       return { valid: isValid, academicPercentage, errors };
     };
     
+    // ✅ FASE 8 - CORREÇÃO 3: REJEITAR materiais com referências fracas
     const refValidation = validateReferences(report);
     if (!refValidation.valid) {
-      console.warn(`[Job ${job.id}] ⚠️ Reference quality issues:`, refValidation.errors);
-      // NÃO bloquear, apenas avisar
+      console.error(`[Job ${job.id}] ❌ MATERIAL REJEITADO: Reference validation failed`);
+      console.error(`[Job ${job.id}] Academic %: ${refValidation.academicPercentage.toFixed(0)}% (required: 70%)`);
+      
+      await supabase
+        .from('teacher_jobs')
+        .update({
+          status: 'FAILED',
+          error_message: `Material rejeitado: Apenas ${refValidation.academicPercentage.toFixed(0)}% das referências são de fontes acadêmicas. Mínimo exigido: 70%. Por favor, regenere o material priorizando fontes como IEEE, Springer, ScienceDirect, .edu, .gov e SciELO.`,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', job.id);
+      
+      throw new Error(
+        `Material rejeitado por baixa qualidade acadêmica:\n` +
+        `- Fontes acadêmicas: ${refValidation.academicPercentage.toFixed(0)}% (mínimo: 70%)\n` +
+        `- Fontes banidas detectadas: ${refValidation.errors.filter(e => e.includes('banida')).length}\n\n` +
+        `Por favor, regenere o material usando fontes de maior qualidade acadêmica.`
+      );
     }
 
     // Step 5: Save report (80-100%)
@@ -1824,18 +1841,51 @@ async function convertMarkdownToStructuredJSON(markdown: string, title: string):
         } catch (aiError) {
           console.error('[convertToStructured] ❌ AI fix failed:', aiError);
           
-          // ✅ FASE 4: ESTRATÉGIA 2 - Fallback para Descrição Textual Enriquecida
-          console.log('[convertToStructured] 📝 Using textual fallback for Mermaid');
+          // ✅ FASE 8 - CORREÇÃO 4: Fallback Enriquecido com Descrição Semântica
+          console.log('[convertToStructured] 📝 Using enriched semantic fallback for Mermaid');
           
-          // Extrair informação semântica do código Mermaid
-          const diagramType = mermaidCode.match(/^(graph|flowchart|sequenceDiagram|classDiagram)/)?.[1] || 'diagram';
+          // Extrair informação semântica mais rica do código Mermaid quebrado
+          const diagramTypeMatch = mermaidCode.match(/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|gantt)/);
+          const diagramType = diagramTypeMatch ? diagramTypeMatch[1] : 'diagram';
+          
+          // Extrair nós e labels
           const nodes = mermaidCode.match(/\[([^\]]+)\]/g) || [];
-          const descriptions = nodes.map(n => n.replace(/[\[\]]/g, '')).join(', ');
+          const nodeLabels = nodes.map(n => n.replace(/[\[\]"']/g, '').trim());
+          
+          // Extrair conexões (-->, ---, etc)
+          const connections = mermaidCode.match(/--[>-]/g) || [];
+          
+          // Construir descrição semântica rica
+          let semanticDescription = '';
+          
+          if (nodeLabels.length > 0) {
+            const nodeList = nodeLabels.slice(0, 5).join(', ');
+            const moreNodes = nodeLabels.length > 5 ? ` e outros ${nodeLabels.length - 5} elementos` : '';
+            
+            semanticDescription = `Este diagrama de tipo ${diagramType} ilustra a relação entre: ${nodeList}${moreNodes}`;
+            
+            if (connections.length > 0) {
+              semanticDescription += `. Contém ${connections.length} conexão(ões) mostrando o fluxo e as interdependências entre os conceitos`;
+            }
+          } else {
+            // Fallback genérico se não conseguir extrair nós
+            const typeNames: Record<string, string> = {
+              'graph': 'grafo conceitual',
+              'flowchart': 'fluxograma de processo',
+              'sequenceDiagram': 'diagrama de sequência temporal',
+              'classDiagram': 'diagrama de classes e estruturas',
+              'stateDiagram': 'diagrama de estados',
+              'gantt': 'cronograma de atividades'
+            };
+            semanticDescription = `Representação visual do tipo ${typeNames[diagramType] || diagramType} relacionada ao tópico da aula`;
+          }
+          
+          console.log(`[convertToStructured] 📝 Generated semantic description: "${semanticDescription.substring(0, 100)}..."`);
           
           conteudo.push({
             tipo: 'caixa_de_destaque',
-            titulo: `📊 Diagrama ${diagramType}`,
-            texto: `Representação visual do conceito: ${descriptions.substring(0, 200)}${descriptions.length > 200 ? '...' : ''}`
+            titulo: `📊 Diagrama ${diagramType} (renderização temporariamente indisponível)`,
+            texto: semanticDescription
           });
           continue;
         }
