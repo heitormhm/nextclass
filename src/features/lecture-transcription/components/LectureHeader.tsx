@@ -9,7 +9,7 @@ export const LectureHeader: React.FC<LectureHeaderProps> = ({ lectureTitle }) =>
     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8">
       <div>
         <div className="flex items-center gap-3">
-          <Sparkles className="h-8 w-8 text-purple-300 animate-pulse" />
+          <Sparkles className="h-8 w-8 text-white animate-pulse drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
               Centro de Publicação Inteligente

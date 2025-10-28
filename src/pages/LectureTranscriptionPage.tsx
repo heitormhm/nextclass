@@ -208,11 +208,17 @@ const LectureTranscriptionPage = () => {
 
   return (
     <MainLayout>
-      {/* Purple gradient background for teacher routes */}
-      <div className="fixed inset-0 bg-gradient-to-br from-indigo-50 via-purple-50 to-violet-50 -z-10" />
-      <TeacherBackgroundRipple />
-      
-      <div data-teacher-mode="true" className="container mx-auto px-4 py-8 relative z-10">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+        <TeacherBackgroundRipple />
+        
+        {/* Gradient Blobs for Depth */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        </div>
+
+        <div data-teacher-mode="true" className="relative z-10 container mx-auto px-4 py-8">
         <LectureHeader lectureTitle={lectureTitle} />
         
       {/* Processing Banner */}
@@ -295,13 +301,15 @@ const LectureTranscriptionPage = () => {
         </div>
       )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 mt-8">
           {/* Main Content */}
           <div className="space-y-6">
-            <LectureTitleEditor
-              title={lectureTitle}
-              onTitleChange={setLectureTitle}
-            />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <LectureTitleEditor
+                title={lectureTitle}
+                onTitleChange={setLectureTitle}
+              />
+            </div>
             
             <MaterialGenerationContainer
               lectureId={id || ''}
@@ -311,69 +319,90 @@ const LectureTranscriptionPage = () => {
               onSuccess={reloadLecture}
             />
             
-            <QuizSection
-              quiz={quizManagement.quiz}
-              isGenerating={quizManagement.isGenerating}
-              onGenerate={quizManagement.generateQuiz}
-              onViewQuiz={() => setShowQuizModal(true)}
-            />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <QuizSection
+                quiz={quizManagement.quiz}
+                isGenerating={quizManagement.isGenerating}
+                onGenerate={quizManagement.generateQuiz}
+                onViewQuiz={() => setShowQuizModal(true)}
+              />
+            </div>
             
-            <FlashcardsSection
-              flashcards={flashcardsManagement.flashcards}
-              isGenerating={flashcardsManagement.isGenerating}
-              onGenerate={flashcardsManagement.generateFlashcards}
-              onViewFlashcards={() => setShowFlashcardsModal(true)}
-            />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <FlashcardsSection
+                flashcards={flashcardsManagement.flashcards}
+                isGenerating={flashcardsManagement.isGenerating}
+                onGenerate={flashcardsManagement.generateFlashcards}
+                onViewFlashcards={() => setShowFlashcardsModal(true)}
+              />
+            </div>
             
-            <TopicsSection topics={structuredContent?.topicos_principais} />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <TopicsSection topics={structuredContent?.topicos_principais} />
+            </div>
             
-            <ReferencesSection 
-              references={structuredContent?.referencias_externas as any}
-              isAdding={referencesManagement.isAdding}
-              setIsAdding={referencesManagement.setIsAdding}
-              editingIndex={referencesManagement.editingIndex}
-              setEditingIndex={referencesManagement.setEditingIndex}
-              newReference={referencesManagement.newReference}
-              setNewReference={referencesManagement.setNewReference}
-              editingReference={referencesManagement.editingReference}
-              setEditingReference={referencesManagement.setEditingReference}
-              onAddReference={referencesManagement.addReference}
-              onEditReference={referencesManagement.editReference}
-              onDeleteReference={referencesManagement.deleteReference}
-            />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <ReferencesSection 
+                references={structuredContent?.referencias_externas as any}
+                isAdding={referencesManagement.isAdding}
+                setIsAdding={referencesManagement.setIsAdding}
+                editingIndex={referencesManagement.editingIndex}
+                setEditingIndex={referencesManagement.setEditingIndex}
+                newReference={referencesManagement.newReference}
+                setNewReference={referencesManagement.setNewReference}
+                editingReference={referencesManagement.editingReference}
+                setEditingReference={referencesManagement.setEditingReference}
+                onAddReference={referencesManagement.addReference}
+                onEditReference={referencesManagement.editReference}
+                onDeleteReference={referencesManagement.deleteReference}
+              />
+            </div>
             
-            <ContentTabs 
-              rawTranscript={lecture.raw_transcript}
-              structuredContent={structuredContent}
-            />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <ContentTabs 
+                rawTranscript={lecture.raw_transcript}
+                structuredContent={structuredContent}
+              />
+            </div>
             
-            <LessonPlanComparisonSection 
-              onCompare={handleCompareLessonPlan}
-              isComparing={isComparing}
-            />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <LessonPlanComparisonSection 
+                onCompare={handleCompareLessonPlan}
+                isComparing={isComparing}
+              />
+            </div>
           </div>
           
           {/* Sidebar */}
           <div className="space-y-6">
-            <ThumbnailDisplay 
-              url={thumbnailUrl} 
-              isGenerating={isGeneratingThumbnail}
-              onRegenerate={() => structuredContent?.titulo_aula && generateThumbnail(structuredContent.titulo_aula)}
-              onUpload={handleThumbnailUpload}
-            />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <ThumbnailDisplay 
+                url={thumbnailUrl} 
+                isGenerating={isGeneratingThumbnail}
+                onRegenerate={() => structuredContent?.titulo_aula && generateThumbnail(structuredContent.titulo_aula)}
+                onUpload={handleThumbnailUpload}
+              />
+            </div>
             
-            <QualityMetricsCard metrics={(lecture as any).quality_metrics} />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <QualityMetricsCard metrics={(lecture as any).quality_metrics} />
+            </div>
             
-            <AudioPlayerCard audioUrl={lecture.audio_url} />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <AudioPlayerCard audioUrl={lecture.audio_url} />
+            </div>
             
-            <PublishingControls 
-              onSave={handleSave}
-              onPublish={() => setOpenPublishModal(true)}
-              hasUnsavedChanges={hasUnsavedChanges}
-            />
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <PublishingControls 
+                onSave={handleSave}
+                onPublish={() => setOpenPublishModal(true)}
+                hasUnsavedChanges={hasUnsavedChanges}
+              />
+            </div>
           </div>
         </div>
-      </div>
+        </div> {/* close data-teacher-mode div */}
+      </div> {/* close gradient wrapper div */}
       
       {/* Modals */}
       <PublishLectureModal 

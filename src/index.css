@@ -604,10 +604,27 @@ All colors MUST be HSL. Design tokens for consistent theming.
   font-size: 0.9em;
 }
 
-/* ✅ Teacher Mode Theme Override */
+/* ✅ Teacher Mode Theme Override - FORCED */
 [data-teacher-mode="true"] {
-  --primary: 263 70% 50%; /* Deep purple #6366F1 (indigo-600) */
-  --primary-foreground: 0 0% 100%;
-  --primary-light: 263 70% 60%;
-  --primary-glow: 263 70% 90%;
+  --primary: 263 70% 50% !important; /* Deep purple #6366F1 (indigo-600) */
+  --primary-foreground: 0 0% 100% !important;
+  --primary-light: 263 70% 60% !important;
+  --primary-glow: 263 70% 90% !important;
+}
+
+/* Force purple icons in teacher mode */
+[data-teacher-mode="true"] .text-primary {
+  color: hsl(263 70% 50%) !important;
+}
+
+[data-teacher-mode="true"] .hover\:text-primary:hover {
+  color: hsl(263 70% 50%) !important;
+}
+
+[data-teacher-mode="true"] .bg-primary {
+  background-color: hsl(263 70% 50%) !important;
+}
+
+[data-teacher-mode="true"] .border-primary {
+  border-color: hsl(263 70% 50%) !important;
 }
