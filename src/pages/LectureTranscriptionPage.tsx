@@ -12,6 +12,7 @@ import { PublishLectureModal } from '@/components/PublishLectureModal';
 import { TeacherQuizModal } from '@/components/TeacherQuizModal';
 import { TeacherFlashcardViewerModal } from '@/components/TeacherFlashcardViewerModal';
 import { MaterialGenerationContainer } from '@/features/material-didatico-generation/components/MaterialGenerationContainer';
+import { Button } from '@/components/ui/button';
 
 // Custom Hooks
 import { useLectureData } from '@/features/lecture-transcription/hooks/useLectureData';
@@ -212,23 +213,85 @@ const LectureTranscriptionPage = () => {
       <div className="container mx-auto px-4 py-8 relative z-10">
         <LectureHeader lectureTitle={lectureTitle} />
         
-        {/* Processing Banner */}
-        {isProcessingTranscript && !structuredContent && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 animate-pulse">
-            <div className="flex items-center gap-3 mb-2">
-              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-              <h3 className="font-semibold text-blue-900 text-lg">
-                🤖 Processando transcrição com IA...
-              </h3>
-            </div>
-            <p className="text-blue-700 text-sm">
-              Aguarde enquanto geramos o material didático estruturado. Isso pode levar alguns minutos.
-            </p>
-            <div className="mt-4 w-full bg-blue-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: '40%' }} />
-            </div>
+      {/* Processing Banner */}
+      {isProcessingTranscript && !structuredContent && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 animate-pulse">
+          <div className="flex items-center gap-3 mb-2">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            <h3 className="font-semibold text-blue-900 text-lg">
+              🤖 Processando transcrição com IA...
+            </h3>
           </div>
-        )}
+          <p className="text-blue-700 text-sm">
+            Aguarde enquanto geramos o material didático estruturado. Isso pode levar alguns minutos.
+          </p>
+          <div className="mt-4 w-full bg-blue-200 rounded-full h-2">
+            <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: '40%' }} />
+          </div>
+        </div>
+      )}
+
+      {/* Manual Fallback Banner */}
+      {!structuredContent && !isProcessingTranscript && lecture?.raw_transcript && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+          <h3 className="font-semibold text-yellow-800 mb-2">
+            📝 Material didático ainda não gerado
+          </h3>
+          <p className="text-yellow-700 text-sm mb-4">
+            A transcrição está disponível, mas o conteúdo estruturado ainda não foi gerado.
+          </p>
+          <Button 
+            onClick={async () => {
+              try {
+                setIsProcessingTranscript(true);
+                
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error('Não autenticado');
+
+                console.log('[Manual] Creating job for lecture:', id);
+
+                const { data: jobData, error } = await supabase
+                  .from('teacher_jobs')
+                  .insert({
+                    teacher_id: user.id,
+                    lecture_id: id,
+                    job_type: 'PROCESS_TRANSCRIPT',
+                    status: 'PENDING',
+                    input_payload: { lectureId: id, transcript: lecture.raw_transcript },
+                    progress: 0,
+                    progress_message: 'Iniciando processamento manual...'
+                  })
+                  .select()
+                  .single();
+
+                if (error) throw error;
+
+                console.log('[Manual] Job created:', jobData.id);
+
+                await supabase.functions.invoke('teacher-job-runner', {
+                  body: { jobId: jobData.id },
+                });
+
+                toast({
+                  title: '🤖 Processamento iniciado',
+                  description: 'Gerando material didático...',
+                });
+              } catch (err) {
+                console.error('[Manual] Job creation failed:', err);
+                setIsProcessingTranscript(false);
+                toast({
+                  variant: 'destructive',
+                  title: 'Erro',
+                  description: err instanceof Error ? err.message : 'Erro ao iniciar processamento',
+                });
+              }
+            }}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white"
+          >
+            🚀 Gerar Material Didático Manualmente
+          </Button>
+        </div>
+      )}
         
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 mt-8">
           {/* Main Content */}

@@ -34,11 +34,16 @@ export const useLectureData = (lectureId: string | undefined) => {
           setStructuredContent(data.structured_content as StructuredContent);
         }
       } else if (data?.status === 'processing' && data?.raw_transcript) {
-        // Criar job em vez de processar diretamente
-        await createTranscriptProcessingJob(lectureId, data.raw_transcript);
+        console.log('[useLectureData] 📋 Lecture needs processing, creating job...');
+        
+        try {
+          await createTranscriptProcessingJob(lectureId, data.raw_transcript);
+        } catch (jobError) {
+          console.error('[useLectureData] Job creation failed:', jobError);
+        }
       }
     } catch (error) {
-      console.error('Error loading lecture:', error);
+      console.error('[useLectureData] Error loading lecture:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao carregar aula',
@@ -47,12 +52,15 @@ export const useLectureData = (lectureId: string | undefined) => {
     } finally {
       setIsLoading(false);
     }
-  }, [lectureId]);
+  }, [lectureId, toast]);
 
   const createTranscriptProcessingJob = async (lectureId: string, transcript: string) => {
+    console.log('[useLectureData] 🚀 Starting createTranscriptProcessingJob', { lectureId });
+    
     try {
       // 1. Verificar se já existe job ativo
-      const { data: existingJob } = await supabase
+      console.log('[useLectureData] 🔍 Checking for existing jobs...');
+      const { data: existingJob, error: checkError } = await supabase
         .from('teacher_jobs')
         .select('id, status')
         .eq('lecture_id', lectureId)
@@ -60,15 +68,33 @@ export const useLectureData = (lectureId: string | undefined) => {
         .in('status', ['PENDING', 'PROCESSING'])
         .maybeSingle();
 
+      if (checkError) {
+        console.error('[useLectureData] ❌ Error checking jobs:', checkError);
+        throw new Error(`Erro ao verificar jobs existentes: ${checkError.message}`);
+      }
+
       if (existingJob) {
-        console.log('[useLectureData] Job already exists:', existingJob.id);
+        console.log('[useLectureData] ✅ Job already exists:', existingJob.id);
+        toast({
+          title: '⏳ Processamento em andamento',
+          description: 'A transcrição já está sendo processada.',
+        });
         return;
       }
 
-      // 2. Criar novo job
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      // 2. Obter usuário autenticado
+      console.log('[useLectureData] 👤 Getting authenticated user...');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        console.error('[useLectureData] ❌ Auth error:', userError);
+        throw new Error('Usuário não autenticado');
+      }
 
+      console.log('[useLectureData] ✅ User authenticated:', user.id);
+
+      // 3. Criar novo job
+      console.log('[useLectureData] 📝 Creating new job...');
       const { data: jobData, error: jobError } = await supabase
         .from('teacher_jobs')
         .insert({
@@ -78,31 +104,50 @@ export const useLectureData = (lectureId: string | undefined) => {
           status: 'PENDING',
           input_payload: { lectureId, transcript },
           progress: 0,
+          progress_message: 'Iniciando processamento...'
         })
         .select()
         .single();
 
-      if (jobError || !jobData) {
-        throw new Error(`Erro ao criar job: ${jobError?.message}`);
+      if (jobError) {
+        console.error('[useLectureData] ❌ Job creation error:', jobError);
+        throw new Error(`Erro ao criar job: ${jobError.message}`);
       }
 
-      // 3. Invocar teacher-job-runner
+      if (!jobData) {
+        throw new Error('Job foi criado mas não retornou dados');
+      }
+
+      console.log('[useLectureData] ✅ Job created successfully:', jobData.id);
+
+      // 4. Invocar teacher-job-runner
+      console.log('[useLectureData] 🚀 Invoking teacher-job-runner...');
       const { error: functionError } = await supabase.functions.invoke('teacher-job-runner', {
         body: { jobId: jobData.id },
       });
 
       if (functionError) {
+        console.error('[useLectureData] ❌ Function invocation error:', functionError);
+        // Deletar job órfão
+        await supabase.from('teacher_jobs').delete().eq('id', jobData.id);
         throw new Error(`Erro ao iniciar processamento: ${functionError.message}`);
       }
 
-      console.log('[useLectureData] ✅ Job created:', jobData.id);
+      console.log('[useLectureData] ✅ teacher-job-runner invoked successfully');
+
+      toast({
+        title: '🤖 Processamento iniciado',
+        description: 'A IA está gerando o material didático. Aguarde...',
+      });
+
     } catch (err) {
-      console.error('[useLectureData] Failed to create job:', err);
+      console.error('[useLectureData] ❌ Failed to create job:', err);
       toast({
         variant: 'destructive',
         title: 'Erro ao processar transcrição',
         description: err instanceof Error ? err.message : 'Erro desconhecido',
       });
+      throw err;
     }
   };
 
