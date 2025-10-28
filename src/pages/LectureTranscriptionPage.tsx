@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Image as ImageIcon } from 'lucide-react';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { PublishLectureModal } from '@/components/PublishLectureModal';
@@ -25,7 +25,8 @@ import { useJobSubscription } from '@/features/lecture-transcription/hooks/useJo
 
 // Components
 import { LectureHeader } from '@/features/lecture-transcription/components/LectureHeader';
-import { LectureHeaderCard } from '@/features/lecture-transcription/components/LectureHeaderCard';
+import { LectureTitleEditor } from '@/features/lecture-transcription/components/LectureTitleEditor';
+import { ThumbnailDisplay } from '@/features/lecture-transcription/components/ThumbnailDisplay';
 import { QuizSection } from '@/features/lecture-transcription/components/QuizSection';
 import { FlashcardsSection } from '@/features/lecture-transcription/components/FlashcardsSection';
 import { TopicsSection } from '@/features/lecture-transcription/components/TopicsSection';
@@ -87,11 +88,11 @@ const LectureTranscriptionPage = () => {
 
   // Auto-load quiz and flashcards on mount
   React.useEffect(() => {
-    if (id) {
+    if (id && lecture) {
       quizManagement.loadQuiz();
       flashcardsManagement.loadFlashcards();
     }
-  }, [id]);
+  }, [id, lecture, quizManagement.loadQuiz, flashcardsManagement.loadFlashcards]);
 
   // Check for active PROCESS_TRANSCRIPT job
   React.useEffect(() => {
@@ -369,32 +370,25 @@ const LectureTranscriptionPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 mt-8">
           {/* Main Content */}
           <div className="space-y-6">
-            {/* 1. Header unificado - Título + Thumbnail */}
-            <LectureHeaderCard
-              title={lectureTitle}
-              onTitleChange={setLectureTitle}
-              thumbnailUrl={thumbnailUrl}
-              isGeneratingThumbnail={isGeneratingThumbnail}
-              onRegenerateThumbnail={() => structuredContent?.titulo_aula && generateThumbnail(structuredContent.titulo_aula)}
-              onUploadThumbnail={handleThumbnailUpload}
-              createdAt={lecture.created_at}
-            />
-            
-            {/* 2. Tópicos Principais */}
+            {/* 1. Título da Aula - Card separado */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <TopicsSection topics={structuredContent?.topicos_principais} />
+              <LectureTitleEditor
+                title={lectureTitle}
+                onTitleChange={setLectureTitle}
+              />
             </div>
             
-            {/* 3. Conteúdo - Transcrição + Material Didático */}
+            {/* 2. Conteúdo com tab de Tópicos */}
             <ContentTabs 
               rawTranscript={lecture.raw_transcript}
               structuredContent={structuredContent}
+              topics={structuredContent?.topicos_principais}
               onGenerateMaterial={handleGenerateMaterial}
               isGenerating={isGeneratingMaterial}
             />
             
-            {/* 4. Quiz */}
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+            {/* 3. Quiz */}
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg">
               <QuizSection
                 quiz={quizManagement.quiz}
                 isGenerating={quizManagement.isGenerating}
@@ -403,8 +397,8 @@ const LectureTranscriptionPage = () => {
               />
             </div>
             
-            {/* 5. Flashcards */}
-            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+            {/* 4. Flashcards */}
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg">
               <FlashcardsSection
                 flashcards={flashcardsManagement.flashcards}
                 isGenerating={flashcardsManagement.isGenerating}
@@ -416,7 +410,21 @@ const LectureTranscriptionPage = () => {
           
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* 1. Publishing Controls - TOPO */}
+            {/* 1. Thumbnail da Aula */}
+            <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-purple-600" />
+                Thumbnail da Aula
+              </h3>
+              <ThumbnailDisplay 
+                url={thumbnailUrl}
+                isGenerating={isGeneratingThumbnail}
+                onRegenerate={() => structuredContent?.titulo_aula && generateThumbnail(structuredContent.titulo_aula)}
+                onUpload={handleThumbnailUpload}
+              />
+            </div>
+            
+            {/* 2. Publishing Controls */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg overflow-hidden">
               <PublishingControls 
                 onSave={handleSave}
@@ -425,12 +433,12 @@ const LectureTranscriptionPage = () => {
               />
             </div>
             
-            {/* 2. Audio Player */}
+            {/* 3. Audio Player */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg overflow-hidden">
               <AudioPlayerCard audioUrl={lecture.audio_url} />
             </div>
             
-            {/* 3. Lesson Plan Comparison */}
+            {/* 4. Lesson Plan Comparison */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
               <LessonPlanComparisonSection 
                 onCompare={handleCompareLessonPlan}
@@ -438,9 +446,9 @@ const LectureTranscriptionPage = () => {
               />
             </div>
             
-            {/* 4. References */}
+            {/* 5. References */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
-              <ReferencesSection 
+              <ReferencesSection
                 references={structuredContent?.referencias_externas as any}
                 isAdding={referencesManagement.isAdding}
                 setIsAdding={referencesManagement.setIsAdding}

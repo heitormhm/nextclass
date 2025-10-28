@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewer';
-import { FileText, BookOpen } from 'lucide-react';
+import { FileText, BookOpen, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -13,6 +13,7 @@ import { MaterialGenerationButton } from '@/features/material-didatico-generatio
 interface ContentTabsProps {
   rawTranscript?: string;
   structuredContent: StructuredContent | null;
+  topics?: Array<{ conceito: string; definicao: string }>;
   onGenerateMaterial?: () => void;
   isGenerating?: boolean;
 }
@@ -20,6 +21,7 @@ interface ContentTabsProps {
 export const ContentTabs: React.FC<ContentTabsProps> = ({
   rawTranscript,
   structuredContent,
+  topics,
   onGenerateMaterial,
   isGenerating = false
 }) => {
@@ -27,16 +29,41 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
     <Card className="backdrop-blur-sm bg-white/95 shadow-xl border-white/20">
       <CardContent className="pt-6">
         <Tabs defaultValue="material" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="topics" className="gap-2">
+              <BookOpen className="h-4 w-4" />
+              Tópicos
+            </TabsTrigger>
             <TabsTrigger value="transcript" className="gap-2">
               <FileText className="h-4 w-4" />
               Transcrição
             </TabsTrigger>
             <TabsTrigger value="material" className="gap-2">
-              <BookOpen className="h-4 w-4" />
+              <Sparkles className="h-4 w-4" />
               Material Didático
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="topics" className="mt-4">
+            {!topics || topics.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum tópico identificado ainda
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {topics.map((topic, index) => (
+                  <div key={index} className="border-l-4 border-purple-600 pl-4 py-2">
+                    <h4 className="font-semibold text-foreground mb-1">
+                      {topic.conceito}
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      {topic.definicao}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="transcript" className="mt-4">
             {rawTranscript ? (
