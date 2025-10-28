@@ -1345,19 +1345,6 @@ function applyBasicMermaidFixes(code: string): string {
   return fixed.trim();
 }
 
-// ============================================================================
-// Convert Markdown to Structured JSON
-// ============================================================================
-async function convertMarkdownToStructuredJSON(markdown: string, title: string): Promise<any> {
-    console.warn('[Mermaid Validator] Original vs Fixed:', {
-      original: code.substring(0, 200),
-      fixed: fixed.substring(0, 200)
-    });
-  }
-  
-  return { valid, fixed, errors };
-}
-
 // Convert Markdown to Structured JSON (for StructuredContentRenderer - same logic as TeacherAnnotations)
 async function convertMarkdownToStructuredJSON(markdown: string, title: string): Promise<any> {
   console.log('[convertToStructured] 🔄 Converting markdown to structured JSON...');
