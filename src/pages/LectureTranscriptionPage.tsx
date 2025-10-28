@@ -56,6 +56,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { structuredContentToMarkdown } from '@/utils/structuredContentToMarkdown';
 
 interface StructuredContent {
   titulo_aula: string;
@@ -1686,9 +1687,21 @@ const LectureTranscriptionPage = () => {
                               {(() => {
                                 try {
                                   console.log('[Render] 🔍 Raw material_didatico type:', typeof structuredContent.material_didatico);
-                                  console.log('[Render] 🔍 First 300 chars:', structuredContent.material_didatico.substring(0, 300));
                                   
-                                  const parsed = JSON.parse(structuredContent.material_didatico);
+                                  // ✅ CORREÇÃO: Detectar se já é objeto ou string
+                                  let parsed;
+                                  if (typeof structuredContent.material_didatico === 'object') {
+                                    // Caso 1: Já é objeto (formato novo após FASE 1)
+                                    console.log('[Render] ✅ material_didatico is already an object');
+                                    parsed = structuredContent.material_didatico;
+                                  } else if (typeof structuredContent.material_didatico === 'string') {
+                                    // Caso 2: É string JSON (formato antigo, materiais gerados antes da correção)
+                                    console.log('[Render] 🔄 Parsing material_didatico from JSON string');
+                                    console.log('[Render] 🔍 First 300 chars:', structuredContent.material_didatico.substring(0, 300));
+                                    parsed = JSON.parse(structuredContent.material_didatico);
+                                  } else {
+                                    throw new Error('Unexpected material_didatico type: ' + typeof structuredContent.material_didatico);
+                                  }
                                   
                                   console.log('[Render] 📦 Parsed JSON keys:', Object.keys(parsed));
                                   console.log('[Render] 📦 titulo_geral:', parsed.titulo_geral);
@@ -1700,50 +1713,56 @@ const LectureTranscriptionPage = () => {
                                     return <StructuredContentRenderer structuredData={parsed} />;
                                   } else {
                                     console.error('[Render] ❌ parsed.conteudo is not an array:', parsed.conteudo);
+                                    throw new Error('Invalid content structure');
                                   }
                                 } catch (e) {
-                                  console.error('[Render] ❌ JSON parse error:', e);
+                                  console.error('[Render] ❌ Render error:', e);
                                   console.log('[Render] ⚠️ Falling back to ReactMarkdown');
+                                  
+                                  // ✅ CORREÇÃO: Converter objeto para markdown se necessário
+                                  let markdownContent;
+                                  if (typeof structuredContent.material_didatico === 'object') {
+                                    console.log('[Render] 🔄 Converting object to markdown for fallback');
+                                    markdownContent = structuredContentToMarkdown(structuredContent.material_didatico);
+                                  } else {
+                                    markdownContent = structuredContent.material_didatico;
+                                  }
+                                  
+                                  return (
+                                    <div className="prose prose-sm max-w-none overflow-x-auto">
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm, remarkMath]}
+                                        rehypePlugins={[
+                                          [rehypeKatex, {
+                                            throwOnError: false,
+                                            errorColor: '#cc0000',
+                                            strict: false,
+                                            trust: true
+                                          }]
+                                        ]}
+                                        components={{
+                                          h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
+                                          h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
+                                          h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1 text-slate-900" {...props} />,
+                                          p: ({node, ...props}) => <p className="mb-2 text-slate-900 leading-relaxed" {...props} />,
+                                          strong: ({node, ...props}) => <strong className="font-bold text-purple-700" {...props} />,
+                                          ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
+                                          ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
+                                          li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
+                                          code: ({node, inline, className, children, ...props}: any) => {
+                                            if (inline) {
+                                              return <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props}>{children}</code>;
+                                            }
+                                            return <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props}>{children}</code>;
+                                          },
+                                          blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
+                                        }}
+                                      >
+                                        {markdownContent}
+                                      </ReactMarkdown>
+                                    </div>
+                                  );
                                 }
-                                
-                                // Fallback: render plain markdown
-                                return (
-                                  <div className="prose prose-sm max-w-none overflow-x-auto">
-                                    <ReactMarkdown
-                                      remarkPlugins={[remarkGfm, remarkMath]}
-                                      rehypePlugins={[
-                                        [rehypeKatex, {
-                                          throwOnError: false,
-                                          errorColor: '#cc0000',
-                                          strict: false,
-                                          trust: true
-                                        }]
-                                      ]}
-                                      components={{
-                                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
-                                        h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
-                                        h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1 text-slate-900" {...props} />,
-                                        p: ({node, ...props}) => <p className="mb-2 text-slate-900 leading-relaxed" {...props} />,
-                                        strong: ({node, ...props}) => <strong className="font-bold text-purple-700" {...props} />,
-                                        ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
-                                        ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
-                                        li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
-                                        code: ({node, inline, className, children, ...props}: any) => {
-                                          // Código inline
-                                          if (inline) {
-                                            return <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props}>{children}</code>;
-                                          }
-                                          
-                                          // Código em bloco
-                                          return <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props}>{children}</code>;
-                                        },
-                                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
-                                      }}
-                                    >
-                                      {structuredContent.material_didatico}
-                                    </ReactMarkdown>
-                                  </div>
-                                );
                               })()}
                             </div>
                             <div className="flex justify-end gap-2 mt-2">
