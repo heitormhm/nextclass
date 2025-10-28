@@ -1620,6 +1620,46 @@ function applyBasicMermaidFixes(code: string): string {
   // Fix 7: Remover linhas vazias excessivas
   fixed = fixed.replace(/\n{3,}/g, '\n\n');
   
+  // Fix 8: Substituir setas Unicode por ASCII
+  fixed = fixed.replace(/→/g, '-->');
+  fixed = fixed.replace(/⇒/g, '==>');
+  fixed = fixed.replace(/←/g, '<--');
+  fixed = fixed.replace(/⇐/g, '<==');
+  fixed = fixed.replace(/↔/g, '<-->');
+  fixed = fixed.replace(/⇔/g, '<==>');
+
+  // Fix 9: Substituir letras gregas em labels por nomes
+  fixed = fixed.replace(/Δ/g, 'Delta');
+  fixed = fixed.replace(/∆/g, 'Delta');
+  fixed = fixed.replace(/α/g, 'alpha');
+  fixed = fixed.replace(/β/g, 'beta');
+  fixed = fixed.replace(/γ/g, 'gamma');
+  fixed = fixed.replace(/θ/g, 'theta');
+  fixed = fixed.replace(/λ/g, 'lambda');
+  fixed = fixed.replace(/π/g, 'pi');
+  fixed = fixed.replace(/σ/g, 'sigma');
+  fixed = fixed.replace(/ω/g, 'omega');
+  fixed = fixed.replace(/μ/g, 'mu');
+  fixed = fixed.replace(/ε/g, 'epsilon');
+  fixed = fixed.replace(/ρ/g, 'rho');
+
+  // Fix 10: Remover caracteres matemáticos de labels (exceto dentro de aspas)
+  fixed = fixed.replace(/\[([^\]"']*)\]/g, (match, content) => {
+    // Se já tem aspas, manter
+    if (content.trim().startsWith('"') || content.trim().startsWith("'")) {
+      return match;
+    }
+    // Sanitizar: remover ±, ×, ÷, °, etc.
+    const sanitized = content
+      .replace(/±/g, '+/-')
+      .replace(/×/g, 'x')
+      .replace(/÷/g, '/')
+      .replace(/°/g, ' graus')
+      .replace(/²/g, '^2')
+      .replace(/³/g, '^3');
+    return `["${sanitized}"]`;
+  });
+  
   return fixed.trim();
 }
 

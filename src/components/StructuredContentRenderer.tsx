@@ -30,19 +30,6 @@ const convertMarkdownToHtml = (text: string): string => {
     }
   });
   
-  // Processar $formula$ (single dollar)
-  processed = processed.replace(/\$([^$\n]+?)\$/g, (match, formula) => {
-    try {
-      const rendered = katex.renderToString(formula.trim(), {
-        throwOnError: false,
-        displayMode: false,
-      });
-      return `<span class="math-inline-katex">${rendered}</span>`;
-    } catch (err) {
-      return `<span class="math-inline-error">$${formula}$</span>`;
-    }
-  });
-  
   // 2. Processar markdown básico
   processed = processed
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-purple-700">$1</strong>')
