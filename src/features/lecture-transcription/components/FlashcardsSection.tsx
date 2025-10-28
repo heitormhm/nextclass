@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Layers, Eye, Loader2 } from 'lucide-react';
 import type { GeneratedFlashcards } from '../types/flashcards.types';
+import { FlashcardsPreview } from './FlashcardsPreview';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface FlashcardsSectionProps {
   flashcards: GeneratedFlashcards | null;
@@ -46,6 +48,24 @@ export const FlashcardsSection: React.FC<FlashcardsSectionProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Preview Section */}
+        {isLoading ? (
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Skeleton className="h-[120px] w-full" />
+            <Skeleton className="h-[120px] w-full" />
+            <Skeleton className="h-[120px] w-full" />
+            <Skeleton className="h-[120px] w-full" />
+          </div>
+        ) : flashcards && flashcards.cards.length > 0 && !isGenerating ? (
+          <div className="mb-6">
+            <FlashcardsPreview cards={flashcards.cards} maxItems={4} />
+            <div className="text-center text-xs text-muted-foreground mt-4">
+              Mostrando {Math.min(4, flashcards.cards.length)} de {flashcards.cards.length} flashcards
+            </div>
+          </div>
+        ) : null}
+
+        {/* Action Buttons */}
         <div className="flex flex-col items-center gap-3">
           <Button
             onClick={onGenerate}
@@ -69,10 +89,10 @@ export const FlashcardsSection: React.FC<FlashcardsSectionProps> = ({
             <Button 
               onClick={onViewFlashcards} 
               variant="outline"
-              className="min-w-[240px] border-purple-300 text-purple-700 hover:bg-purple-50"
+              className="min-w-[240px] border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400"
             >
               <Eye className="mr-2 h-4 w-4" />
-              Visualizar Flashcards
+              Ver Todos os {flashcards.cards.length} Flashcards →
             </Button>
           )}
         </div>

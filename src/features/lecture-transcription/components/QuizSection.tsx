@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileCheck, Eye, Plus, Trash2, Loader2 } from 'lucide-react';
 import type { GeneratedQuiz } from '../types/quiz.types';
+import { QuizPreview } from './QuizPreview';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface QuizSectionProps {
   quiz: GeneratedQuiz | null;
@@ -46,6 +48,23 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Preview Section */}
+        {isLoading ? (
+          <div className="mb-6 space-y-3">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : quiz && quiz.questions.length > 0 && !isGenerating ? (
+          <div className="mb-6">
+            <QuizPreview questions={quiz.questions} maxItems={3} />
+            <div className="text-center text-xs text-muted-foreground mt-4">
+              Mostrando {Math.min(3, quiz.questions.length)} de {quiz.questions.length} questões
+            </div>
+          </div>
+        ) : null}
+
+        {/* Action Buttons */}
         <div className="flex flex-col items-center gap-3">
           <Button
             onClick={onGenerate}
@@ -69,10 +88,10 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
             <Button 
               onClick={onViewQuiz} 
               variant="outline"
-              className="min-w-[240px] border-purple-300 text-purple-700 hover:bg-purple-50"
+              className="min-w-[240px] border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400"
             >
               <Eye className="mr-2 h-4 w-4" />
-              Visualizar Quiz
+              Ver Todas as {quiz.questions.length} Questões →
             </Button>
           )}
         </div>
