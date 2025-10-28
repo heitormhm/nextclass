@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LectureService } from '../services/lectureService';
@@ -53,6 +53,13 @@ export const useLectureData = (lectureId: string | undefined) => {
       setIsLoading(false);
     }
   }, [lectureId, toast]);
+
+  // Auto-load lecture when lectureId changes
+  useEffect(() => {
+    if (lectureId) {
+      loadLecture();
+    }
+  }, [lectureId, loadLecture]);
 
   const createTranscriptProcessingJob = async (lectureId: string, transcript: string) => {
     console.log('[useLectureData] 🚀 Starting createTranscriptProcessingJob', { lectureId });
