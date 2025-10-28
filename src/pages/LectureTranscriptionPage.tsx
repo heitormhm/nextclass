@@ -42,7 +42,7 @@ import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { EditWithAIModal } from '@/components/EditWithAIModal';
 import { PublishLectureModal } from '@/components/PublishLectureModal';
-import { GenerateLectureDeepSearchSummary } from '@/components/GenerateLectureDeepSearchSummary';
+import { MaterialGenerationContainer } from '@/features/material-didatico-generation/components/MaterialGenerationContainer';
 import { TeacherQuizModal } from '@/components/TeacherQuizModal';
 import { TeacherFlashcardViewerModal } from '@/components/TeacherFlashcardViewerModal';
 import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewer';
@@ -162,11 +162,6 @@ const LectureTranscriptionPage = () => {
   
   // Graphics enrichment state
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
-  // Material generation progress state
-  const [materialGenerationProgress, setMaterialGenerationProgress] = useState<number>(0);
-  const [isGeneratingMaterial, setIsGeneratingMaterial] = useState(false);
-  const [generationMessage, setGenerationMessage] = useState<string>('');
 
   // URL validation helper
   const isValidUrl = (url: string) => {
@@ -1633,18 +1628,12 @@ const LectureTranscriptionPage = () => {
                       <FileText className="h-5 w-5 text-purple-600" />
                       Conteúdo Gerado
                     </CardTitle>
-                    <GenerateLectureDeepSearchSummary
+                    <MaterialGenerationContainer
                       lectureId={id || ''}
                       lectureTitle={lectureTitle}
-                      tags={lecture?.tags || []}
+                      transcript={lecture?.raw_transcript || ''}
                       currentMaterial={structuredContent.material_didatico}
-                      fullTranscript={lecture?.raw_transcript || ''}
-                      onUpdate={loadLectureData}
-                      onProgressUpdate={(progress, message) => {
-                        setMaterialGenerationProgress(progress);
-                        setGenerationMessage(message);
-                      }}
-                      onGeneratingChange={setIsGeneratingMaterial}
+                      onSuccess={loadLectureData}
                     />
                   </CardHeader>
                   <CardContent>
@@ -1659,18 +1648,13 @@ const LectureTranscriptionPage = () => {
                         </TabsTrigger>
                         <TabsTrigger 
                           value="material" 
-                          disabled={!structuredContent.material_didatico && !isGeneratingMaterial}
+                          disabled={!structuredContent.material_didatico}
                           className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center gap-2"
                         >
                           <Brain className="h-4 w-4" />
                           <span className="hidden sm:inline">Material Didático</span>
                           <span className="sm:hidden">Material</span>
-                          {isGeneratingMaterial && (
-                            <Badge variant="secondary" className="ml-1 text-xs animate-pulse">
-                              {materialGenerationProgress}%
-                            </Badge>
-                          )}
-                          {!structuredContent.material_didatico && !isGeneratingMaterial && (
+                          {!structuredContent.material_didatico && (
                             <span className="ml-2 text-xs text-slate-500 hidden md:inline">(Gerar)</span>
                           )}
                         </TabsTrigger>
