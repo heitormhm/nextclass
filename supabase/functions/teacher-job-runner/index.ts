@@ -446,6 +446,75 @@ async function saveReportToLecture(
   console.log(`[Job ${jobId}] ✅ Preprocessed report saved to lecture`);
 }
 
+// Process transcript to structured content
+async function processTranscript(job: any, supabase: any) {
+  const { lectureId, transcript } = job.input_payload;
+  
+  if (!lectureId || !transcript) {
+    throw new Error('Invalid job payload: missing lectureId or transcript');
+  }
+  
+  console.log(`[Job ${job.id}] 🎙️ Processing transcript for lecture: ${lectureId}`);
+
+  try {
+    // Step 1: Invoke process-lecture-transcript edge function
+    await updateJobProgress(supabase, job.id, 0.2, 'Analisando transcrição...');
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/process-lecture-transcript`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        lectureId,
+        transcript,
+        topic: 'Engenharia'
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Job ${job.id}] ❌ process-lecture-transcript error:`, errorText);
+      throw new Error(`Processamento falhou: ${response.status}`);
+    }
+
+    await response.json();
+    console.log(`[Job ${job.id}] ✅ Transcript processed successfully`);
+
+    // Step 2: Mark job as complete
+    await updateJobProgress(supabase, job.id, 1.0, 'Conteúdo estruturado gerado!');
+
+    await supabase
+      .from('teacher_jobs')
+      .update({
+        status: 'COMPLETED',
+        result_payload: { success: true, lectureId },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', job.id);
+
+    console.log(`[Job ${job.id}] ✅ Job completed`);
+  } catch (error) {
+    console.error(`[Job ${job.id}] ❌ Error:`, error);
+    
+    // Mark job as failed
+    await supabase
+      .from('teacher_jobs')
+      .update({
+        status: 'FAILED',
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', job.id);
+    
+    throw error;
+  }
+}
+
 // Process deep search for lecture material
 async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: string) {
   const { lectureId, lectureTitle, tags, userId, teacherName } = job.input_payload;
@@ -2129,6 +2198,19 @@ serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableApiKey) {
       throw new Error('LOVABLE_API_KEY not configured');
+    }
+
+    // Handle PROCESS_TRANSCRIPT job type
+    if (job.job_type === 'PROCESS_TRANSCRIPT') {
+      console.log(`[Job ${jobId}] 🎙️ Processing PROCESS_TRANSCRIPT`);
+      await processTranscript(job, supabaseAdmin);
+      return new Response(
+        JSON.stringify({ success: true, message: 'Transcript processed successfully' }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Handle GENERATE_LECTURE_DEEP_SEARCH job type

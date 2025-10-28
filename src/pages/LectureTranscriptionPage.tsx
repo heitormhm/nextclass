@@ -49,6 +49,7 @@ const LectureTranscriptionPage = () => {
   const [showFlashcardsModal, setShowFlashcardsModal] = useState(false);
   const [lectureTitle, setLectureTitle] = useState('');
   const [isComparing, setIsComparing] = useState(false);
+  const [isProcessingTranscript, setIsProcessingTranscript] = useState(false);
 
   // Data Hooks
   const { lecture, isLoading, reloadLecture, structuredContent: initialContent, setStructuredContent: setLectureContent } = useLectureData(id);
@@ -84,6 +85,25 @@ const LectureTranscriptionPage = () => {
       setStructuredContent(initialContent);
     }
   }, [initialContent]);
+
+  // Check for active PROCESS_TRANSCRIPT job
+  React.useEffect(() => {
+    if (!id || structuredContent) return;
+
+    const checkProcessingJob = async () => {
+      const { data: job } = await supabase
+        .from('teacher_jobs')
+        .select('id, status, progress')
+        .eq('lecture_id', id)
+        .eq('job_type', 'PROCESS_TRANSCRIPT')
+        .in('status', ['PENDING', 'PROCESSING'])
+        .maybeSingle();
+
+      setIsProcessingTranscript(!!job);
+    };
+
+    checkProcessingJob();
+  }, [id, structuredContent]);
 
   // Lesson Plan Comparison
   const handleCompareLessonPlan = async (lessonPlanText: string) => {
@@ -191,6 +211,24 @@ const LectureTranscriptionPage = () => {
       
       <div className="container mx-auto px-4 py-8 relative z-10">
         <LectureHeader lectureTitle={lectureTitle} />
+        
+        {/* Processing Banner */}
+        {isProcessingTranscript && !structuredContent && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 animate-pulse">
+            <div className="flex items-center gap-3 mb-2">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+              <h3 className="font-semibold text-blue-900 text-lg">
+                🤖 Processando transcrição com IA...
+              </h3>
+            </div>
+            <p className="text-blue-700 text-sm">
+              Aguarde enquanto geramos o material didático estruturado. Isso pode levar alguns minutos.
+            </p>
+            <div className="mt-4 w-full bg-blue-200 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: '40%' }} />
+            </div>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 mt-8">
           {/* Main Content */}

@@ -54,7 +54,14 @@ export const useJobSubscription = (
 
           // Handle COMPLETED jobs
           if (job.status === 'COMPLETED') {
-            if (job.job_type === 'GENERATE_QUIZ') {
+            if (job.job_type === 'PROCESS_TRANSCRIPT') {
+              toast({ 
+                title: '✅ Transcrição processada!', 
+                description: 'O material didático foi gerado com sucesso.' 
+              });
+              // Recarregar página para exibir novo conteúdo
+              setTimeout(() => window.location.reload(), 1000);
+            } else if (job.job_type === 'GENERATE_QUIZ') {
               callbacks.onQuizCompleted?.();
               toast({ title: 'Quiz gerado!', description: 'Seu quiz foi gerado com sucesso' });
             } else if (job.job_type === 'GENERATE_FLASHCARDS') {
@@ -65,7 +72,13 @@ export const useJobSubscription = (
 
           // Handle FAILED jobs
           if (job.status === 'FAILED') {
-            if (job.job_type === 'GENERATE_QUIZ') {
+            if (job.job_type === 'PROCESS_TRANSCRIPT') {
+              toast({
+                variant: 'destructive',
+                title: '❌ Erro ao processar transcrição',
+                description: job.error_message || 'Não foi possível processar a transcrição',
+              });
+            } else if (job.job_type === 'GENERATE_QUIZ') {
               callbacks.onQuizFailed?.();
               toast({
                 variant: 'destructive',
