@@ -603,3 +603,11 @@ All colors MUST be HSL. Design tokens for consistent theming.
   font-family: monospace;
   font-size: 0.9em;
 }
+
+/* ✅ Teacher Mode Theme Override */
+[data-teacher-mode="true"] {
+  --primary: 263 70% 50%; /* Deep purple #6366F1 (indigo-600) */
+  --primary-foreground: 0 0% 100%;
+  --primary-light: 263 70% 60%;
+  --primary-glow: 263 70% 90%;
+}

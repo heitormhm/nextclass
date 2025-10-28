@@ -208,9 +208,11 @@ const LectureTranscriptionPage = () => {
 
   return (
     <MainLayout>
+      {/* Purple gradient background for teacher routes */}
+      <div className="fixed inset-0 bg-gradient-to-br from-indigo-50 via-purple-50 to-violet-50 -z-10" />
       <TeacherBackgroundRipple />
       
-      <div className="container mx-auto px-4 py-8 relative z-10">
+      <div data-teacher-mode="true" className="container mx-auto px-4 py-8 relative z-10">
         <LectureHeader lectureTitle={lectureTitle} />
         
       {/* Processing Banner */}
