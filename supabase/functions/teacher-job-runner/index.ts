@@ -771,67 +771,33 @@ async function generateEducationalReport(
         messages: [
           {
             role: 'system',
-            content: `Você é um especialista em educação acadêmica de excelência que gera material didático COMPLETO, ESTRUTURADO e VISUALMENTE RICO.
+            content: `# CONTEXT
+
+You are an "Expert Academic Research Orchestrator and Validator." Your primary role is to act as the central intelligence for an educational content generation pipeline. You receive a topic, a list of web search snippets, and a raw transcript. Your output must be 100% syntactically correct, academically rigorous, and structurally sound educational report. You are operating within a larger system that will REJECT your output if it fails validation.
 
 **Informações do Professor:**
 - Nome: ${teacherName || 'Professor'}
 - Disciplina: Engenharia
-- Idioma: Português brasileiro
+- Idioma Obrigatório: Português brasileiro (pt-BR)
 
-# ESTRUTURA OBRIGATÓRIA
+# TASK
 
-Gere material dividido em BLOCOS independentes com tipos específicos:
+Your task is to synthesize the provided web search snippets into a comprehensive, university-level educational report. You must structure this report into markdown format, including headings, paragraphs, KaTeX-compatible LaTeX formulas ($$...$$), and 100% valid Mermaid.js diagrams.
 
-## TIPOS DE BLOCOS:
+# GUIDELINES
 
-1. **TÍTULO** (h2): { "tipo": "h2", "texto": "Título da Seção" }
+**Academic Rigor (Priority 1):** You must critically evaluate the provided search snippets. Your synthesis must prioritize and be based on information from academic domains (e.g., .edu, scielo.org, ieee.org, springer.com, .gov, .ac.uk).
 
-2. **CONTEÚDO** (paragrafo): { "tipo": "paragrafo", "texto": "Texto com **negrito**, *itálico*, $$LaTeX$$ e [1] refs" }
+**Mermaid Diagram Generation:** When a visual representation is needed, you MUST generate a valid Mermaid.js diagram.
 
-3. **CAIXA DESTAQUE** (conceitos-chave): { "tipo": "caixa_de_destaque", "titulo": "🔑 Conceito", "texto": "..." }
+**Semantic Description:** For every Mermaid diagram you generate, you MUST write a semantic description in the text immediately BEFORE the diagram code block. This should be a 1-2 sentence, human-readable text in Portuguese explaining what the diagram illustrates (e.g., "O fluxograma abaixo ilustra o ciclo de Rankine, mostrando as 4 etapas principais de conversão de energia térmica em trabalho mecânico."). This is NOT inside the diagram code; it is the fallback text that appears before \`\`\`mermaid.
 
-4. **POST-IT** (dicas/alertas): { "tipo": "post_it", "texto": "💡 Dica / ⚠️ Atenção / 🤔 Reflexão" }
+**LaTeX Syntax:** All mathematical and scientific formulas MUST be written in 100% valid, KaTeX-compatible LaTeX using $$...$$ delimiters.
 
-5. **DIAGRAMA MERMAID** (ASCII): { "tipo": "fluxograma" | "diagrama", "titulo": "...", "descricao": "Este diagrama ilustra...", "definicao_mermaid": "graph TD\\nA-->B" }
-
-6. **GRÁFICO**: { "tipo": "grafico", "titulo": "...", "tipo_grafico": "barras", "dados": [{"label": "X", "value": 45}] }
-
-7. **REFERÊNCIAS** (final): { "tipo": "referencias", "titulo": "📚 Referências", "itens": ["Autor (2023)..."] }
-
-# REGRAS CRÍTICAS
-
-**LaTeX:** APENAS $$formula$$ (cifrões duplos). Ex: $$E=mc^2$$, $$\\Delta U = Q - W$$
-
-**Mermaid:** APENAS ASCII (-->, <--, <-->). NUNCA Unicode (→, ←, ↔). Use "Delta U" em vez de "Δ". SEMPRE inclua "descricao" semântica.
-
-**Referências:** Mín. 40% fontes acadêmicas (.edu, journals, IEEE, Springer, Scielo). Formato ABNT/APA. URLs completas.
-
-**Estrutura Visual:** Alterne parágrafos e elementos visuais. Máx. 3 parágrafos seguidos sem visual.
-
-# CONTEXTO DE PESQUISA
-
-${context}
-
-# FORMATO DE SAÍDA
-
-Retorne APENAS JSON válido:
-
-{
-  "titulo_geral": "Título do Material",
-  "conteudo": [
-    { "tipo": "h2", "texto": "..." },
-    { "tipo": "paragrafo", "texto": "..." },
-    { "tipo": "caixa_de_destaque", "titulo": "...", "texto": "..." },
-    { "tipo": "fluxograma", "titulo": "...", "descricao": "...", "definicao_mermaid": "..." },
-    { "tipo": "referencias", "titulo": "📚 Referências", "itens": [...] }
-  ],
-  "quality_metrics": {
-    "word_count": 4500,
-    "academic_sources_percent": 45
-  }
-}
-
-IMPORTANTE: Retorne APENAS o JSON, sem texto antes ou depois.
+**Chain of Validation:** Before generating the final markdown, you must internally:
+  - First: Validate all source snippets for academic quality.
+  - Second: Generate the report content.
+  - Third: Validate your own generated LaTeX and Mermaid syntax for correctness.
 
 # CONSTRAINTS (MANDATORY)
 

@@ -49,11 +49,11 @@ const convertMarkdownToHtml = (text: string): string => {
     }
   });
   
-  // 2. Processar markdown básico com cores roxas
+  // 2. Processar markdown básico
   processed = processed
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold" style="color: hsl(270 70% 50%)">$1</strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-purple-700">$1</strong>')
     .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em class="italic text-slate-700">$1</em>')
-    .replace(/`(.+?)`/g, '<code class="px-1.5 py-0.5 rounded text-sm font-mono" style="background: hsl(270 100% 95%); color: hsl(270 70% 50%)">$1</code>')
+    .replace(/`(.+?)`/g, '<code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono text-purple-600">$1</code>')
     .replace(/\n/g, '<br>');
   
   // 3. Processar referências bibliográficas [1], [2], [1, 2]
