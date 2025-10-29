@@ -584,10 +584,19 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
         'brasilescola.uol.com.br',
         'mundoeducacao.uol.com.br',
         'todamateria.com.br',
-        'wikipedia.org',
+        'wikipedia.org', 'pt.wikipedia.org', 'en.wikipedia.org',
+        'infoescola.com',
+        'soescola.com',
+        'escolakids.uol.com.br',
+        'educacao.uol.com.br',
         'blogspot.com',
         'wordpress.com',
         'uol.com.br/educacao',
+        'youtube.com', 'youtu.be',
+        'facebook.com', 'instagram.com',
+        'quora.com', 'answers.yahoo.com',
+        'brainly.com.br',
+        'passeiweb.com', 'coladaweb.com', 'suapesquisa.com'
       ];
       
       // Domínios acadêmicos (alta qualidade)
@@ -623,14 +632,15 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       
       const academicPercentage = (academicCount / allRefs.length) * 100;
       
-      // ✅ FASE 12: CRITÉRIOS DE VALIDAÇÃO REALISTAS (ajustado para 25% + livros-texto)
-      const isValid = bannedCount <= 3 && academicPercentage >= 25;
+      // ✅ VALIDAÇÃO SUAVE: Apenas bloquear excesso de fontes não confiáveis
+      const MAX_BANNED_COUNT = 5; // Permitir até 5 fontes não confiáveis
+      const isValid = bannedCount <= MAX_BANNED_COUNT;
       
       if (!isValid) {
-        errors.push(`REJECTED: ${bannedCount} fontes banidas (máx: 3), ${academicPercentage.toFixed(0)}% acadêmicas (mín: 25%)`);
+        errors.push(`REJECTED: ${bannedCount} fontes banidas (máx: ${MAX_BANNED_COUNT})`);
       }
       
-      console.log(`[References] ${academicCount}/${allRefs.length} academic (${academicPercentage.toFixed(0)}%), ${bannedCount} banned`);
+      console.log(`[References] ${academicCount}/${allRefs.length} academic (${academicPercentage.toFixed(0)}%), ${bannedCount} banned (max: ${MAX_BANNED_COUNT})`);
       
       if (!isValid) {
         console.error('[References Validator] ❌ INVALID REFERENCES:', errors);
@@ -641,26 +651,31 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       return { valid: isValid, academicPercentage, errors };
     };
     
-    // ✅ FASE 8 - CORREÇÃO 3: REJEITAR materiais com referências fracas
+    // ✅ VALIDAÇÃO DE REFERÊNCIAS: Apenas bloquear excesso de fontes não confiáveis
     const refValidation = validateReferences(report);
     if (!refValidation.valid) {
-      console.error(`[Job ${job.id}] ❌ MATERIAL REJEITADO: Reference validation failed`);
-      console.error(`[Job ${job.id}] Academic %: ${refValidation.academicPercentage.toFixed(0)}% (required: 25%)`);
+      const bannedErrors = refValidation.errors.filter(e => e.includes('banida'));
+      const bannedCount = bannedErrors.length;
+      
+      console.error(`[Job ${job.id}] ❌ MATERIAL REJEITADO: Excesso de fontes não confiáveis`);
+      console.error(`[Job ${job.id}] Banned count: ${bannedCount} (max: 5)`);
+      console.error(`[Job ${job.id}] Academic %: ${refValidation.academicPercentage.toFixed(0)}% (informativo)`);
       
       await supabase
         .from('teacher_jobs')
         .update({
           status: 'FAILED',
-          error_message: `Material rejeitado: Apenas ${refValidation.academicPercentage.toFixed(0)}% das referências são de fontes acadêmicas. Mínimo exigido: 25%. Por favor, regenere o material priorizando fontes como IEEE, Springer, ScienceDirect, .edu, .gov e SciELO.`,
+          error_message: `Material rejeitado: ${bannedCount} fontes não confiáveis detectadas (máximo: 5). Evite sites como Wikipedia, Brasil Escola, YouTube e blogs pessoais. Priorize livros acadêmicos, artigos científicos e sites .edu/.gov.`,
           updated_at: new Date().toISOString()
         })
         .eq('id', job.id);
       
       throw new Error(
-        `Material rejeitado por baixa qualidade acadêmica:\n` +
-        `- Fontes acadêmicas: ${refValidation.academicPercentage.toFixed(0)}% (mínimo: 25%)\n` +
-        `- Fontes banidas detectadas: ${refValidation.errors.filter(e => e.includes('banida')).length}\n\n` +
-        `Por favor, regenere o material usando fontes de maior qualidade acadêmica.`
+        `Material rejeitado por excesso de fontes não confiáveis:\n` +
+        `- Fontes banidas detectadas: ${bannedCount} (máximo: 5)\n` +
+        `- Fontes problemáticas: ${bannedErrors.map(e => e.split(': ')[1] || e).slice(0, 3).join(', ')}\n\n` +
+        `Por favor, regenere o material evitando Wikipedia, Brasil Escola, YouTube e blogs pessoais.\n` +
+        `Priorize livros-texto clássicos, artigos científicos e sites institucionais (.edu, .gov).`
       );
     }
 
@@ -1207,34 +1222,36 @@ Todas as expressões matemáticas DEVEM usar delimitadores \`$$...$$\`:
 
 **REGRA ABSOLUTA:** Apenas ASCII, nomes alfanuméricos, labels em português simples SEM acentos críticos.
 
-# ⛔ FASE 5: FONTES ACADÊMICAS OBRIGATÓRIAS (CRÍTICO)
+# ⛔ FASE 5: DIRETRIZES DE QUALIDADE DE REFERÊNCIAS
 
-## FONTES PROIBIDAS (BANIDAS):
-- ❌ Wikipédia (wikipedia.org, pt.wikipedia.org)
+## 🚫 FONTES ABSOLUTAMENTE PROIBIDAS (NUNCA USE):
+- ❌ Wikipédia (wikipedia.org, pt.wikipedia.org, en.wikipedia.org)
 - ❌ Brasil Escola (brasilescola.uol.com.br)
 - ❌ Mundo Educação (mundoeducacao.uol.com.br)
 - ❌ Info Escola (infoescola.com)
 - ❌ Toda Matéria (todamateria.com.br)
-- ❌ Aprova Total (aprovatotal.com.br)
-- ❌ YouTube, blogs pessoais, fóruns
+- ❌ Cola da Web (coladaweb.com)
+- ❌ Sua Pesquisa (suapesquisa.com)
+- ❌ YouTube, Facebook, Instagram, TikTok
+- ❌ Blogs pessoais e fóruns (Quora, Yahoo Respostas, Brainly)
 
-## FONTES PRIORIZADAS (70%+ das referências DEVEM ser destas):
-- ✅ Artigos de revistas acadêmicas (SciELO, IEEE, Springer, Elsevier)
-- ✅ Livros-texto universitários publicados (Çengel, Moran, Halliday, etc.)
-- ✅ Teses e dissertações de universidades reconhecidas
-- ✅ Sites .edu (universidades), .gov (governos), .ac.uk (universidades UK)
-- ✅ Normas técnicas (ABNT, ISO, ASME, ANSI)
+## ✅ FONTES PRIORIZADAS (Use preferencialmente estas):
+- ✅ **Livros-texto universitários clássicos** (da biblioteca fornecida abaixo)
+- ✅ **Artigos de revistas acadêmicas** (SciELO, IEEE, Springer, Elsevier, Nature, Science)
+- ✅ **Teses e dissertações** de universidades reconhecidas
+- ✅ **Sites institucionais:** .edu (universidades), .gov (governos), .ac.uk (UK), .edu.br (BR)
+- ✅ **Normas técnicas:** ABNT, ISO, ASME, ANSI, DIN
+- ✅ **Portais acadêmicos:** ResearchGate, Academia.edu, Google Scholar
 
-**INSTRUÇÕES CRÍTICAS PARA REFERÊNCIAS:**
-1. **MÍNIMO 70% de referências acadêmicas** (verifique URLs)
-2. **MÁXIMO 2 referências de fontes banidas** (evite sempre que possível)
-3. Quando usar fontes banidas, **SEMPRE indique "Fonte complementar não-acadêmica"**
-4. **PRIORIZE artigos científicos recentes (últimos 10 anos)**
-5. **SEMPRE inclua DOI quando disponível**
-6. **OBRIGATÓRIO: Cite no mínimo 3-5 livros-texto clássicos** da biblioteca de livros fornecida abaixo
-7. **Escolha livros relevantes ao tópico:** Se o tópico é Termodinâmica, cite Çengel, Moran, Van Wylen; se é Resistência dos Materiais, cite Beer, Hibbeler, Gere
-8. **Sempre inclua edição, ano e editora** nos livros citados
-9. **Priorize livros brasileiros** quando disponível (AMGH, LTC, Blucher, Pearson Brasil)
+## 📋 INSTRUÇÕES DE QUALIDADE:
+1. **PRIORIDADE MÁXIMA:** Cite 40-60% de livros-texto clássicos da biblioteca abaixo
+2. **PRIORIZE fontes acadêmicas:** Artigos científicos, teses, sites universitários
+3. **EVITE ao máximo fontes banidas** (máximo 5 fontes não confiáveis será tolerado)
+4. **Artigos recentes:** Priorize publicações dos últimos 10 anos quando possível
+5. **Inclua DOI quando disponível** para artigos científicos
+6. **Escolha livros relevantes:** Se Termodinâmica → Çengel, Moran, Van Wylen; Se Resistência → Beer, Hibbeler, Gere
+7. **Formate corretamente:** Sempre inclua autor, título, edição, ano, editora
+8. **Diversifique:** Combine livros clássicos + artigos recentes + normas técnicas quando aplicável
 
 # 📚 BIBLIOTECA DE REFERÊNCIAS OBRIGATÓRIA PARA ENGENHARIA
 

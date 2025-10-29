@@ -58,12 +58,26 @@ export const useMaterialGenerationJob = (callbacks?: MaterialGenerationCallbacks
       callbacks?.onError?.(errorMsg);
       
       // Toast mais detalhado baseado no tipo de erro
-      if (errorMsg.includes('acadêmica') || errorMsg.includes('referências')) {
+      if (errorMsg.includes('fontes não confiáveis') || errorMsg.includes('fontes banidas')) {
         toast({
           variant: 'destructive',
-          title: '❌ Material rejeitado',
-          description: 'O material foi rejeitado por falta de fontes acadêmicas. Tente novamente ou ajuste o conteúdo.',
-          duration: 8000, // Toast mais longo para erros de validação
+          title: '❌ Fontes não confiáveis detectadas',
+          description: 'O material usou muitas fontes não acadêmicas (Wikipedia, Brasil Escola, etc). Gerando novamente com fontes melhores...',
+          duration: 8000,
+        });
+      } else if (errorMsg.includes('acadêmica') || errorMsg.includes('referências')) {
+        toast({
+          variant: 'destructive',
+          title: '❌ Problema com referências',
+          description: 'Erro ao validar referências. Tente novamente.',
+          duration: 8000,
+        });
+      } else if (errorMsg.includes('non-2xx status code')) {
+        toast({
+          variant: 'destructive',
+          title: '⚠️ Erro de conexão',
+          description: 'Problema ao acessar fontes externas. Tente novamente em alguns instantes.',
+          duration: 6000,
         });
       } else {
         toast({

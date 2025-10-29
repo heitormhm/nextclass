@@ -74,10 +74,7 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
 
           <TabsContent value="material" className="mt-4">
             {!structuredContent?.material_didatico ? (
-              <div className="text-center py-12 space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Material didático ainda não foi gerado
-                </p>
+              <div className="text-center py-12">
                 {materialGenerationComponent}
               </div>
             ) : (
