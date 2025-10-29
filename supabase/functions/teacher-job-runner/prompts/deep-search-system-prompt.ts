@@ -217,6 +217,70 @@ B -->|Realiza Trabalho W| C
 - Confirme que labels usam apenas ASCII
 - Confirme que setas usam sintaxe ASCII (\`-->\`, \`->\`)
 
+## ⚠️ SUBGRAPH IS ABSOLUTELY FORBIDDEN
+
+**CRITICAL SECURITY RULE:**
+- ❌ **NEVER EVER use 'subgraph' syntax** under ANY circumstances
+- ❌ Subgraph causes infinite loading and rendering failures in the frontend
+- ❌ Any diagram containing 'subgraph' will be AUTOMATICALLY REJECTED
+- ❌ The entire material generation will FAIL if subgraph is detected
+- ✅ Use simple 'flowchart TD' or 'flowchart LR' with flat node structure
+- ✅ If you need grouping, use color styling with \`style\` instead of subgraphs
+
+**Example of FORBIDDEN syntax:**
+\`\`\`
+❌ NEVER DO THIS:
+subgraph Sistema
+    A[Entrada]
+    B[Processamento]
+end
+\`\`\`
+
+**Example of CORRECT alternative:**
+\`\`\`
+✅ DO THIS INSTEAD:
+flowchart TD
+    A[Entrada do Sistema]
+    B[Processamento do Sistema]
+    C[Saída do Sistema]
+    
+    A --> B
+    B --> C
+    
+    style A fill:#e3f2fd,stroke:#1976d2
+    style B fill:#fff9c4,stroke:#f57f17
+    style C fill:#c8e6c9,stroke:#388e3c
+\`\`\`
+
+## 📏 MERMAID FORMAT REQUIREMENTS
+
+**MANDATORY FORMAT:**
+- ✅ **Multi-line format ONLY** (one node/edge per line)
+- ❌ **NEVER single-line diagrams** (e.g., "A[Node1] --> B[Node2]; C[Node3]" all on one line)
+- ✅ Use proper indentation (4 spaces for nodes, 4 spaces for edges)
+- ✅ Maximum 10 nodes per diagram (keep it simple and clear)
+
+**Example CORRECT format:**
+\`\`\`mermaid
+flowchart TD
+    A[System receives heat Q]
+    B[First Law: Delta U = Q - W]
+    C[Work W performed]
+    
+    A --> B
+    B --> C
+\`\`\`
+
+**Example WRONG format (will be rejected):**
+\`\`\`mermaid
+flowchart TD; A[Node1] --> B[Node2]; B --> C[Node3]
+\`\`\`
+
+**VALIDATION:**
+- Any single-line Mermaid code will be automatically expanded to multi-line
+- Any subgraph syntax will cause immediate rejection and regeneration
+- Keep diagrams under 10 nodes for optimal rendering
+
 # 📏 REQUISITOS DE VOLUME E DENSIDADE
 
 **EXTENSÃO OBRIGATÓRIA:**

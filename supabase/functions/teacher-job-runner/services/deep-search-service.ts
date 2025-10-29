@@ -261,6 +261,42 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
       hasParagraphs: report.split('\n\n').length,
     });
 
+    // ✅ CRITICAL: Pre-save Mermaid cleaning
+    console.log(`[Job ${job.id}] 🧹 Applying pre-save Mermaid cleaning...`);
+    
+    // 1. Detect and REJECT subgraph syntax
+    if (report.includes('subgraph')) {
+      console.error(`[Job ${job.id}] ❌ CRITICAL: Subgraph detected in AI output - REJECTING`);
+      throw new Error('AI generated forbidden subgraph syntax. Material rejected - regenerate without subgraph.');
+    }
+    
+    // 2. Expand single-line Mermaid code to multi-line
+    const mermaidBlockRegex = /```mermaid\s*\n([^`]+)```/g;
+    report = report.replace(mermaidBlockRegex, (match: string, code: string) => {
+      const lines = code.split('\n').filter((l: string) => l.trim());
+      
+      // If code has less than 3 lines or appears to be single-line, expand it
+      if (lines.length < 3 || code.includes(';')) {
+        console.warn(`[Job ${job.id}] ⚠️ Single-line Mermaid detected, expanding...`);
+        const expanded = code
+          .replace(/;\s*/g, '\n    ')
+          .replace(/-->/g, '\n    -->')
+          .replace(/==>/g, '\n    ==>')
+          .trim();
+        return `\`\`\`mermaid\n${expanded}\n\`\`\``;
+      }
+      return match;
+    });
+    
+    // 3. Final subgraph removal (defensive layer)
+    const initialLength = report.length;
+    report = report.replace(/subgraph[^`]*?end/gs, '');
+    if (report.length !== initialLength) {
+      console.warn(`[Job ${job.id}] ⚠️ Removed ${initialLength - report.length} chars of subgraph syntax`);
+    }
+    
+    console.log(`[Job ${job.id}] ✅ Pre-save Mermaid cleaning complete`);
+
     await saveReportToLecture(supabase, lectureId, report, job.id);
     await updateJobProgress(supabase, job.id, 1.0, 'Concluído!');
     
