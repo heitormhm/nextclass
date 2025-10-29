@@ -134,6 +134,73 @@ export function sanitizeLaTeX(markdown: string, jobId: string): string {
     }
   );
   
+  // ✅ PHASE 9: Merge consecutive inline math delimiters ($...$...$) → ($...$)
+  sanitized = sanitized.replace(
+    /\$\s*([^$]+?)\s*\$\s*([^$\n]+?)\s*\$/g,
+    (match, part1, part2) => {
+      // Only merge if part2 starts with LaTeX command or contains math symbols
+      if (/^\\[a-z]+/i.test(part2.trim()) || /[\\(){}\[\]^_=+\-*/]/.test(part2)) {
+        fixCount++;
+        console.log(`[Job ${jobId}] 🔧 Unified fragmented delimiters: ${match.substring(0, 50)}...`);
+        return `$ ${part1.trim()} ${part2.trim()} $`;
+      }
+      return match; // Keep separate if normal text
+    }
+  );
+  
+  // ✅ PHASE 10: Wrap orphaned LaTeX commands outside delimiters
+  sanitized = sanitized.replace(
+    /(?<![$$\\])(\\(?:dot|frac|text|times|Delta|sum|int|sqrt|partial|infty|alpha|beta|gamma|theta|lambda|mu|sigma|omega|cdot|pm|div|leq|geq|neq|approx|equiv)\{)/g,
+    (match) => {
+      fixCount++;
+      console.log(`[Job ${jobId}] 🔧 Wrapped orphaned LaTeX command: ${match.substring(0, 30)}...`);
+      return `$ ${match}`;
+    }
+  );
+  
+  // Close orphaned commands before next word
+  sanitized = sanitized.replace(
+    /\$\s*(\\[a-z]+(?:\{[^}]+\})+)\s+(?=[A-Z_][a-z])/g,
+    (match, latexCmd) => {
+      if (!match.includes('$ ')) { // Only if not already closed
+        fixCount++;
+        console.log(`[Job ${jobId}] 🔧 Closed orphaned delimiter: ${match.substring(0, 40)}...`);
+        return `$ ${latexCmd.trim()} $ `;
+      }
+      return match;
+    }
+  );
+  
+  // ✅ PHASE 11: Iterative merging of complex fragmented inline math
+  let prevSanitized = '';
+  let passCount = 0;
+  const maxPasses = 5;
+  
+  while (prevSanitized !== sanitized && passCount < maxPasses) {
+    prevSanitized = sanitized;
+    passCount++;
+    
+    sanitized = sanitized.replace(
+      /\$\s*([^$\n]+?)\s*\$\s*([^$\n]{1,30}?)\s*\$/g,
+      (match, part1, part2) => {
+        // Merge if part2 is LaTeX-like (backslash, parentheses, or math symbols)
+        const isLatexLike = /^[\s\\()\[\]{}+\-*/=^_0-9A-Za-z,\.<>]+$/.test(part2);
+        const isShort = part2.length < 30;
+        const hasNoWords = !/\b[A-Z][a-z]{4,}\b/.test(part2); // No long words like "Example"
+        
+        if (isLatexLike && isShort && hasNoWords) {
+          fixCount++;
+          return `$ ${part1.trim()} ${part2.trim()} $`;
+        }
+        return match;
+      }
+    );
+  }
+  
+  if (passCount > 1) {
+    console.log(`[Job ${jobId}] 🔁 Multi-pass merging completed in ${passCount} iterations, ${fixCount} total fixes`);
+  }
+  
   // ✅ PHASE 2: NEW - Fix unbalanced delimiters (emergency cleanup)
   const displayMatches = sanitized.match(/\$\$/g);
   const displayCount = displayMatches ? displayMatches.length : 0;
