@@ -22,6 +22,7 @@ import { useFlashcardsManagement } from '@/features/lecture-transcription/hooks/
 import { useReferencesManagement } from '@/features/lecture-transcription/hooks/useReferencesManagement';
 import { useThumbnailGeneration } from '@/features/lecture-transcription/hooks/useThumbnailGeneration';
 import { useJobSubscription } from '@/features/lecture-transcription/hooks/useJobSubscription';
+import { useMaterialGeneration } from '@/features/lecture-transcription/hooks/useMaterialGeneration';
 
 // Components
 import { LectureHeader } from '@/features/lecture-transcription/components/LectureHeader';
@@ -35,11 +36,8 @@ import { ContentTabs } from '@/features/lecture-transcription/components/Content
 import { AudioPlayerCard } from '@/features/lecture-transcription/components/AudioPlayerCard';
 import { PublishingControls } from '@/features/lecture-transcription/components/PublishingControls';
 import { LessonPlanComparisonSection } from '@/features/lecture-transcription/components/LessonPlanComparisonSection';
-import { MaterialGenerationContainer, MaterialGenerationContainerRef } from '@/features/material-didatico-generation/components/MaterialGenerationContainer';
-import { extractMaterialString } from '@/features/material-didatico-generation/utils/materialHelpers';
-import { MATERIAL_TOAST_MESSAGES } from '@/features/material-didatico-generation/constants/ui';
-import { validateRefReady, logRefState } from '@/features/material-didatico-generation/utils/refHelpers';
-import { validateStructuredMaterial } from '@/features/material-didatico-generation/utils/debugHelpers';
+import { MaterialViewer } from '@/features/lecture-transcription/components/MaterialViewer';
+import { MaterialGenerationButton } from '@/features/material-didatico-generation/components/MaterialGenerationButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -56,22 +54,10 @@ const LectureTranscriptionPage = () => {
   const [isProcessingTranscript, setIsProcessingTranscript] = useState(false);
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
   const [isLoadingFlashcards, setIsLoadingFlashcards] = useState(false);
-  const [isGeneratingFromRef, setIsGeneratingFromRef] = useState(false);
-  const [materialProgressStep, setMaterialProgressStep] = useState(0);
-  const [materialProgressMessage, setMaterialProgressMessage] = useState('');
-  
-  // Ref para controlar geração de material
-  const materialGenerationRef = useRef<MaterialGenerationContainerRef>(null);
 
   // Data Hooks
   const { lecture, isLoading, reloadLecture, structuredContent: initialContent, setStructuredContent: setLectureContent } = useLectureData(id);
   const { structuredContent, setStructuredContent, updateContent, hasUnsavedChanges, resetUnsavedChanges } = useLectureState(initialContent);
-  
-  // Memoização do material atual para prevenir re-renderizações
-  const currentMaterialValue = React.useMemo(() => 
-    extractMaterialString(structuredContent?.material_didatico),
-    [structuredContent?.material_didatico]
-  );
   
   // Feature Hooks
   const quizManagement = useQuizManagement(id, lectureTitle, lecture?.tags || []);
@@ -79,21 +65,16 @@ const LectureTranscriptionPage = () => {
   const referencesManagement = useReferencesManagement(id, structuredContent, updateContent);
   const { thumbnailUrl, setThumbnailUrl, isGenerating: isGeneratingThumbnail, generateThumbnail, uploadThumbnail } = useThumbnailGeneration(structuredContent?.titulo_aula, true);
   const { saveProgress } = useAutoSave(id, structuredContent, lectureTitle, thumbnailUrl, hasUnsavedChanges);
+  
+  // Material Generation Hook (NEW - Phase 2)
+  const materialGeneration = useMaterialGeneration();
 
-  // Job Subscription
+  // Job Subscription (Phase 7: Only quiz/flashcards, not material)
   useJobSubscription(id, {
     onQuizCompleted: quizManagement.handleJobCompletion,
     onQuizFailed: quizManagement.handleJobFailure,
     onFlashcardsCompleted: flashcardsManagement.handleJobCompletion,
     onFlashcardsFailed: flashcardsManagement.handleJobFailure,
-    onMaterialCompleted: reloadLecture,
-    onMaterialFailed: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Erro na geração',
-        description: error,
-      });
-    },
   });
 
   // Sync lecture title
@@ -131,47 +112,6 @@ const LectureTranscriptionPage = () => {
     loadContent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, lecture]);
-
-  // FASE 3: Debug logging com validação de tipo + diagnóstico de material
-  React.useEffect(() => {
-    const refStatus = {
-      isNull: materialGenerationRef.current === null,
-      hasFunction: !!materialGenerationRef.current?.triggerRegeneration,
-      currentMaterial: !!currentMaterialValue,
-      lectureId: id,
-      timestamp: new Date().toISOString(),
-    };
-    
-    console.log('[LecturePage] MaterialGenerationRef state:', refStatus);
-    
-    // Validação crítica de tipo
-    if (materialGenerationRef.current && 
-        typeof materialGenerationRef.current.triggerRegeneration !== 'function') {
-      console.error('[LecturePage] CRITICAL: Ref exists but triggerRegeneration is not a function!', 
-        materialGenerationRef.current);
-    }
-    
-    // ✅ FASE 3: Diagnóstico de material inválido
-    if (currentMaterialValue) {
-      const validation = validateStructuredMaterial(currentMaterialValue);
-      
-      if (!validation.isValid) {
-        console.error('[LecturePage] 🚨 MATERIAL INVÁLIDO:', validation);
-        
-        // Toast de diagnóstico (apenas em dev)
-        if (import.meta.env.DEV) {
-          toast({
-            variant: 'destructive',
-            title: '⚠️ Material Inválido Detectado',
-            description: `Razão: ${validation.reason}. Verifique os logs do console.`,
-            duration: 10000,
-          });
-        }
-      } else {
-        console.log('[LecturePage] ✅ Material válido:', validation);
-      }
-    }
-  }, [currentMaterialValue, id, toast]);
 
   // Debug logging
   React.useEffect(() => {
@@ -418,65 +358,38 @@ const LectureTranscriptionPage = () => {
               />
             </div>
             
-            {/* 2. Conteúdo com tab de Tópicos */}
+            {/* 2. Conteúdo com tabs */}
             <ContentTabs 
               rawTranscript={lecture.raw_transcript}
               structuredContent={structuredContent}
               topics={structuredContent?.topicos_principais}
-              materialGenerationComponent={
-                <MaterialGenerationContainer
-                  ref={materialGenerationRef}
-                  lectureId={id!}
-                  lectureTitle={lectureTitle}
-                  transcript={lecture.raw_transcript}
-                  currentMaterial={currentMaterialValue}
-                  onSuccess={reloadLecture}
-                  onGeneratingChange={(isGenerating, step, message) => {
-                    setIsGeneratingFromRef(isGenerating);
-                    setMaterialProgressStep(step);
-                    setMaterialProgressMessage(message);
-                  }}
-                />
-              }
-              onRegenerateMaterial={() => {
-                console.log('[LecturePage] Redo button clicked - triggering regeneration');
-                logRefState(materialGenerationRef, 'LecturePage');
-                
-                /**
-                 * FASE 2: Estratégia de espera ativa usando requestAnimationFrame
-                 * Mais eficiente que setTimeout, sincronizado com render cycle
-                 */
-                const attemptTriggerWithRAF = (attempts = 0): void => {
-                  if (attempts >= 5) {
-                    console.error('[LecturePage] Max attempts reached, ref still null');
-                    logRefState(materialGenerationRef, 'LecturePage-Failed');
-                    toast(MATERIAL_TOAST_MESSAGES.REF_NOT_READY);
-                    return;
+              htmlContent={structuredContent?.material_didatico_html}
+              isGeneratingMaterial={materialGeneration.isGenerating}
+              materialProgress={materialGeneration.progress}
+              materialProgressMessage={materialGeneration.progressMessage}
+              onGenerateMaterial={async () => {
+                if (id && lectureTitle) {
+                  const success = await materialGeneration.generate(
+                    id,
+                    lectureTitle,
+                    lecture.tags || []
+                  );
+                  if (success) {
+                    await reloadLecture();
                   }
-                  
-                  const validation = validateRefReady(materialGenerationRef);
-                  
-                  if (!validation.isValid) {
-                    console.warn(`[LecturePage] Ref not ready: ${validation.error} (attempt ${attempts + 1}/5)`);
-                    requestAnimationFrame(() => attemptTriggerWithRAF(attempts + 1));
-                    return;
-                  }
-                  
-                  console.log('[LecturePage] Ref validated, triggering regeneration');
-                  console.log('[LecturePage] Ref state:', {
-                    hasTriggerFunction: typeof materialGenerationRef.current!.triggerRegeneration === 'function',
-                    timestamp: new Date().toISOString(),
-                  });
-                  
-                  materialGenerationRef.current!.triggerRegeneration();
-                };
-                
-                attemptTriggerWithRAF();
+                }
               }}
-              isGeneratingMaterial={isGeneratingFromRef}
-              materialGenerationProgress={{
-                step: materialProgressStep,
-                message: materialProgressMessage,
+              onRegenerateMaterial={async () => {
+                if (id && lectureTitle) {
+                  const success = await materialGeneration.generate(
+                    id,
+                    lectureTitle,
+                    lecture.tags || []
+                  );
+                  if (success) {
+                    await reloadLecture();
+                  }
+                }
               }}
             />
             
