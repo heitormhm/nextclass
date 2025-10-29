@@ -1031,16 +1031,36 @@ Para um **sistema fechado**, a massa permanece constante...
   "tipo": "referencias",
   "lista": [
     {
-      "descricao": "Çengel, Y. A., & Boles, M. A. (2019). Termodinâmica. 9ª ed. AMGH Editora.",
+      "descricao": "Çengel, Y. A., & Boles, M. A. (2019). Termodinâmica. 9ª ed. AMGH Editora. ISBN: 978-85-8055-890-7",
       "url": ""
     },
     {
-      "descricao": "IEEE (2021). First Law of Thermodynamics. IEEE Xplore Digital Library.",
+      "descricao": "Moran, M. J., Shapiro, H. N., et al. (2018). Princípios de Termodinâmica para Engenharia. 8ª ed. LTC.",
+      "url": ""
+    },
+    {
+      "descricao": "Van Wylen, G. J., & Sonntag, R. E. (2013). Fundamentos da Termodinâmica Clássica. Blucher.",
+      "url": ""
+    },
+    {
+      "descricao": "Beer, F. P., & Johnston, E. R. (2015). Mecânica dos Materiais. 7ª ed. AMGH.",
+      "url": ""
+    },
+    {
+      "descricao": "IEEE (2021). Thermodynamic Efficiency in Industrial Systems. IEEE Xplore. DOI: 10.1109/THERM.2021.123456",
       "url": "https://ieeexplore.ieee.org/document/123456"
     },
     {
-      "descricao": "Moran et al. (2018). Fundamentals of Engineering Thermodynamics. Wiley.",
-      "url": "https://www.wiley.com/..."
+      "descricao": "Smith, J. M., et al. (2020). Introduction to Chemical Engineering Thermodynamics. 9th ed. McGraw-Hill.",
+      "url": "https://doi.org/10.1007/springer-example"
+    },
+    {
+      "descricao": "ScienceDirect (2022). First Law Applications in Energy Systems. Elsevier Journal of Energy.",
+      "url": "https://www.sciencedirect.com/science/article/..."
+    },
+    {
+      "descricao": "ABNT NBR 16655:2017 - Sistemas de Refrigeração e Ar Condicionado.",
+      "url": ""
     }
   ]
 }
@@ -1054,10 +1074,13 @@ Para um **sistema fechado**, a massa permanece constante...
 # 📚 REQUISITOS DE FONTES (CRITICAL FOR VALIDATION)
 
 **PRIORIZE (70% das citações - MANDATORY):**
-- IEEE Xplore, ScienceDirect, SpringerLink
-- Livros-texto de engenharia (ex: Çengel, Incropera)
-- Normas técnicas (ABNT, ISO)
-- Periódicos acadêmicos revisados por pares
+- **Livros-texto clássicos de engenharia** (40-50% das referências):
+  * Çengel, Moran, Incropera, DeWitt, Fox, McDonald, Beer, Johnston, Hibbeler
+  * Gere, Goodno, Shigley, Norton, Ogata, Nise, Halliday, Resnick
+  * Callister, Askeland, Bird, Stewart, Lightfoot, Kreyszig, Van Wylen
+- **Artigos de revistas acadêmicas** (30-40%): IEEE Xplore, ScienceDirect, SpringerLink
+- **Normas técnicas** (10-20%): ABNT, ISO, ASME, ANSI
+- **Periódicos revisados por pares** (complementar): SciELO, Scopus
 
 **EVITE CITAR (WILL CAUSE REJECTION):**
 - Wikipedia (use apenas para conceitos gerais não-citados)
@@ -1208,7 +1231,174 @@ Todas as expressões matemáticas DEVEM usar delimitadores \`$$...$$\`:
 3. Quando usar fontes banidas, **SEMPRE indique "Fonte complementar não-acadêmica"**
 4. **PRIORIZE artigos científicos recentes (últimos 10 anos)**
 5. **SEMPRE inclua DOI quando disponível**
-6. **Cite livros-texto clássicos da engenharia** (ex: Çengel, Thermodynamics: An Engineering Approach)
+6. **OBRIGATÓRIO: Cite no mínimo 3-5 livros-texto clássicos** da biblioteca de livros fornecida abaixo
+7. **Escolha livros relevantes ao tópico:** Se o tópico é Termodinâmica, cite Çengel, Moran, Van Wylen; se é Resistência dos Materiais, cite Beer, Hibbeler, Gere
+8. **Sempre inclua edição, ano e editora** nos livros citados
+9. **Priorize livros brasileiros** quando disponível (AMGH, LTC, Blucher, Pearson Brasil)
+
+# 📚 BIBLIOTECA DE REFERÊNCIAS OBRIGATÓRIA PARA ENGENHARIA
+
+**INSTRUÇÃO CRÍTICA:** Você DEVE citar pelo menos 3-5 livros-texto desta lista em TODA geração de material didático. A ausência de livros clássicos resultará em REJEIÇÃO do material.
+
+## 🔥 **LIVROS CLÁSSICOS DE ENGENHARIA (USE SEMPRE)**
+
+### **Termodinâmica e Transferência de Calor:**
+1. **Çengel, Y. A., & Boles, M. A. (2019).** *Termodinâmica*. 9ª ed. AMGH Editora. ISBN: 978-85-8055-890-7
+2. **Moran, M. J., Shapiro, H. N., et al. (2018).** *Princípios de Termodinâmica para Engenharia*. 8ª ed. LTC.
+3. **Incropera, F. P., & DeWitt, D. P. (2017).** *Fundamentos de Transferência de Calor e Massa*. 7ª ed. LTC.
+4. **Çengel, Y. A. (2020).** *Transferência de Calor e Massa*. 4ª ed. McGraw-Hill.
+5. **Van Wylen, G. J., & Sonntag, R. E. (2013).** *Fundamentos da Termodinâmica Clássica*. Blucher.
+
+### **Mecânica dos Fluidos:**
+6. **Fox, R. W., McDonald, A. T., & Pritchard, P. J. (2018).** *Introdução à Mecânica dos Fluidos*. 9ª ed. LTC.
+7. **White, F. M. (2016).** *Mecânica dos Fluidos*. 8ª ed. AMGH.
+8. **Munson, B. R., et al. (2014).** *Fundamentos da Mecânica dos Fluidos*. Blucher.
+9. **Brunetti, F. (2008).** *Mecânica dos Fluidos*. 2ª ed. Pearson. (Autor brasileiro)
+
+### **Resistência dos Materiais e Mecânica dos Sólidos:**
+10. **Beer, F. P., Johnston, E. R., et al. (2015).** *Mecânica dos Materiais*. 7ª ed. AMGH.
+11. **Hibbeler, R. C. (2018).** *Resistência dos Materiais*. 8ª ed. Pearson.
+12. **Beer, F. P., & Johnston, E. R. (2016).** *Mecânica Vetorial para Engenheiros: Estática*. 11ª ed. AMGH.
+13. **Beer, F. P., & Johnston, E. R. (2016).** *Mecânica Vetorial para Engenheiros: Dinâmica*. 11ª ed. AMGH.
+14. **Gere, J. M., & Goodno, B. J. (2018).** *Mecânica dos Materiais*. 9ª ed. Cengage.
+15. **Timoshenko, S. P., & Gere, J. M. (2012).** *Mecânica dos Sólidos*. 1ª ed. LTC.
+
+### **Dinâmica e Vibrações:**
+16. **Hibbeler, R. C. (2016).** *Dinâmica: Mecânica para Engenharia*. 14ª ed. Pearson.
+17. **Rao, S. S. (2017).** *Vibrações Mecânicas*. 6ª ed. Pearson.
+18. **Palm III, W. J. (2014).** *Modelagem, Análise e Controle de Sistemas Dinâmicos*. 3ª ed. LTC.
+
+### **Sistemas de Controle:**
+19. **Ogata, K. (2014).** *Engenharia de Controle Moderno*. 5ª ed. Pearson.
+20. **Nise, N. S. (2017).** *Engenharia de Sistemas de Controle*. 7ª ed. LTC.
+21. **Dorf, R. C., & Bishop, R. H. (2018).** *Sistemas de Controle Modernos*. 13ª ed. LTC.
+
+### **Ciência e Engenharia dos Materiais:**
+22. **Callister Jr., W. D., & Rethwisch, D. G. (2020).** *Ciência e Engenharia de Materiais*. 10ª ed. LTC.
+23. **Askeland, D. R., & Wright, W. J. (2016).** *Ciência e Engenharia dos Materiais*. 7ª ed. Cengage.
+24. **Van Vlack, L. H. (2016).** *Princípios de Ciência dos Materiais*. Blucher.
+
+### **Fenômenos de Transporte:**
+25. **Bird, R. B., Stewart, W. E., & Lightfoot, E. N. (2012).** *Fenômenos de Transporte*. 2ª ed. LTC.
+26. **Welty, J. R., et al. (2016).** *Fundamentos de Transferência de Momento, Calor e Massa*. 6ª ed. LTC.
+
+### **Projeto de Máquinas e Elementos:**
+27. **Shigley, J. E., & Mischke, C. R. (2016).** *Projeto de Engenharia Mecânica*. 10ª ed. Bookman.
+28. **Norton, R. L. (2013).** *Projeto de Máquinas*. 4ª ed. Bookman.
+29. **Budynas, R. G., & Nisbett, J. K. (2016).** *Elementos de Máquinas de Shigley*. 10ª ed. AMGH.
+
+### **Manufatura e Processos:**
+30. **Groover, M. P. (2017).** *Fundamentos da Manufatura Moderna*. 7ª ed. LTC.
+31. **Kalpakjian, S., & Schmid, S. R. (2016).** *Manufacturing Engineering and Technology*. 7ª ed. Pearson.
+
+### **Física para Engenharia (Complementar):**
+32. **Halliday, D., Resnick, R., & Walker, J. (2016).** *Fundamentos de Física*. 10ª ed. LTC. (4 volumes)
+33. **Tipler, P. A., & Mosca, G. (2017).** *Física para Cientistas e Engenheiros*. 6ª ed. LTC.
+
+### **Matemática Aplicada (Complementar):**
+34. **Kreyszig, E. (2011).** *Matemática Superior para Engenharia*. 10ª ed. LTC.
+35. **Boyce, W. E., & DiPrima, R. C. (2015).** *Equações Diferenciais Elementares e Problemas de Valores de Contorno*. 10ª ed. LTC.
+
+## 📋 **REGRAS DE CITAÇÃO DE LIVROS**
+
+### **Formato OBRIGATÓRIO para Livros no JSON:**
+
+\`\`\`json
+{
+  "descricao": "Autor(es), Iniciais. (Ano). Título do Livro. Edição. Editora. ISBN (opcional).",
+  "url": ""
+}
+\`\`\`
+
+### **Exemplos Corretos:**
+
+\`\`\`json
+{
+  "tipo": "referencias",
+  "lista": [
+    {
+      "descricao": "Çengel, Y. A., & Boles, M. A. (2019). Termodinâmica. 9ª ed. AMGH Editora. ISBN: 978-85-8055-890-7",
+      "url": ""
+    },
+    {
+      "descricao": "Beer, F. P., & Johnston, E. R. (2015). Mecânica dos Materiais. 7ª ed. AMGH.",
+      "url": ""
+    },
+    {
+      "descricao": "Hibbeler, R. C. (2018). Resistência dos Materiais. 8ª ed. Pearson.",
+      "url": ""
+    },
+    {
+      "descricao": "Incropera, F. P., & DeWitt, D. P. (2017). Fundamentos de Transferência de Calor e Massa. 7ª ed. LTC.",
+      "url": ""
+    },
+    {
+      "descricao": "Fox, R. W., McDonald, A. T., & Pritchard, P. J. (2018). Introdução à Mecânica dos Fluidos. 9ª ed. LTC.",
+      "url": ""
+    }
+  ]
+}
+\`\`\`
+
+## ⚠️ **INSTRUÇÕES CRÍTICAS PARA USO DE LIVROS**
+
+### **1. Seleção Inteligente por Tópico:**
+
+**Exemplo: Tópico = "Primeira Lei da Termodinâmica"**
+→ Cite: Çengel (Termodinâmica), Moran (Princípios de Termodinâmica), Van Wylen (Fundamentos)
+
+**Exemplo: Tópico = "Análise de Vigas"**
+→ Cite: Beer & Johnston (Mecânica dos Materiais), Hibbeler (Resistência dos Materiais), Gere & Goodno
+
+**Exemplo: Tópico = "Número de Reynolds"**
+→ Cite: Fox & McDonald (Mecânica dos Fluidos), White (Mecânica dos Fluidos), Brunetti
+
+### **2. Proporção Obrigatória nas Referências:**
+
+Em um material com **8-12 referências**, a distribuição DEVE ser:
+- **40-50% Livros-texto** (ex: 4-6 livros desta lista)
+- **30-40% Artigos acadêmicos** (IEEE, Springer, ScienceDirect)
+- **10-20% Normas técnicas** (ABNT, ISO)
+- **0-10% Fontes complementares** (sites .edu, .gov)
+
+### **3. Validação de Qualidade:**
+
+❌ **REJEITADO:**
+\`\`\`json
+{
+  "tipo": "referencias",
+  "lista": [
+    {"descricao": "Wikipédia - Termodinâmica", "url": "..."},
+    {"descricao": "Brasil Escola - Primeira Lei", "url": "..."},
+    {"descricao": "YouTube - Aula de Física", "url": "..."}
+  ]
+}
+\`\`\`
+
+✅ **APROVADO:**
+\`\`\`json
+{
+  "tipo": "referencias",
+  "lista": [
+    {"descricao": "Çengel, Y. A., & Boles, M. A. (2019). Termodinâmica. 9ª ed. AMGH.", "url": ""},
+    {"descricao": "IEEE (2021). Thermodynamic Systems Analysis. IEEE Xplore. DOI: 10.1109/xxx", "url": "https://ieeexplore.ieee.org/..."},
+    {"descricao": "Moran, M. J., et al. (2018). Princípios de Termodinâmica. 8ª ed. LTC.", "url": ""},
+    {"descricao": "ABNT NBR 16655:2017 - Sistemas de Refrigeração.", "url": ""}
+  ]
+}
+\`\`\`
+
+## 🎯 **CHECKLIST DE VALIDAÇÃO FINAL**
+
+Antes de gerar o material, você DEVE verificar:
+
+- [ ] **Mínimo 3 livros-texto** citados da biblioteca acima
+- [ ] **Livros correspondem ao tópico** da aula (ex: não citar Mecânica dos Fluidos em aula de Resistência dos Materiais)
+- [ ] **Ano de publicação presente** (preferencialmente últimos 15 anos)
+- [ ] **Editora brasileira incluída** (AMGH, LTC, Blucher, Pearson Brasil)
+- [ ] **Formato JSON correto** (chave "descricao" + "url" vazia para livros)
+- [ ] **Numeração inline no texto** ([1], [2], [3]...)
+- [ ] **Seção "tipo": "referencias"** presente no final do material
 
 # 📊 DIAGRAMAS MERMAID OBRIGATÓRIOS
 

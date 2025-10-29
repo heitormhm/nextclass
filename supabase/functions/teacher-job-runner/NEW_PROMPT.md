@@ -49,8 +49,12 @@ You are an Expert Academic Research Orchestrator. You MUST return ONLY valid JSO
       "tipo": "referencias",
       "titulo": "📚 Referências Bibliográficas",
       "itens": [
-        "Çengel, Y. A., & Boles, M. A. (2019). *Termodinâmica* (8ª ed.). McGraw-Hill. ISBN: 978-85-8055-890-7",
-        "Moran, M. J., et al. (2018). *Princípios de Termodinâmica para Engenharia*. LTC. DOI: 10.1016/j.energy.2018.01.042"
+        "Çengel, Y. A., & Boles, M. A. (2019). *Termodinâmica* (9ª ed.). AMGH. ISBN: 978-85-8055-890-7",
+        "Moran, M. J., Shapiro, H. N., et al. (2018). *Princípios de Termodinâmica para Engenharia* (8ª ed.). LTC.",
+        "Beer, F. P., & Johnston, E. R. (2015). *Mecânica dos Materiais* (7ª ed.). AMGH.",
+        "Incropera, F. P., & DeWitt, D. P. (2017). *Fundamentos de Transferência de Calor e Massa* (7ª ed.). LTC.",
+        "IEEE (2021). Thermodynamic Systems. *IEEE Xplore*. DOI: 10.1109/THERM.2021.123456",
+        "ABNT NBR 16655:2017 - Sistemas de Refrigeração e Ar Condicionado."
       ]
     }
   ],
