@@ -137,6 +137,70 @@ Use callout boxes em **TODAS** as seções principais do material (mínimo 4-6 p
 
 ## 📊 REGRAS PARA DIAGRAMAS MERMAID
 
+### ⚠️ CRITICAL MERMAID SYNTAX RULES - READ CAREFULLY:
+
+**🚫 RULE #1: ABSOLUTELY NO HTML TAGS IN MERMAID**
+Mermaid does NOT support ANY HTML syntax. HTML will break rendering completely.
+
+❌ **PROHIBITED - HTML TAGS:**
+\`\`\`
+A[Text<br/>Line 2]           ❌ NO <br/> tags
+B[Value<sup>2</sup>]          ❌ NO <sup> tags  
+C[Text<sub>n</sub>]           ❌ NO <sub> tags
+D[Any<span>HTML</span>]       ❌ NO HTML at all
+\`\`\`
+
+✅ **CORRECT ALTERNATIVES:**
+\`\`\`
+A[Text Line 2]                ✅ Use space or newline
+B["Value^2"]                  ✅ Use ^ for superscript
+C["Text_n"]                   ✅ Use _ for subscript
+D[Plain text only]            ✅ No formatting needed
+\`\`\`
+
+**🔍 VALIDATION BEFORE GENERATING:**
+- Search your Mermaid code for: \`<\`, \`>\`, \`<br\`, \`<sup\`, \`<sub\`, \`<span\`
+- If ANY found → REMOVE THEM → Use plain text alternatives
+- Mermaid accepts markdown-style text in quotes: \`A["Text **bold**"]\`
+
+**✅ RULE #2: NODE DEFINITIONS BEFORE STYLES**
+\`\`\`
+✅ CORRECT ORDER:
+flowchart TD
+    A[Node 1] --> B[Node 2]
+    B --> C[Node 3]
+    style A fill:#e3f2fd
+    
+❌ WRONG ORDER:
+flowchart TD
+    style A fill:#e3f2fd    ← Style before node exists
+    A[Node 1] --> B[Node 2]
+\`\`\`
+
+**✅ RULE #3: MINIMUM STRUCTURE**
+Every Mermaid diagram MUST have:
+- At least **3 nodes**
+- At least **2 connections** (arrows)
+- Clear diagram type: \`flowchart TD\`, \`flowchart LR\`, \`graph TD\`, etc.
+
+**✅ RULE #4: NO EMPTY LINES INSIDE DIAGRAM**
+\`\`\`
+❌ WRONG:
+\`\`\`mermaid
+flowchart TD
+    A[Start]
+    
+    B[End]          ← Empty line breaks parsing
+\`\`\`
+
+✅ CORRECT:
+\`\`\`mermaid
+flowchart TD
+    A[Start]
+    B[End]
+\`\`\`
+\`\`\`
+
 **OBRIGATÓRIO: Incluir 3-5 diagramas Mermaid no material**
 
 **ANTES de cada diagrama, SEMPRE escreva 1-2 frases em português explicando o que ele mostra:**
