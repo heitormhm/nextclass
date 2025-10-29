@@ -59,21 +59,23 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
             )}
           </TabsContent>
 
-          <TabsContent value="material" className="mt-4 overflow-x-hidden">
-            {structuredContent?.material_didatico || isGeneratingMaterial ? (
-              <MaterialViewer
-                markdownContent={
-                  typeof structuredContent?.material_didatico === 'string' 
-                    ? structuredContent.material_didatico 
-                    : (structuredContent?.material_didatico ? JSON.stringify(structuredContent.material_didatico) : undefined)
-                }
-                isGenerating={isGeneratingMaterial}
-                progress={materialProgress}
-                progressMessage={materialProgressMessage}
-                onRegenerate={onRegenerateMaterial}
-                showRegenerateButton={true}
-              />
-            ) : (
+      <TabsContent value="material" className="mt-4 overflow-x-hidden">
+        {structuredContent?.material_didatico || isGeneratingMaterial ? (
+          <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
+            <MaterialViewer
+              markdownContent={
+                typeof structuredContent?.material_didatico === 'string' 
+                  ? structuredContent.material_didatico 
+                  : (structuredContent?.material_didatico ? JSON.stringify(structuredContent.material_didatico) : undefined)
+              }
+              isGenerating={isGeneratingMaterial}
+              progress={materialProgress}
+              progressMessage={materialProgressMessage}
+              onRegenerate={onRegenerateMaterial}
+              showRegenerateButton={true}
+            />
+          </div>
+        ) : (
               <div className="text-center py-12">
                 {onGenerateMaterial ? (
                   <MaterialGenerationButton 
