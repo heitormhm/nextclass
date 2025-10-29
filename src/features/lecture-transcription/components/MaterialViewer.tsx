@@ -120,12 +120,18 @@ export const MaterialViewer: React.FC<MaterialViewerProps> = ({
     <>
       <div className="space-y-4">
         {showRegenerateButton && onRegenerate && (
-          <div className="flex justify-end">
+          <div className="flex justify-between items-center mb-4">
+            {validation.wordCount < 100 && (
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-sm">
+                <AlertCircle className="h-4 w-4" />
+                <span>Conteúdo pode estar incompleto</span>
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"
               onClick={handleRegenerateClick}
-              className="gap-2"
+              className="gap-2 ml-auto"
             >
               <RotateCcw className="h-4 w-4" />
               Regenerar Material

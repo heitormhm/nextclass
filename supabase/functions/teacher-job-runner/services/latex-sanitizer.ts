@@ -24,6 +24,12 @@ export function sanitizeLaTeX(markdown: string, jobId: string): string {
   let sanitized = markdown;
   let fixCount = 0;
   
+  // ✅ PHASE 4: NEW - Fix space after opening $ delimiter
+  sanitized = sanitized.replace(/\$ \\dot\{/g, '$\\dot{');
+  sanitized = sanitized.replace(/\$ \\frac\{/g, '$\\frac{');
+  sanitized = sanitized.replace(/\$ \\/g, '$\\');
+  fixCount += 3;
+  
   // Fix 1: Remove nested dollar signs in display math: $$ $..$ $$ → $$ .. $$
   sanitized = sanitized.replace(
     /\$\$\s*\$([^$]+)\$\s*\$\$/g,
