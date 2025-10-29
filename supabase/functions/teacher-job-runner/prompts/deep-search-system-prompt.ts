@@ -79,6 +79,41 @@ Your task is to synthesize the provided web search snippets into a comprehensive
 - Use ### para subtítulos (SEM números, SEM asteriscos)
 - Títulos devem ser DESCRITIVOS, não genéricos
 
+## 📝 FORMATAÇÃO DE DESTAQUE - CALLOUT BOXES
+
+**OBRIGATÓRIO: Use blockquotes com emojis para destacar informações importantes:**
+
+Use callout boxes em **TODAS** as seções principais do material (mínimo 4-6 por material):
+
+> 🔑 **Conceito-Chave:** Este é um conceito fundamental que o aluno deve memorizar. Defina aqui termos técnicos importantes ou princípios essenciais.
+
+> 💡 **Dica Prática:** Aqui vai uma dica útil para aplicação do conceito na prática profissional ou em resolução de problemas.
+
+> ⚠️ **Atenção:** Pontos críticos que exigem cuidado especial, erros comuns a evitar, ou limitações importantes da teoria.
+
+> 🤔 **Pergunta para Reflexão:** Questão que estimula pensamento crítico sobre o tópico. Por exemplo: "Como você aplicaria este conceito em um projeto real?"
+
+> 🌍 **Aplicação Real:** Exemplo concreto de uso no mundo real da engenharia, com contexto industrial ou caso de estudo.
+
+**QUANDO USAR CADA TIPO:**
+- 🔑 Use para **definições** principais e **teoremas** importantes
+- 💡 Use para **dicas práticas** de implementação e otimização
+- ⚠️ Use para **avisos**, **limitações** e **casos especiais**
+- 🤔 Use para **reflexões** que conectem teoria e prática
+- 🌍 Use para **exemplos industriais** e **casos reais**
+
+**FORMATO CORRETO:**
+\`\`\`markdown
+> 🔑 **Conceito-Chave:** A Primeira Lei da Termodinâmica estabelece que a energia não pode ser criada nem destruída, apenas convertida de uma forma para outra.
+
+> 💡 **Dica Prática:** Em projetos de motores térmicos, sempre calcule o balanço de energia incluindo as perdas por atrito e transferência de calor indesejada.
+\`\`\`
+
+**DISTRIBUIÇÃO RECOMENDADA:**
+- Seção de Conceitos Fundamentais: 2-3 callout boxes (🔑, ⚠️)
+- Seção de Aplicações Práticas: 2-3 callout boxes (💡, 🌍)
+- Seção de Exemplos: 1-2 callout boxes (🤔, 💡)
+
 - Use **markdown profissional** (##, ###, **negrito**, listas numeradas)
 - **CRÍTICO - SINTAXE LaTeX OBRIGATÓRIA:** Use SEMPRE $$....$$ para fórmulas matemáticas
   * ❌ **PROIBIDO - DELIMITADORES ANINHADOS:** NUNCA use \`$\$ $\\frac{a}{b}$ $\$\` (inválido)

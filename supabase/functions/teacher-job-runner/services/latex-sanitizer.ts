@@ -83,6 +83,17 @@ export function sanitizeLaTeX(markdown: string, jobId: string): string {
   // ✅ PHASE 2: NEW - Normalize inline math
   sanitized = sanitized.replace(/\$\s+([^$]+?)\s+\$/g, '$ $1 $');
   
+  // ✅ PHASE 7: NEW - Fix missing space between formula blocks
+  // Pattern: $...$WORD or $...$Q = (no space after closing $)
+  sanitized = sanitized.replace(
+    /\$([^$]+)\$([A-Z])/g,
+    (match, formula, after) => {
+      fixCount++;
+      console.log(`[Job ${jobId}] 🔧 Added space after formula: ${match.substring(0, 30)}...`);
+      return `$ ${formula.trim()} $ ${after}`;
+    }
+  );
+  
   // ✅ PHASE 2: NEW - Fix unbalanced delimiters (emergency cleanup)
   const displayMatches = sanitized.match(/\$\$/g);
   const displayCount = displayMatches ? displayMatches.length : 0;

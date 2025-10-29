@@ -18,6 +18,38 @@ interface RichMaterialRendererProps {
 }
 
 export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ markdown }) => {
+  const scrollToReference = (refNumber: string) => {
+    const element = document.getElementById(`ref-${refNumber}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.classList.add('highlight-flash');
+      setTimeout(() => element.classList.remove('highlight-flash'), 2000);
+    }
+  };
+
+  // Process inline citations [1], [2] as superscript
+  const processCitations = (children: React.ReactNode): React.ReactNode => {
+    if (typeof children === 'string') {
+      const parts = children.split(/(\[\d+\])/g);
+      return parts.map((part, i) => {
+        const match = part.match(/\[(\d+)\]/);
+        if (match) {
+          return (
+            <sup
+              key={`cite-${i}`}
+              className="inline-block mx-0.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs font-semibold cursor-pointer hover:bg-primary/20 transition-colors"
+              onClick={() => scrollToReference(match[1])}
+            >
+              {match[1]}
+            </sup>
+          );
+        }
+        return part;
+      });
+    }
+    return children;
+  };
+
   return (
     <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-purple-700 prose-li:text-foreground prose-a:text-primary hover:prose-a:text-primary/80">
       <ReactMarkdown
@@ -29,12 +61,21 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
             strict: false,
             output: 'html',
             displayMode: false,
-            // ✅ PHASE 3: Custom error handler for malformed formulas
-            trust: false,
+            trust: true,  // ✅ Changed: Allow KaTeX to render fully
             macros: {}
           }]
         ]}
         components={{
+          // Paragraphs with citation processing
+          p: ({ node, children, ...props }) => {
+            const processedChildren = React.Children.map(children, (child) => processCitations(child));
+            return (
+              <p className="my-4 leading-relaxed text-foreground" {...props}>
+                {processedChildren}
+              </p>
+            );
+          },
+          
           // Custom H2 styling (purple gradient)
           h2: ({node, ...props}) => (
             <h2 

@@ -31,27 +31,32 @@ export const MarkdownReferencesRenderer: React.FC<MarkdownReferencesRendererProp
   
   const referencesText = referencesMatch[1];
   
-  // Parse individual references - support multiple formats
-  // Formats: "1. **Author** - Title" or "[1] Author - Title" or "1) Author - Title"
-  const referenceRegex = /(?:(\d+)[\.\)]\s*|\[(\d+)\]\s*)\**(.*?)\**\s*[-–—]\s*(.*?)(?:\n\s*[-•]\s*(?:URL|Link):\s*(https?:\/\/[^\s\n]+))?(?:\n\s*[-•]\s*(?:Type|Tipo):\s*([^\n]+))?/gi;
+  // Parse individual references - NEW FORMAT
+  // Format: [1] Author, T. D. (2018). Title of Work. Publisher. URL
+  // Format: [1] Source. (Year). Title. URL
+  const referenceRegex = /\[(\d+)\]\s+([^.\n]+?)\.\s+\((\d{4})\)\.\s+([^.\n]+?)\.(?:\s+([^.\n]+?)\.)?(?:\s+(https?:\/\/[^\s\n]+))?/gi;
   const references: Array<{
     number: string;
     author: string;
+    year: string;
     title: string;
+    publisher?: string;
     url?: string;
-    type?: string;
   }> = [];
   
   let match;
   while ((match = referenceRegex.exec(referencesText)) !== null) {
     references.push({
-      number: match[1] || match[2],  // Support both numbered formats
-      author: match[3].trim(),
+      number: match[1],
+      author: match[2].trim(),
+      year: match[3],
       title: match[4].trim(),
-      url: match[5]?.trim(),
-      type: match[6]?.trim()
+      publisher: match[5]?.trim(),
+      url: match[6]?.trim()
     });
   }
+  
+  console.log('[References] Parsed', references.length, 'references');
   
   if (references.length === 0) {
     return null;
@@ -66,7 +71,8 @@ export const MarkdownReferencesRenderer: React.FC<MarkdownReferencesRendererProp
       <div className="space-y-4">
         {references.map((ref, index) => (
           <div 
-            key={`ref-${index}-${ref.author.substring(0, 20)}-${ref.number}`}
+            key={`ref-${index}-${ref.number}`}
+            id={`ref-${ref.number}`}
             className="bg-gradient-to-br from-primary/5 to-primary/10 border-l-4 border-primary p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
           >
             <div className="flex items-start gap-3">
@@ -74,24 +80,20 @@ export const MarkdownReferencesRenderer: React.FC<MarkdownReferencesRendererProp
                 {ref.number}
               </span>
               <div className="flex-1">
-                <p className="font-bold text-foreground mb-1">
-                  {ref.author} - <span className="font-normal">{ref.title}</span>
+                <p className="text-foreground mb-1">
+                  <span className="font-bold">{ref.author}</span> ({ref.year}). <span className="italic">{ref.title}</span>
+                  {ref.publisher && <span className="text-muted-foreground">. {ref.publisher}</span>}
                 </p>
                 {ref.url && ref.url.trim() !== '' && (
                   <a 
                     href={ref.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-primary hover:text-primary/80 hover:underline flex items-center gap-1 break-all"
+                    className="text-sm text-primary hover:text-primary/80 hover:underline flex items-center gap-1 break-all mt-2"
                   >
                     <ExternalLink className="h-3 w-3 flex-shrink-0" />
                     {ref.url}
                   </a>
-                )}
-                {ref.type && (
-                  <span className="inline-block mt-2 px-2 py-1 bg-primary/20 text-primary text-xs rounded-full font-medium">
-                    {ref.type}
-                  </span>
                 )}
               </div>
             </div>
