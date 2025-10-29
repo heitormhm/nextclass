@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useMaterialGenerationJob } from '../hooks/useMaterialGenerationJob';
@@ -42,10 +42,31 @@ export const MaterialGenerationContainer = forwardRef<
     },
   });
 
+  // Debug logging para lifecycle do componente
+  React.useEffect(() => {
+    console.log('[Container] Mount/Update:', {
+      hasLectureId: !!lectureId,
+      hasTitle: !!lectureTitle,
+      hasMaterial: !!currentMaterial,
+      isGenerating,
+    });
+  }, [lectureId, lectureTitle, currentMaterial, isGenerating]);
+
+  // Validação crítica de props
+  React.useEffect(() => {
+    if (!lectureId || !lectureTitle) {
+      console.error('[Container] CRITICAL: Missing required props:', {
+        hasLectureId: !!lectureId,
+        hasTitle: !!lectureTitle,
+      });
+    }
+  }, [lectureId, lectureTitle]);
+
   /**
    * Iniciar geração de material com validações de segurança
+   * Memoizado para prevenir re-criação desnecessária
    */
-  const handleGenerate = () => {
+  const handleGenerate = React.useCallback(() => {
     console.group('[MaterialGeneration] Starting Flow');
     console.log('- Lecture ID:', lectureId);
     console.log('- Lecture Title:', lectureTitle);
@@ -61,7 +82,7 @@ export const MaterialGenerationContainer = forwardRef<
     
     setShowConfirmModal(false);
     startGeneration(lectureId, lectureTitle, transcript);
-  };
+  }, [lectureId, lectureTitle, currentMaterial, transcript, startGeneration]);
 
   /**
    * Expor método público para regeneração
@@ -73,14 +94,23 @@ export const MaterialGenerationContainer = forwardRef<
       console.log('[Container] State:', { 
         hasCurrentMaterial: !!currentMaterial, 
         isGenerating,
-        lectureId 
+        lectureId,
+        hasTitle: !!lectureTitle,
       });
       
+      // Validação #1: Não regenerar se já está gerando
       if (isGenerating) {
         console.warn('[Container] Already generating, ignoring trigger');
         return;
       }
       
+      // Validação #2: Verificar dados obrigatórios
+      if (!lectureId || !lectureTitle) {
+        console.error('[Container] Missing required data for regeneration');
+        return;
+      }
+      
+      // Decisão: Modal ou geração direta
       if (currentMaterial) {
         console.log('[Container] Opening confirmation modal');
         setShowConfirmModal(true);
@@ -89,7 +119,7 @@ export const MaterialGenerationContainer = forwardRef<
         handleGenerate();
       }
     }
-  }), [currentMaterial, isGenerating, lectureId, handleGenerate]);
+  }), [currentMaterial, isGenerating, lectureId, lectureTitle, handleGenerate]);
 
   /**
    * Handler para o botão principal de geração

@@ -35,3 +35,30 @@ export const MATERIAL_ERROR_MESSAGES = {
   SYSTEM_NOT_READY: 'Sistema de geração não está pronto',
   MISSING_REQUIRED_DATA: 'Dados obrigatórios não fornecidos',
 } as const;
+
+/**
+ * Configurações de retry para ref timing
+ */
+export const MATERIAL_REF_RETRY_CONFIG = {
+  MAX_ATTEMPTS: 3,
+  RETRY_DELAY_MS: 100,
+} as const;
+
+/**
+ * Mensagens de toast padronizadas
+ */
+export const MATERIAL_TOAST_MESSAGES = {
+  REF_NOT_READY: {
+    variant: 'destructive' as const,
+    title: 'Erro',
+    description: 'Sistema de geração não está pronto. Recarregue a página.',
+  },
+  GENERATION_SUCCESS: {
+    title: 'Material didático gerado!',
+    description: 'Pesquisa profunda concluída com sucesso.',
+  },
+  GENERATION_STARTED: {
+    title: '🤖 Gerando material didático',
+    description: 'Isso pode levar alguns minutos...',
+  },
+} as const;

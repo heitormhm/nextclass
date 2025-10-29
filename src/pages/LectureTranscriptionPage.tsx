@@ -36,6 +36,8 @@ import { AudioPlayerCard } from '@/features/lecture-transcription/components/Aud
 import { PublishingControls } from '@/features/lecture-transcription/components/PublishingControls';
 import { LessonPlanComparisonSection } from '@/features/lecture-transcription/components/LessonPlanComparisonSection';
 import { MaterialGenerationContainer, MaterialGenerationContainerRef } from '@/features/material-didatico-generation/components/MaterialGenerationContainer';
+import { extractMaterialString } from '@/features/material-didatico-generation/utils/materialHelpers';
+import { MATERIAL_REF_RETRY_CONFIG, MATERIAL_TOAST_MESSAGES } from '@/features/material-didatico-generation/constants/ui';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -59,6 +61,12 @@ const LectureTranscriptionPage = () => {
   // Data Hooks
   const { lecture, isLoading, reloadLecture, structuredContent: initialContent, setStructuredContent: setLectureContent } = useLectureData(id);
   const { structuredContent, setStructuredContent, updateContent, hasUnsavedChanges, resetUnsavedChanges } = useLectureState(initialContent);
+  
+  // Memoização do material atual para prevenir re-renderizações
+  const currentMaterialValue = React.useMemo(() => 
+    extractMaterialString(structuredContent?.material_didatico),
+    [structuredContent?.material_didatico]
+  );
   
   // Feature Hooks
   const quizManagement = useQuizManagement(id, lectureTitle, lecture?.tags || []);
@@ -118,6 +126,15 @@ const LectureTranscriptionPage = () => {
     loadContent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, lecture]);
+
+  // Debug logging para ref state
+  React.useEffect(() => {
+    console.log('[LecturePage] MaterialGenerationRef state:', {
+      isNull: materialGenerationRef.current === null,
+      currentMaterial: !!currentMaterialValue,
+      lectureId: id,
+    });
+  }, [currentMaterialValue, id]);
 
   // Debug logging
   React.useEffect(() => {
@@ -375,27 +392,37 @@ const LectureTranscriptionPage = () => {
                   lectureId={id!}
                   lectureTitle={lectureTitle}
                   transcript={lecture.raw_transcript}
-                  currentMaterial={
-                    typeof structuredContent?.material_didatico === 'string' 
-                      ? structuredContent.material_didatico 
-                      : structuredContent?.material_didatico 
-                        ? JSON.stringify(structuredContent.material_didatico) 
-                        : undefined
-                  }
+                  currentMaterial={currentMaterialValue}
                   onSuccess={reloadLecture}
                 />
               }
               onRegenerateMaterial={() => {
                 console.log('[LecturePage] Redo button clicked - triggering regeneration');
-                if (!materialGenerationRef.current) {
-                  toast({
-                    variant: 'destructive',
-                    title: 'Erro',
-                    description: 'Sistema de geração não está pronto. Recarregue a página.',
-                  });
-                  return;
-                }
-                materialGenerationRef.current.triggerRegeneration();
+                
+                /**
+                 * Retry logic com fallback para resolver timing issues
+                 * Tenta até 3 vezes com delay de 100ms entre tentativas
+                 */
+                const attemptTrigger = (attempts = 0): void => {
+                  if (attempts >= MATERIAL_REF_RETRY_CONFIG.MAX_ATTEMPTS) {
+                    toast(MATERIAL_TOAST_MESSAGES.REF_NOT_READY);
+                    return;
+                  }
+                  
+                  if (!materialGenerationRef.current) {
+                    console.warn(`[LecturePage] Ref null, retrying... (attempt ${attempts + 1}/${MATERIAL_REF_RETRY_CONFIG.MAX_ATTEMPTS})`);
+                    setTimeout(
+                      () => attemptTrigger(attempts + 1), 
+                      MATERIAL_REF_RETRY_CONFIG.RETRY_DELAY_MS
+                    );
+                    return;
+                  }
+                  
+                  console.log('[LecturePage] Ref OK, triggering...');
+                  materialGenerationRef.current.triggerRegeneration();
+                };
+                
+                attemptTrigger();
               }}
             />
             
