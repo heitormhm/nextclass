@@ -1,8 +1,15 @@
 /**
- * ⚠️ LEGACY SUPPORT ONLY - DEPRECATED (Phase 3)
- * This component renders structured JSON format material.
- * New materials use HTML-only format (HTMLContentRenderer).
- * Kept for backward compatibility with existing lectures.
+ * ⚠️ LEGACY SUPPORT ONLY - DEPRECATED
+ * 
+ * This component renders structured JSON format material from older lectures.
+ * New materials use RichMaterialRenderer with markdown format.
+ * 
+ * **DO NOT REMOVE** - Required for backward compatibility with:
+ * - Old annotation system (TeacherAnnotationPage)
+ * - Legacy lectures created before Phase 6 migration
+ * 
+ * Status: Active but deprecated - only for existing content
+ * Migration: All new content uses markdown-based rendering
  */
 
 import React from 'react';

@@ -1,8 +1,15 @@
 /**
- * ⚠️ PHASE 6: DEPRECATED - LEGACY ONLY
- * This component is no longer used in the material generation flow.
- * New materials use RichMaterialRenderer for markdown rendering.
- * Kept only for backward compatibility with old HTML-based materials.
+ * ⚠️ DEPRECATED - LEGACY SUPPORT ONLY
+ * 
+ * This component renders sanitized HTML content from older lectures.
+ * New materials use RichMaterialRenderer with markdown format.
+ * 
+ * **DO NOT REMOVE** - Required for backward compatibility with:
+ * - Old HTML-based lecture materials
+ * - Legacy content created before markdown migration
+ * 
+ * Status: Active but deprecated - only for existing HTML materials
+ * Migration: All new content uses markdown-based rendering
  */
 
 import DOMPurify from 'dompurify';

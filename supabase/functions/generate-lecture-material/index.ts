@@ -209,6 +209,58 @@ function cleanMermaidBlocks(markdown: string): string {
   });
 }
 
+// Helper function to fix Mermaid blocks using AI agent
+async function fixMermaidBlocksWithAI(
+  markdown: string,
+  supabase: any,
+  lectureId: string
+): Promise<string> {
+  let fixedMarkdown = markdown;
+  const mermaidBlocks = markdown.match(/```mermaid\n([\s\S]*?)```/g) || [];
+  
+  console.log(`[Mermaid AI] Found ${mermaidBlocks.length} Mermaid blocks to check`);
+  
+  let fixedCount = 0;
+  let totalCount = mermaidBlocks.length;
+  
+  for (let i = 0; i < mermaidBlocks.length; i++) {
+    const block = mermaidBlocks[i];
+    const code = block.replace(/```mermaid\n|```$/g, '').trim();
+    
+    // Skip if code looks valid (starts with valid diagram type)
+    if (code.match(/^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram)/)) {
+      console.log(`[Mermaid AI] Block ${i + 1}/${totalCount}: Looks valid, skipping`);
+      continue;
+    }
+    
+    try {
+      console.log(`[Mermaid AI] Invoking fix-mermaid-diagram for block ${i + 1}/${totalCount}`);
+      const { data, error } = await supabase.functions.invoke('fix-mermaid-diagram', {
+        body: {
+          brokenCode: code,
+          context: `Engineering educational material - Lecture ${lectureId}`,
+          strategy: 'Fix syntax errors while preserving educational structure',
+          attempt: 1
+        }
+      });
+      
+      if (data?.fixedCode && !error) {
+        console.log(`[Mermaid AI] ✅ Block ${i + 1} fixed successfully`);
+        fixedMarkdown = fixedMarkdown.replace(block, `\`\`\`mermaid\n${data.fixedCode}\n\`\`\``);
+        fixedCount++;
+      } else {
+        console.warn(`[Mermaid AI] ⚠️ Block ${i + 1} fix failed:`, error);
+      }
+    } catch (err) {
+      console.error(`[Mermaid AI] ❌ Error fixing block ${i + 1}:`, err);
+    }
+  }
+  
+  console.log(`[Mermaid AI] Summary: ${fixedCount}/${totalCount} blocks fixed (${Math.round(fixedCount/totalCount*100)}% success rate)`);
+  
+  return fixedMarkdown;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -351,8 +403,18 @@ serve(async (req) => {
     // Validate Mermaid syntax
     const mermaidValidation = validateMermaidDiagrams(markdownContent);
     if (!mermaidValidation.valid) {
-      console.warn('[generate-lecture-material] ⚠️ Mermaid validation warnings:', mermaidValidation.errors);
-      // Don't block generation, but log for monitoring
+      console.warn('[generate-lecture-material] ⚠️ Mermaid validation failed, attempting AI fix...');
+      
+      // Use AI to fix broken Mermaid blocks
+      markdownContent = await fixMermaidBlocksWithAI(markdownContent, supabase, lectureId);
+      
+      // Re-validate after AI fix
+      const revalidation = validateMermaidDiagrams(markdownContent);
+      if (revalidation.valid) {
+        console.log('[generate-lecture-material] ✅ AI fix successful - all diagrams now valid');
+      } else {
+        console.warn('[generate-lecture-material] ⚠️ AI fix partial - some issues remain:', revalidation.errors);
+      }
     } else {
       console.log('[generate-lecture-material] ✅ All Mermaid diagrams validated successfully');
     }

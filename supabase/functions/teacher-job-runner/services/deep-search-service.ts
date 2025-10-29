@@ -200,10 +200,22 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
         continue; // Retry
       }
       
-      // Validação de Mermaid (warnings only)
+      // Validação de Mermaid (warnings only, but try AI fix)
       const validation = validateMermaidDiagrams(report);
       if (!validation.valid) {
-        console.warn(`[Job ${job.id}] ⚠️ Mermaid issues:`, validation.errors);
+        console.warn(`[Job ${job.id}] ⚠️ Mermaid issues detected, attempting AI fix...`);
+        
+        // Import and use AI fix service
+        const { fixMermaidBlocksWithAI } = await import('./mermaid-fix-service.ts');
+        report = await fixMermaidBlocksWithAI(report, supabase, job.id);
+        
+        // Re-validate after AI fix
+        const revalidation = validateMermaidDiagrams(report);
+        if (!revalidation.valid) {
+          console.warn(`[Job ${job.id}] ⚠️ Mermaid still has issues after AI fix:`, revalidation.errors);
+        } else {
+          console.log(`[Job ${job.id}] ✅ Mermaid diagrams fixed by AI`);
+        }
       }
       
       // Validação de Referências (blocking)
