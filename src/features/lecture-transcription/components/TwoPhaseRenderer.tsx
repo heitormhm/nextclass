@@ -81,16 +81,34 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
       }
       console.log(`[TwoPhaseRenderer] ✅ Phase 4 passed: No corruption`);
       
-      // PHASE 5: Detect single-line corruption but allow compact diagrams
+      // Analyze structural elements for Phase 5 validation
       const lineCount = code.split('\n').filter(l => l.trim()).length;
+      const nodeCount = (code.match(/\[([^\]]+)\]/g) || []).length;
+      const arrowCount = (code.match(/(-->|---|==>|->)/g) || []).length;
+      console.log(`[TwoPhaseRenderer] 📊 Structure analysis: ${nodeCount} nodes, ${arrowCount} arrows, ${lineCount} lines`);
+      
+      // PHASE 5: Detect single-line corruption but allow valid minified diagrams
       if (lineCount === 1 && code.length > 200) {
-        // Single line AND very long = likely corrupted
-        console.warn(`[TwoPhaseRenderer] ❌ REJECTED (Phase 5): Single-line and long (${code.length} chars)`);
-        console.warn(`[TwoPhaseRenderer] 📄 Code: ${code.substring(0, 200)}...`);
-        textOnly = textOnly.replace(match[0], '');
-        continue;
+        // CRITICAL: Distinguish between valid minified vs corrupted
+        // Valid single-line diagrams have:
+        // 1. Multiple nodes (3+ bracket pairs)
+        // 2. Multiple connections (2+ arrows)
+        // 3. No text concatenation corruption (e.g., "][Text[" without space)
+        
+        const hasTextConcatenation = /\][A-Z][a-z]+\[/.test(code);
+        
+        if (nodeCount >= 3 && arrowCount >= 2 && !hasTextConcatenation) {
+          console.log(`[TwoPhaseRenderer] ✅ Phase 5 OVERRIDE: Single-line but valid structure (${nodeCount} nodes, ${arrowCount} arrows)`);
+          // Allow the diagram to pass validation
+        } else {
+          console.warn(`[TwoPhaseRenderer] ❌ REJECTED (Phase 5): Single-line corrupted (nodes: ${nodeCount}, arrows: ${arrowCount}, concat: ${hasTextConcatenation})`);
+          console.warn(`[TwoPhaseRenderer] 📄 Code: ${code.substring(0, 200)}...`);
+          textOnly = textOnly.replace(match[0], '');
+          continue;
+        }
+      } else {
+        console.log(`[TwoPhaseRenderer] ✅ Phase 5 passed: ${lineCount} lines, reasonable structure`);
       }
-      console.log(`[TwoPhaseRenderer] ✅ Phase 5 passed: ${lineCount} lines, reasonable length`);
 
       // PHASE 6: Check for minimum viable structure (nodes + connections)
       const hasNodes = /[A-Z0-9_]+\[/.test(code) || /[A-Z0-9_]+\(/.test(code);
