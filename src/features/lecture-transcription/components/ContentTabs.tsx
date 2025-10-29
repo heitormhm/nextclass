@@ -61,7 +61,7 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
 
       <TabsContent value="material" className="mt-4 overflow-x-hidden">
         {structuredContent?.material_didatico || isGeneratingMaterial ? (
-          <div className="max-h-[calc(100vh-400px)] overflow-y-auto px-1">
+          <div className="max-h-[calc(100vh-400px)] overflow-y-auto px-1 -mt-4">
             <MaterialViewer
               markdownContent={
                 typeof structuredContent?.material_didatico === 'string' 
