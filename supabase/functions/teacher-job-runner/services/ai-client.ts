@@ -89,7 +89,20 @@ export async function callAIWithRetry(
       } catch (parseError) {
         console.error(`[Job ${jobId}] ❌ Failed to parse JSON response:`, parseError);
         console.error(`[Job ${jobId}] Response preview:`, responseText.substring(0, 500));
-        throw new Error(`Invalid JSON response from AI: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+        
+        // ✅ PHASE 1: Try to extract JSON from markdown code block
+        const jsonMatch = responseText.match(/```json\s*\n([\s\S]*?)\n```/);
+        if (jsonMatch && jsonMatch[1]) {
+          console.log(`[Job ${jobId}] ⚠️ AI wrapped response in markdown, extracting...`);
+          try {
+            data = JSON.parse(jsonMatch[1]);
+            console.log(`[Job ${jobId}] ✅ Successfully extracted JSON from markdown wrapper`);
+          } catch (innerError) {
+            throw new Error(`Invalid JSON in markdown wrapper: ${innerError instanceof Error ? innerError.message : 'Unknown error'}`);
+          }
+        } else {
+          throw new Error(`Invalid JSON response from AI: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+        }
       }
       
       // Log response details for debugging

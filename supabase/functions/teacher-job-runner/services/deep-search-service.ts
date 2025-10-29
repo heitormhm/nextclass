@@ -91,29 +91,58 @@ async function generateEducationalReport(
   
   console.log(`[Job ${jobId}] 📥 AI Response received, parsing...`);
   let report = data.choices?.[0]?.message?.content;
-  
-  // ✅ CRITICAL: Unwrap JSON if AI returned wrapped content
-  if (report && (report.trim().startsWith('```json') || report.trim().startsWith('```') || report.trim().startsWith('{'))) {
-    console.warn(`[Job ${jobId}] ⚠️ AI returned wrapped content, unwrapping...`);
-    
-    // Step 1: Remove markdown code block wrapper
+
+  if (!report) {
+    throw new Error('AI returned empty content');
+  }
+
+  // ✅ PHASE 2: Multi-layer unwrapping with JSON-to-Markdown conversion
+  // Layer 1: Remove markdown code block if present
+  if (report.trim().startsWith('```json') || report.trim().startsWith('```')) {
+    console.warn(`[Job ${jobId}] ⚠️ AI returned markdown code block, unwrapping...`);
     report = report.replace(/^```json\s*\n?/m, '').replace(/^```\s*\n?/m, '').replace(/\n?```\s*$/m, '');
-    
-    // Step 2: Try to parse as JSON and extract 'report' field
+    console.log(`[Job ${jobId}] ✅ Removed markdown wrapper`);
+  }
+
+  // Layer 2: Parse JSON object if present and convert to markdown
+  if (report.trim().startsWith('{')) {
+    console.warn(`[Job ${jobId}] ⚠️ AI returned JSON object, converting to markdown...`);
     try {
       const parsed = JSON.parse(report.trim());
-      if (parsed.report && typeof parsed.report === 'string') {
-        report = parsed.report;
-        console.log(`[Job ${jobId}] ✅ Successfully unwrapped JSON: ${report.length} chars`);
-      } else if (typeof parsed === 'string') {
-        report = parsed;
-        console.log(`[Job ${jobId}] ✅ Successfully unwrapped string: ${report.length} chars`);
+      
+      // Check if this is the structured educational_material format
+      if (parsed.educational_material || (parsed.body && Array.isArray(parsed.body))) {
+        console.log(`[Job ${jobId}] 🔄 Detected structured educational JSON, converting...`);
+        
+        // Import and use JSON-to-markdown converter
+        const { convertEducationalJSONToMarkdown } = await import('../converters/json-to-markdown.ts');
+        report = convertEducationalJSONToMarkdown(parsed);
+        
+        console.log(`[Job ${jobId}] ✅ Converted structured JSON to markdown: ${report.length} chars`);
       }
-    } catch (e) {
-      console.warn(`[Job ${jobId}] ⚠️ Could not parse as JSON, using cleaned content`);
-      // Content is already cleaned of code block markers, use as-is
+      // Try simple field extraction for other formats
+      else if (parsed.report && typeof parsed.report === 'string') {
+        report = parsed.report;
+        console.log(`[Job ${jobId}] ✅ Extracted from 'report' field`);
+      } else if (parsed.content && typeof parsed.content === 'string') {
+        report = parsed.content;
+        console.log(`[Job ${jobId}] ✅ Extracted from 'content' field`);
+      } else {
+        throw new Error('JSON structure not recognized - expected educational_material format or simple report/content field');
+      }
+    } catch (jsonError) {
+      console.error(`[Job ${jobId}] ❌ Failed to parse/convert JSON:`, jsonError);
+      throw new Error(`Invalid JSON format: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
     }
   }
+
+  // Verify we have valid markdown
+  if (!report || report.trim().length < 100) {
+    throw new Error(`Generated content is too short: ${report?.trim().length || 0} chars`);
+  }
+
+  console.log(`[Job ${jobId}] ✅ Final markdown ready: ${report.length} chars`);
+  console.log(`[Job ${jobId}] 📝 Content preview: ${report.substring(0, 200)}...`)
   
   if (!report || report.trim().length < 100) {
     console.error(`[Job ${jobId}] ❌ Flash returned empty/short content, retrying with Pro...`);
