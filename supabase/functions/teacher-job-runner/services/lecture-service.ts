@@ -110,18 +110,21 @@ export async function saveReportToLecture(
   console.log(`[Job ${jobId}] 📄 HTML preview: ${htmlContent.substring(0, 200)}...`);
 
   // Update lecture with HTML ONLY (JSON conversion removed - Phase 2)
-  // ✅ PHASE 1: Save to teacher_lectures table (correct table)
+  // ✅ PHASE 1: Save to lectures table (correct table name)
   const { error: updateError } = await supabase
-    .from('teacher_lectures')
+    .from('lectures')
     .update({
-      material_didatico: fixedReport,  // Save markdown too for reference
-      material_didatico_html: htmlContent,  // ✅ Cleaned HTML saved here
+      structured_content: {
+        ...existingContent,
+        material_didatico: fixedReport,
+        material_didatico_html: htmlContent
+      },
       updated_at: new Date().toISOString()
     })
     .eq('id', lectureId);
   
   if (updateError) {
-    console.error(`[Job ${jobId}] ❌ Failed to save to teacher_lectures:`, updateError);
+    console.error(`[Job ${jobId}] ❌ Failed to save to lectures:`, updateError);
     throw new Error(`Database save failed: ${updateError.message}`);
   }
   
