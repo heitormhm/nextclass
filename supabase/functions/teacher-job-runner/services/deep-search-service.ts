@@ -3,7 +3,7 @@
  * Orchestrates the entire deep search workflow for educational content generation
  */
 
-import { callAIWithRetry } from './ai-client.ts';
+import { callAIWithRetry, testAIConnection } from './ai-client.ts';
 import { sanitizeJSON, updateJobProgress } from '../utils/common.ts';
 import { createDeepSearchSystemPrompt, createDeepSearchUserPrompt } from '../prompts/deep-search-system-prompt.ts';
 import { validateReferences } from '../validators/reference-validator.ts';
@@ -85,12 +85,38 @@ async function generateEducationalReport(
     model: 'google/gemini-2.5-flash',
     systemPrompt: createDeepSearchSystemPrompt(teacherName, query),
     userPrompt: createDeepSearchUserPrompt(query, context),
-    timeout: 90000,  // 90s para garantir 3000+ palavras
+    timeout: 120000,  // 120s para garantir 3000+ palavras
     maxRetries: 2
   }, jobId);
   
-  const report = data.choices?.[0]?.message?.content;
-  if (!report) throw new Error('No report generated');
+  console.log(`[Job ${jobId}] 📥 AI Response received, parsing...`);
+  let report = data.choices?.[0]?.message?.content;
+  
+  if (!report || report.trim().length < 100) {
+    console.error(`[Job ${jobId}] ❌ Flash returned empty/short content, retrying with Pro...`);
+    console.error(`[Job ${jobId}] 📊 Flash response preview:`, JSON.stringify(data).substring(0, 300));
+    
+    // Fallback: Tentar com Gemini Pro
+    const proData = await callAIWithRetry(apiKey, {
+      model: 'google/gemini-2.5-pro',
+      systemPrompt: createDeepSearchSystemPrompt(teacherName, query),
+      userPrompt: createDeepSearchUserPrompt(query, context),
+      timeout: 120000,
+      maxRetries: 2
+    }, jobId);
+    
+    report = proData.choices?.[0]?.message?.content;
+    
+    if (!report || report.trim().length < 100) {
+      throw new Error('Both Flash and Pro models failed to generate content');
+    }
+    
+    console.log(`[Job ${jobId}] ✅ Pro model generated ${report.length} chars`);
+  } else {
+    console.log(`[Job ${jobId}] ✅ Flash generated ${report.length} chars`);
+  }
+  
+  console.log(`[Job ${jobId}] 📝 Report preview:`, report.substring(0, 200));
   
   return report;
 }
@@ -107,6 +133,14 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
   if (!braveApiKey) throw new Error('BRAVE_SEARCH_API_KEY not configured');
 
   try {
+    // Health check before starting
+    console.log(`[Job ${job.id}] 🔍 Testing AI API connection...`);
+    const apiHealthy = await testAIConnection(lovableApiKey);
+    if (!apiHealthy) {
+      throw new Error('AI API connection failed - please try again later');
+    }
+    console.log(`[Job ${job.id}] ✅ AI API connection healthy`);
+    
     await updateJobProgress(supabase, job.id, 0.1, 'Analisando tópico...');
     const query = `${lectureTitle}${tags?.length > 0 ? ` - Tópicos: ${tags.join(', ')}` : ''}`;
     

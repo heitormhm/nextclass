@@ -2,6 +2,30 @@
  * AI client with retry logic and timeout handling
  */
 
+/**
+ * Test AI API connection health
+ */
+export async function testAIConnection(apiKey: string): Promise<boolean> {
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [{ role: 'user', content: 'test' }],
+      }),
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error('[AI Client] Connection test failed:', error);
+    return false;
+  }
+}
+
 interface AICallOptions {
   model: string;
   systemPrompt: string;
@@ -45,6 +69,8 @@ export async function callAIWithRetry(
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Job ${jobId}] ❌ API Error ${response.status}:`, errorText);
         if (response.status === 429) {
           throw new Error('Rate limit atingido. Aguarde alguns segundos e tente novamente.');
         }
@@ -54,7 +80,17 @@ export async function callAIWithRetry(
         throw new Error(`AI API error: ${response.status}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      
+      // Log response details for debugging
+      const content = data.choices?.[0]?.message?.content;
+      console.log(`[Job ${jobId}] 📥 AI Response received - Content length: ${content?.length || 0} chars`);
+      
+      if (!content || content.trim().length === 0) {
+        console.error(`[Job ${jobId}] ❌ AI returned empty content:`, JSON.stringify(data).substring(0, 500));
+      }
+      
+      return data;
       
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
