@@ -139,6 +139,32 @@ Use callout boxes em **TODAS** as seções principais do material (mínimo 4-6 p
 
 ### ⚠️ CRITICAL MERMAID SYNTAX RULES - READ CAREFULLY:
 
+**🚫 RULE #0: NO LINE BREAKS BETWEEN NODE AND ARROW (MOST CRITICAL)**
+Mermaid REQUIRES that node definition and arrow be on the same line or properly formatted.
+
+❌ **PROHIBITED - LINE BREAKS BETWEEN NODE AND ARROW:**
+\`\`\`
+A[Node Name]
+--> B[Next Node]          ❌ Arrow on separate line breaks syntax!
+
+A[Node Name]
+
+--> B[Next Node]          ❌ Empty line between node and arrow!
+\`\`\`
+
+✅ **CORRECT - NODE AND ARROW ON SAME LINE:**
+\`\`\`
+A[Node Name] --> B[Next Node]     ✅ Same line works perfectly
+
+A[Node Name] --> B[Next Node]
+B[Next Node] --> C[Final]         ✅ Each connection on its own line
+\`\`\`
+
+**🔍 VALIDATION BEFORE GENERATING:**
+- Search your Mermaid code for pattern: \`]\n-->\` or \`]\n\n-->\`
+- If ANY found → FIX by putting node and arrow on same line
+- This is the #1 cause of Mermaid rendering failures
+
 **🚫 RULE #1: ABSOLUTELY NO HTML TAGS IN MERMAID**
 Mermaid does NOT support ANY HTML syntax. HTML will break rendering completely.
 

@@ -229,7 +229,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
             <div className="animate-spin h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full" />
           </div>
         ) : error ? (
-          <div className="flex flex-col items-start p-6 bg-red-50 dark:bg-red-950/20 rounded-lg border-2 border-red-200 dark:border-red-800">
+          <div className="flex flex-col items-start p-6 bg-red-50 dark:bg-red-950/20 rounded-lg border-2 border-red-200 dark:border-red-800 max-w-full overflow-hidden">
             <div className="flex items-start gap-3 w-full">
               <div className="text-4xl flex-shrink-0">⚠️</div>
               <div className="flex-1 min-w-0">
@@ -242,7 +242,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
                     : 'O sistema está processando este conteúdo visual'}
                 </p>
                 
-                <details className="mt-3 w-full">
+                <details className="mt-3 w-full overflow-hidden">
                   <summary className="cursor-pointer text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 font-semibold text-sm flex items-center gap-2 mb-2 bg-red-100 dark:bg-red-900/30 px-3 py-2 rounded">
                     🔍 Ver código do diagrama para debug
                     <span className="text-xs font-normal opacity-75">(clique para expandir)</span>
@@ -276,8 +276,8 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
                       </div>
                     </div>
                     
-                    <pre className="p-4 bg-white dark:bg-gray-900 rounded border-2 border-red-200 dark:border-red-800 overflow-x-auto text-xs text-gray-800 dark:text-gray-200 font-mono leading-relaxed max-h-80">
-{code.substring(0, 1200)}{code.length > 1200 ? '\n\n... (código truncado)' : ''}
+                    <pre className="p-4 bg-white dark:bg-gray-900 rounded border-2 border-red-200 dark:border-red-800 text-xs text-gray-800 dark:text-gray-200 font-mono leading-relaxed max-h-60 overflow-auto break-all whitespace-pre-wrap">
+{code.substring(0, 600)}{code.length > 600 ? '\n\n... (truncated for display)' : ''}
                     </pre>
                   </div>
                 </details>

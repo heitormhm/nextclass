@@ -52,7 +52,7 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
   };
 
   return (
-    <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-purple-700 prose-li:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 [&_.katex-display]:bg-purple-50 [&_.katex-display]:p-4 [&_.katex-display]:rounded-lg [&_.katex-display]:my-4 [&_.katex-display]:border [&_.katex-display]:border-purple-200">
+    <div className="prose prose-sm max-w-none overflow-x-hidden prose-headings:text-foreground prose-p:text-foreground prose-strong:text-purple-700 prose-li:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 [&_.katex-display]:bg-purple-50 [&_.katex-display]:p-4 [&_.katex-display]:rounded-lg [&_.katex-display]:my-4 [&_.katex-display]:border [&_.katex-display]:border-purple-200">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[[rehypeKatex, katexOptions]]}

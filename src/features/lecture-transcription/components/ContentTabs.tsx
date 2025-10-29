@@ -59,7 +59,7 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
             )}
           </TabsContent>
 
-          <TabsContent value="material" className="mt-4">
+          <TabsContent value="material" className="mt-4 overflow-x-hidden">
             {structuredContent?.material_didatico || isGeneratingMaterial ? (
               <MaterialViewer
                 markdownContent={

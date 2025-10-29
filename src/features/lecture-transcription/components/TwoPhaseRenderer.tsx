@@ -98,6 +98,16 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
       }
       console.log(`[TwoPhaseRenderer] ✅ Phase 4 passed: No corruption`);
       
+      // PHASE 4.5: Validate no line breaks between nodes and arrows (CRITICAL)
+      const hasLineBreakIssues = /\[\w+\]\s*\n\s*(-->|---|==>|->)/.test(code);
+      if (hasLineBreakIssues) {
+        console.error(`[TwoPhaseRenderer] ❌ REJECTED (Phase 4.5): Line breaks between node and arrow`);
+        console.error(`[TwoPhaseRenderer] 📄 Code sample: ${code.substring(0, 200)}...`);
+        textOnly = textOnly.replace(match[0], '');
+        continue;
+      }
+      console.log(`[TwoPhaseRenderer] ✅ Phase 4.5 passed: No line break issues`);
+      
       // Analyze structural elements for Phase 5 validation
       const lineCount = code.split('\n').filter(l => l.trim()).length;
       const nodeCount = (code.match(/\[([^\]]+)\]/g) || []).length;
