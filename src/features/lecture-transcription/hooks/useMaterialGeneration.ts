@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { MaterialGenerationService } from '@/features/material-didatico-generation/services/materialGenerationService';
 
 interface UseMaterialGenerationReturn {
   isGenerating: boolean;
@@ -66,20 +67,48 @@ export const useMaterialGeneration = (): UseMaterialGenerationReturn => {
       setProgress(15);
       setProgressMessage('Iniciando pesquisa acadêmica...');
 
-      // Direct edge function call
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        'generate-lecture-material',
-        {
-          body: {
-            lectureId,
-            lectureTitle,
-            tags
-          }
-        }
-      );
+      // Use MaterialGenerationService to create job
+      const jobId = await MaterialGenerationService.createJob({
+        lectureId,
+        lectureTitle,
+        transcript: '', // Empty - will be fetched from database by service
+      });
 
-      if (invokeError) throw invokeError;
-      if (!data?.success) throw new Error(data?.error || 'Falha na geração');
+      console.log('[useMaterialGeneration] Job created:', jobId);
+
+      // Poll job status until completion
+      let attempts = 0;
+      const maxAttempts = 120; // 10 minutes max (5s intervals)
+
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+        
+        const jobStatus = await MaterialGenerationService.getJobStatus(jobId);
+        
+        if (jobStatus.status === 'COMPLETED') {
+          console.log('[useMaterialGeneration] Job completed successfully');
+          break;
+        }
+        
+        if (jobStatus.status === 'FAILED') {
+          throw new Error(jobStatus.error_message || 'Falha na geração');
+        }
+        
+        // Update progress from job
+        if (jobStatus.progress) {
+          setProgress(Math.min(90, jobStatus.progress * 90)); // Cap at 90%
+        }
+        
+        if (jobStatus.progress_message) {
+          setProgressMessage(jobStatus.progress_message);
+        }
+        
+        attempts++;
+      }
+
+      if (attempts >= maxAttempts) {
+        throw new Error('Tempo limite excedido. Tente novamente.');
+      }
 
       clearInterval(progressInterval);
       setProgress(100);
