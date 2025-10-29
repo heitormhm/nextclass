@@ -95,8 +95,8 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
             };
             const text = extractText(children);
             
-            // Subtitles that should NOT have arrow (keywords + colon)
-            const isSubtitle = /^(Enunciado|Dados Fornecidos|Dados|Incógnita|Raciocínio|Discussão|Verificação|Calculadora|Identificar|Formular|Comparar|Solução|Resposta|Análise):/i.test(text);
+            // Subtitles that should NOT have arrow (keywords with or without colon)
+            const isSubtitle = /^(Enunciado|Dados Fornecidos|Dados|Incógnita|Raciocínio|Discussão|Verificação|Calculadora|Identificar|Formular|Comparar|Solução|Resposta|Análise|Balanço de Energia para Sistemas Fechados)(:|\s|$)/i.test(text);
             
             if (isSubtitle) {
               // No arrow, simple style

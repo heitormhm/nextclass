@@ -41,8 +41,20 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
     console.log('[TwoPhaseRenderer] 🔎 Starting Mermaid extraction...');
     
     while ((match = regex.exec(textOnly)) !== null) {
-      const code = match[1].trim();
+      let code = match[1].trim();
       console.log(`[TwoPhaseRenderer] 📦 Found Mermaid block #${index + 1}, length: ${code.length} chars`);
+      
+      // PHASE 0: Sanitize HTML tags in Mermaid code (CRITICAL for rendering)
+      const originalCode = code;
+      code = code
+        .replace(/<br\s*\/>/gi, '<br>')  // Convert self-closing <br/> to <br>
+        .replace(/<sup>([^<]+)<\/sup>/gi, '^$1')  // Convert superscript to ^
+        .replace(/<sub>([^<]+)<\/sub>/gi, '_$1')  // Convert subscript to _
+        .replace(/<\/?[^>]+(>|$)/g, '');  // Remove any other HTML tags
+      
+      if (code !== originalCode) {
+        console.log(`[TwoPhaseRenderer] 🧹 Phase 0: Sanitized HTML tags (${originalCode.length} → ${code.length} chars)`);
+      }
       
       // PHASE 1: Minimum length check
       if (code.length < 20) {

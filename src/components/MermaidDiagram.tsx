@@ -9,20 +9,22 @@ interface MermaidDiagramProps {
   icon: string;
 }
 
-// ✅ FASE 4: Simplificar - remover validação, confiar no backend
+// ✅ PHASE 3: Sanitize HTML and markdown markers
 const sanitizeMermaidCode = (code: string): string => {
   if (!code || code.trim().length < 10) {
     console.warn('[Mermaid] Code too short or empty');
     return '';
   }
 
-  // APENAS remover markers, SEM validação
+  // Remove markdown markers and sanitize HTML
   let sanitized = code.trim()
     .replace(/^```mermaid\s*/i, '')
     .replace(/^```\s*$/, '')
-    .replace(/```$/, '');
+    .replace(/```$/, '')
+    .replace(/<br\s*\/>/gi, '<br>')  // Convert self-closing <br/> to <br>
+    .replace(/<\/?[^>]+(>|$)/g, '');  // Remove all other HTML tags
 
-  console.log('[Mermaid] ✅ Code sanitized (no validation)');
+  console.log('[Mermaid] ✅ Code sanitized (HTML cleaned)');
   return sanitized.trim();
 };
 
