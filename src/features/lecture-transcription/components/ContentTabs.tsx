@@ -49,17 +49,51 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
   };
 
   /**
-   * Check if HTML content is empty or invalid
+   * FASE 3: Enhanced HTML validation - strips tags AND entities
    */
   const isEmptyHTML = (html: string | undefined) => {
     if (!html) return true;
+    
+    // Remove all HTML tags
     const stripped = html.replace(/<[^>]*>/g, '').trim();
-    return stripped.length === 0;
+    
+    // Remove HTML entities (&nbsp;, &amp;, etc)
+    const clean = stripped
+      .replace(/&[a-z]+;/gi, '')
+      .replace(/&\#\d+;/g, '')
+      .trim();
+    
+    // Check if real text remains
+    const isEmpty = clean.length < 10;
+    
+    if (isEmpty) {
+      console.warn('[ContentTabs] HTML is effectively empty:', { 
+        originalLength: html.length,
+        strippedLength: stripped.length,
+        cleanLength: clean.length,
+        preview: clean 
+      });
+    }
+    
+    return isEmpty;
   };
 
-  // ✅ FASE 2: Extract material formats
+  // ✅ Extract material formats
   const materialHTML = structuredContent?.material_didatico_html as string | undefined;
   const materialJSON = structuredContent?.material_didatico;
+
+  // ✅ FASE 4: Diagnostic logging
+  console.log('[ContentTabs] Render state:', {
+    hasHTML: !!materialHTML,
+    htmlLength: materialHTML?.length || 0,
+    htmlPreview: materialHTML?.substring(0, 100),
+    hasJSON: !!materialJSON,
+    jsonType: typeof materialJSON,
+    isGenerating: isGeneratingMaterial,
+    generationStep: materialGenerationProgress?.step,
+    generationMessage: materialGenerationProgress?.message,
+  });
+
   return (
     <Card className="backdrop-blur-sm bg-white/95 shadow-xl border-white/20">
       <CardContent className="pt-6">

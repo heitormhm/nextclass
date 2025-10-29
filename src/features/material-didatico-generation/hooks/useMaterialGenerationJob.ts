@@ -123,14 +123,13 @@ export const useMaterialGenerationJob = (callbacks?: MaterialGenerationCallbacks
       // Validate inputs before starting
       validateGenerationInputs(lectureId, lectureTitle, transcript);
       
+      // ✅ FASE 2: Notify parent IMMEDIATELY (before any state changes)
+      // This ensures loader appears instantly without async delay
+      callbacks?.onProgress?.(0, 'Iniciando...');
+      
       setError(null);
       setProgressMessage('');
       hasProcessedCompletion.current = false;
-      
-      // ✅ FASE 3: Notify parent BEFORE setting isGenerating
-      // This ensures loader appears immediately without async delay
-      callbacks?.onProgress?.(0, 'Iniciando...');
-      
       setIsGenerating(true);
       setCurrentStep(0);
 
