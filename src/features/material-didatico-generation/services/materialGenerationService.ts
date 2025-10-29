@@ -87,15 +87,33 @@ export class MaterialGenerationService {
       throw new Error(`Erro ao criar job: ${jobError?.message || 'Desconhecido'}`);
     }
 
+    // ✅ PHASE C: Add detailed logging and error handling
+    console.log('[MaterialGeneration] Invoking edge function:', {
+      jobId: jobData.id,
+      lectureId: request.lectureId,
+      lectureTitle: request.lectureTitle,
+      transcriptLength: request.transcript?.length || 0,
+      timestamp: new Date().toISOString()
+    });
+
     // Invoke edge function to process job
-    const { error: functionError } = await supabase.functions.invoke('teacher-job-runner', {
+    const { data: edgeResponse, error: functionError } = await supabase.functions.invoke('teacher-job-runner', {
       body: { jobId: jobData.id },
     });
 
+    console.log('[MaterialGeneration] Edge function response:', {
+      hasData: !!edgeResponse,
+      hasError: !!functionError,
+      error: functionError,
+      response: edgeResponse
+    });
+
     if (functionError) {
+      console.error('[MaterialGeneration] Edge function failed:', functionError);
       throw new Error(`Erro ao iniciar processamento: ${functionError.message}`);
     }
 
+    console.log('[MaterialGeneration] ✅ Job created successfully:', jobData.id);
     return jobData.id;
   }
 

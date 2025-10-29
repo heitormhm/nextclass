@@ -26,6 +26,12 @@ export async function saveReportToLecture(
   // Fix LaTeX syntax errors
   let fixedReport = await fixLatexErrors(report, jobId);
   
+  // ✅ PHASE A: Pre-validate markdown content
+  if (!fixedReport || fixedReport.length < 200) {
+    throw new Error(`[Job ${jobId}] ❌ Markdown content too short for HTML conversion (${fixedReport?.length || 0} chars)`);
+  }
+  console.log(`[Job ${jobId}] ✅ Markdown validation passed: ${fixedReport.length} chars`);
+  
   // Validate minimum word count (diagrams count as content)
   const wordCount = fixedReport
     .replace(/```mermaid[\s\S]*?```/g, '[DIAGRAM]')
@@ -63,37 +69,46 @@ export async function saveReportToLecture(
   } catch (err) {
     console.error(`[Job ${jobId}] ❌ HTML conversion failed:`, err);
     
-    // 🛟 FALLBACK: Basic markdown → HTML conversion
+    // 🛟 FALLBACK: Improved markdown → HTML conversion
     console.log(`[Job ${jobId}] 🛟 Applying fallback HTML conversion...`);
     
     htmlContent = fixedReport
-      // Paragraphs
-      .replace(/\n\n+/g, '</p><p>')
+      // Headers (must come before other replacements)
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      // Lists
+      .replace(/^\* (.+)$/gm, '<li>$1</li>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      // Links
+      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
       // Bold
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       // Italic
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       // Inline code
       .replace(/`(.+?)`/g, '<code>$1</code>')
-      // Headers
-      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
       // LaTeX (preserve for frontend rendering)
-      .replace(/\$\$(.+?)\$\$/g, '<span class="math-display">$$$$1$$</span>');
+      .replace(/\$\$(.+?)\$\$/g, '<span class="math-display">$$$$1$$</span>')
+      // Paragraphs (double newlines)
+      .replace(/\n\n+/g, '</p><p>');
     
-    // Wrap in paragraphs
+    // Wrap lists properly
+    htmlContent = htmlContent.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+    
+    // Wrap in div and paragraphs
     htmlContent = `<div class="generated-content"><p>${htmlContent}</p></div>`;
     
     console.log(`[Job ${jobId}] 🛟 Fallback HTML generated: ${htmlContent.length} chars`);
   }
   
-  // ✅ Final validation: HTML must never be empty
-  if (!htmlContent || htmlContent.length < 50) {
+  // ✅ PHASE A: Lowered validation threshold (was 50, now 20)
+  if (!htmlContent || htmlContent.length < 20) {
     throw new Error(`[Job ${jobId}] ❌ CRITICAL: HTML content is empty or too short (${htmlContent?.length || 0} chars)`);
   }
   
   console.log(`[Job ${jobId}] ✅ Final HTML length: ${htmlContent.length} chars`);
+  console.log(`[Job ${jobId}] 📄 HTML preview: ${htmlContent.substring(0, 200)}...`);
 
   // Convert markdown to structured JSON format (backward compatibility)
   const structuredJSON = await convertMarkdownToStructuredJSON(

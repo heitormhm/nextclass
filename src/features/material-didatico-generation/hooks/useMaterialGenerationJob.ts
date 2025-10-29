@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { useToast } from '@/hooks/use-toast';
 import { MaterialGenerationService } from '../services/materialGenerationService';
 import { useMaterialGenerationRealtime } from './useMaterialGenerationRealtime';
@@ -123,15 +124,17 @@ export const useMaterialGenerationJob = (callbacks?: MaterialGenerationCallbacks
       // Validate inputs before starting
       validateGenerationInputs(lectureId, lectureTitle, transcript);
       
-      // ✅ FASE 2: Notify parent IMMEDIATELY (before any state changes)
-      // This ensures loader appears instantly without async delay
-      callbacks?.onProgress?.(0, 'Iniciando...');
-      
       setError(null);
       setProgressMessage('');
       hasProcessedCompletion.current = false;
-      setIsGenerating(true);
-      setCurrentStep(0);
+      
+      // ✅ PHASE B: Force SYNCHRONOUS state update with flushSync
+      // This ensures loader appears instantly (<16ms) before any async operations
+      flushSync(() => {
+        callbacks?.onProgress?.(0, 'Iniciando...');
+        setIsGenerating(true);
+        setCurrentStep(0);
+      });
 
       const newJobId = await MaterialGenerationService.createJob({
         lectureId,
