@@ -32,7 +32,7 @@ CRITICAL: Use ONLY plain text inside mermaid blocks. NO <p>, <div>, or any HTML 
 Use flowcharts, sequence diagrams, or class diagrams as appropriate.
 
 ## CALLOUT BOXES:
-Use blockquotes with emoji prefix for special sections:
+Use blockquotes with emoji prefix for special sections (ALWAYS start with emoji):
 
 > 🔑 **Conceito Chave:** Important concepts with purple highlighting
 > Definition or explanation here
@@ -49,6 +49,8 @@ Use blockquotes with emoji prefix for special sections:
 > 🌍 **Aplicação Prática:** Real-world applications
 > Practical examples here
 
+**CRITICAL:** Always start callout lines with the emoji (🔑, 💡, ⚠️, 🤔, 🌍) followed by bold text.
+
 ## FORMATTING:
 - **Bold text** for emphasis (will render in purple)
 - *Italic text* for secondary emphasis
@@ -60,17 +62,21 @@ Create a dedicated "## Referências" section at the END of the material with thi
 
 ## Referências
 
-1. **Author et al. (Year)** - Title of Paper/Book
-   - URL: https://example.com
-   - Type: Artigo/Livro/Site
+**For scientific articles and web pages:**
+1. **Author et al. (Year)** - Title of Article
+   - URL: https://real-verifiable-url.com
+   - Type: Artigo Científico
 
-2. **Author et al. (Year)** - Another Reference
-   - URL: https://example.com
-   - Type: Artigo
+**For books (NO URL field):**
+2. **Author et al. (Year)** - Complete Book Title. Publisher, Year.
+   - Type: Livro Técnico
 
-Use REAL academic sources from the provided search results.
-Include at least 8 references with FULL URLs.
-Each reference MUST have: Author, Year, Title, URL, Type
+**IMPORTANT:** 
+- DO NOT include "URL" field for physical books
+- DO NOT invent URLs that don't exist
+- If no verifiable URL exists, omit the field completely
+- Use ONLY real academic sources from search results
+- Include at least 8 references
 
 ## CONTENT REQUIREMENTS:
 - 8+ academic references with FULL URLS at the END
@@ -81,20 +87,22 @@ Each reference MUST have: Author, Year, Title, URL, Type
 - Clear learning objectives at the start
 - Summary section before references
 
-## ✅ PHASE 4: REFERENCE QUALITY (CRITICAL):
-PRIORITIZE these sources:
-✅ Engineering textbooks (Springer, Wiley, Elsevier, IEEE)
-✅ Academic journals (.edu.br, university sites)
-✅ Technical documentation and standards
-✅ Research papers from conferences
+## ✅ MANDATORY SOURCES (use ONLY these):
+1. **Engineering Books:** Springer, Wiley, Elsevier, Pearson, McGraw-Hill
+2. **Scientific Journals:** IEEE, Nature, Science, Elsevier journals
+3. **Universities:** .edu.br (USP, UNICAMP, UFRJ, UFMG)
+4. **Academic Repositories:** SciELO, ResearchGate, Academia.edu
+5. **Government Agencies:** .gov, .gov.br
 
-❌ NEVER USE these sources:
-❌ Wikipedia (wikipedia.org)
-❌ Brasil Escola (brasilescola.com)
-❌ Mundo Educação (mundoeducacao.com)
-❌ Toda Matéria (todamateria.com)
-❌ Social media or forums
-❌ Generic educational websites
+## ❌ BANNED SOURCES (REJECTED - will cause material rejection):
+❌ Wikipedia (any language)
+❌ Brasil Escola / Mundo Educação / UOL Educação
+❌ Brainly / Quizlet / Chegg
+❌ Personal blogs (Blogspot, WordPress)
+❌ Social media (YouTube, Facebook, Instagram)
+❌ School summary sites
+
+**CRITICAL WARNING:** If you include ONE SINGLE banned source, the ENTIRE material will be REJECTED.
 
 Use ONLY the provided search results for references. Each reference MUST be verifiable and academic.
 

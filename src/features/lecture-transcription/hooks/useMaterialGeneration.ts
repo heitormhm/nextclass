@@ -38,23 +38,33 @@ export const useMaterialGeneration = (): UseMaterialGenerationReturn => {
       setError(null);
     });
 
-    // ✅ PHASE 5: Progress simulation with setInterval
+    // ✅ PHASE 6: Improved progress simulation with dynamic messages
     const progressInterval = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 90) return 90;
-        return prev + 8;
+        if (prev < 25) {
+          setProgressMessage('Iniciando pesquisa acadêmica...');
+          return prev + 5; // Slow start
+        }
+        if (prev < 50) {
+          setProgressMessage('Analisando fontes de engenharia...');
+          return prev + 3; // Steady middle
+        }
+        if (prev < 70) {
+          setProgressMessage('Gerando conteúdo com IA...');
+          return prev + 3;
+        }
+        if (prev < 90) {
+          setProgressMessage('Formatando material e diagramas...');
+          return prev + 1; // Slow finish
+        }
+        return 90; // Cap at 90%
       });
-    }, 2000);
+    }, 1500);
 
     try {
-      // Progress updates during generation
-      setProgress(25);
-      setProgressMessage('Pesquisando fontes acadêmicas...');
-
-      // Simulate research phase
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setProgress(40);
-      setProgressMessage('Gerando conteúdo com IA...');
+      // Initial setup
+      setProgress(15);
+      setProgressMessage('Iniciando pesquisa acadêmica...');
 
       // Direct edge function call
       const { data, error: invokeError } = await supabase.functions.invoke(

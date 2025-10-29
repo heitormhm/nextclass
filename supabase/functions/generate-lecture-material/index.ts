@@ -61,7 +61,9 @@ function validateReferences(markdown: string): ReferenceValidationResult {
     'youtube.com', 'youtu.be',
     'facebook.com', 'instagram.com',
     'quora.com', 'answers.yahoo.com',
-    'brainly.com.br',
+    'brainly.com', 'brainly.com.br',
+    'quizlet.com', 'chegg.com',
+    'studocu.com', 'docsity.com',
     'passeiweb.com', 'coladaweb.com', 'suapesquisa.com'
   ];
   
@@ -96,7 +98,7 @@ function validateReferences(markdown: string): ReferenceValidationResult {
   });
   
   const academicPercentage = (academicCount / allRefs.length) * 100;
-  const MAX_BANNED_COUNT = 5;
+  const MAX_BANNED_COUNT = 0; // ✅ PHASE 4: Zero tolerance for banned sources
   const isValid = bannedCount <= MAX_BANNED_COUNT;
   
   if (!isValid) {
@@ -182,19 +184,18 @@ serve(async (req) => {
     // STEP 1: Brave Search - ✅ PHASE 4: Prioritize engineering books
     console.log('[generate-lecture-material] Step 1: Academic research...');
     
-    // ✅ PHASE 4: Engineering-focused source list
+    // ✅ PHASE 4: Engineering-focused sources with explicit bans
     const PREFERRED_SOURCES = [
-      'site:springer.com',
-      'site:wiley.com',
-      'site:elsevier.com',
-      'site:ieeexplore.ieee.org',
-      'site:sciencedirect.com',
-      'site:.edu.br',
+      'site:springer.com', 'site:wiley.com', 'site:elsevier.com',
+      'site:ieeexplore.ieee.org', 'site:.edu.br',
+      'site:scielo.br', 'site:nature.com', 'site:science.org',
       'filetype:pdf'
     ];
-    
-    const academicQuery = `${lectureTitle} ${tags.join(' ')} ${PREFERRED_SOURCES.slice(0, 4).join(' OR ')}`;
-    const backupQuery = `${lectureTitle} engineering textbook -site:wikipedia.org -site:brasilescola.com`;
+
+    const academicQuery = `${lectureTitle} ${tags.join(' ')} engineering textbook (${PREFERRED_SOURCES.slice(0, 5).join(' OR ')}) -site:wikipedia.org -site:brasilescola.com -site:brainly.com`;
+    const backupQuery = `${lectureTitle} engineering education ${tags.slice(0, 2).join(' ')} site:.edu.br OR site:springer.com OR site:wiley.com -site:wikipedia.org -site:brasilescola.com`;
+
+    console.log('[generate-lecture-material] Academic query:', academicQuery);
     const braveApiKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
     
     let searchResults = '';

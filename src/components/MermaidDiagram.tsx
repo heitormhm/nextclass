@@ -58,149 +58,116 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
     };
   }, []);
 
-  // ✅ FASE 4: Simplificar validação - confiar no backend
+  // ✅ PHASE 2: Fixed Mermaid rendering with safety timeout INSIDE
   useEffect(() => {
     const renderDiagram = async () => {
       if (!ref.current || !code) return;
 
+      console.log('[Mermaid] Attempting to render diagram');
       setIsLoading(true);
+      setError(null);
+
+      // ✅ PHASE 2: Safety timeout INSIDE renderDiagram
+      const safetyTimeout = setTimeout(() => {
+        console.warn('[Mermaid] Safety timeout triggered at 12s');
+        setIsLoading(false);
+        setError('timeout');
+      }, 12000);
 
       try {
         const sanitizedCode = sanitizeMermaidCode(code);
         
         if (!sanitizedCode || sanitizedCode.length < 10) {
           console.warn('[Mermaid] Empty code, showing placeholder');
+          clearTimeout(safetyTimeout);
           setIsLoading(false);
           setError('invalid');
           return;
         }
 
-        // ✅ FASE 3: Configuração Mermaid com responsividade total
-        mermaid.initialize({ 
-          theme: 'default',
-          logLevel: 'error',
+        // Initialize mermaid with custom config
+        await mermaid.initialize({
           startOnLoad: false,
-          securityLevel: 'loose',
-          flowchart: { 
+          theme: 'base',
+          themeVariables: {
+            primaryColor: '#9b87f5',
+            primaryTextColor: '#1A1F2C',
+            primaryBorderColor: '#7E69AB',
+            lineColor: '#6E59A5',
+            secondaryColor: '#D6BCFA',
+            tertiaryColor: '#E5DEFF',
+            background: '#ffffff',
+            mainBkg: '#ffffff',
+            textColor: '#1A1F2C',
+            fontSize: '16px',
+          },
+          flowchart: {
             useMaxWidth: true,
             htmlLabels: true,
             curve: 'basis',
-            padding: 20,
           },
-          sequence: { 
+          sequence: {
             useMaxWidth: true,
-            wrap: true,
-            width: 150,
-            height: 50,
-            boxMargin: 10,
           },
           gantt: {
             useMaxWidth: true,
-            fontSize: 14,
-            numberSectionStyles: 4,
           },
-          class: {
-            useMaxWidth: true,
-          },
-          state: {
-            useMaxWidth: true,
-          },
-          er: {
-            useMaxWidth: true,
-          },
-          // ✅ Tema global otimizado para legibilidade
-          themeVariables: {
-            fontSize: '16px',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            primaryColor: '#f3e5f5',
-            primaryTextColor: '#000',
-            primaryBorderColor: '#7c3aed',
-            lineColor: '#7c3aed',
-            secondaryColor: '#e1f5fe',
-            tertiaryColor: '#f1f8e9',
-          }
         });
 
-        const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        const renderTimeout = setTimeout(() => {
-          console.error('[Mermaid] Render timeout after 10s');
-          setIsLoading(false); // ✅ PHASE 1: Fix infinite loading
-          setError('timeout');
-          clearTimeout(renderTimeout);
-        }, 10000);
-
-        // ✅ FASE 5: Estratégia de fallback com múltiplas tentativas
+        // Multiple strategies for rendering
         const renderStrategies = [
-          { name: 'Original', code: sanitizedCode },
-          { 
-            name: 'Add space after graph type', 
-            code: sanitizedCode.replace(/^graph([A-Z]{2,})/m, 'graph $1 ') 
-          },
-          { 
-            name: 'Remove quotes from labels', 
-            code: sanitizedCode.replace(/\["([^"]+)"\]/g, '[$1]') 
-          },
-          { 
-            name: 'Simplify text in labels', 
-            code: sanitizedCode.replace(/\[([^\]]{50,})\]/g, (match, content) => {
-              return `[${content.substring(0, 40)}...]`;
-            })
-          },
+          () => mermaid.render(`mermaid-${Date.now()}`, sanitizedCode),
+          () => mermaid.render(`mermaid-${Date.now()}-alt`, sanitizedCode.replace(/\n\s*\n/g, '\n')),
+          () => mermaid.render(`mermaid-${Date.now()}-clean`, sanitizedCode.replace(/style\s+\w+\s+fill:[^,\n]+/g, '')),
         ];
 
-        let renderSuccess = false;
-        
+        let rendered = false;
+        let lastError: Error | null = null;
+
         for (const strategy of renderStrategies) {
-          if (renderSuccess) break;
-          
           try {
-            console.log(`[Mermaid] Trying strategy: ${strategy.name}`);
-            const { svg } = await mermaid.render(`${uniqueId}-${strategy.name}`, strategy.code);
-            
-            clearTimeout(renderTimeout);
-            
+            const renderTimeout = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Render timeout')), 10000)
+            );
+
+            const renderPromise = strategy();
+            const { svg } = (await Promise.race([renderPromise, renderTimeout])) as { svg: string };
+
             if (ref.current) {
               ref.current.innerHTML = svg;
+              rendered = true;
+              break;
             }
-            
-            setError(null);
-            setIsLoading(false);
-            renderSuccess = true;
-            console.log(`[Mermaid] ✅ Rendered successfully with strategy: ${strategy.name}`);
-          } catch (strategyErr) {
-            console.warn(`[Mermaid] Strategy "${strategy.name}" failed:`, strategyErr);
-            continue; // Tentar próxima estratégia
+          } catch (strategyError) {
+            lastError = strategyError as Error;
+            console.warn('[Mermaid] Strategy failed, trying next...', strategyError);
           }
         }
-        
-        if (!renderSuccess) {
-          clearTimeout(renderTimeout);
-          console.error('[Mermaid] All render strategies failed');
-          console.error('[Mermaid] Original code:', sanitizedCode);
-          setIsLoading(false);
-          setError('hidden');
+
+        clearTimeout(safetyTimeout);
+
+        if (!rendered) {
+          throw lastError || new Error('All rendering strategies failed');
         }
+
+        console.log('[Mermaid] ✅ Rendered successfully');
+        setIsLoading(false);
       } catch (err) {
-        console.error('[Mermaid] General error:', err);
+        clearTimeout(safetyTimeout);
+        console.error('[Mermaid] Render failed:', err);
         setIsLoading(false);
         setError('hidden');
       }
-      // ✅ PHASE 1: Safety timeout to prevent infinite loading
-      const safetyTimeout = setTimeout(() => {
-        if (isLoading) {
-          console.warn('[Mermaid] Safety timeout triggered at 12s');
-          setIsLoading(false);
-          setError('timeout');
-        }
-      }, 12000);
-
-      return () => {
-        clearTimeout(safetyTimeout);
-      };
     };
     
     renderDiagram();
+
+    // Cleanup on unmount
+    return () => {
+      if (ref.current) {
+        ref.current.innerHTML = '';
+      }
+    };
   }, [code]);
 
   return (

@@ -63,7 +63,8 @@ export const MaterialViewer: React.FC<MaterialViewerProps> = ({
   if (isGenerating) {
     return (
       <MaterialGenerationLoading
-        currentStep={progress}
+        currentStep={1}
+        progress={progress}
         progressMessage={progressMessage}
       />
     );

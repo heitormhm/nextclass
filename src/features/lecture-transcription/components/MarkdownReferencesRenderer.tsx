@@ -77,7 +77,7 @@ export const MarkdownReferencesRenderer: React.FC<MarkdownReferencesRendererProp
                 <p className="font-bold text-foreground mb-1">
                   {ref.author} - <span className="font-normal">{ref.title}</span>
                 </p>
-                {ref.url && (
+                {ref.url && ref.url.trim() !== '' && (
                   <a 
                     href={ref.url}
                     target="_blank"

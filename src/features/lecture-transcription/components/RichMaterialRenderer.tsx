@@ -48,7 +48,7 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
           
           // Purple callout boxes (blockquotes with special syntax)
           blockquote: ({node, children, ...props}) => {
-            // ✅ PHASE 2: Fix text extraction from React children
+            // ✅ PHASE 3: Fix text extraction from React children
             const extractText = (child: any): string => {
               if (typeof child === 'string') return child;
               if (Array.isArray(child)) return child.map(extractText).join('');
@@ -57,8 +57,8 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
             };
             const content = extractText(children);
             
-            // Check if it's a special callout (starts with 🔑, 💡, ⚠️)
-            if (content.match(/^(🔑|💡|⚠️|🤔|🌍)/)) {
+            // ✅ PHASE 3: Trim whitespace before checking emoji
+            if (content.trim().match(/^(🔑|💡|⚠️|🤔|🌍)/)) {
               let bgColor = 'from-purple-50 to-purple-100';
               let borderColor = 'border-purple-600';
               let textColor = 'text-purple-900';
