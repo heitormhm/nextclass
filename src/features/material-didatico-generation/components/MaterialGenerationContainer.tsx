@@ -42,36 +42,64 @@ export const MaterialGenerationContainer = forwardRef<
     },
   });
 
-  // Expor método público para componentes pais
-  useImperativeHandle(ref, () => ({
-    triggerRegeneration: () => {
-      console.log('[Container] External trigger: Regeneration requested');
-      if (currentMaterial) {
-        setShowConfirmModal(true);
-      } else {
-        handleGenerate();
-      }
-    }
-  }));
-
-  const handleButtonClick = () => {
-    if (currentMaterial && !isGenerating) {
-      setShowConfirmModal(true);
-    } else {
-      handleGenerate();
-    }
-  };
-
+  /**
+   * Iniciar geração de material com validações de segurança
+   */
   const handleGenerate = () => {
     console.group('[MaterialGeneration] Starting Flow');
     console.log('- Lecture ID:', lectureId);
     console.log('- Lecture Title:', lectureTitle);
     console.log('- Has Material:', !!currentMaterial);
     console.log('- Transcript Length:', transcript?.length || 0);
+    console.log('- Timestamp:', new Date().toISOString());
     console.groupEnd();
+    
+    if (!lectureId || !lectureTitle) {
+      console.error('[MaterialGeneration] Missing required data');
+      return;
+    }
     
     setShowConfirmModal(false);
     startGeneration(lectureId, lectureTitle, transcript);
+  };
+
+  /**
+   * Expor método público para regeneração
+   * Inclui validações internas para prevenir estados inválidos
+   */
+  useImperativeHandle(ref, () => ({
+    triggerRegeneration: () => {
+      console.log('[Container] External trigger: Regeneration requested');
+      console.log('[Container] State:', { 
+        hasCurrentMaterial: !!currentMaterial, 
+        isGenerating,
+        lectureId 
+      });
+      
+      if (isGenerating) {
+        console.warn('[Container] Already generating, ignoring trigger');
+        return;
+      }
+      
+      if (currentMaterial) {
+        console.log('[Container] Opening confirmation modal');
+        setShowConfirmModal(true);
+      } else {
+        console.log('[Container] No material exists, generating directly');
+        handleGenerate();
+      }
+    }
+  }), [currentMaterial, isGenerating, lectureId, handleGenerate]);
+
+  /**
+   * Handler para o botão principal de geração
+   */
+  const handleButtonClick = () => {
+    if (currentMaterial && !isGenerating) {
+      setShowConfirmModal(true);
+    } else {
+      handleGenerate();
+    }
   };
 
   const handleCancel = () => {

@@ -21,9 +21,22 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
   materialGenerationComponent,
   onRegenerateMaterial
 }) => {
+  /**
+   * Handler para regeneração de material didático
+   * Bloqueia propagação de eventos para evitar mudança de tab
+   */
   const handleRegenerateMaterial = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onRegenerateMaterial?.();
+    e.preventDefault();
+    
+    console.log('[ContentTabs] Redo button clicked');
+    
+    if (!onRegenerateMaterial) {
+      console.warn('[ContentTabs] No regeneration handler provided');
+      return;
+    }
+    
+    onRegenerateMaterial();
   };
   return (
     <Card className="backdrop-blur-sm bg-white/95 shadow-xl border-white/20">
@@ -44,7 +57,7 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
             {structuredContent?.material_didatico && (
               <button
                 onClick={handleRegenerateMaterial}
-                className="ml-2 p-1.5 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-full transition-all duration-200 flex items-center justify-center hover:scale-110 active:scale-95"
+                className="ml-2 p-1.5 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-full transition-all duration-200 flex items-center justify-center hover:scale-110 active:scale-95 cursor-pointer"
                 title="Refazer pesquisa profunda"
                 aria-label="Refazer pesquisa de material didático"
               >
