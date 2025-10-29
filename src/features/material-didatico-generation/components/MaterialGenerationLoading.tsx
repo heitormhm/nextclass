@@ -3,11 +3,13 @@ import { Brain, Search, Sparkles, CheckCircle2 } from 'lucide-react';
 interface MaterialGenerationLoadingProps {
   currentStep: number;
   progressMessage: string;
+  progress?: number;  // Add progress prop
 }
 
 export const MaterialGenerationLoading: React.FC<MaterialGenerationLoadingProps> = ({
   currentStep,
   progressMessage,
+  progress: progressProp,
 }) => {
   const steps = [
     { icon: Brain, label: 'Analisando' },
@@ -16,7 +18,11 @@ export const MaterialGenerationLoading: React.FC<MaterialGenerationLoadingProps>
     { icon: CheckCircle2, label: 'Finalizando' },
   ];
 
-  const progress = ((currentStep / steps.length) * 100);
+  // Use provided progress or calculate from currentStep
+  const progress = progressProp ?? ((currentStep / steps.length) * 100);
+  
+  // Calculate step from progress percentage (0-100)
+  const calculatedStep = Math.min(Math.floor((progress / 100) * steps.length), steps.length - 1);
 
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6">
@@ -51,7 +57,7 @@ export const MaterialGenerationLoading: React.FC<MaterialGenerationLoadingProps>
         {/* Center Icon */}
         <div className="absolute inset-0 flex items-center justify-center">
           {(() => {
-            const CurrentIcon = steps[Math.min(currentStep - 1, steps.length - 1)]?.icon || Brain;
+            const CurrentIcon = steps[calculatedStep]?.icon || Brain;
             return <CurrentIcon className="h-12 w-12 text-purple-600 animate-pulse" />;
           })()}
         </div>
@@ -60,7 +66,7 @@ export const MaterialGenerationLoading: React.FC<MaterialGenerationLoadingProps>
       {/* Status Text */}
       <div className="text-center space-y-2 max-w-md">
         <h3 className="text-lg font-semibold text-gray-900">
-          {progressMessage || steps[Math.min(currentStep - 1, steps.length - 1)]?.label || 'Processando'}
+          {progressMessage || steps[calculatedStep]?.label || 'Processando'}
         </h3>
         <p className="text-sm text-gray-600">
           Gerando material didático com IA...
@@ -73,7 +79,7 @@ export const MaterialGenerationLoading: React.FC<MaterialGenerationLoadingProps>
           <div
             key={index}
             className={`h-2 w-12 rounded-full transition-all duration-300 ${
-              index < currentStep
+              index <= calculatedStep
                 ? 'bg-purple-600'
                 : 'bg-gray-200'
             }`}

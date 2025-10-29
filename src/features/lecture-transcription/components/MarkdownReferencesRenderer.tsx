@@ -10,17 +10,30 @@ interface MarkdownReferencesRendererProps {
 }
 
 export const MarkdownReferencesRenderer: React.FC<MarkdownReferencesRendererProps> = ({ markdown }) => {
-  // Extract references section
-  const referencesMatch = markdown.match(/#{1,2}\s*Referências([\s\S]*?)(?=\n#{1,2}\s|\n*$)/i);
+  // Extract the Referencias section - flexible regex for variations
+  const referencesMatch = markdown.match(
+    /#{1,6}\s*(?:Referências|Referencias|REFERÊNCIAS|Refer[eê]ncias|Bibliografia)([\s\S]*?)(?=\n#{1,6}\s|$)/i
+  );
   
   if (!referencesMatch) {
+    // Debug: Check if word exists but regex failed
+    if (markdown.toLowerCase().includes('referência')) {
+      console.warn('[References] Found word "referências" but regex failed to match section');
+      const idx = markdown.toLowerCase().lastIndexOf('referência');
+      console.warn('[References] Context:', markdown.substring(idx - 50, idx + 200));
+    } else {
+      console.warn('[References] No references section found in markdown');
+    }
     return null;
   }
   
+  console.log('[References] Found section with', referencesMatch[1].length, 'characters');
+  
   const referencesText = referencesMatch[1];
   
-  // Parse references (format: 1. **Author (Year)** - Title)
-  const referenceRegex = /(\d+)\.\s*\*\*(.*?)\*\*\s*-\s*(.*?)(?:\n\s*-\s*URL:\s*(https?:\/\/[^\s]+))?(?:\n\s*-\s*Type:\s*([^\n]+))?/gi;
+  // Parse individual references - support multiple formats
+  // Formats: "1. **Author** - Title" or "[1] Author - Title" or "1) Author - Title"
+  const referenceRegex = /(?:(\d+)[\.\)]\s*|\[(\d+)\]\s*)\**(.*?)\**\s*[-–—]\s*(.*?)(?:\n\s*[-•]\s*(?:URL|Link):\s*(https?:\/\/[^\s\n]+))?(?:\n\s*[-•]\s*(?:Type|Tipo):\s*([^\n]+))?/gi;
   const references: Array<{
     number: string;
     author: string;
@@ -32,11 +45,11 @@ export const MarkdownReferencesRenderer: React.FC<MarkdownReferencesRendererProp
   let match;
   while ((match = referenceRegex.exec(referencesText)) !== null) {
     references.push({
-      number: match[1],
-      author: match[2].trim(),
-      title: match[3].trim(),
-      url: match[4]?.trim(),
-      type: match[5]?.trim()
+      number: match[1] || match[2],  // Support both numbered formats
+      author: match[3].trim(),
+      title: match[4].trim(),
+      url: match[5]?.trim(),
+      type: match[6]?.trim()
     });
   }
   

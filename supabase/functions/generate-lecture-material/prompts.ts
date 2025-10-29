@@ -8,7 +8,7 @@ export const createSystemPrompt = (teacherName: string, lectureTitle: string): s
 Teacher: ${teacherName}
 Language: Portuguese (pt-BR)
 
-Generate comprehensive, university-level educational content (3500+ words) following this EXACT FORMAT:
+Generate comprehensive, university-level educational content (8,000-12,000 words) following this EXACT FORMAT:
 
 ## STRUCTURE:
 - Use ## for main sections (h2)
@@ -21,13 +21,14 @@ Generate comprehensive, university-level educational content (3500+ words) follo
 - Always use LaTeX syntax with proper escaping
 
 ## DIAGRAMS:
-Create 3-5 Mermaid diagrams using code blocks:
+Create 3-5 Mermaid diagrams using PURE MARKDOWN code blocks (NO HTML):
 \`\`\`mermaid
 graph LR
     A[Input] --> B[Process]
     B --> C[Output]
 \`\`\`
 
+CRITICAL: Use ONLY plain text inside mermaid blocks. NO <p>, <div>, or any HTML tags.
 Use flowcharts, sequence diagrams, or class diagrams as appropriate.
 
 ## CALLOUT BOXES:

@@ -12,6 +12,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Clean HTML artifacts from Mermaid blocks
+ */
+function cleanMermaidBlocks(markdown: string): string {
+  const mermaidBlockRegex = /```mermaid\n([\s\S]*?)```/g;
+  
+  return markdown.replace(mermaidBlockRegex, (match, code) => {
+    // Remove HTML tags and entities from mermaid code
+    const cleaned = code
+      .replace(/<[^>]+>/g, '') // Remove all HTML tags
+      .replace(/&nbsp;/g, ' ') // Replace HTML entities
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/\r\n/g, '\n') // Normalize line endings
+      .trim();
+    
+    console.log('[Mermaid Cleanup] Block cleaned:', {
+      originalLength: code.length,
+      cleanedLength: cleaned.length,
+      hadHTML: /<[^>]+>/.test(code)
+    });
+    
+    return '```mermaid\n' + cleaned + '\n```';
+  });
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -115,16 +144,19 @@ serve(async (req) => {
 
     console.log('[generate-lecture-material] Generated:', generatedMarkdown.length, 'chars');
 
-    // STEP 3: Keep as Markdown (frontend will render)
+    // STEP 3: Clean Mermaid blocks and prepare content
     console.log('[generate-lecture-material] Step 3: Preparing content...');
-    const markdownContent = generatedMarkdown;
+    let markdownContent = cleanMermaidBlocks(generatedMarkdown);
     
     // DIAGNOSTIC: Verify markdown format
+    const mermaidBlocks = markdownContent.match(/```mermaid/g);
     console.log('[generate-lecture-material] Markdown validation:', {
       length: markdownContent.length,
       hasHTMLTags: /<[^>]+>/.test(markdownContent),
       hasMarkdownHeadings: /^#{1,6}\s/m.test(markdownContent),
       hasReferencesSection: /#{1,2}\s*Referências/i.test(markdownContent),
+      hasMermaidBlocks: !!mermaidBlocks,
+      mermaidBlockCount: mermaidBlocks?.length || 0,
       sample: markdownContent.substring(0, 300)
     });
 

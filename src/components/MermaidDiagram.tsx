@@ -29,6 +29,7 @@ const sanitizeMermaidCode = (code: string): string => {
 export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagramProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Inject CSS to forcefully hide mermaid error messages
   useEffect(() => {
@@ -62,11 +63,14 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
     const renderDiagram = async () => {
       if (!ref.current || !code) return;
 
+      setIsLoading(true);
+
       try {
         const sanitizedCode = sanitizeMermaidCode(code);
         
         if (!sanitizedCode || sanitizedCode.length < 10) {
           console.warn('[Mermaid] Empty code, showing placeholder');
+          setIsLoading(false);
           setError('invalid');
           return;
         }
@@ -159,6 +163,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
             }
             
             setError(null);
+            setIsLoading(false);
             renderSuccess = true;
             console.log(`[Mermaid] ✅ Rendered successfully with strategy: ${strategy.name}`);
           } catch (strategyErr) {
@@ -171,10 +176,12 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           clearTimeout(renderTimeout);
           console.error('[Mermaid] All render strategies failed');
           console.error('[Mermaid] Original code:', sanitizedCode);
+          setIsLoading(false);
           setError('hidden');
         }
       } catch (err) {
         console.error('[Mermaid] General error:', err);
+        setIsLoading(false);
         setError('hidden');
       }
     };
@@ -190,7 +197,11 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           <span>{title}</span>
         </h4>
         <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
-        {error ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[300px] bg-purple-50/50 rounded-lg">
+            <div className="animate-spin h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full" />
+          </div>
+        ) : error ? (
           <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-lg p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="text-5xl text-purple-400">📊</div>
