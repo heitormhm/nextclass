@@ -88,7 +88,17 @@ function convertBlockToMarkdown(block: EducationalMaterialBlock): string {
     case 'diagram':
     case 'mermaid':
       const caption = block.caption ? `${block.caption}\n\n` : '';
-      return `${caption}\`\`\`mermaid\n${block.code || block.content || ''}\n\`\`\``;
+      const code = block.code || block.content || '';
+      
+      // ✅ Normalize mermaid code: ensure proper line breaks
+      const normalizedCode = code
+        .replace(/\s+/g, ' ')  // Collapse whitespace
+        .replace(/\s*-->\s*/g, '\n    --> ')  // Arrow connections on new lines
+        .replace(/\s*(style\s+)/g, '\n    $1')  // Style statements on new lines
+        .replace(/flowchart\s+TD\s+/g, 'flowchart TD\n    ')  // Diagram type + newline
+        .trim();
+        
+      return `${caption}\`\`\`mermaid\n${normalizedCode}\n\`\`\``;
 
     case 'code':
       const lang = block.language || '';

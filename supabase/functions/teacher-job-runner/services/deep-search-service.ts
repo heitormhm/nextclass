@@ -73,7 +73,8 @@ async function generateEducationalReport(
   searchResults: any[],
   teacherName: string | undefined,
   apiKey: string,
-  jobId: string
+  jobId: string,
+  supabase: any
 ): Promise<string> {
   console.log(`[Job ${jobId}] 📝 Generating educational report...`);
   
@@ -142,7 +143,15 @@ async function generateEducationalReport(
   }
 
   console.log(`[Job ${jobId}] ✅ Final markdown ready: ${report.length} chars`);
-  console.log(`[Job ${jobId}] 📝 Content preview: ${report.substring(0, 200)}...`)
+  console.log(`[Job ${jobId}] 📝 Content preview: ${report.substring(0, 200)}...`);
+
+  // ✅ CRITICAL: Fix any broken Mermaid diagrams before validation
+  if (report.includes('```mermaid')) {
+    console.log(`[Job ${jobId}] 🔧 Fixing Mermaid diagram syntax...`);
+    const { fixMermaidBlocksWithAI } = await import('../services/mermaid-fix-service.ts');
+    report = await fixMermaidBlocksWithAI(report, supabase, jobId);
+    console.log(`[Job ${jobId}] ✅ Mermaid diagrams fixed and normalized`);
+  }
   
   if (!report || report.trim().length < 100) {
     console.error(`[Job ${jobId}] ❌ Flash returned empty/short content, retrying with Pro...`);
@@ -226,7 +235,7 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
       console.log(`[Job ${job.id}] 🔄 Generation attempt ${attempt}/${MAX_RETRIES}`);
       
       await updateJobProgress(supabase, job.id, 0.8, `Gerando material (tentativa ${attempt}/${MAX_RETRIES})...`);
-      report = await generateEducationalReport(query, searchResults, teacherName, lovableApiKey, job.id);
+      report = await generateEducationalReport(query, searchResults, teacherName, lovableApiKey, job.id, supabase);
       
       // ✅ FASE 3: Validação final de qualidade antes de continuar
       const quickWordCount = report.split(/\s+/).filter(w => w.length > 2).length;

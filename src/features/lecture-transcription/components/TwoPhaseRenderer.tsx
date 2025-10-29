@@ -69,18 +69,20 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
         continue;
       }
       
-      // PHASE 5: NEW - Detect single-line corruption (no newlines)
-      if (!code.includes('\n') || code.split('\n').filter(l => l.trim()).length < 3) {
-        console.warn(`[TwoPhaseRenderer] Diagram ${index} appears corrupted (single-line or too few lines), skipping`);
+      // PHASE 5: Detect single-line corruption but allow compact diagrams
+      const lineCount = code.split('\n').filter(l => l.trim()).length;
+      if (lineCount === 1 && code.length > 200) {
+        // Single line AND very long = likely corrupted
+        console.warn(`[TwoPhaseRenderer] Diagram ${index} appears corrupted (single-line and long), skipping`);
         textOnly = textOnly.replace(match[0], '');
         continue;
       }
-      
-      // PHASE 6: NEW - Check for minimum viable structure (nodes + connections)
-      const hasNodes = /[A-Z]\[/.test(code);
-      const hasConnections = /-->|---|==>/.test(code);
-      if (!hasNodes || !hasConnections) {
-        console.warn(`[TwoPhaseRenderer] Diagram ${index} missing nodes or connections, skipping`);
+
+      // PHASE 6: Check for minimum viable structure (nodes + connections)
+      const hasNodes = /[A-Z0-9_]+\[/.test(code) || /[A-Z0-9_]+\(/.test(code);
+      const hasConnections = /-->|---|==>|->/.test(code);
+      if (!hasNodes && !hasConnections) {
+        console.warn(`[TwoPhaseRenderer] Diagram ${index} missing structure, skipping`);
         textOnly = textOnly.replace(match[0], '');
         continue;
       }
