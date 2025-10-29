@@ -1304,7 +1304,7 @@ export type Database = {
           {
             foreignKeyName: "teacher_flashcards_lecture_id_fkey"
             columns: ["lecture_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "lectures"
             referencedColumns: ["id"]
           },
@@ -1395,7 +1395,7 @@ export type Database = {
           {
             foreignKeyName: "teacher_quizzes_lecture_id_fkey"
             columns: ["lecture_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "lectures"
             referencedColumns: ["id"]
           },

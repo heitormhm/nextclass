@@ -9,6 +9,8 @@ export class QuizService {
       .from('teacher_quizzes')
       .select('*')
       .eq('lecture_id', lectureId)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
     
     if (error) {

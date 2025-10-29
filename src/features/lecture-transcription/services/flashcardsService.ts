@@ -9,6 +9,8 @@ export class FlashcardsService {
       .from('teacher_flashcards')
       .select('*')
       .eq('lecture_id', lectureId)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
     
     if (error) {
