@@ -159,9 +159,6 @@ verify_jwt = false
 [functions.format-lecture-content]
 verify_jwt = false
 
-[functions.generate-lecture-material]
-verify_jwt = true
-
 [functions.lecture-generate-quiz]
 verify_jwt = false
 
