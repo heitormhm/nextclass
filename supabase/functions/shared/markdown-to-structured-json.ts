@@ -1,6 +1,16 @@
 /**
+ * ⚠️ DEPRECATED (Phase 3) - LEGACY SUPPORT ONLY
  * 🔄 CONVERSOR UNIFICADO: Markdown → Structured JSON
- * Usado por: Lectures (Deep Search) + Annotations (Improve Didactic)
+ * 
+ * This converter is NO LONGER USED for new lecture material generation.
+ * New lectures use HTML-only format (markdown → HTML via format-lecture-content).
+ * 
+ * LEGACY USE CASES (still active):
+ * - Old lectures with JSON-structured content (backward compatibility)
+ * - Annotations with "Improve Didactic" feature (if still using JSON)
+ * 
+ * NEW MATERIALS: Use HTMLContentRenderer instead of StructuredContentRenderer
+ * Last material generation with JSON: 2025-10-29 (before Phase 2 removal)
  */
 
 /**

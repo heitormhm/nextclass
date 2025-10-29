@@ -4,7 +4,6 @@
  */
 
 import { fixLatexErrors } from '../converters/latex-normalizer.ts';
-import { convertMarkdownToStructuredJSON } from '../converters/markdown-to-json.ts';
 
 /**
  * Save generated educational report to lecture's structured content
@@ -110,19 +109,11 @@ export async function saveReportToLecture(
   console.log(`[Job ${jobId}] ✅ Final HTML length: ${htmlContent.length} chars`);
   console.log(`[Job ${jobId}] 📄 HTML preview: ${htmlContent.substring(0, 200)}...`);
 
-  // Convert markdown to structured JSON format (backward compatibility)
-  const structuredJSON = await convertMarkdownToStructuredJSON(
-    fixedReport,
-    'Material Didático',
-    jobId
-  );
-  
-  // Update lecture with HTML + JSON (backward compatibility)
+  // Update lecture with HTML ONLY (JSON conversion removed - Phase 2)
   await supabase.from('lectures').update({
     structured_content: {
       ...existingContent,
-      material_didatico_html: htmlContent,  // ✅ PRIMARY: HTML format
-      material_didatico: structuredJSON      // ✅ FALLBACK: JSON for old lectures
+      material_didatico_html: htmlContent  // ✅ HTML-only format
     },
     updated_at: new Date().toISOString()
   }).eq('id', lectureId);

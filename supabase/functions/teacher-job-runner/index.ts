@@ -1,11 +1,11 @@
 /**
  * Teacher Job Runner
  * Processes background jobs for teacher materials generation
- * DEPLOY VERSION: 2025-10-29T15:30:00Z - FIX JSON PARSING + REDO BUTTON + SANITIZATION
+ * DEPLOY VERSION: 2025-10-29T16:45:00Z - REMOVE JSON CONVERSION + HTML ONLY
  */
 
 // Force deployment with unique version identifier
-const DEPLOY_VERSION = '2025-10-29T15:30:00Z';
+const DEPLOY_VERSION = '2025-10-29T16:45:00Z';
 console.log(`[Deploy] 🚀 teacher-job-runner version: ${DEPLOY_VERSION}`);
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";

@@ -1,3 +1,10 @@
+/**
+ * ⚠️ LEGACY SUPPORT ONLY - DEPRECATED (Phase 3)
+ * This component renders structured JSON format material.
+ * New materials use HTML-only format (HTMLContentRenderer).
+ * Kept for backward compatibility with existing lectures.
+ */
+
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

@@ -1,6 +1,11 @@
 /**
+ * ⚠️ DEPRECATED (Phase 3) - LEGACY SUPPORT ONLY
  * Markdown to Structured JSON Converter
- * ✅ REFATORADO: Agora usa o módulo unificado
+ * This converter is NO LONGER USED for new material generation.
+ * New materials use HTML-only format (markdown → HTML).
+ * Kept for backward compatibility with old lectures that have JSON format.
+ * 
+ * Last used: 2025-10-29 (before Phase 2 removal)
  */
 
 import { convertMarkdownToStructuredJSON as convertUnified } from '../../shared/markdown-to-structured-json.ts';
