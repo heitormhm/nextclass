@@ -23,11 +23,23 @@ Generate comprehensive, university-level educational content (8,000-12,000 words
 ## DIAGRAMS (Mermaid) - CRITICAL RULES:
 Create 3-5 interactive Mermaid diagrams distributed THROUGHOUT content (NOT all at the end).
 
+**✅ MANDATORY MULTI-LINE FORMAT:**
+- NEVER put entire diagram on single line
+- One node/connection per line
+- Proper indentation (4 spaces)
+- Example (flowchart TD, A[Start] --> B[Process], B --> C[End])
+
 **✅ ALLOWED DIAGRAM TYPES ONLY:**
 - flowchart TD / LR (top-down / left-right)
 - sequenceDiagram (for step-by-step processes)
 - classDiagram (for component relationships)
 - stateDiagram-v2 (for state machines)
+
+**❌ ABSOLUTELY FORBIDDEN:**
+- subgraph syntax (causes infinite loading - NEVER USE)
+- Single-line diagrams (always multi-line)
+- Unicode arrows (→ ⇒ ← ⇐ - use ASCII only)
+- Greek letters (Δ α β γ - spell them out)
 
 **✅ NODE ID RULES (STRICT - Alphanumeric ONLY):**
 - ALLOWED: A, B, C1, estado_1, node_energia, processo2

@@ -69,6 +69,22 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
         continue;
       }
       
+      // PHASE 5: NEW - Detect single-line corruption (no newlines)
+      if (!code.includes('\n') || code.split('\n').filter(l => l.trim()).length < 3) {
+        console.warn(`[TwoPhaseRenderer] Diagram ${index} appears corrupted (single-line or too few lines), skipping`);
+        textOnly = textOnly.replace(match[0], '');
+        continue;
+      }
+      
+      // PHASE 6: NEW - Check for minimum viable structure (nodes + connections)
+      const hasNodes = /[A-Z]\[/.test(code);
+      const hasConnections = /-->|---|==>/.test(code);
+      if (!hasNodes || !hasConnections) {
+        console.warn(`[TwoPhaseRenderer] Diagram ${index} missing nodes or connections, skipping`);
+        textOnly = textOnly.replace(match[0], '');
+        continue;
+      }
+      
       // Extract title from preceding header if exists
       const beforeBlock = textOnly.substring(0, match.index);
       const lastHeader = beforeBlock.match(/#{2,3}\s+([^\n]+)\n*$/);

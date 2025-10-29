@@ -400,9 +400,46 @@ serve(async (req) => {
 
     console.log('[generate-lecture-material] Generated:', generatedMarkdown.length, 'chars');
 
-    // ✅ PHASE 1: STEP 3 - Clean and validate Mermaid blocks
-    console.log('[generate-lecture-material] Step 3: Cleaning Mermaid diagrams...');
-    let markdownContent = cleanMermaidBlocks(generatedMarkdown);
+    // ✅ PHASE 2: AGGRESSIVE PRE-SAVE CLEANING - Remove subgraphs and fix single-line
+    console.log('[generate-lecture-material] Step 3: Aggressive Mermaid cleaning...');
+    let markdownContent = generatedMarkdown;
+    
+    // CRITICAL: Check for forbidden subgraph syntax
+    const hasSubgraph = /subgraph\s+/i.test(markdownContent);
+    if (hasSubgraph) {
+      console.error('[generate-lecture-material] ❌ REJECTED: AI generated forbidden subgraph syntax');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Material contém sintaxe proibida (subgraph). Regenerando...',
+          details: ['Sintaxe subgraph detectada - causa loading infinito']
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    // Fix single-line Mermaid blocks (expand to multi-line)
+    markdownContent = markdownContent.replace(/```mermaid\s*\n?([^\n`]+)```/g, (_match: string, code: string) => {
+      if (!code.includes('\n')) {
+        console.warn('[Mermaid Cleaner] Expanding single-line diagram to multi-line');
+        const expanded = code
+          .replace(/;\s*/g, '\n    ')
+          .replace(/-->/g, '\n    -->')
+          .replace(/---/g, '\n    ---')
+          .trim();
+        return `\`\`\`mermaid\n${expanded}\n\`\`\``;
+      }
+      return _match;
+    });
+    
+    // Remove any remaining subgraph blocks completely
+    markdownContent = markdownContent.replace(/subgraph[^`]*?end/gs, '');
+    
+    // Apply standard cleaning
+    markdownContent = cleanMermaidBlocks(markdownContent);
     
     // Validate Mermaid syntax
     const mermaidValidation = validateMermaidDiagrams(markdownContent);

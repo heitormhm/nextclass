@@ -64,9 +64,9 @@ export const MarkdownReferencesRenderer: React.FC<MarkdownReferencesRendererProp
         Referências
       </h2>
       <div className="space-y-4">
-        {references.map((ref) => (
+        {references.map((ref, index) => (
           <div 
-            key={ref.number} 
+            key={`ref-${index}-${ref.author.substring(0, 20)}-${ref.number}`}
             className="bg-gradient-to-br from-primary/5 to-primary/10 border-l-4 border-primary p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
           >
             <div className="flex items-start gap-3">
