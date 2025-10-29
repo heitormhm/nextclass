@@ -3,7 +3,85 @@
  * Usado por: Lectures (Deep Search) + Annotations (Improve Didactic)
  */
 
-import { aggressiveLatexFix, normalizeLatexSyntax } from '../teacher-job-runner/converters/latex-normalizer.ts';
+/**
+ * Aggressive LaTeX fixing - removes corrupted placeholders and fixes syntax
+ */
+function aggressiveLatexFix(text: string): string {
+  console.log('[AGGRESSIVE LaTeX Fix] 🔥 Fixing corrupted LaTeX...');
+  
+  let fixed = text;
+  
+  // 1. Remover placeholders corrompidos: ** 1$ **, ___LATEX_DOUBLE_2___, etc.
+  fixed = fixed.replace(/\*\*\s*\d+\$\s*\*\*/g, '');
+  fixed = fixed.replace(/___LATEX_DOUBLE_\d+___/g, '');
+  fixed = fixed.replace(/___LATEX_SINGLE_\d+___/g, '');
+  fixed = fixed.replace(/\*\*\s*\\\w+.*?\$\s*\*\*/g, (match) => {
+    const formula = match.replace(/\*\*/g, '').replace(/\$/g, '').trim();
+    return ` $$${formula}$$ `;
+  });
+  
+  // Detectar e remover $ isolados com espaços
+  fixed = fixed.replace(/\$\s+/g, '');
+  fixed = fixed.replace(/\s+\$/g, '');
+  
+  // Detectar $ sem fechamento
+  fixed = fixed.replace(/\$([^$\n]{1,50})(?!\$)/g, '$$$$1$$');
+  
+  // Remover variáveis de 1 letra isoladas FORA de LaTeX
+  const parts = fixed.split('$$');
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) {
+      parts[i] = parts[i].replace(/\s([a-z])\s+/gi, ' ');
+    }
+  }
+  fixed = parts.join('$$');
+  
+  // Completar fórmulas incompletas
+  fixed = fixed.replace(
+    /\b([A-Z][a-z]?)\s*=\s*([A-Z][a-z]?)\s*[-+]\s*([A-Z][a-z]?)/g,
+    '$$$$1 = $$2 - $$3$$'
+  );
+  
+  // 2. Detectar expressões matemáticas isoladas (sem $$)
+  fixed = fixed.replace(
+    /(?:^|\n|\s)(\\[A-Za-z]+(?:\{[^}]*\})?(?:\s*[=+\-*/^_]\s*\\?[A-Za-z0-9{}]+)+)/gm,
+    (match, formula) => {
+      if (!match.includes('$$')) {
+        return match.replace(formula, ` $$${formula.trim()}$$ `);
+      }
+      return match;
+    }
+  );
+  
+  // 3. Converter $ simples para $$
+  fixed = fixed.replace(/\$([^$\n]+?)\$/g, (match, content) => {
+    if (match.startsWith('$$')) return match;
+    return `$$${content}$$`;
+  });
+  
+  // 4. Limpar espaços extras
+  fixed = fixed.replace(/\s+\$\$/g, ' $$');
+  fixed = fixed.replace(/\$\$\s+/g, '$$ ');
+  
+  console.log('[AGGRESSIVE LaTeX Fix] ✅ Completed aggressive fix');
+  return fixed;
+}
+
+/**
+ * Normalize LaTeX syntax - ensure proper delimiters and spacing
+ */
+function normalizeLatexSyntax(text: string): string {
+  let normalized = text;
+  
+  // Normalizar $ expr $ → $$expr$$
+  normalized = normalized.replace(/\$\s+(.+?)\s+\$/g, '$$$$1$$');
+  
+  // Garantir espaço antes e depois de $$
+  normalized = normalized.replace(/([^\s])\$\$/g, '$1 $$');
+  normalized = normalized.replace(/\$\$([^\s])/g, '$$ $1');
+  
+  return normalized;
+}
 
 interface ConversionOptions {
   jobId?: string;
