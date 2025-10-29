@@ -92,7 +92,7 @@ export class FlashcardsService {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('Sessão expirada');
 
-    const { data, error } = await supabase.functions.invoke('teacher-generate-flashcards-v2', {
+    const { data, error } = await supabase.functions.invoke('lecture-generate-flashcards', {
       body: { lectureId }
     });
 

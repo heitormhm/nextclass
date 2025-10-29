@@ -54,13 +54,31 @@ Use blockquotes with emoji prefix for special sections:
 - \`inline code\` for technical terms
 - Ordered/unordered lists for step-by-step content
 
+## REFERENCES FORMAT (CRITICAL):
+Create a dedicated "## Referências" section at the END of the material with this EXACT format:
+
+## Referências
+
+1. **Author et al. (Year)** - Title of Paper/Book
+   - URL: https://example.com
+   - Type: Artigo/Livro/Site
+
+2. **Author et al. (Year)** - Another Reference
+   - URL: https://example.com
+   - Type: Artigo
+
+Use REAL academic sources from the provided search results.
+Include at least 8 references with FULL URLs.
+Each reference MUST have: Author, Year, Title, URL, Type
+
 ## CONTENT REQUIREMENTS:
-- 8+ academic references (cite as [1], [2], etc. and list at end)
+- 8+ academic references with FULL URLS at the END
+- References section MUST be the LAST section
 - Real-world engineering applications
 - Detailed worked examples with formulas
 - Progressive complexity (basic → advanced)
 - Clear learning objectives at the start
-- Summary section at the end
+- Summary section before references
 
 Focus on academic quality, practical engineering applications, and visual pedagogy.`;
 };

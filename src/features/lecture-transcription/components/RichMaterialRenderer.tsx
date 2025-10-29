@@ -10,6 +10,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { MermaidDiagram } from '@/components/MermaidDiagram';
 import { MermaidErrorBoundary } from '@/components/MermaidErrorBoundary';
+import { MarkdownReferencesRenderer } from './MarkdownReferencesRenderer';
 import 'katex/dist/katex.min.css';
 
 interface RichMaterialRendererProps {
@@ -152,6 +153,9 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
       >
         {markdown}
       </ReactMarkdown>
+      
+      {/* Render references section separately with custom styling */}
+      <MarkdownReferencesRenderer markdown={markdown} />
     </div>
   );
 };

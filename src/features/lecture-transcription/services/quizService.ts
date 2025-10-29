@@ -63,7 +63,7 @@ export class QuizService {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('Sessão expirada');
 
-    const { data, error } = await supabase.functions.invoke('teacher-generate-quiz-v2', {
+    const { data, error } = await supabase.functions.invoke('lecture-generate-quiz', {
       body: { lectureId }
     });
 

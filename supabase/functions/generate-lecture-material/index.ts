@@ -1,6 +1,6 @@
 /**
- * PHASE 1: New Direct-Call Material Generation
- * No jobs table, no polling - instant feedback
+ * Lecture Material Generation - Direct Markdown Output
+ * Generates rich markdown content for frontend rendering
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -11,8 +11,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Markdown conversion removed - frontend handles rich rendering
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -120,6 +118,15 @@ serve(async (req) => {
     // STEP 3: Keep as Markdown (frontend will render)
     console.log('[generate-lecture-material] Step 3: Preparing content...');
     const markdownContent = generatedMarkdown;
+    
+    // DIAGNOSTIC: Verify markdown format
+    console.log('[generate-lecture-material] Markdown validation:', {
+      length: markdownContent.length,
+      hasHTMLTags: /<[^>]+>/.test(markdownContent),
+      hasMarkdownHeadings: /^#{1,6}\s/m.test(markdownContent),
+      hasReferencesSection: /#{1,2}\s*Referências/i.test(markdownContent),
+      sample: markdownContent.substring(0, 300)
+    });
 
     // STEP 4: Save to database (store markdown, not HTML)
     console.log('[generate-lecture-material] Step 4: Saving to database...');
