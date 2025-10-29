@@ -71,11 +71,32 @@ serve(async (req) => {
     }
 
     if (job.job_type === 'GENERATE_LECTURE_DEEP_SEARCH') {
-      await processLectureDeepSearch(job, supabaseAdmin, lovableApiKey);
-      return new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      try {
+        console.log(`[Job ${jobId}] 💾 Starting deep search processing...`);
+        await processLectureDeepSearch(job, supabaseAdmin, lovableApiKey);
+        console.log(`[Job ${jobId}] ✅ Deep search completed successfully`);
+        
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (deepSearchError: any) {
+        console.error(`[Job ${jobId}] ❌ Deep search failed:`, deepSearchError.message);
+        
+        // ✅ FASE 3: Marcar job como FAILED se erro ocorrer
+        await supabaseAdmin
+          .from('teacher_jobs')
+          .update({
+            status: 'FAILED',
+            error_message: `Erro ao processar material: ${deepSearchError.message}`,
+            progress: 0.95,
+            progress_message: 'Falha no processamento final',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+        
+        throw deepSearchError;
+      }
     }
 
     if (job.job_type === 'GENERATE_QUIZ') {

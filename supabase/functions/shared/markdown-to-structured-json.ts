@@ -222,13 +222,17 @@ export async function convertMarkdownToStructuredJSON(
     let currentParagraph = '';
     let currentList: string[] = [];
     
+    let parsedBlocks = 0;
+    
     const finalizeParagraph = () => {
       if (currentParagraph.trim()) {
         conteudo.push({
           tipo: 'paragrafo',
           texto: currentParagraph.trim()
         });
+        console.log(`[Converter ${jobId}] ✅ Finalized paragraph (${currentParagraph.length} chars)`);
         currentParagraph = '';
+        parsedBlocks++;
       }
     };
     
@@ -245,6 +249,11 @@ export async function convertMarkdownToStructuredJSON(
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
+      
+      // ✅ FASE 1: Log a cada 50 linhas
+      if (i % 50 === 0) {
+        console.log(`[Converter ${jobId}] Progress: Line ${i}/${lines.length}, Blocks: ${conteudo.length}`);
+      }
       
       if (!trimmedLine) {
         finalizeParagraph();
@@ -335,8 +344,10 @@ export async function convertMarkdownToStructuredJSON(
         if (!currentParagraph) {
           currentParagraph = trimmedLine;
         } else {
-          // Detectar fim de parágrafo por contexto
-          if (currentParagraph.length > 200 && /^[A-Z]/.test(trimmedLine)) {
+          // ✅ FASE 2: Detectar fim natural de parágrafo (letra maiúscula + tamanho)
+          const shouldBreak = /^[A-Z]/.test(trimmedLine) && currentParagraph.length > 150;
+          
+          if (shouldBreak) {
             finalizeParagraph();
             currentParagraph = trimmedLine;
           } else {
@@ -354,14 +365,29 @@ export async function convertMarkdownToStructuredJSON(
     finalizeParagraph();
     finalizeList();
     
-    // ETAPA 4: Fallback se parsing falhou
-    if (conteudo.length === 0 && markdown.length > 100) {
-      console.warn(`[Converter ${jobId}] ⚠️ Parsing returned empty, using smart chunking fallback`);
+    // ✅ FASE 1: Logging após parsing
+    console.log(`[Converter ${jobId}] 📊 Parsing completed:`, {
+      inputLines: lines.length,
+      parsedBlocks,
+      outputBlocks: conteudo.length,
+      isEmpty: conteudo.length === 0,
+    });
+    
+    // ✅ FASE 2: Fallback MELHORADO - Ativa SEMPRE que array vazio
+    if (conteudo.length === 0) {
+      console.warn(`[Converter ${jobId}] ⚠️ Parsing returned empty array`);
+      console.log(`[Converter ${jobId}] Markdown stats:`, {
+        length: markdown.length,
+        lines: markdown.split('\n').length,
+        paragraphs: markdown.split('\n\n').length,
+        words: markdown.split(/\s+/).length,
+      });
       
+      // Tentar chunking por parágrafos duplo-newline
       const chunks = markdown.split(/\n\n+/).filter(c => c.trim().length > 50);
       
       if (chunks.length > 0) {
-        console.log(`[Converter ${jobId}] ✅ Fallback: Created ${chunks.length} chunks`);
+        console.log(`[Converter ${jobId}] ✅ Fallback chunking: ${chunks.length} chunks created`);
         return {
           success: true,
           data: {
@@ -371,20 +397,49 @@ export async function convertMarkdownToStructuredJSON(
               texto: chunk.trim()
             }))
           },
-          warnings: ['Usou fallback chunking']
+          warnings: [`Usou fallback chunking (${chunks.length} parágrafos)`]
         };
       }
       
+      // Se markdown muito curto para chunks, dividir por linhas simples
+      const lines = markdown.split(/\n+/).filter(l => l.trim().length > 20);
+      
+      if (lines.length > 0) {
+        console.log(`[Converter ${jobId}] ✅ Fallback line-split: ${lines.length} lines`);
+        return {
+          success: true,
+          data: {
+            titulo_geral: title,
+            conteudo: lines.map(line => ({
+              tipo: 'paragrafo',
+              texto: line.trim()
+            }))
+          },
+          warnings: [`Usou fallback por linhas (${lines.length} parágrafos)`]
+        };
+      }
+      
+      // Último recurso: salvar markdown inteiro como um bloco
+      if (markdown.length > 0) {
+        console.warn(`[Converter ${jobId}] ⚠️ Using last resort: single block`);
+        return {
+          success: true,
+          data: {
+            titulo_geral: title,
+            conteudo: [{
+              tipo: 'paragrafo',
+              texto: markdown
+            }]
+          },
+          warnings: ['Usou fallback de bloco único']
+        };
+      }
+      
+      // Se realmente vazio, FALHAR
+      console.error(`[Converter ${jobId}] ❌ FATAL: Markdown input is empty`);
       return {
-        success: true,
-        data: {
-          titulo_geral: title,
-          conteudo: [{
-            tipo: 'paragrafo',
-            texto: markdown
-          }]
-        },
-        warnings: ['Usou fallback de bloco único']
+        success: false,
+        error: 'Markdown de entrada está vazio'
       };
     }
     

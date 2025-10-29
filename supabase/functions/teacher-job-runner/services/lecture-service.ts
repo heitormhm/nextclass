@@ -41,6 +41,13 @@ export async function saveReportToLecture(
     // Não bloquear - permitir salvar para análise do professor
   }
 
+  // ✅ FASE 1: Logging detalhado ANTES da conversão
+  console.log(`[Job ${jobId}] 🔄 Starting markdown conversion:`, {
+    reportLength: fixedReport.length,
+    reportPreview: fixedReport.substring(0, 300),
+    wordCountPreConversion: wordCount,
+  });
+
   // Convert markdown to structured JSON format
   const structuredJSON = await convertMarkdownToStructuredJSON(
     fixedReport,

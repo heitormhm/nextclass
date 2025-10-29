@@ -239,6 +239,16 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
     
     if (!report) throw new Error('Failed to generate report after retries');
 
+    // ✅ FASE 1: Logging detalhado antes de salvar
+    console.log(`[Job ${job.id}] 📊 Pre-save validation:`, {
+      reportLength: report.length,
+      reportFirstChars: report.substring(0, 500),
+      reportLastChars: report.substring(report.length - 200),
+      wordCount: report.split(/\s+/).length,
+      hasMarkdownHeaders: /^#{1,6}\s/m.test(report),
+      hasParagraphs: report.split('\n\n').length,
+    });
+
     await saveReportToLecture(supabase, lectureId, report, job.id);
     await updateJobProgress(supabase, job.id, 1.0, 'Concluído!');
     

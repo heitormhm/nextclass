@@ -12,6 +12,31 @@ import { QualityMetricsDisplay } from './QualityMetricsDisplay';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
+// ✅ FASE 2: Helper para detectar conteúdo vazio ou inválido
+const isEmptyOrInvalidStructure = (data: any): boolean => {
+  if (!data) return true;
+  
+  // Detectar array vazio
+  if (data?.conteudo && Array.isArray(data.conteudo)) {
+    if (data.conteudo.length === 0) {
+      console.warn('[StructuredContentRenderer] Detected empty conteudo array');
+      return true;
+    }
+    
+    // Detectar blocos "vazios" (apenas warnings)
+    const validBlocks = data.conteudo.filter((b: any) => 
+      b.texto && !b.texto.includes('Diagrama removido')
+    );
+    
+    if (validBlocks.length === 0) {
+      console.warn('[StructuredContentRenderer] All blocks are empty/removed');
+      return true;
+    }
+  }
+  
+  return false;
+};
+
 // Helper: Check if data is legacy markdown format
 const isLegacyMarkdownFormat = (data: any): boolean => {
   // Case 1: Pure string
@@ -150,6 +175,20 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
     return (
       <div className="text-center py-8 text-muted-foreground">
         Nenhum conteúdo estruturado disponível.
+      </div>
+    );
+  }
+
+  // ✅ FASE 2: Detectar material vazio ou inválido
+  if (isEmptyOrInvalidStructure(structuredData)) {
+    return (
+      <div className="text-center py-12 space-y-4">
+        <p className="text-muted-foreground">
+          ⚠️ Material didático está vazio ou inválido.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Tente regenerar clicando no ícone de refazer.
+        </p>
       </div>
     );
   }

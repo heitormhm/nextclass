@@ -89,6 +89,14 @@ export const useMaterialGenerationJob = (callbacks?: MaterialGenerationCallbacks
             description: 'Problema ao validar conteúdo gerado.',
             duration: 6000,
           });
+        } else if (errorMsg.includes('vazio') || errorMsg.includes('empty') || errorMsg.includes('parsing')) {
+          // ✅ FASE 3: Toast específico para parsing
+          toast({
+            variant: 'destructive',
+            title: '🔧 Erro no Processamento',
+            description: 'Falha ao estruturar o material. Tente regenerar ou entre em contato com o suporte.',
+            duration: 10000,
+          });
         } else {
           toast({
             variant: 'destructive',
