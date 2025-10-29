@@ -40,7 +40,14 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
     while ((match = regex.exec(textOnly)) !== null) {
       const code = match[1].trim();
       
-      // PHASE 1: Basic validation before adding to blocks
+      // PHASE 1: Minimum length check
+      if (code.length < 20) {
+        console.warn(`[TwoPhaseRenderer] Diagram too short at index ${index} (${code.length} chars), skipping`);
+        textOnly = textOnly.replace(match[0], '');
+        continue;
+      }
+      
+      // PHASE 2: Basic validation before adding to blocks
       const isValid = code.match(/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt)/);
       if (!isValid) {
         console.warn(`[TwoPhaseRenderer] Invalid Mermaid diagram at index ${index}, skipping (no valid diagram type)`);
@@ -48,9 +55,16 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
         continue;
       }
       
-      // PHASE 1.5: CRITICAL - Detect forbidden subgraph syntax
+      // PHASE 3: CRITICAL - Detect forbidden subgraph syntax
       if (code.includes('subgraph')) {
         console.error(`[TwoPhaseRenderer] ⛔ FORBIDDEN subgraph detected in diagram ${index + 1}, skipping to prevent infinite load`);
+        textOnly = textOnly.replace(match[0], '');
+        continue;
+      }
+      
+      // PHASE 4: Detect corrupted syntax patterns
+      if (code.includes('undefined') || code.includes('-->undefined') || code.includes('null')) {
+        console.error(`[TwoPhaseRenderer] ⛔ Corrupted syntax detected in diagram ${index + 1}, skipping`);
         textOnly = textOnly.replace(match[0], '');
         continue;
       }
@@ -80,11 +94,23 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
   }, [markdown]);
   
   // Phase 1: Render immediately
-  // Phase 2: Render Mermaid after 500ms delay
+  // Phase 2: Render Mermaid after 500ms delay with timeout protection
   useEffect(() => {
     const timer = setTimeout(() => setRenderMermaid(true), 500);
-    return () => clearTimeout(timer);
-  }, [markdown]);
+    
+    // Safety net: Force render after 8s max to prevent infinite loading
+    const timeoutTimer = setTimeout(() => {
+      if (!renderMermaid) {
+        console.warn('[TwoPhaseRenderer] ⚠️ Mermaid rendering timeout reached (8s), forcing render');
+        setRenderMermaid(true);
+      }
+    }, 8000);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(timeoutTimer);
+    };
+  }, [markdown, renderMermaid]);
   
   return (
     <div>

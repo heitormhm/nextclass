@@ -105,7 +105,7 @@ function validateAndFixMermaidDiagrams(markdown: string): string {
       console.warn(`[format-lecture-content] Block ${blocksFound} contains FORBIDDEN subgraph - FLATTENING`);
       
       // Extract content inside subgraph and flatten it
-      fixedCode = fixedCode.replace(/subgraph\s+[^\n]*\n([\s\S]*?)\n\s*end/g, (match, content) => {
+      fixedCode = fixedCode.replace(/subgraph\s+[^\n]*\n([\s\S]*?)\n\s*end/g, (_match: string, content: string) => {
         // Remove the subgraph wrapper but keep the nodes/edges inside
         return content.trim();
       });
@@ -127,6 +127,14 @@ function validateAndFixMermaidDiagrams(markdown: string): string {
   });
   
   console.log(`[format-lecture-content] ✅ NON-DESTRUCTIVE Summary: ${blocksFound} found, ${blocksFixed} fixed, ${blocksKept} kept (0 removed)`);
+  
+  // FINAL CLEANUP: Remove excessive newlines left by block processing
+  cleanedMarkdown = cleanedMarkdown
+    .replace(/\n{4,}/g, '\n\n\n')  // Max 3 newlines (section break)
+    .replace(/\n{3,}(#{1,6}\s)/g, '\n\n$1')  // 2 newlines before headers
+    .trim();
+  
+  console.log(`[format-lecture-content] ✅ Text spacing normalized`);
   
   return cleanedMarkdown;
 }
