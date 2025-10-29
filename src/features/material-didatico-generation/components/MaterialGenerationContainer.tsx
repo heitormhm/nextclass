@@ -85,41 +85,45 @@ export const MaterialGenerationContainer = forwardRef<
   }, [lectureId, lectureTitle, currentMaterial, transcript, startGeneration]);
 
   /**
-   * Expor método público para regeneração
-   * Inclui validações internas para prevenir estados inválidos
+   * FASE 1: useLayoutEffect para garantir ref síncrono
+   * Executa ANTES da pintura do browser, eliminando timing issues
    */
-  useImperativeHandle(ref, () => ({
-    triggerRegeneration: () => {
-      console.log('[Container] External trigger: Regeneration requested');
-      console.log('[Container] State:', { 
-        hasCurrentMaterial: !!currentMaterial, 
-        isGenerating,
-        lectureId,
-        hasTitle: !!lectureTitle,
-      });
-      
-      // Validação #1: Não regenerar se já está gerando
-      if (isGenerating) {
-        console.warn('[Container] Already generating, ignoring trigger');
-        return;
+  React.useLayoutEffect(() => {
+    if (!ref || typeof ref === 'function') return;
+    
+    ref.current = {
+      triggerRegeneration: () => {
+        console.log('[Container] External trigger: Regeneration requested');
+        console.log('[Container] State:', { 
+          hasCurrentMaterial: !!currentMaterial, 
+          isGenerating,
+          lectureId,
+          hasTitle: !!lectureTitle,
+        });
+        
+        // Validação #1: Não regenerar se já está gerando
+        if (isGenerating) {
+          console.warn('[Container] Already generating, ignoring trigger');
+          return;
+        }
+        
+        // Validação #2: Verificar dados obrigatórios
+        if (!lectureId || !lectureTitle) {
+          console.error('[Container] Missing required data for regeneration');
+          return;
+        }
+        
+        // Decisão: Modal ou geração direta
+        if (currentMaterial) {
+          console.log('[Container] Opening confirmation modal');
+          setShowConfirmModal(true);
+        } else {
+          console.log('[Container] No material exists, generating directly');
+          handleGenerate();
+        }
       }
-      
-      // Validação #2: Verificar dados obrigatórios
-      if (!lectureId || !lectureTitle) {
-        console.error('[Container] Missing required data for regeneration');
-        return;
-      }
-      
-      // Decisão: Modal ou geração direta
-      if (currentMaterial) {
-        console.log('[Container] Opening confirmation modal');
-        setShowConfirmModal(true);
-      } else {
-        console.log('[Container] No material exists, generating directly');
-        handleGenerate();
-      }
-    }
-  }), [currentMaterial, isGenerating, lectureId, lectureTitle, handleGenerate]);
+    };
+  }, [currentMaterial, isGenerating, lectureId, lectureTitle, handleGenerate, ref]);
 
   /**
    * Handler para o botão principal de geração

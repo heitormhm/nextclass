@@ -37,7 +37,8 @@ import { PublishingControls } from '@/features/lecture-transcription/components/
 import { LessonPlanComparisonSection } from '@/features/lecture-transcription/components/LessonPlanComparisonSection';
 import { MaterialGenerationContainer, MaterialGenerationContainerRef } from '@/features/material-didatico-generation/components/MaterialGenerationContainer';
 import { extractMaterialString } from '@/features/material-didatico-generation/utils/materialHelpers';
-import { MATERIAL_REF_RETRY_CONFIG, MATERIAL_TOAST_MESSAGES } from '@/features/material-didatico-generation/constants/ui';
+import { MATERIAL_TOAST_MESSAGES } from '@/features/material-didatico-generation/constants/ui';
+import { validateRefReady, logRefState } from '@/features/material-didatico-generation/utils/refHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -127,13 +128,24 @@ const LectureTranscriptionPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, lecture]);
 
-  // Debug logging para ref state
+  // FASE 3: Debug logging com validação de tipo
   React.useEffect(() => {
-    console.log('[LecturePage] MaterialGenerationRef state:', {
+    const refStatus = {
       isNull: materialGenerationRef.current === null,
+      hasFunction: !!materialGenerationRef.current?.triggerRegeneration,
       currentMaterial: !!currentMaterialValue,
       lectureId: id,
-    });
+      timestamp: new Date().toISOString(),
+    };
+    
+    console.log('[LecturePage] MaterialGenerationRef state:', refStatus);
+    
+    // Validação crítica de tipo
+    if (materialGenerationRef.current && 
+        typeof materialGenerationRef.current.triggerRegeneration !== 'function') {
+      console.error('[LecturePage] CRITICAL: Ref exists but triggerRegeneration is not a function!', 
+        materialGenerationRef.current);
+    }
   }, [currentMaterialValue, id]);
 
   // Debug logging
@@ -398,31 +410,38 @@ const LectureTranscriptionPage = () => {
               }
               onRegenerateMaterial={() => {
                 console.log('[LecturePage] Redo button clicked - triggering regeneration');
+                logRefState(materialGenerationRef, 'LecturePage');
                 
                 /**
-                 * Retry logic com fallback para resolver timing issues
-                 * Tenta até 3 vezes com delay de 100ms entre tentativas
+                 * FASE 2: Estratégia de espera ativa usando requestAnimationFrame
+                 * Mais eficiente que setTimeout, sincronizado com render cycle
                  */
-                const attemptTrigger = (attempts = 0): void => {
-                  if (attempts >= MATERIAL_REF_RETRY_CONFIG.MAX_ATTEMPTS) {
+                const attemptTriggerWithRAF = (attempts = 0): void => {
+                  if (attempts >= 5) {
+                    console.error('[LecturePage] Max attempts reached, ref still null');
+                    logRefState(materialGenerationRef, 'LecturePage-Failed');
                     toast(MATERIAL_TOAST_MESSAGES.REF_NOT_READY);
                     return;
                   }
                   
-                  if (!materialGenerationRef.current) {
-                    console.warn(`[LecturePage] Ref null, retrying... (attempt ${attempts + 1}/${MATERIAL_REF_RETRY_CONFIG.MAX_ATTEMPTS})`);
-                    setTimeout(
-                      () => attemptTrigger(attempts + 1), 
-                      MATERIAL_REF_RETRY_CONFIG.RETRY_DELAY_MS
-                    );
+                  const validation = validateRefReady(materialGenerationRef);
+                  
+                  if (!validation.isValid) {
+                    console.warn(`[LecturePage] Ref not ready: ${validation.error} (attempt ${attempts + 1}/5)`);
+                    requestAnimationFrame(() => attemptTriggerWithRAF(attempts + 1));
                     return;
                   }
                   
-                  console.log('[LecturePage] Ref OK, triggering...');
-                  materialGenerationRef.current.triggerRegeneration();
+                  console.log('[LecturePage] Ref validated, triggering regeneration');
+                  console.log('[LecturePage] Ref state:', {
+                    hasTriggerFunction: typeof materialGenerationRef.current!.triggerRegeneration === 'function',
+                    timestamp: new Date().toISOString(),
+                  });
+                  
+                  materialGenerationRef.current!.triggerRegeneration();
                 };
                 
-                attemptTrigger();
+                attemptTriggerWithRAF();
               }}
             />
             
