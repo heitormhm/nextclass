@@ -38,7 +38,7 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
           return (
             <sup
               key={`cite-${i}`}
-              className="inline-block mx-0.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs font-semibold cursor-pointer hover:bg-primary/20 transition-colors"
+              className="inline-block ml-0.5 px-1 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium cursor-pointer hover:bg-purple-200 transition-colors align-super"
               onClick={() => scrollToReference(match[1])}
             >
               {match[1]}

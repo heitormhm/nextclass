@@ -59,7 +59,7 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
             )}
           </TabsContent>
 
-      <TabsContent value="material" className="mt-4 overflow-x-hidden">
+      <TabsContent value="material" className="overflow-x-hidden">
         {structuredContent?.material_didatico || isGeneratingMaterial ? (
           <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
             <MaterialViewer

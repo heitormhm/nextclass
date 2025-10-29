@@ -164,7 +164,7 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
           nodesWithConnections.add(match[2]);
         }
 
-        const allNodesMatch = code.matchAll(/([A-Z0-9_]+)\[/g);
+        const allNodesMatch = code.matchAll(/([A-Z0-9_]+)[\[\(\{]/g);
         const allNodeIds = Array.from(allNodesMatch, m => m[1]);
 
         if (allNodeIds.length > 0 && nodesWithConnections.size < allNodeIds.length) {

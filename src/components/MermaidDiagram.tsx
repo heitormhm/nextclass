@@ -103,7 +103,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           setIsLoading(false);
           setError('timeout');
         }
-      }, 8000);
+      }, 15000); // 15 seconds for complex diagrams
 
       try {
         const sanitizedCode = sanitizeMermaidCode(code);
@@ -160,7 +160,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         for (const strategy of renderStrategies) {
           try {
             const renderTimeout = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Render timeout')), 10000)
+              setTimeout(() => reject(new Error('Render timeout')), 20000) // 20 seconds per strategy
             );
 
             const renderPromise = strategy();
@@ -225,8 +225,14 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         </h4>
         <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
         {isLoading ? (
-          <div className="flex items-center justify-center min-h-[300px] bg-purple-50/50 rounded-lg">
-            <div className="animate-spin h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full" />
+          <div className="flex flex-col items-center justify-center min-h-[300px] bg-purple-50/50 rounded-lg gap-3">
+            <div className="animate-spin h-10 w-10 border-4 border-purple-500 border-t-transparent rounded-full" />
+            <p className="text-sm text-purple-700 font-medium animate-pulse">
+              Renderizando diagrama visual...
+            </p>
+            <p className="text-xs text-purple-600">
+              Diagramas complexos podem levar até 15 segundos
+            </p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-start p-6 bg-red-50 dark:bg-red-950/20 rounded-lg border-2 border-red-200 dark:border-red-800 max-w-full overflow-hidden">
