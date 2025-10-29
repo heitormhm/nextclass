@@ -80,7 +80,17 @@ export async function callAIWithRetry(
         throw new Error(`AI API error: ${response.status}`);
       }
 
-      const data = await response.json();
+      // ✅ CRITICAL: Parse as text first to handle potential markdown wrapping
+      const responseText = await response.text();
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error(`[Job ${jobId}] ❌ Failed to parse JSON response:`, parseError);
+        console.error(`[Job ${jobId}] Response preview:`, responseText.substring(0, 500));
+        throw new Error(`Invalid JSON response from AI: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+      }
       
       // Log response details for debugging
       const content = data.choices?.[0]?.message?.content;
