@@ -92,6 +92,29 @@ async function generateEducationalReport(
   console.log(`[Job ${jobId}] 📥 AI Response received, parsing...`);
   let report = data.choices?.[0]?.message?.content;
   
+  // ✅ CRITICAL: Unwrap JSON if AI returned wrapped content
+  if (report && (report.trim().startsWith('```json') || report.trim().startsWith('```') || report.trim().startsWith('{'))) {
+    console.warn(`[Job ${jobId}] ⚠️ AI returned wrapped content, unwrapping...`);
+    
+    // Step 1: Remove markdown code block wrapper
+    report = report.replace(/^```json\s*\n?/m, '').replace(/^```\s*\n?/m, '').replace(/\n?```\s*$/m, '');
+    
+    // Step 2: Try to parse as JSON and extract 'report' field
+    try {
+      const parsed = JSON.parse(report.trim());
+      if (parsed.report && typeof parsed.report === 'string') {
+        report = parsed.report;
+        console.log(`[Job ${jobId}] ✅ Successfully unwrapped JSON: ${report.length} chars`);
+      } else if (typeof parsed === 'string') {
+        report = parsed;
+        console.log(`[Job ${jobId}] ✅ Successfully unwrapped string: ${report.length} chars`);
+      }
+    } catch (e) {
+      console.warn(`[Job ${jobId}] ⚠️ Could not parse as JSON, using cleaned content`);
+      // Content is already cleaned of code block markers, use as-is
+    }
+  }
+  
   if (!report || report.trim().length < 100) {
     console.error(`[Job ${jobId}] ❌ Flash returned empty/short content, retrying with Pro...`);
     console.error(`[Job ${jobId}] 📊 Flash response preview:`, JSON.stringify(data).substring(0, 300));
