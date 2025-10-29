@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import { katexOptions } from '@/utils/katexConfig';
 import { MermaidDiagram } from '@/components/MermaidDiagram';
 import { MermaidErrorBoundary } from '@/components/MermaidErrorBoundary';
 import { MarkdownReferencesRenderer } from './MarkdownReferencesRenderer';
@@ -54,17 +55,7 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
     <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-purple-700 prose-li:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 [&_.katex-display]:bg-purple-50 [&_.katex-display]:p-4 [&_.katex-display]:rounded-lg [&_.katex-display]:my-4 [&_.katex-display]:border [&_.katex-display]:border-purple-200">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[
-          [rehypeKatex, {
-            throwOnError: false,  // ✅ PHASE 3: Don't throw on LaTeX errors
-            errorColor: '#cc0000',
-            strict: false,
-            output: 'html',
-            displayMode: false,
-            trust: true,  // ✅ Changed: Allow KaTeX to render fully
-            macros: {}
-          }]
-        ]}
+        rehypePlugins={[[rehypeKatex, katexOptions]]}
         components={{
           // ✅ PHASE 3: Paragraphs with citation processing + subtitle detection
           p: ({ node, children, ...props }) => {

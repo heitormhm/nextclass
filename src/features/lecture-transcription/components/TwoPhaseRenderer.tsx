@@ -138,15 +138,34 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
       }
       console.log(`[TwoPhaseRenderer] ✅ Phase 6 passed: Structure detected (nodes: ${hasNodes}, connections: ${hasConnections})`);
       
-      // PHASE 7: Validate arrow-to-node ratio (CRITICAL for syntax correctness)
-      const expectedMinArrows = Math.max(1, nodeCount - 1); // Minimum: N-1 arrows for N nodes
-      if (arrowCount < expectedMinArrows) {
-        console.error(`[TwoPhaseRenderer] ❌ REJECTED (Phase 7): Insufficient connections (${arrowCount} arrows for ${nodeCount} nodes, need ≥${expectedMinArrows})`);
-        console.error(`[TwoPhaseRenderer] 📄 Code: ${code}`);
-        textOnly = textOnly.replace(match[0], '');
-        continue;
-      }
-      console.log(`[TwoPhaseRenderer] ✅ Phase 7 passed: Arrow ratio OK (${arrowCount} arrows for ${nodeCount} nodes)`);
+        // PHASE 7: Validate arrow-to-node ratio (CRITICAL for syntax correctness)
+        const expectedMinArrows = Math.max(1, nodeCount - 1); // Minimum: N-1 arrows for N nodes
+        if (arrowCount < expectedMinArrows) {
+          console.error(`[TwoPhaseRenderer] ❌ REJECTED (Phase 7): Insufficient arrows (${arrowCount}/${expectedMinArrows})`);
+          textOnly = textOnly.replace(match[0], '');
+          continue;
+        }
+
+        // PHASE 7.5: Validate no orphaned nodes (CRITICAL - checks complete connectivity)
+        const nodesWithConnections = new Set<string>();
+        const connectionMatches = code.matchAll(/([A-Z0-9_]+)\s*(?:-->|---|==>|->)\s*([A-Z0-9_]+)/g);
+        for (const match of connectionMatches) {
+          nodesWithConnections.add(match[1]);
+          nodesWithConnections.add(match[2]);
+        }
+
+        const allNodesMatch = code.matchAll(/([A-Z0-9_]+)\[/g);
+        const allNodeIds = Array.from(allNodesMatch, m => m[1]);
+
+        if (allNodeIds.length > 0 && nodesWithConnections.size < allNodeIds.length) {
+          const orphanedNodes = allNodeIds.filter(id => !nodesWithConnections.has(id));
+          console.error(`[TwoPhaseRenderer] ❌ REJECTED (Phase 7.5): Orphaned nodes: ${orphanedNodes.join(', ')}`);
+          console.error(`[TwoPhaseRenderer] 📄 Code: ${code.substring(0, 200)}...`);
+          textOnly = textOnly.replace(match[0], '');
+          continue;
+        }
+
+        console.log(`[TwoPhaseRenderer] ✅ Phase 7 passed: All ${allNodeIds.length} nodes connected`);
       
       // Extract title from preceding header if exists
       const beforeBlock = textOnly.substring(0, match.index);

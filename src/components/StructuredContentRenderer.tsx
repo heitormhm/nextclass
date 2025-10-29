@@ -1,24 +1,26 @@
 /**
- * ⚠️ LEGACY SUPPORT ONLY - DEPRECATED (FASE 5)
+ * ⚠️⚠️⚠️ DEPRECATED - DO NOT USE ⚠️⚠️⚠️
  * 
- * This component renders structured JSON format material from older lectures.
- * New materials use RichMaterialRenderer with markdown format.
+ * This component is deprecated and should not be used in new code.
  * 
- * **DO NOT REMOVE** - Required for backward compatibility with:
- * - Old annotation system (TeacherAnnotationPage)
- * - Legacy lectures created before Phase 6 migration
+ * USE INSTEAD:
+ * - For lecture material: RichMaterialRenderer (src/features/lecture-transcription/)
+ * - For chat messages: ReactMarkdown with katexConfig (src/utils/katexConfig.ts)
  * 
- * Status: Active but deprecated - only for existing content
- * Migration: All new content uses markdown-based rendering
+ * REASON FOR DEPRECATION:
+ * - Duplicates functionality of RichMaterialRenderer
+ * - No longer maintained
+ * - Creates conflicts with KaTeX configuration
  * 
- * **FASE 5 NOTE:** Duplicated KaTeX configuration detected across 5 files:
- * - This file (StructuredContentRenderer.tsx)
- * - RichMaterialRenderer.tsx (PRIMARY - use this for new content)
+ * USED BY (legacy, needs migration):
  * - AIChatPage.tsx
  * - LecturePage.tsx
  * - TeacherAIChatPage.tsx
+ * - TeacherAnnotationPage.tsx (backward compatibility only)
  * 
- * Future cleanup: Consolidate KaTeX config into a single utility module
+ * TODO: Migrate all usages and delete this file
+ * 
+ * **FASE 5 NOTE:** Duplicated KaTeX configuration - use src/utils/katexConfig.ts instead
  */
 
 import React from 'react';

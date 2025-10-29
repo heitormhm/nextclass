@@ -237,12 +237,11 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
                   Erro ao renderizar diagrama
                 </p>
                 <p className="text-xs text-red-600 dark:text-red-400 mb-3">
-                  {error === 'timeout-exceeded' 
+                {error === 'timeout-exceeded' 
                     ? 'Tempo de renderização excedido - possível erro de sintaxe no diagrama'
                     : 'O sistema está processando este conteúdo visual'}
                 </p>
                 
-                {/* Enhanced debug section with more visible styling */}
                 <details className="mt-3 w-full">
                   <summary className="cursor-pointer text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 font-semibold text-sm flex items-center gap-2 mb-2 bg-red-100 dark:bg-red-900/30 px-3 py-2 rounded">
                     🔍 Ver código do diagrama para debug
@@ -252,13 +251,31 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
                     <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 rounded text-xs">
                       <p className="font-semibold text-amber-800 dark:text-amber-300 mb-1">💡 Possíveis causas:</p>
                       <ul className="list-disc list-inside text-amber-700 dark:text-amber-400 space-y-1">
+                        <li><strong>Nós sem conexões (setas faltando)</strong> - Cada nó precisa de pelo menos uma seta</li>
                         <li>Tags HTML no código Mermaid (&lt;br/&gt;, &lt;sup&gt;, etc.)</li>
                         <li>Estilos definidos antes dos nós</li>
                         <li>Linhas vazias dentro do diagrama</li>
-                        <li><strong>Nós sem conexões (setas faltando)</strong></li>
+                        <li>Quebras de linha entre nó e seta (ex: `A[Node]\n--&gt;` em vez de `A[Node] --&gt;`)</li>
                         <li>Sintaxe Mermaid inválida</li>
                       </ul>
+                      
+                      <div className="mt-2 p-2 bg-white dark:bg-gray-900 rounded border border-amber-200">
+                        <p className="font-mono text-xs text-amber-900 dark:text-amber-200">
+                          <strong>Diagnóstico rápido:</strong><br/>
+                          Nós detectados: {(code.match(/[A-Z0-9_]+\[/g) || []).length}<br/>
+                          Setas detectadas: {(code.match(/(-->|---|==>|->)/g) || []).length}<br/>
+                          {(() => {
+                            const nodes = (code.match(/[A-Z0-9_]+\[/g) || []).length;
+                            const arrows = (code.match(/(-->|---|==>|->)/g) || []).length;
+                            const minArrows = Math.max(1, nodes - 1);
+                            return arrows < minArrows 
+                              ? `❌ Insuficiente! Precisa de pelo menos ${minArrows} setas para ${nodes} nós.`
+                              : `✅ Quantidade OK, mas pode haver nós órfãos.`;
+                          })()}
+                        </p>
+                      </div>
                     </div>
+                    
                     <pre className="p-4 bg-white dark:bg-gray-900 rounded border-2 border-red-200 dark:border-red-800 overflow-x-auto text-xs text-gray-800 dark:text-gray-200 font-mono leading-relaxed max-h-80">
 {code.substring(0, 1200)}{code.length > 1200 ? '\n\n... (código truncado)' : ''}
                     </pre>
