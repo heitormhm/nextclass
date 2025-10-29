@@ -413,7 +413,20 @@ serve(async (req) => {
       if (revalidation.valid) {
         console.log('[generate-lecture-material] ✅ AI fix successful - all diagrams now valid');
       } else {
-        console.warn('[generate-lecture-material] ⚠️ AI fix partial - some issues remain:', revalidation.errors);
+        console.warn('[generate-lecture-material] ⚠️ AI fix incomplete:', revalidation.errors);
+        
+        // FALLBACK: Remove completely unfixable diagrams to prevent infinite loading
+        const originalBlocks = markdownContent.match(/```mermaid/g)?.length || 0;
+        const errorCount = revalidation.errors.length;
+        
+        if (errorCount >= originalBlocks) {
+          // All diagrams failed - remove all to prevent rendering issues
+          console.error('[generate-lecture-material] ❌ All diagrams unfixable - generating without diagrams');
+          markdownContent = markdownContent.replace(/```mermaid\n[\s\S]*?```/g, '');
+        } else {
+          // Some diagrams valid - proceed with partial success
+          console.log(`[generate-lecture-material] Proceeding with ${originalBlocks - errorCount}/${originalBlocks} valid diagrams`);
+        }
       }
     } else {
       console.log('[generate-lecture-material] ✅ All Mermaid diagrams validated successfully');

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { RichMaterialRenderer } from './RichMaterialRenderer';
 import { MermaidDiagram } from '@/components/MermaidDiagram';
 import { MermaidErrorBoundary } from '@/components/MermaidErrorBoundary';
+import { MarkdownReferencesRenderer } from './MarkdownReferencesRenderer';
 
 interface TwoPhaseRendererProps {
   markdown: string;
@@ -18,18 +19,25 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
   const [renderMermaid, setRenderMermaid] = useState(false);
   
   // Split markdown into sections
-  const { textContent, mermaidBlocks } = useMemo(() => {
+  const { textContent, mermaidBlocks, referencesSection } = useMemo(() => {
     const blocks: MermaidBlock[] = [];
     let textOnly = markdown;
+    
+    // Extract references section first
+    const referencesMatch = textOnly.match(/(#{1,2}\s*Referências[\s\S]*$)/i);
+    const references = referencesMatch ? referencesMatch[1] : '';
+    if (references) {
+      textOnly = textOnly.replace(referencesMatch![0], '').trim();
+    }
     
     // Extract mermaid blocks with their positions and context
     const regex = /```mermaid\n([\s\S]*?)```/g;
     let match;
     let index = 0;
     
-    while ((match = regex.exec(markdown)) !== null) {
+    while ((match = regex.exec(textOnly)) !== null) {
       // Extract title from preceding header if exists
-      const beforeBlock = markdown.substring(0, match.index);
+      const beforeBlock = textOnly.substring(0, match.index);
       const lastHeader = beforeBlock.match(/#{2,3}\s+([^\n]+)\n*$/);
       const title = lastHeader ? lastHeader[1] : `Diagrama ${index + 1}`;
       
@@ -40,11 +48,11 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
         description: 'Representação visual do conceito'
       });
       
-      // Replace with placeholder in text version
-      textOnly = textOnly.replace(match[0], `\n\n[MERMAID_PLACEHOLDER_${index}]\n\n`);
+      // Remove mermaid block completely from text version
+      textOnly = textOnly.replace(match[0], '');
     }
     
-    return { textContent: textOnly, mermaidBlocks: blocks };
+    return { textContent: textOnly, mermaidBlocks: blocks, referencesSection: references };
   }, [markdown]);
   
   // Phase 1: Render immediately
@@ -99,6 +107,13 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
               </MermaidErrorBoundary>
             </div>
           ))}
+        </div>
+      )}
+      
+      {/* PHASE 3: References (always at the end) */}
+      {referencesSection && (
+        <div className="mt-12">
+          <MarkdownReferencesRenderer markdown={referencesSection} />
         </div>
       )}
     </div>

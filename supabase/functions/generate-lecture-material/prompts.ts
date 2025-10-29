@@ -20,16 +20,62 @@ Generate comprehensive, university-level educational content (8,000-12,000 words
 - Display formulas: Use $$formula$$ on its own line (e.g., $$\\frac{d}{dx}(x^2) = 2x$$)
 - Always use LaTeX syntax with proper escaping
 
-## DIAGRAMS:
-Create 3-5 Mermaid diagrams using PURE MARKDOWN code blocks (NO HTML):
-\`\`\`mermaid
-graph LR
-    A[Input] --> B[Process]
-    B --> C[Output]
-\`\`\`
+## DIAGRAMS (Mermaid) - CRITICAL RULES:
+Create 3-5 interactive Mermaid diagrams distributed THROUGHOUT content (NOT all at the end).
 
-CRITICAL: Use ONLY plain text inside mermaid blocks. NO <p>, <div>, or any HTML tags.
-Use flowcharts, sequence diagrams, or class diagrams as appropriate.
+**✅ ALLOWED DIAGRAM TYPES ONLY:**
+- flowchart TD / LR (top-down / left-right)
+- sequenceDiagram (for step-by-step processes)
+- classDiagram (for component relationships)
+- stateDiagram-v2 (for state machines)
+
+**✅ NODE ID RULES (STRICT - Alphanumeric ONLY):**
+- ALLOWED: A, B, C1, estado_1, node_energia, processo2
+- FORBIDDEN: ❌ "sistema fechado" (spaces), ❌ "état-1" (accents), ❌ "nó-1" (hyphens in IDs)
+- USE ENGLISH IDs: energy_system, closed_process, heat_flow
+
+**✅ LABEL RULES:**
+- MAX 50 characters per label (Portuguese labels are OK)
+- Use simple text (NO LaTeX formulas in node labels)
+- Break long concepts into multiple nodes
+- Example: A[Energia] NOT A[Energia cinética e potencial somadas]
+
+**✅ CONNECTION RULES:**
+- ASCII arrows ONLY: --> (solid), --- (dashed), ==> (thick)
+- FORBIDDEN Unicode: ❌ → ⇒ ← ⇐ ↔ ⇔
+- Short connection labels: -->|sim| NOT -->|se a condição for verdadeira|
+- Maximum 30 chars on arrow labels
+
+**✅ POSITIONING (CRITICAL):**
+- Place diagrams INLINE with related content (after introducing concepts)
+- Each major section (h2) should have 1-2 diagrams nearby
+- DO NOT accumulate all diagrams at the end
+- Diagrams MUST appear BEFORE "## Referências" section
+- Use diagrams to CLARIFY concepts just explained
+
+**✅ CORRECT EXAMPLE:**
+"""mermaid
+flowchart TD
+    A[Sistema Fechado] --> B{Primeira Lei}
+    B -->|Calor Q| C[Variacao Energia]
+    B -->|Trabalho W| D[Conservacao]
+    C --> E[Delta U]
+    D --> E
+"""
+
+**❌ WRONG EXAMPLES (WILL CAUSE RENDERING FAILURES):**
+- ❌ "sistema fechado[Label]" (space in ID)
+- ❌ "A[Este é um texto muito longo que excede cinquenta caracteres...]" (>50 chars)
+- ❌ "A → B" (Unicode arrow instead of ASCII)
+- ❌ "variação-energia" (hyphen in ID, use variacao_energia)
+- ❌ Placing all diagrams after h2 "Resumo" section
+
+**STRATEGIC PLACEMENT:**
+- Introduction section: 0-1 overview diagrams
+- Theory sections: 1-2 detailed diagrams each
+- Examples section: 1 application diagram
+- Summary: 0 diagrams (theory already visualized)
+- References: 0 diagrams (always last section)
 
 ## CALLOUT BOXES:
 Use blockquotes with emoji prefix for special sections (ALWAYS start with emoji):

@@ -157,9 +157,6 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
       >
         {markdown}
       </ReactMarkdown>
-      
-      {/* Render references section separately with custom styling */}
-      <MarkdownReferencesRenderer markdown={markdown} />
     </div>
   );
 };
