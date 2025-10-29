@@ -48,7 +48,14 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
           
           // Purple callout boxes (blockquotes with special syntax)
           blockquote: ({node, children, ...props}) => {
-            const content = String(children);
+            // ✅ PHASE 2: Fix text extraction from React children
+            const extractText = (child: any): string => {
+              if (typeof child === 'string') return child;
+              if (Array.isArray(child)) return child.map(extractText).join('');
+              if (child?.props?.children) return extractText(child.props.children);
+              return String(child);
+            };
+            const content = extractText(children);
             
             // Check if it's a special callout (starts with 🔑, 💡, ⚠️)
             if (content.match(/^(🔑|💡|⚠️|🤔|🌍)/)) {

@@ -81,6 +81,23 @@ Each reference MUST have: Author, Year, Title, URL, Type
 - Clear learning objectives at the start
 - Summary section before references
 
+## ✅ PHASE 4: REFERENCE QUALITY (CRITICAL):
+PRIORITIZE these sources:
+✅ Engineering textbooks (Springer, Wiley, Elsevier, IEEE)
+✅ Academic journals (.edu.br, university sites)
+✅ Technical documentation and standards
+✅ Research papers from conferences
+
+❌ NEVER USE these sources:
+❌ Wikipedia (wikipedia.org)
+❌ Brasil Escola (brasilescola.com)
+❌ Mundo Educação (mundoeducacao.com)
+❌ Toda Matéria (todamateria.com)
+❌ Social media or forums
+❌ Generic educational websites
+
+Use ONLY the provided search results for references. Each reference MUST be verifiable and academic.
+
 Focus on academic quality, practical engineering applications, and visual pedagogy.`;
 };
 

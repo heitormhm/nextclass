@@ -1,3 +1,10 @@
+/**
+ * ⚠️ PHASE 6: DEPRECATED - LEGACY ONLY
+ * This component is no longer used in the material generation flow.
+ * New materials use RichMaterialRenderer for markdown rendering.
+ * Kept only for backward compatibility with old HTML-based materials.
+ */
+
 import DOMPurify from 'dompurify';
 
 interface HTMLContentRendererProps {

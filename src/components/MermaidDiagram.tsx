@@ -124,9 +124,11 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
         const renderTimeout = setTimeout(() => {
-          console.error('[Mermaid] Render timeout');
+          console.error('[Mermaid] Render timeout after 10s');
+          setIsLoading(false); // ✅ PHASE 1: Fix infinite loading
           setError('timeout');
-        }, 10000); // Timeout de 10s
+          clearTimeout(renderTimeout);
+        }, 10000);
 
         // ✅ FASE 5: Estratégia de fallback com múltiplas tentativas
         const renderStrategies = [
@@ -184,6 +186,18 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         setIsLoading(false);
         setError('hidden');
       }
+      // ✅ PHASE 1: Safety timeout to prevent infinite loading
+      const safetyTimeout = setTimeout(() => {
+        if (isLoading) {
+          console.warn('[Mermaid] Safety timeout triggered at 12s');
+          setIsLoading(false);
+          setError('timeout');
+        }
+      }, 12000);
+
+      return () => {
+        clearTimeout(safetyTimeout);
+      };
     };
     
     renderDiagram();

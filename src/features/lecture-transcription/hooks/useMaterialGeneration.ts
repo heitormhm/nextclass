@@ -38,10 +38,23 @@ export const useMaterialGeneration = (): UseMaterialGenerationReturn => {
       setError(null);
     });
 
+    // ✅ PHASE 5: Progress simulation with setInterval
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return 90;
+        return prev + 8;
+      });
+    }, 2000);
+
     try {
-      // Simulate progress updates
-      setProgress(30);
+      // Progress updates during generation
+      setProgress(25);
       setProgressMessage('Pesquisando fontes acadêmicas...');
+
+      // Simulate research phase
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setProgress(40);
+      setProgressMessage('Gerando conteúdo com IA...');
 
       // Direct edge function call
       const { data, error: invokeError } = await supabase.functions.invoke(
@@ -58,6 +71,7 @@ export const useMaterialGeneration = (): UseMaterialGenerationReturn => {
       if (invokeError) throw invokeError;
       if (!data?.success) throw new Error(data?.error || 'Falha na geração');
 
+      clearInterval(progressInterval);
       setProgress(100);
       setProgressMessage('Material gerado com sucesso!');
 
@@ -78,6 +92,7 @@ export const useMaterialGeneration = (): UseMaterialGenerationReturn => {
       return true;
 
     } catch (err) {
+      clearInterval(progressInterval);
       console.error('[useMaterialGeneration] Error:', err);
       
       const errorMessage = err instanceof Error 

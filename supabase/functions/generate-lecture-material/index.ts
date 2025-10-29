@@ -6,6 +6,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { createSystemPrompt, createUserPrompt } from './prompts.ts';
+import { validateReferences } from '../teacher-job-runner/validators/reference-validator.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -73,35 +74,68 @@ serve(async (req) => {
 
     const teacherName = lecture?.teachers?.nome_completo || 'Professor';
 
-    // STEP 1: Brave Search (simplified - single query)
+    // STEP 1: Brave Search - ✅ PHASE 4: Prioritize engineering books
     console.log('[generate-lecture-material] Step 1: Academic research...');
     
-    const searchQuery = `${lectureTitle} ${tags.join(' ')} engineering academic`;
+    // ✅ PHASE 4: Engineering-focused source list
+    const PREFERRED_SOURCES = [
+      'site:springer.com',
+      'site:wiley.com',
+      'site:elsevier.com',
+      'site:ieeexplore.ieee.org',
+      'site:sciencedirect.com',
+      'site:.edu.br',
+      'filetype:pdf'
+    ];
+    
+    const academicQuery = `${lectureTitle} ${tags.join(' ')} ${PREFERRED_SOURCES.slice(0, 4).join(' OR ')}`;
+    const backupQuery = `${lectureTitle} engineering textbook -site:wikipedia.org -site:brasilescola.com`;
     const braveApiKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
     
     let searchResults = '';
     
     if (braveApiKey) {
-      const searchResponse = await fetch(
-        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=8`,
-        {
-          headers: { 'X-Subscription-Token': braveApiKey }
-        }
+      // Primary search: Academic sources
+      const academicSearch = await fetch(
+        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(academicQuery)}&count=5`,
+        { headers: { 'X-Subscription-Token': braveApiKey } }
       );
 
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json();
-        searchResults = searchData.web?.results
-          ?.map((r: any, i: number) => 
-            `[${i + 1}] ${r.title}\n${r.description}\nURL: ${r.url}\n`
-          )
-          .join('\n\n') || '';
+      if (academicSearch.ok) {
+        const academicData = await academicSearch.json();
+        const academicResults = academicData.web?.results || [];
+        
+        console.log('[Search] Academic results:', academicResults.length);
+        
+        // Backup search if insufficient academic results
+        if (academicResults.length < 3) {
+          console.log('[Search] Backup search triggered');
+          const backupSearch = await fetch(
+            `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(backupQuery)}&count=5`,
+            { headers: { 'X-Subscription-Token': braveApiKey } }
+          );
+          
+          if (backupSearch.ok) {
+            const backupData = await backupSearch.json();
+            const backupResults = backupData.web?.results || [];
+            searchResults = [...academicResults, ...backupResults]
+              .slice(0, 8)
+              .map((r: any, i: number) => `[${i + 1}] ${r.title}\n${r.description}\nURL: ${r.url}\n`)
+              .join('\n\n');
+          }
+        } else {
+          searchResults = academicResults
+            .map((r: any, i: number) => `[${i + 1}] ${r.title}\n${r.description}\nURL: ${r.url}\n`)
+            .join('\n\n');
+        }
       }
     }
 
     if (!searchResults) {
       searchResults = `Material gerado a partir do conteúdo da aula: ${lectureTitle}`;
     }
+    
+    console.log('[Search] Results length:', searchResults.length);
 
     // STEP 2: Generate content with Lovable AI
     console.log('[generate-lecture-material] Step 2: Generating content...');
@@ -158,6 +192,33 @@ serve(async (req) => {
       hasMermaidBlocks: !!mermaidBlocks,
       mermaidBlockCount: mermaidBlocks?.length || 0,
       sample: markdownContent.substring(0, 300)
+    });
+
+    // ✅ PHASE 3: Validate references quality
+    console.log('[generate-lecture-material] Step 3.5: Validating references...');
+    
+    const refValidation = validateReferences(markdownContent);
+    
+    if (!refValidation.valid) {
+      console.error('[generate-lecture-material] ❌ References validation failed:', refValidation.errors);
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Referências com qualidade insuficiente. Fontes não confiáveis detectadas.',
+          details: refValidation.errors,
+          bannedCount: refValidation.bannedCount
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    console.log('[generate-lecture-material] ✅ References validated:', {
+      academicPercentage: refValidation.academicPercentage.toFixed(1) + '%',
+      bannedCount: refValidation.bannedCount
     });
 
     // STEP 4: Save to database (store markdown, not HTML)

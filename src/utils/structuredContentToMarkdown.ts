@@ -1,3 +1,11 @@
+/**
+ * ⚠️ PHASE 6: DEPRECATED - LEGACY ONLY
+ * This utility converts structured JSON to markdown format.
+ * No longer used in current material generation flow.
+ * New materials are generated directly as markdown.
+ * Kept only for backward compatibility.
+ */
+
 interface ContentBlock {
   tipo: string;
   texto?: string;
