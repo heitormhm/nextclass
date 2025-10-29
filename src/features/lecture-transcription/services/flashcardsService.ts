@@ -3,13 +3,36 @@ import { GeneratedFlashcards, FlashcardData } from '../types/flashcards.types';
 
 export class FlashcardsService {
   static async loadFlashcards(lectureId: string): Promise<GeneratedFlashcards | null> {
+    console.log('[FlashcardsService] Loading flashcards for lecture:', lectureId);
+    
     const { data, error } = await supabase
       .from('teacher_flashcards')
       .select('*')
       .eq('lecture_id', lectureId)
-      .single();
+      .maybeSingle();
     
-    if (error) return null;
+    if (error) {
+      console.error('[FlashcardsService] Error loading flashcards:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      return null;
+    }
+    
+    if (!data) {
+      console.log('[FlashcardsService] No flashcards found for lecture');
+      return null;
+    }
+    
+    const cards = data.cards as any[];
+    console.log('[FlashcardsService] Flashcards loaded successfully:', {
+      id: data.id,
+      cardCount: cards?.length || 0,
+      firstCardSample: cards?.[0]
+    });
+    
     return data as GeneratedFlashcards;
   }
 
