@@ -13,6 +13,7 @@ interface MaterialGenerationContainerProps {
   transcript?: string;
   currentMaterial?: string;
   onSuccess?: () => void;
+  onGeneratingChange?: (isGenerating: boolean, step: number, message: string) => void;
 }
 
 export interface MaterialGenerationContainerRef {
@@ -28,6 +29,7 @@ export const MaterialGenerationContainer = forwardRef<
   transcript,
   currentMaterial,
   onSuccess,
+  onGeneratingChange,
 }, ref) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
@@ -40,8 +42,20 @@ export const MaterialGenerationContainer = forwardRef<
   } = useMaterialGenerationJob({
     onSuccess: () => {
       onSuccess?.();
+      onGeneratingChange?.(false, 0, '');
+    },
+    onError: (error) => {
+      console.error('[MaterialGenerationContainer] ❌ Error:', error);
+      onGeneratingChange?.(false, 0, '');
     },
   });
+
+  // Notificar mudanças de estado
+  React.useEffect(() => {
+    if (isGenerating) {
+      onGeneratingChange?.(true, currentStep, progressMessage);
+    }
+  }, [isGenerating, currentStep, progressMessage, onGeneratingChange]);
 
   // Debug logging para lifecycle do componente
   React.useEffect(() => {

@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewer';
 import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
+import { MaterialGenerationLoading } from '@/features/material-didatico-generation/components/MaterialGenerationLoading';
 import { FileText, BookOpen, Sparkles, RotateCcw } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import type { StructuredContent } from '../types/lecture.types';
@@ -12,6 +13,11 @@ interface ContentTabsProps {
   topics?: Array<{ conceito: string; definicao: string }>;
   materialGenerationComponent?: React.ReactNode;
   onRegenerateMaterial?: () => void;
+  isGeneratingMaterial?: boolean;
+  materialGenerationProgress?: {
+    step: number;
+    message: string;
+  };
 }
 
 export const ContentTabs: React.FC<ContentTabsProps> = ({
@@ -19,7 +25,9 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
   structuredContent,
   topics,
   materialGenerationComponent,
-  onRegenerateMaterial
+  onRegenerateMaterial,
+  isGeneratingMaterial,
+  materialGenerationProgress,
 }) => {
   /**
    * Handler para regeneração de material didático
@@ -99,7 +107,12 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
           </TabsContent>
 
           <TabsContent value="material" className="mt-4">
-            {!structuredContent?.material_didatico ? (
+            {isGeneratingMaterial ? (
+              <MaterialGenerationLoading
+                currentStep={materialGenerationProgress?.step || 0}
+                progressMessage={materialGenerationProgress?.message || 'Processando...'}
+              />
+            ) : !structuredContent?.material_didatico ? (
               <div className="text-center py-12">
                 {materialGenerationComponent || (
                   <p className="text-muted-foreground">

@@ -474,14 +474,10 @@ const TeacherAnnotationPage = () => {
     }
 
     const currentContent = editorRef.current?.innerHTML || '';
-    console.log('[AI Action] 💾 Salvando estado antes de processar:', actionType);
-    console.log('[AI Action] Conteúdo atual (primeiros 100 chars):', currentContent.substring(0, 100));
     setPreAIContent(currentContent);
     
-    // Se ainda não temos originalInputContent, salvar agora
     if (!originalInputContent) {
       setOriginalInputContent(currentContent);
-      console.log('[AI Action] ✅ originalInputContent salvo pela primeira vez');
     }
     
     setIsProcessingAI(true);
@@ -514,8 +510,81 @@ const TeacherAnnotationPage = () => {
     }
     
     try {
-      // Lógica especial para "Gerar Plano de Aula"
-    if (actionType === 'format_lesson_plan') {
+      // Usar serviço modular
+      const result = await AIFormattingService.formatContent(
+        content,
+        actionType as any,
+        { timeout: 120000 }
+      );
+
+      if (progressToastId) {
+        sonnerToast.dismiss(progressToastId);
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao processar');
+      }
+
+      // Aplicar resultado estruturado
+      if (result.isStructured && result.structuredContent) {
+        const jsonContent = JSON.stringify(result.structuredContent);
+        
+        setStructuredContent(result.structuredContent);
+        setIsStructuredMode(true);
+        setContent(jsonContent);
+        
+        if (editorRef.current) {
+          editorRef.current.innerHTML = '';
+          editorRef.current.blur();
+        }
+        
+        saveToHistory(jsonContent);
+        
+        if (result.warnings) {
+          result.warnings.forEach(w => {
+            sonnerToast.warning(`⚠️ ${w}`, { duration: 8000 });
+          });
+        }
+        
+        sonnerToast.success(
+          AIFormattingService.getSuccessMessage(actionType as any, result),
+          { duration: 6000 }
+        );
+      } else {
+        // HTML simples
+        setContent(result.formattedText || '');
+        if (editorRef.current) {
+          editorRef.current.innerHTML = result.formattedText || '';
+        }
+        saveToHistory(result.formattedText || '');
+        
+        sonnerToast.success('Texto formatado com sucesso!');
+        
+        if (result.suggestions) {
+          sonnerToast.info(`Sugestões: ${result.suggestions}`, { duration: 8000 });
+        }
+        
+        setLastAIFormattedContent(result.formattedText || '');
+        setShowPDFExportButton(true);
+        setTimeout(() => setShowPDFExportButton(false), 30000);
+      }
+      
+    } catch (error: any) {
+      if (progressToastId) {
+        sonnerToast.dismiss(progressToastId);
+      }
+
+      if (error?.message?.includes('429')) {
+        sonnerToast.error('Limite de requisições atingido');
+      } else if (error?.message?.includes('402')) {
+        sonnerToast.error('Créditos esgotados');
+      } else {
+        sonnerToast.error(error.message || 'Erro ao processar com IA');
+      }
+    } finally {
+      setIsProcessingAI(false);
+    }
+  };
       try {
         toast.info('Gerando plano de aula... 📚', {
           description: 'Aguarde 60-90 segundos',

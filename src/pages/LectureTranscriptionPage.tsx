@@ -56,6 +56,9 @@ const LectureTranscriptionPage = () => {
   const [isProcessingTranscript, setIsProcessingTranscript] = useState(false);
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
   const [isLoadingFlashcards, setIsLoadingFlashcards] = useState(false);
+  const [isGeneratingFromRef, setIsGeneratingFromRef] = useState(false);
+  const [materialProgressStep, setMaterialProgressStep] = useState(0);
+  const [materialProgressMessage, setMaterialProgressMessage] = useState('');
   
   // Ref para controlar geração de material
   const materialGenerationRef = useRef<MaterialGenerationContainerRef>(null);
@@ -428,6 +431,11 @@ const LectureTranscriptionPage = () => {
                   transcript={lecture.raw_transcript}
                   currentMaterial={currentMaterialValue}
                   onSuccess={reloadLecture}
+                  onGeneratingChange={(isGenerating, step, message) => {
+                    setIsGeneratingFromRef(isGenerating);
+                    setMaterialProgressStep(step);
+                    setMaterialProgressMessage(message);
+                  }}
                 />
               }
               onRegenerateMaterial={() => {
@@ -464,6 +472,11 @@ const LectureTranscriptionPage = () => {
                 };
                 
                 attemptTriggerWithRAF();
+              }}
+              isGeneratingMaterial={isGeneratingFromRef}
+              materialGenerationProgress={{
+                step: materialProgressStep,
+                message: materialProgressMessage,
               }}
             />
             
