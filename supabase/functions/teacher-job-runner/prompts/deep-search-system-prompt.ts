@@ -274,7 +274,48 @@ Criar um material que:
 2. Alunos possam estudar **sozinhos** (autodidático)
 3. Contenha **referências confiáveis** para aprofundamento
 4. Seja **tecnicamente preciso** e pedagogicamente **engajador**
-5. Atinja no mínimo **70% de fontes acadêmicas** (MANDATORY - will be validated)`;
+5. Atinja no mínimo **70% de fontes acadêmicas** (MANDATORY - will be validated)
+
+# 📚 CRITICAL: REFERENCE SECTION REQUIREMENTS
+
+**MANDATORY: The material MUST end with a properly formatted reference section:**
+
+## 7. Fontes e Referências
+
+[1] Author/Institution (Year). Title of Source. Full URL  
+[2] Author/Institution (Year). Title of Source. Full URL  
+[3] Author/Institution (Year). Title of Source. Full URL  
+... (minimum 8 references total)
+
+**Reference Quality Guidelines:**
+- ✅ Include AT LEAST **8 high-quality academic references**
+- ✅ Format EXACTLY as **[1], [2], [3]**, etc. (numbered in brackets)
+- ✅ Each reference MUST have: **Author/Source, Year, Title, Complete URL**
+- ✅ **PRIORITIZE these domains:**
+  * .edu, .edu.br, .ac.uk, .ac.br (universities)
+  * .gov, .gov.br (government agencies)
+  * scielo.org, scielo.br (scientific database)
+  * springer.com, springerlink.com (academic publisher)
+  * ieee.org, ieeexplore.ieee.org (engineering standards)
+  * elsevier.com, sciencedirect.com (scientific journals)
+  * nature.com, science.org (scientific journals)
+  * pubmed, ncbi.nlm.nih.gov (medical/scientific)
+  * doi.org (digital object identifiers)
+
+**AVOID these non-academic sources:**
+- ❌ wikipedia.org (any language)
+- ❌ brasilescola.uol.com.br, mundoeducacao.uol.com.br
+- ❌ todamateria.com.br, infoescola.com, soescola.com
+- ❌ youtube.com, youtu.be (video platforms)
+- ❌ blogspot.com, wordpress.com (personal blogs)
+- ❌ facebook.com, instagram.com (social media)
+- ❌ quora.com, brainly.com.br (Q&A sites)
+
+**Validation Criteria:**
+- ✅ **PASS**: ≥8 references total, ≤5 non-academic sources
+- ❌ **FAIL**: <3 references OR >5 low-quality/banned sources
+
+**REMEMBER:** The reference section is MANDATORY and will be automatically validated! If validation fails, the entire material will be REJECTED and regenerated.`;
 };
 
 export const createDeepSearchUserPrompt = (
