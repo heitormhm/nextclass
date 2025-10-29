@@ -177,6 +177,9 @@ verify_jwt = false
 [functions.fix-mermaid-html-in-material]
 verify_jwt = false
 
+[functions.remove-broken-mermaid]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321

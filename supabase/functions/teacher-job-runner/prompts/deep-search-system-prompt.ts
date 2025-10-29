@@ -163,6 +163,37 @@ D[Plain text only]            ✅ No formatting needed
 - If ANY found → REMOVE THEM → Use plain text alternatives
 - Mermaid accepts markdown-style text in quotes: \`A["Text **bold**"]\`
 
+**🔗 RULE #1.5: MANDATORY CONNECTION VALIDATION**
+EVERY node MUST have at least ONE connection (arrow). Orphaned nodes will cause rendering failures.
+
+❌ **PROHIBITED - ORPHANED NODES:**
+\`\`\`
+flowchart TD
+    A[Start] --> B[Process]
+    C[End]                    ❌ Node C has NO connection (orphaned!)
+\`\`\`
+
+✅ **CORRECT - ALL NODES CONNECTED:**
+\`\`\`
+flowchart TD
+    A[Start] --> B[Process]
+    B --> C[End]              ✅ Every node has connection
+\`\`\`
+
+**VALIDATION RULE:**
+- **Minimum arrows = (Number of nodes - 1)**
+- For 3 nodes → minimum 2 arrows
+- For 4 nodes → minimum 3 arrows
+- For 5 nodes → minimum 4 arrows
+
+**🔍 SYNTAX CHECKLIST BEFORE GENERATION:**
+- [ ] All nodes have IDs (e.g., \`A\`, \`B\`, \`C\`)
+- [ ] All nodes have labels in brackets \`[label]\`
+- [ ] Every pair of related nodes has an arrow \`-->\`
+- [ ] **NO orphaned nodes** (nodes without ANY connection)
+- [ ] Minimum arrows = (nodes - 1)
+- [ ] Styles are defined AFTER all nodes and connections
+
 **✅ RULE #2: NODE DEFINITIONS BEFORE STYLES**
 \`\`\`
 ✅ CORRECT ORDER:

@@ -138,6 +138,16 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
       }
       console.log(`[TwoPhaseRenderer] ✅ Phase 6 passed: Structure detected (nodes: ${hasNodes}, connections: ${hasConnections})`);
       
+      // PHASE 7: Validate arrow-to-node ratio (CRITICAL for syntax correctness)
+      const expectedMinArrows = Math.max(1, nodeCount - 1); // Minimum: N-1 arrows for N nodes
+      if (arrowCount < expectedMinArrows) {
+        console.error(`[TwoPhaseRenderer] ❌ REJECTED (Phase 7): Insufficient connections (${arrowCount} arrows for ${nodeCount} nodes, need ≥${expectedMinArrows})`);
+        console.error(`[TwoPhaseRenderer] 📄 Code: ${code}`);
+        textOnly = textOnly.replace(match[0], '');
+        continue;
+      }
+      console.log(`[TwoPhaseRenderer] ✅ Phase 7 passed: Arrow ratio OK (${arrowCount} arrows for ${nodeCount} nodes)`);
+      
       // Extract title from preceding header if exists
       const beforeBlock = textOnly.substring(0, match.index);
       const lastHeader = beforeBlock.match(/#{2,3}\s+([^\n]+)\n*$/);

@@ -255,6 +255,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
                         <li>Tags HTML no código Mermaid (&lt;br/&gt;, &lt;sup&gt;, etc.)</li>
                         <li>Estilos definidos antes dos nós</li>
                         <li>Linhas vazias dentro do diagrama</li>
+                        <li><strong>Nós sem conexões (setas faltando)</strong></li>
                         <li>Sintaxe Mermaid inválida</li>
                       </ul>
                     </div>
