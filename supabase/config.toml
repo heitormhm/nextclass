@@ -171,6 +171,9 @@ verify_jwt = false
 [functions.fix-mermaid-diagram]
 verify_jwt = false
 
+[functions.fix-latex-in-material]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321

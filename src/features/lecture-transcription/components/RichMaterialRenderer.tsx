@@ -66,8 +66,29 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
           }]
         ]}
         components={{
-          // Paragraphs with citation processing
+          // ✅ PHASE 3: Paragraphs with citation processing + subtitle detection
           p: ({ node, children, ...props }) => {
+            // Extract text content to check if it's a subtitle
+            const extractText = (child: any): string => {
+              if (typeof child === 'string') return child;
+              if (Array.isArray(child)) return child.map(extractText).join('');
+              if (child?.props?.children) return extractText(child.props.children);
+              return String(child);
+            };
+            const textContent = extractText(children).trim();
+            
+            // Detect if this paragraph is actually an example subtitle (plain text, not in <strong>)
+            const isSubtitle = /^(Enunciado|Dados Fornecidos|Raciocínio|Discussão|Solução|Resposta|Análise):?\s*$/i.test(textContent);
+            
+            if (isSubtitle) {
+              return (
+                <h4 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mt-6 mb-3 border-l-4 border-purple-400 pl-3">
+                  {children}
+                </h4>
+              );
+            }
+            
+            // Normal paragraph: process citations
             const processedChildren = React.Children.map(children, (child) => processCitations(child));
             return (
               <p className="my-4 leading-relaxed text-foreground" {...props}>
