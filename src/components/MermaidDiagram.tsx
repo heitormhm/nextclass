@@ -70,14 +70,14 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
       setIsLoading(true);
       setError(null);
 
-      // Safety timeout with explicit cleanup tracking
+      // Safety timeout with explicit cleanup tracking (reduced to 8s)
       safetyTimeoutId = setTimeout(() => {
         if (isMounted) {
-          console.warn('[Mermaid] Safety timeout triggered at 12s');
+          console.warn('[Mermaid] Safety timeout triggered at 8s');
           setIsLoading(false);
           setError('timeout');
         }
-      }, 12000);
+      }, 8000);
 
       try {
         const sanitizedCode = sanitizeMermaidCode(code);
@@ -199,7 +199,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-lg p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="text-5xl text-purple-400">📊</div>
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-semibold text-purple-800">Visualização em construção</p>
                 {description && description.length > 50 && (
                   <p className="text-sm text-purple-700 mt-2 leading-relaxed italic bg-purple-100/50 p-3 rounded border-l-4 border-purple-400">
@@ -207,6 +207,16 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
                   </p>
                 )}
                 <p className="text-xs text-purple-600 mt-2">O sistema está processando este conteúdo visual</p>
+                {code && code.length > 0 && (
+                  <details className="mt-3">
+                    <summary className="text-xs text-purple-600 cursor-pointer hover:text-purple-800">
+                      Ver código do diagrama
+                    </summary>
+                    <pre className="mt-2 p-3 bg-purple-100 rounded text-xs overflow-x-auto">
+                      <code>{code.substring(0, 200)}{code.length > 200 ? '...' : ''}</code>
+                    </pre>
+                  </details>
+                )}
               </div>
             </div>
           </div>

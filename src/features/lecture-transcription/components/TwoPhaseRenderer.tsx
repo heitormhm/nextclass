@@ -23,8 +23,10 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
     const blocks: MermaidBlock[] = [];
     let textOnly = markdown;
     
-    // Extract references section first
-    const referencesMatch = textOnly.match(/(#{1,2}\s*Referências[\s\S]*$)/i);
+    // Extract references section (anywhere in text, not just at end)
+    const referencesMatch = textOnly.match(
+      /(#{1,6}\s*(?:Referências|Referencias)[\s\S]*?)(?=\n#{1,6}\s+(?!#)|$)/i
+    );
     const references = referencesMatch ? referencesMatch[1] : '';
     if (references) {
       textOnly = textOnly.replace(referencesMatch![0], '').trim();
@@ -36,6 +38,16 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
     let index = 0;
     
     while ((match = regex.exec(textOnly)) !== null) {
+      const code = match[1].trim();
+      
+      // PHASE 1: Basic validation before adding to blocks
+      const isValid = code.match(/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt)/);
+      if (!isValid) {
+        console.warn(`[TwoPhaseRenderer] Invalid Mermaid diagram at index ${index}, skipping (no valid diagram type)`);
+        textOnly = textOnly.replace(match[0], '');
+        continue;
+      }
+      
       // Extract title from preceding header if exists
       const beforeBlock = textOnly.substring(0, match.index);
       const lastHeader = beforeBlock.match(/#{2,3}\s+([^\n]+)\n*$/);
@@ -43,7 +55,7 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
       
       blocks.push({
         index: index++,
-        code: match[1].trim(),
+        code: code,
         title: title,
         description: 'Representação visual do conceito'
       });
@@ -51,6 +63,11 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
       // Remove mermaid block completely from text version
       textOnly = textOnly.replace(match[0], '');
     }
+    
+    // PHASE 2: Clean up excessive newlines left behind
+    textOnly = textOnly
+      .replace(/\n{3,}/g, '\n\n')  // Max 2 consecutive newlines
+      .trim();
     
     return { textContent: textOnly, mermaidBlocks: blocks, referencesSection: references };
   }, [markdown]);
