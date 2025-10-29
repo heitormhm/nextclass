@@ -2,6 +2,7 @@ export interface StructuredContent {
   titulo_aula: string;
   resumo: string;
   material_didatico?: string | object;
+  material_didatico_html?: string; // ✅ HTML format (primary)
   topicos_principais: Array<{ conceito: string; definicao: string }>;
   referencias_externas: Array<{ titulo: string; url: string; tipo: string }>;
   perguntas_revisao: Array<{

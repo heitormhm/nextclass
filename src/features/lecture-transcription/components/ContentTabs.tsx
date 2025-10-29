@@ -2,8 +2,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewer';
 import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
+import { HTMLContentRenderer } from '@/components/HTMLContentRenderer';
 import { MaterialGenerationLoading } from '@/features/material-didatico-generation/components/MaterialGenerationLoading';
-import { FileText, BookOpen, Sparkles, RotateCcw } from 'lucide-react';
+import { FileText, BookOpen, Sparkles, RotateCcw, AlertCircle } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import type { StructuredContent } from '../types/lecture.types';
 
@@ -46,6 +47,19 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
     
     onRegenerateMaterial();
   };
+
+  /**
+   * Check if HTML content is empty or invalid
+   */
+  const isEmptyHTML = (html: string | undefined) => {
+    if (!html) return true;
+    const stripped = html.replace(/<[^>]*>/g, '').trim();
+    return stripped.length === 0;
+  };
+
+  // ✅ FASE 2: Extract material formats
+  const materialHTML = structuredContent?.material_didatico_html as string | undefined;
+  const materialJSON = structuredContent?.material_didatico;
   return (
     <Card className="backdrop-blur-sm bg-white/95 shadow-xl border-white/20">
       <CardContent className="pt-6">
@@ -112,18 +126,36 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
                 currentStep={materialGenerationProgress?.step || 0}
                 progressMessage={materialGenerationProgress?.message || 'Processando...'}
               />
-            ) : !structuredContent?.material_didatico ? (
+            ) : materialHTML ? (
+              // ✅ FASE 2: Render HTML (primary format)
+              isEmptyHTML(materialHTML) ? (
+                <div className="text-center py-12 space-y-4">
+                  <AlertCircle className="h-12 w-12 text-orange-500 mx-auto" />
+                  <div>
+                    <p className="text-muted-foreground font-medium">
+                      ⚠️ Material didático está vazio
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Tente regenerar clicando no ícone de refazer acima.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <HTMLContentRenderer htmlContent={materialHTML} />
+              )
+            ) : materialJSON ? (
+              // ✅ Backward compatibility: Render JSON (old lectures)
+              <StructuredContentRenderer 
+                structuredData={materialJSON as any}
+              />
+            ) : (
               <div className="text-center py-12">
                 {materialGenerationComponent || (
                   <p className="text-muted-foreground">
-                    Nenhum material didático disponível
+                    Nenhum material didático disponível ainda.
                   </p>
                 )}
               </div>
-            ) : (
-              <StructuredContentRenderer 
-                structuredData={structuredContent.material_didatico as any}
-              />
             )}
           </TabsContent>
         </Tabs>

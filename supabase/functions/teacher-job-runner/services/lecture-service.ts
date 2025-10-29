@@ -28,54 +28,52 @@ export async function saveReportToLecture(
   
   // Validate minimum word count (diagrams count as content)
   const wordCount = fixedReport
-    .replace(/```mermaid[\s\S]*?```/g, '[DIAGRAM]') // Keep diagrams as token
-    .replace(/```json[\s\S]*?```/g, '') // Remove JSON metadata blocks
-    .replace(/```[\s\S]*?```/g, '') // Remove other code blocks
+    .replace(/```mermaid[\s\S]*?```/g, '[DIAGRAM]')
+    .replace(/```json[\s\S]*?```/g, '')
+    .replace(/```[\s\S]*?```/g, '')
     .split(/\s+/)
-    .filter(w => w.length > 2).length; // Ignore very short tokens
+    .filter(w => w.length > 2).length;
   
   console.log(`[Job ${jobId}] 📊 Word count validation: ${wordCount} palavras`);
   
   if (wordCount < 1500) {
     console.warn(`[Job ${jobId}] ⚠️ Material com ${wordCount} palavras (recomendado: 3000+)`);
-    // Não bloquear - permitir salvar para análise do professor
   }
 
-  // ✅ FASE 1: Logging detalhado ANTES da conversão
-  console.log(`[Job ${jobId}] 🔄 Starting markdown conversion:`, {
-    reportLength: fixedReport.length,
-    reportPreview: fixedReport.substring(0, 300),
-    wordCountPreConversion: wordCount,
-  });
+  // ✅ FASE 1: Convert markdown to HTML (same as TeacherAnnotationPage)
+  console.log(`[Job ${jobId}] 🎨 Converting markdown to HTML...`);
+  
+  let htmlContent = fixedReport; // Fallback to original markdown
+  
+  try {
+    const { data: htmlData, error: htmlError } = await supabase.functions.invoke(
+      'format-lecture-content',
+      { body: { markdown: fixedReport } }
+    );
+    
+    if (!htmlError && htmlData?.cleanedMarkdown) {
+      htmlContent = htmlData.cleanedMarkdown;
+      console.log(`[Job ${jobId}] ✅ HTML generated: ${htmlContent.length} chars`);
+    } else {
+      console.warn(`[Job ${jobId}] ⚠️ HTML conversion failed, using markdown:`, htmlError);
+    }
+  } catch (err) {
+    console.error(`[Job ${jobId}] ❌ HTML conversion exception:`, err);
+  }
 
-  // Convert markdown to structured JSON format
+  // Convert markdown to structured JSON format (backward compatibility)
   const structuredJSON = await convertMarkdownToStructuredJSON(
     fixedReport,
     'Material Didático',
     jobId
   );
   
-  // ✅ FASE 1: Validar estrutura antes de salvar
-  const structuredWordCount = JSON.stringify(structuredJSON.conteudo)
-    .split(/\s+/)
-    .filter(w => w.length > 2).length;
-  
-  console.log(`[Job ${jobId}] 📊 Structured content validation:`, {
-    blockCount: structuredJSON.conteudo.length,
-    wordCount: structuredWordCount,
-    hasContent: structuredWordCount > 0,
-  });
-  
-  if (structuredWordCount === 0 || structuredJSON.conteudo.length === 0) {
-    console.error(`[Job ${jobId}] ❌ CRITICAL: Structured content is empty after conversion`);
-    throw new Error('Conteúdo estruturado vazio após conversão. Verifique o formato do markdown.');
-  }
-  
-  // Update lecture with new structured content
+  // Update lecture with HTML + JSON (backward compatibility)
   await supabase.from('lectures').update({
     structured_content: {
       ...existingContent,
-      material_didatico: structuredJSON
+      material_didatico_html: htmlContent,  // ✅ PRIMARY: HTML format
+      material_didatico: structuredJSON      // ✅ FALLBACK: JSON for old lectures
     },
     updated_at: new Date().toISOString()
   }).eq('id', lectureId);

@@ -50,12 +50,8 @@ export const MaterialGenerationContainer = forwardRef<
     },
   });
 
-  // Notificar mudanças de estado
-  React.useEffect(() => {
-    if (isGenerating) {
-      onGeneratingChange?.(true, currentStep, progressMessage);
-    }
-  }, [isGenerating, currentStep, progressMessage, onGeneratingChange]);
+  // ✅ FASE 3: Removed - Hook now notifies directly via callback
+  // No need for useEffect since onProgress is called before setIsGenerating
 
   // Debug logging para lifecycle do componente
   React.useEffect(() => {

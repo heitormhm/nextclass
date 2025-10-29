@@ -126,6 +126,11 @@ export const useMaterialGenerationJob = (callbacks?: MaterialGenerationCallbacks
       setError(null);
       setProgressMessage('');
       hasProcessedCompletion.current = false;
+      
+      // ✅ FASE 3: Notify parent BEFORE setting isGenerating
+      // This ensures loader appears immediately without async delay
+      callbacks?.onProgress?.(0, 'Iniciando...');
+      
       setIsGenerating(true);
       setCurrentStep(0);
 
