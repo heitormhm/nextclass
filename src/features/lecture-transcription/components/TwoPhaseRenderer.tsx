@@ -48,6 +48,13 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
         continue;
       }
       
+      // PHASE 1.5: CRITICAL - Detect forbidden subgraph syntax
+      if (code.includes('subgraph')) {
+        console.error(`[TwoPhaseRenderer] ⛔ FORBIDDEN subgraph detected in diagram ${index + 1}, skipping to prevent infinite load`);
+        textOnly = textOnly.replace(match[0], '');
+        continue;
+      }
+      
       // Extract title from preceding header if exists
       const beforeBlock = textOnly.substring(0, match.index);
       const lastHeader = beforeBlock.match(/#{2,3}\s+([^\n]+)\n*$/);

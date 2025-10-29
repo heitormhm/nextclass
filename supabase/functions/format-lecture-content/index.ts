@@ -100,6 +100,19 @@ function validateAndFixMermaidDiagrams(markdown: string): string {
     // FIX PHASE 5: Remove HTML tags that might have leaked
     fixedCode = fixedCode.replace(/<[^>]*>/g, '');
     
+    // FIX PHASE 6: CRITICAL - Remove subgraph blocks (cause infinite loading)
+    if (fixedCode.includes('subgraph')) {
+      console.warn(`[format-lecture-content] Block ${blocksFound} contains FORBIDDEN subgraph - FLATTENING`);
+      
+      // Extract content inside subgraph and flatten it
+      fixedCode = fixedCode.replace(/subgraph\s+[^\n]*\n([\s\S]*?)\n\s*end/g, (match, content) => {
+        // Remove the subgraph wrapper but keep the nodes/edges inside
+        return content.trim();
+      });
+      
+      blocksFixed++;
+    }
+    
     // SUCCESS LOGGING
     if (fixedCode !== originalCode) {
       console.log(`[format-lecture-content] Block ${blocksFound} AGGRESSIVELY FIXED ✅`);
