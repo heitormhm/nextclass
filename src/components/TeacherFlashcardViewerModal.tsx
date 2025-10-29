@@ -40,12 +40,18 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
   const [viewMode, setViewMode] = useState<'list' | 'interactive'>('list');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [flippedCardsInList, setFlippedCardsInList] = useState<{ [key: number]: boolean }>({});
 
   const handleClose = () => {
     setViewMode('list');
     setCurrentIndex(0);
     setIsFlipped(false);
+    setFlippedCardsInList({});
     onClose();
+  };
+
+  const handleFlipCardInList = (index: number) => {
+    setFlippedCardsInList(prev => ({ ...prev, [index]: !prev[index] }));
   };
 
   useEffect(() => {
@@ -53,6 +59,7 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
       setViewMode('list');
       setCurrentIndex(0);
       setIsFlipped(false);
+      setFlippedCardsInList({});
     }
   }, [isOpen]);
 
@@ -100,37 +107,58 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
 
             {/* Lista de Flashcards */}
             <div className="grid gap-4 md:grid-cols-2">
-              {flashcardSet.cards.map((card, index) => (
-                <div key={index} className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                  {/* Front */}
-                  <div className="bg-gradient-to-br from-purple-100 to-pink-100 p-4 border-b-2 border-purple-300">
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 mb-2">
-                      Card {index + 1}
-                    </Badge>
-                    {card.tags && card.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {card.tags.map((tag, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs bg-purple-200 text-purple-900">
-                            {tag}
-                          </Badge>
-                        ))}
+              {flashcardSet.cards.map((card, index) => {
+                const isFlippedInList = flippedCardsInList[index] || false;
+                
+                return (
+                  <div
+                    key={index}
+                    className="perspective-1000 cursor-pointer h-[200px]"
+                    onClick={() => handleFlipCardInList(index)}
+                  >
+                    <div className={`flashcard-inner ${isFlippedInList ? 'flipped' : ''} h-full`}>
+                      {/* Front */}
+                      <div className="flashcard-face flashcard-front h-full border-2 border-purple-300 rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-100 to-pink-100">
+                        <div className="p-4 h-full flex flex-col">
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
+                              Card {index + 1}
+                            </Badge>
+                          </div>
+                          {card.tags && card.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              {card.tags.map((tag, idx) => (
+                                <Badge key={idx} variant="secondary" className="text-xs bg-purple-200 text-purple-900">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex-1 flex items-center justify-center">
+                            <div 
+                              className="text-base font-semibold text-slate-900 text-center line-clamp-4" 
+                              dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(card.front) }}
+                            />
+                          </div>
+                          <p className="text-xs text-purple-700 text-center font-medium mt-2">
+                            Clique para ver a resposta
+                          </p>
+                        </div>
                       </div>
-                    )}
-                    <div 
-                      className="text-base font-semibold text-slate-900" 
-                      dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(card.front) }}
-                    />
+                      
+                      {/* Back */}
+                      <div className="flashcard-face flashcard-back h-full border-2 border-emerald-300 rounded-lg overflow-hidden bg-gradient-to-br from-emerald-100 to-teal-100">
+                        <div className="p-4 h-full flex items-center justify-center">
+                          <div 
+                            className="text-sm text-slate-800 leading-relaxed text-center line-clamp-6" 
+                            dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(card.back) }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  {/* Back */}
-                  <div className="bg-gradient-to-br from-emerald-100 to-teal-100 p-4">
-                    <div 
-                      className="text-sm text-slate-800 leading-relaxed" 
-                      dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(card.back) }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

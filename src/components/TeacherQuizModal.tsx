@@ -150,18 +150,12 @@ export const TeacherQuizModal = ({ open, onOpenChange, quizData }: TeacherQuizMo
                 <p className="text-sm text-muted-foreground">Total de Questões</p>
                 <p className="text-3xl font-bold text-purple-600">{quizData.questions.length}</p>
               </div>
-              <Button
-                onClick={() => setViewMode('interactive')}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-              >
-                ▶️ Iniciar Quiz Interativo
-              </Button>
             </div>
 
             {/* Lista de Perguntas */}
             <div className="space-y-4">
               {quizData.questions.map((q, index) => (
-                <div key={index} className="border border-slate-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+                <div key={index} className="bg-white border border-slate-300 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-start gap-3 mb-3">
                     <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 font-semibold">
                       Questão {index + 1}
@@ -186,8 +180,8 @@ export const TeacherQuizModal = ({ open, onOpenChange, quizData }: TeacherQuizMo
                           className={cn(
                             "p-3 rounded-md border-2 transition-colors",
                             isCorrect 
-                              ? "bg-green-50 border-green-300" 
-                              : "bg-slate-50 border-slate-200"
+                              ? "bg-green-100 border-green-300" 
+                              : "bg-white border-slate-300"
                           )}
                         >
                           <span className="font-semibold mr-2">{letter})</span>
