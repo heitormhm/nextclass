@@ -35,6 +35,7 @@ import { ContentTabs } from '@/features/lecture-transcription/components/Content
 import { AudioPlayerCard } from '@/features/lecture-transcription/components/AudioPlayerCard';
 import { PublishingControls } from '@/features/lecture-transcription/components/PublishingControls';
 import { LessonPlanComparisonSection } from '@/features/lecture-transcription/components/LessonPlanComparisonSection';
+import { MaterialGenerationContainer } from '@/features/material-didatico-generation/components/MaterialGenerationContainer';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -49,7 +50,6 @@ const LectureTranscriptionPage = () => {
   const [lectureTitle, setLectureTitle] = useState('');
   const [isComparing, setIsComparing] = useState(false);
   const [isProcessingTranscript, setIsProcessingTranscript] = useState(false);
-  const [isGeneratingMaterial, setIsGeneratingMaterial] = useState(false);
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
   const [isLoadingFlashcards, setIsLoadingFlashcards] = useState(false);
 
@@ -70,6 +70,14 @@ const LectureTranscriptionPage = () => {
     onQuizFailed: quizManagement.handleJobFailure,
     onFlashcardsCompleted: flashcardsManagement.handleJobCompletion,
     onFlashcardsFailed: flashcardsManagement.handleJobFailure,
+    onMaterialCompleted: reloadLecture,
+    onMaterialFailed: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Erro na geração',
+        description: error,
+      });
+    },
   });
 
   // Sync lecture title
@@ -226,64 +234,6 @@ const LectureTranscriptionPage = () => {
     }
   };
 
-  // Handle material generation
-  const handleGenerateMaterial = async () => {
-    if (!id || !lectureTitle || !lecture?.raw_transcript) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Dados insuficientes para gerar material didático',
-      });
-      return;
-    }
-
-    try {
-      setIsGeneratingMaterial(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Não autenticado');
-
-      const { data: jobData, error } = await supabase
-        .from('teacher_jobs')
-        .insert({
-          teacher_id: user.id,
-          lecture_id: id,
-          job_type: 'GENERATE_MATERIAL',
-          status: 'PENDING',
-          input_payload: { 
-            lectureId: id, 
-            lectureTitle,
-            transcript: lecture.raw_transcript 
-          },
-          progress: 0,
-          progress_message: 'Iniciando geração de material didático...'
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      await supabase.functions.invoke('teacher-job-runner', {
-        body: { jobId: jobData.id },
-      });
-
-      toast({
-        title: '🤖 Geração iniciada',
-        description: 'Gerando material didático...',
-      });
-
-      await reloadLecture();
-    } catch (err) {
-      console.error('Material generation failed:', err);
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: err instanceof Error ? err.message : 'Erro ao gerar material',
-      });
-    } finally {
-      setIsGeneratingMaterial(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -416,8 +366,21 @@ const LectureTranscriptionPage = () => {
               rawTranscript={lecture.raw_transcript}
               structuredContent={structuredContent}
               topics={structuredContent?.topicos_principais}
-              onGenerateMaterial={handleGenerateMaterial}
-              isGenerating={isGeneratingMaterial}
+              materialGenerationComponent={
+                <MaterialGenerationContainer
+                  lectureId={id!}
+                  lectureTitle={lectureTitle}
+                  transcript={lecture.raw_transcript}
+                  currentMaterial={
+                    typeof structuredContent?.material_didatico === 'string' 
+                      ? structuredContent.material_didatico 
+                      : structuredContent?.material_didatico 
+                        ? JSON.stringify(structuredContent.material_didatico) 
+                        : undefined
+                  }
+                  onSuccess={reloadLecture}
+                />
+              }
             />
             
             {/* 3. Quiz */}

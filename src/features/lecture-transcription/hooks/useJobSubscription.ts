@@ -7,6 +7,8 @@ interface JobSubscriptionCallbacks {
   onQuizFailed?: () => void;
   onFlashcardsCompleted?: () => void;
   onFlashcardsFailed?: () => void;
+  onMaterialCompleted?: () => void;
+  onMaterialFailed?: (error: string) => void;
 }
 
 export const useJobSubscription = (
@@ -67,6 +69,9 @@ export const useJobSubscription = (
             } else if (job.job_type === 'GENERATE_FLASHCARDS') {
               callbacks.onFlashcardsCompleted?.();
               toast({ title: 'Flashcards gerados!', description: 'Seus flashcards foram gerados com sucesso' });
+            } else if (job.job_type === 'GENERATE_LECTURE_DEEP_SEARCH') {
+              callbacks.onMaterialCompleted?.();
+              toast({ title: 'Material gerado!', description: 'Seu material didático foi gerado com sucesso' });
             }
           }
 
@@ -92,6 +97,8 @@ export const useJobSubscription = (
                 title: 'Erro ao gerar flashcards',
                 description: job.error_message || 'Não foi possível gerar os flashcards',
               });
+            } else if (job.job_type === 'GENERATE_LECTURE_DEEP_SEARCH') {
+              callbacks.onMaterialFailed?.(job.error_message || 'Não foi possível gerar o material didático');
             }
           }
         }
