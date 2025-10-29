@@ -5,6 +5,7 @@ import { useMaterialGenerationJob } from '../hooks/useMaterialGenerationJob';
 import { MaterialGenerationButton } from './MaterialGenerationButton';
 import { MaterialGenerationProgress } from './MaterialGenerationProgress';
 import { MaterialGenerationModal } from './MaterialGenerationModal';
+import { validateStructuredMaterial, logMaterialState } from '../utils/debugHelpers';
 
 interface MaterialGenerationContainerProps {
   lectureId: string;
@@ -94,31 +95,29 @@ export const MaterialGenerationContainer = forwardRef<
     ref.current = {
       triggerRegeneration: () => {
         console.log('[Container] External trigger: Regeneration requested');
-        console.log('[Container] State:', { 
-          hasCurrentMaterial: !!currentMaterial, 
-          isGenerating,
-          lectureId,
-          hasTitle: !!lectureTitle,
-        });
         
-        // Validação #1: Não regenerar se já está gerando
+        // ✅ FASE 2: Validação robusta com helper
+        const validation = validateStructuredMaterial(currentMaterial);
+        logMaterialState('Container', currentMaterial, null);
+        
+        console.log('[Container] Material validation:', validation);
+        
         if (isGenerating) {
           console.warn('[Container] Already generating, ignoring trigger');
           return;
         }
         
-        // Validação #2: Verificar dados obrigatórios
         if (!lectureId || !lectureTitle) {
-          console.error('[Container] Missing required data for regeneration');
+          console.error('[Container] Missing required data');
           return;
         }
         
-        // Decisão: Modal ou geração direta
-        if (currentMaterial) {
-          console.log('[Container] Opening confirmation modal');
+        // Decisão baseada em validação robusta
+        if (validation.isValid) {
+          console.log(`[Container] Valid material (${validation.wordCount} words), opening modal`);
           setShowConfirmModal(true);
         } else {
-          console.log('[Container] No material exists, generating directly');
+          console.log(`[Container] Invalid material (${validation.reason}), generating directly`);
           handleGenerate();
         }
       }

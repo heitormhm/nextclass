@@ -176,11 +176,28 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
       await updateJobProgress(supabase, job.id, 0.8, `Gerando material (tentativa ${attempt}/${MAX_RETRIES})...`);
       report = await generateEducationalReport(query, searchResults, teacherName, lovableApiKey, job.id);
       
+      // ✅ FASE 3: Validação final de qualidade antes de continuar
+      const quickWordCount = report.split(/\s+/).filter(w => w.length > 2).length;
+      console.log(`[Job ${job.id}] 📊 Quality check (attempt ${attempt}):`, {
+        markdownLength: report.length,
+        markdownWords: quickWordCount,
+        hasHeaders: /^#{1,6} /.test(report),
+        paragraphCount: report.split('\n\n').length,
+      });
+      
       // ✅ FALLBACK: Se muito curto, retry com contexto expandido
-      const quickWordCount = report.split(/\s+/).length;
       if (attempt === 1 && quickWordCount < 2000) {
         console.warn(`[Job ${job.id}] ⚠️ Attempt ${attempt} generated ${quickWordCount} words (target: 3000+), retrying with expanded context...`);
         continue; // Vai para attempt 2
+      }
+      
+      // Validação crítica de conteúdo mínimo
+      if (quickWordCount < 1000) {
+        console.error(`[Job ${job.id}] ❌ Report too short: ${quickWordCount} words (minimum: 1000)`);
+        if (attempt === MAX_RETRIES) {
+          throw new Error(`Material muito curto (${quickWordCount} palavras). Mínimo esperado: 1000.`);
+        }
+        continue; // Retry
       }
       
       // Validação de Mermaid (warnings only)

@@ -48,6 +48,22 @@ export async function saveReportToLecture(
     jobId
   );
   
+  // ✅ FASE 1: Validar estrutura antes de salvar
+  const structuredWordCount = JSON.stringify(structuredJSON.conteudo)
+    .split(/\s+/)
+    .filter(w => w.length > 2).length;
+  
+  console.log(`[Job ${jobId}] 📊 Structured content validation:`, {
+    blockCount: structuredJSON.conteudo.length,
+    wordCount: structuredWordCount,
+    hasContent: structuredWordCount > 0,
+  });
+  
+  if (structuredWordCount === 0 || structuredJSON.conteudo.length === 0) {
+    console.error(`[Job ${jobId}] ❌ CRITICAL: Structured content is empty after conversion`);
+    throw new Error('Conteúdo estruturado vazio após conversão. Verifique o formato do markdown.');
+  }
+  
   // Update lecture with new structured content
   await supabase.from('lectures').update({
     structured_content: {

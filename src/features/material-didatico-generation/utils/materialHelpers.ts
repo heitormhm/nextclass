@@ -5,15 +5,43 @@
 
 /**
  * Extrai string de material didático de diferentes formatos
+ * ✅ FASE 2: Validação robusta de material vazio
  */
 export const extractMaterialString = (
   material: any
 ): string | undefined => {
   if (!material) return undefined;
   
-  return typeof material === 'string' 
-    ? material 
-    : JSON.stringify(material);
+  // Validação para objeto vazio
+  if (typeof material === 'object') {
+    // Verificar se é o formato estruturado
+    if (material.conteudo && Array.isArray(material.conteudo)) {
+      // ✅ VALIDAÇÃO: Conteúdo vazio = material inválido
+      if (material.conteudo.length === 0) {
+        console.warn('[materialHelpers] Material has empty conteudo array');
+        return undefined;
+      }
+      return JSON.stringify(material);
+    }
+    
+    // Objeto genérico vazio
+    if (Object.keys(material).length === 0) {
+      return undefined;
+    }
+    
+    return JSON.stringify(material);
+  }
+  
+  // String vazia
+  if (typeof material === 'string') {
+    const trimmed = material.trim();
+    if (trimmed === '' || trimmed === '{}' || trimmed === 'null') {
+      return undefined;
+    }
+    return material;
+  }
+  
+  return undefined;
 };
 
 /**

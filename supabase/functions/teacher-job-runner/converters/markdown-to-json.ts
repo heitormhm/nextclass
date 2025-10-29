@@ -16,6 +16,10 @@ export async function convertMarkdownToStructuredJSON(
 ): Promise<any> {
   console.log(`[Job ${jobId}] 🔄 Converting markdown to structured JSON...`);
   
+  // ✅ FASE 1: Logging detalhado de input
+  console.log(`[Job ${jobId}] 📊 Input markdown length: ${markdown.length} chars`);
+  console.log(`[Job ${jobId}] 📝 First 500 chars:`, markdown.substring(0, 500));
+  
   // Apply LaTeX fixes and normalization
   const fixed = aggressiveLatexFix(markdown);
   const normalized = normalizeLatexSyntax(fixed);
@@ -186,6 +190,25 @@ export async function convertMarkdownToStructuredJSON(
   // Finalize remaining content
   finalizeParagraph();
   finalizeList();
+  
+  // ✅ FASE 1: Validação e fallback críticos
+  console.log(`[Job ${jobId}] 📊 Parsing results:`, {
+    totalBlocks: conteudo.length,
+    isEmpty: conteudo.length === 0,
+    markdownLength: markdown.length,
+  });
+  
+  // FALLBACK: Se parsing falhou, salvar markdown raw
+  if (conteudo.length === 0 && markdown.length > 100) {
+    console.warn(`[Job ${jobId}] ⚠️ Parsing returned empty, using raw markdown fallback`);
+    return {
+      titulo_geral: title,
+      conteudo: [{
+        tipo: 'paragrafo',
+        texto: markdown
+      }]
+    };
+  }
   
   // CRITICAL VALIDATION: No nested JSON strings allowed
   conteudo.forEach((bloco, index) => {

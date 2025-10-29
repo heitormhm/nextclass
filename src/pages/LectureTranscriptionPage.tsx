@@ -39,6 +39,7 @@ import { MaterialGenerationContainer, MaterialGenerationContainerRef } from '@/f
 import { extractMaterialString } from '@/features/material-didatico-generation/utils/materialHelpers';
 import { MATERIAL_TOAST_MESSAGES } from '@/features/material-didatico-generation/constants/ui';
 import { validateRefReady, logRefState } from '@/features/material-didatico-generation/utils/refHelpers';
+import { validateStructuredMaterial } from '@/features/material-didatico-generation/utils/debugHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -128,7 +129,7 @@ const LectureTranscriptionPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, lecture]);
 
-  // FASE 3: Debug logging com validação de tipo
+  // FASE 3: Debug logging com validação de tipo + diagnóstico de material
   React.useEffect(() => {
     const refStatus = {
       isNull: materialGenerationRef.current === null,
@@ -146,7 +147,28 @@ const LectureTranscriptionPage = () => {
       console.error('[LecturePage] CRITICAL: Ref exists but triggerRegeneration is not a function!', 
         materialGenerationRef.current);
     }
-  }, [currentMaterialValue, id]);
+    
+    // ✅ FASE 3: Diagnóstico de material inválido
+    if (currentMaterialValue) {
+      const validation = validateStructuredMaterial(currentMaterialValue);
+      
+      if (!validation.isValid) {
+        console.error('[LecturePage] 🚨 MATERIAL INVÁLIDO:', validation);
+        
+        // Toast de diagnóstico (apenas em dev)
+        if (import.meta.env.DEV) {
+          toast({
+            variant: 'destructive',
+            title: '⚠️ Material Inválido Detectado',
+            description: `Razão: ${validation.reason}. Verifique os logs do console.`,
+            duration: 10000,
+          });
+        }
+      } else {
+        console.log('[LecturePage] ✅ Material válido:', validation);
+      }
+    }
+  }, [currentMaterialValue, id, toast]);
 
   // Debug logging
   React.useEffect(() => {
