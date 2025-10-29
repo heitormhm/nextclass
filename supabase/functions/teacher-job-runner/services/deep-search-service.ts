@@ -129,6 +129,16 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
   
   console.log(`[Job ${job.id}] 🚀 Deep Search starting for lecture: ${lectureTitle}`);
 
+  // ✅ FASE 2: Logging detalhado de input
+  console.log(`[Job ${job.id}] 📊 Input Data:`, {
+    lectureId,
+    lectureTitle,
+    tagsCount: tags?.length || 0,
+    tags: tags || [],
+    teacherName: teacherName || 'Not provided',
+    hasTranscript: !!job.input_payload.transcript,
+  });
+
   const braveApiKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
   if (!braveApiKey) throw new Error('BRAVE_SEARCH_API_KEY not configured');
 
@@ -143,6 +153,10 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
     
     await updateJobProgress(supabase, job.id, 0.1, 'Analisando tópico...');
     const query = `${lectureTitle}${tags?.length > 0 ? ` - Tópicos: ${tags.join(', ')}` : ''}`;
+    
+    // ✅ FASE 2: Logging da query final
+    console.log(`[Job ${job.id}] 🔍 Deep Search Query:`, query);
+    console.log(`[Job ${job.id}] 📝 Tags used: ${tags?.length || 0} tags`);
     
     const subQuestions = await decomposeQuery(query, lovableApiKey, job.id);
     

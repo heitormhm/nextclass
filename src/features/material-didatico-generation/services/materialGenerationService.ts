@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { MaterialGenerationRequest } from "../types/materialGeneration.types";
+import { validateLectureData, logValidationWarnings } from '../utils/validations';
 
 export class MaterialGenerationService {
   /**
@@ -29,6 +30,38 @@ export class MaterialGenerationService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Usuário não autenticado");
 
+    // ✅ FASE 1: Buscar lecture completa com tags
+    const { data: lectureData, error: lectureError } = await supabase
+      .from('lectures')
+      .select('tags, teacher_id')
+      .eq('id', request.lectureId)
+      .single();
+
+    if (lectureError) {
+      console.error('[MaterialGenerationService] Failed to fetch lecture:', lectureError);
+      throw new Error(`Erro ao buscar aula: ${lectureError.message}`);
+    }
+
+    // ✅ Buscar nome do professor
+    const { data: teacherProfile } = await supabase
+      .from('users')
+      .select('full_name')
+      .eq('id', lectureData.teacher_id)
+      .single();
+
+    // ✅ FASE 3: Validar dados antes de criar job
+    const validation = validateLectureData(
+      request.lectureTitle,
+      lectureData.tags,
+      request.transcript
+    );
+
+    logValidationWarnings(validation, 'MaterialGenerationService');
+
+    if (!validation.isValid) {
+      throw new Error(`Dados inválidos: ${validation.errors.join(', ')}`);
+    }
+
     // Create job in teacher_jobs table
     const { data: jobData, error: jobError } = await supabase
       .from('teacher_jobs')
@@ -41,6 +74,8 @@ export class MaterialGenerationService {
           lectureId: request.lectureId,
           lectureTitle: request.lectureTitle,
           transcript: request.transcript || '',
+          tags: lectureData.tags || [], // ✅ Adicionar tags
+          teacherName: teacherProfile?.full_name || 'Professor', // ✅ Adicionar nome
         },
         progress: 0,
         progress_message: 'Iniciando pesquisa profunda...'
