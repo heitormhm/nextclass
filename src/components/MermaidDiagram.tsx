@@ -12,9 +12,12 @@ interface MermaidDiagramProps {
 // ✅ PHASE 3: Sanitize HTML and markdown markers
 const sanitizeMermaidCode = (code: string): string => {
   if (!code || code.trim().length < 10) {
-    console.warn('[Mermaid] Code too short or empty');
+    console.warn('[MermaidDiagram] Code too short or empty');
     return '';
   }
+
+  console.log(`[MermaidDiagram] 🧹 Sanitizing ${code.length} chars...`);
+  const htmlTagsFound = (code.match(/<[^>]+>/g) || []).length;
 
   // Remove markdown markers and sanitize HTML
   let sanitized = code.trim()
@@ -24,7 +27,8 @@ const sanitizeMermaidCode = (code: string): string => {
     .replace(/<br\s*\/>/gi, '<br>')  // Convert self-closing <br/> to <br>
     .replace(/<\/?[^>]+(>|$)/g, '');  // Remove all other HTML tags
 
-  console.log('[Mermaid] ✅ Code sanitized (HTML cleaned)');
+  const charsRemoved = code.length - sanitized.trim().length;
+  console.log(`[MermaidDiagram] ✅ Result: ${sanitized.length} chars (removed ${charsRemoved} chars, ${htmlTagsFound} HTML tags)`);
   return sanitized.trim();
 };
 

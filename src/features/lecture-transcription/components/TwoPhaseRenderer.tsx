@@ -45,7 +45,10 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
       console.log(`[TwoPhaseRenderer] 📦 Found Mermaid block #${index + 1}, length: ${code.length} chars`);
       
       // PHASE 0: Sanitize HTML tags in Mermaid code (CRITICAL for rendering)
+      console.log(`[TwoPhaseRenderer] 🧹 Phase 0: Starting HTML sanitization...`);
       const originalCode = code;
+      const htmlTagsFound = (code.match(/<[^>]+>/g) || []).length;
+      
       code = code
         .replace(/<br\s*\/>/gi, '<br>')  // Convert self-closing <br/> to <br>
         .replace(/<sup>([^<]+)<\/sup>/gi, '^$1')  // Convert superscript to ^
@@ -53,7 +56,9 @@ export const TwoPhaseRenderer: React.FC<TwoPhaseRendererProps> = ({ markdown }) 
         .replace(/<\/?[^>]+(>|$)/g, '');  // Remove any other HTML tags
       
       if (code !== originalCode) {
-        console.log(`[TwoPhaseRenderer] 🧹 Phase 0: Sanitized HTML tags (${originalCode.length} → ${code.length} chars)`);
+        console.log(`[TwoPhaseRenderer] ✅ Phase 0: Removed ${htmlTagsFound} HTML tags (${originalCode.length} → ${code.length} chars)`);
+      } else {
+        console.log(`[TwoPhaseRenderer] ✅ Phase 0: No HTML tags found`);
       }
       
       // PHASE 1: Minimum length check

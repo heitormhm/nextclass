@@ -170,6 +170,25 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
             );
           },
           
+          // ✅ NEW: Detect example subtitles rendered as <strong>
+          strong: ({ children, ...props }) => {
+            const content = String(children);
+            
+            // Detect if it's an example subtitle (Enunciado, Raciocínio, etc.)
+            const isExampleSubtitle = /^(Enunciado|Dados Fornecidos|Raciocínio|Discussão|Solução|Resposta|Análise):?\s*$/i.test(content);
+            
+            if (isExampleSubtitle) {
+              return (
+                <h4 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mt-4 mb-2">
+                  {content}
+                </h4>
+              );
+            }
+            
+            // Default: purple bold text
+            return <strong className="font-bold text-purple-700" {...props}>{children}</strong>;
+          },
+          
           // ✅ PHASE 2: Mermaid placeholders (rendered separately by TwoPhaseRenderer)
           code: ({node, className, children, ...props}: any) => {
             const match = /language-(\w+)/.exec(className || '');
@@ -208,11 +227,6 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
               </pre>
             );
           },
-          
-          // Strong text (purple color)
-          strong: ({node, ...props}) => (
-            <strong className="font-bold text-purple-700" {...props} />
-          ),
           
           // Lists with purple markers - PHASE 3: Fixed spacing (removed space-y-2)
           ul: ({node, ...props}) => (
