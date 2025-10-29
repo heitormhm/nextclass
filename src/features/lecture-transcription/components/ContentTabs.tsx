@@ -60,9 +60,13 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
           </TabsContent>
 
           <TabsContent value="material" className="mt-4">
-            {structuredContent?.material_didatico_html || isGeneratingMaterial ? (
+            {structuredContent?.material_didatico || isGeneratingMaterial ? (
               <MaterialViewer
-                markdownContent={structuredContent?.material_didatico_html}
+                markdownContent={
+                  typeof structuredContent?.material_didatico === 'string' 
+                    ? structuredContent.material_didatico 
+                    : (structuredContent?.material_didatico ? JSON.stringify(structuredContent.material_didatico) : undefined)
+                }
                 isGenerating={isGeneratingMaterial}
                 progress={materialProgress}
                 progressMessage={materialProgressMessage}

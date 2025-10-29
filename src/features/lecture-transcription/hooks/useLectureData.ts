@@ -14,24 +14,39 @@ export const useLectureData = (lectureId: string | undefined) => {
     if (!lectureId) return;
 
     try {
+      console.log('[useLectureData] 🔄 Loading lecture:', lectureId);
       setIsLoading(true);
       const data = await LectureService.loadLecture(lectureId);
       setLecture(data);
+      console.log('[useLectureData] ✅ Lecture loaded:', {
+        id: data?.id,
+        hasStructuredContent: !!(data?.structured_content)
+      });
 
       if (data?.structured_content) {
-        // FIX: Read from material_didatico_html (new schema) instead of material_didatico (old/empty)
-        const materialDidatico = data.structured_content.material_didatico_html || data.structured_content.material_didatico;
+        const rawMaterial = data.structured_content.material_didatico;
+        const materialLength = typeof rawMaterial === 'string' ? rawMaterial.length : 
+                              (rawMaterial && typeof rawMaterial === 'object' ? JSON.stringify(rawMaterial).length : 0);
+        
+        console.log('[useLectureData] 📊 Processing structured content:', {
+          hasMaterialDidatico: !!rawMaterial,
+          materialLength
+        });
+        
+        // PHASE 1: Always read from material_didatico (correct DB field)
+        const materialDidatico = typeof rawMaterial === 'object' ? JSON.stringify(rawMaterial) : rawMaterial;
         
         if (materialDidatico) {
-          const cleanedMarkdown = await LectureService.postProcessMaterialDidatico(
-            typeof materialDidatico === 'object' ? JSON.stringify(materialDidatico) : materialDidatico
-          );
+          const cleanedMarkdown = await LectureService.postProcessMaterialDidatico(materialDidatico);
+          
+          console.log('[useLectureData] ✅ Material processed, length:', cleanedMarkdown.length);
           
           setStructuredContent({
             ...data.structured_content,
-            material_didatico_html: cleanedMarkdown
+            material_didatico: cleanedMarkdown
           } as StructuredContent);
         } else {
+          console.log('[useLectureData] ⚠️ No material_didatico found');
           setStructuredContent(data.structured_content as StructuredContent);
         }
       } else if (data?.status === 'processing' && data?.raw_transcript) {

@@ -114,6 +114,9 @@ export const useMaterialGeneration = (): UseMaterialGenerationReturn => {
       setProgress(100);
       setProgressMessage('Material gerado com sucesso!');
 
+      console.log('[useMaterialGeneration] ✅ Generation complete');
+      console.log('[useMaterialGeneration] → Parent should now call reloadLecture()');
+
       toast({
         title: 'Material gerado',
         description: 'Material didático criado com sucesso',

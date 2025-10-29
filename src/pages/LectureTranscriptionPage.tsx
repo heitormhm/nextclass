@@ -363,31 +363,47 @@ const LectureTranscriptionPage = () => {
               rawTranscript={lecture.raw_transcript}
               structuredContent={structuredContent}
               topics={structuredContent?.topicos_principais}
-              htmlContent={structuredContent?.material_didatico_html}
+              htmlContent={
+                typeof structuredContent?.material_didatico === 'string' 
+                  ? structuredContent.material_didatico 
+                  : undefined
+              }
               isGeneratingMaterial={materialGeneration.isGenerating}
               materialProgress={materialGeneration.progress}
               materialProgressMessage={materialGeneration.progressMessage}
               onGenerateMaterial={async () => {
                 if (id && lectureTitle) {
+                  console.log('[RegenerateFlow] Starting initial generation');
                   const success = await materialGeneration.generate(
                     id,
                     lectureTitle,
                     lecture.tags || []
                   );
                   if (success) {
+                    console.log('[RegenerateFlow] Generation success, reloading lecture');
                     await reloadLecture();
+                    toast({
+                      title: '✅ Material gerado',
+                      description: 'Página recarregada com novo conteúdo',
+                    });
                   }
                 }
               }}
               onRegenerateMaterial={async () => {
                 if (id && lectureTitle) {
+                  console.log('[RegenerateFlow] Starting regeneration');
                   const success = await materialGeneration.generate(
                     id,
                     lectureTitle,
                     lecture.tags || []
                   );
                   if (success) {
+                    console.log('[RegenerateFlow] Generation success, reloading lecture');
                     await reloadLecture();
+                    toast({
+                      title: '✅ Material atualizado',
+                      description: 'Página recarregada com novo conteúdo',
+                    });
                   }
                 }
               }}
