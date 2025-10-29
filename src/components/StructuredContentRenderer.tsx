@@ -1,5 +1,5 @@
 /**
- * ⚠️ LEGACY SUPPORT ONLY - DEPRECATED
+ * ⚠️ LEGACY SUPPORT ONLY - DEPRECATED (FASE 5)
  * 
  * This component renders structured JSON format material from older lectures.
  * New materials use RichMaterialRenderer with markdown format.
@@ -10,6 +10,15 @@
  * 
  * Status: Active but deprecated - only for existing content
  * Migration: All new content uses markdown-based rendering
+ * 
+ * **FASE 5 NOTE:** Duplicated KaTeX configuration detected across 5 files:
+ * - This file (StructuredContentRenderer.tsx)
+ * - RichMaterialRenderer.tsx (PRIMARY - use this for new content)
+ * - AIChatPage.tsx
+ * - LecturePage.tsx
+ * - TeacherAIChatPage.tsx
+ * 
+ * Future cleanup: Consolidate KaTeX config into a single utility module
  */
 
 import React from 'react';

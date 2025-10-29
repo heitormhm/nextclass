@@ -254,11 +254,40 @@ B -->|Realiza Trabalho W| C
    - ✅ Use \`<br/>\` dentro de labels
    - ❌ NUNCA múltiplas linhas diretas
 
+6. **⚠️ CRITICAL: NODE DEFINITIONS MUST COME BEFORE STYLES:**
+   
+   ❌ **NEVER define styles BEFORE nodes:**
+   Incorrect: flowchart TD -> style A fill:#e3f2fd -> A[Node 1] (WRONG ORDER)
+   
+   ✅ **CORRECT ORDER (MANDATORY):**
+   1. Declare flowchart type (flowchart TD/LR)
+   2. Define ALL nodes (A[Label], B[Label], ...)
+   3. Define ALL connections (A --> B, B --> C)
+   4. Define ALL styles at the END (style A fill:...)
+   
+   Example of correct order:
+   flowchart TD
+       A[Node 1]
+       B[Node 2]
+       C[Node 3]
+       A --> B
+       B --> C
+       style A fill:#e3f2fd
+       style B fill:#fff9c4
+
+7. **⚠️ MINIMUM DIAGRAM COMPLEXITY:**
+   - Minimum 3 nodes per diagram
+   - Minimum 2 connections between nodes
+   - Every node MUST have at least one connection
+   - Isolated nodes are FORBIDDEN
+
 **TESTE CADA DIAGRAMA ANTES DE GERAR:**
 - Leia o código linha por linha
 - Confirme que todos os node IDs são alfanuméricos
 - Confirme que labels usam apenas ASCII
 - Confirme que setas usam sintaxe ASCII (\`-->\`, \`->\`)
+- **Confirme que TODOS os nós estão definidos ANTES dos styles**
+- **Confirme que há mínimo 3 nós e 2 conexões**
 
 ## ⚠️ SUBGRAPH IS ABSOLUTELY FORBIDDEN
 

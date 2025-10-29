@@ -152,14 +152,6 @@ async function generateEducationalReport(
     report = await fixMermaidBlocksWithAI(report, supabase, jobId);
     console.log(`[Job ${jobId}] ✅ Mermaid diagrams fixed and normalized`);
   }
-
-  // ✅ CRITICAL: Sanitize LaTeX formulas to remove nested dollar signs
-  if (report.includes('$')) {
-    console.log(`[Job ${jobId}] 🔬 Sanitizing LaTeX formulas...`);
-    const { sanitizeLaTeX } = await import('../services/latex-sanitizer.ts');
-    report = sanitizeLaTeX(report, jobId);
-    console.log(`[Job ${jobId}] ✅ LaTeX formulas sanitized`);
-  }
   
   if (!report || report.trim().length < 100) {
     console.error(`[Job ${jobId}] ❌ Flash returned empty/short content, retrying with Pro...`);
@@ -320,103 +312,134 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
     
     if (!report) throw new Error('Failed to generate report after retries');
 
+    // ✅ FASE 2: Apply format-lecture-content BEFORE LaTeX sanitization
+    console.log(`[Job ${job.id}] 🧹 Applying format-lecture-content...`);
+    try {
+      const { data: formattedData, error: formatError } = await supabase.functions.invoke('format-lecture-content', {
+        body: { markdown: report }
+      });
+      
+      if (formatError) {
+        console.warn(`[Job ${job.id}] ⚠️ format-lecture-content failed:`, formatError);
+      } else if (formattedData?.cleanedMarkdown) {
+        report = formattedData.cleanedMarkdown;
+        console.log(`[Job ${job.id}] ✅ format-lecture-content applied: ${report?.length || 0} chars`);
+      }
+    } catch (formatErr) {
+      console.warn(`[Job ${job.id}] ⚠️ format-lecture-content error:`, formatErr);
+    }
+
+    // ✅ FASE 2: Sanitize LaTeX AFTER format-lecture-content to prevent overwrite
+    if (report && report.includes('$')) {
+      console.log(`[Job ${job.id}] 🔬 Sanitizing LaTeX formulas (AFTER format-lecture-content)...`);
+      const { sanitizeLaTeX } = await import('../services/latex-sanitizer.ts');
+      report = sanitizeLaTeX(report, job.id);
+      console.log(`[Job ${job.id}] ✅ LaTeX formulas sanitized`);
+    }
+
     // ✅ FASE 1: Logging detalhado antes de salvar
-    console.log(`[Job ${job.id}] 📊 Pre-save validation:`, {
-      reportLength: report.length,
-      reportFirstChars: report.substring(0, 500),
-      reportLastChars: report.substring(report.length - 200),
-      wordCount: report.split(/\s+/).length,
-      hasMarkdownHeaders: /^#{1,6}\s/m.test(report),
-      hasParagraphs: report.split('\n\n').length,
-    });
+    if (report) {
+      console.log(`[Job ${job.id}] 📊 Pre-save validation:`, {
+        reportLength: report.length,
+        reportFirstChars: report.substring(0, 500),
+        reportLastChars: report.substring(report.length - 200),
+        wordCount: report.split(/\s+/).length,
+        hasMarkdownHeaders: /^#{1,6}\s/m.test(report),
+        hasParagraphs: report.split('\n\n').length,
+      });
+    }
 
     // ✅ CRITICAL: Pre-save Mermaid cleaning
-    console.log(`[Job ${job.id}] 🧹 Applying pre-save Mermaid cleaning...`);
-    
-    // 1. Detect and REMOVE subgraph syntax (multi-pass aggressive removal)
-    if (report.includes('subgraph')) {
-      console.warn(`[Job ${job.id}] ⚠️ Subgraph detected in AI output - applying aggressive removal...`);
-      const initialLength = report.length;
+    if (report) {
+      console.log(`[Job ${job.id}] 🧹 Applying pre-save Mermaid cleaning...`);
       
-      // Multi-pass removal with different patterns
-      let previousLength = report.length;
-      let passCount = 0;
-      const MAX_PASSES = 5;
-      
-      while (report.includes('subgraph') && passCount < MAX_PASSES) {
-        passCount++;
-        
-        // Pattern 1: Standard subgraph...end block
-        report = report.replace(/subgraph\s+[^\n]*\n[\s\S]*?\n\s*end\b/gi, '');
-        
-        // Pattern 2: Single-line subgraph (edge case)
-        report = report.replace(/subgraph\s+[^\n]*\s+end\b/gi, '');
-        
-        // Pattern 3: Subgraph without proper end (malformed)
-        report = report.replace(/subgraph\s+[^\n]*\n(?:(?!```)[^\n]*\n)*?(?=\n\s*(?:flowchart|graph|```|$))/gi, '');
-        
-        // Pattern 4: Aggressive cleanup - remove any line containing 'subgraph' keyword
-        report = report.replace(/^.*\bsubgraph\b.*$/gim, '');
-        
-        const currentLength = report.length;
-        console.log(`[Job ${job.id}] 🔧 Pass ${passCount}: Removed ${previousLength - currentLength} chars`);
-        
-        if (currentLength === previousLength) {
-          break; // No more changes
-        }
-        previousLength = currentLength;
-      }
-      
-      const totalRemoved = initialLength - report.length;
-      console.log(`[Job ${job.id}] ✅ Subgraph removal complete: ${totalRemoved} chars removed in ${passCount} passes`);
-      
-      // Final check - if subgraph still exists, log details but don't fail
+      // 1. Detect and REMOVE subgraph syntax (multi-pass aggressive removal)
       if (report.includes('subgraph')) {
-        const remainingSubgraphs = (report.match(/subgraph/gi) || []).length;
-        console.error(`[Job ${job.id}] ⚠️ WARNING: ${remainingSubgraphs} 'subgraph' occurrences remain after ${passCount} removal passes`);
+        console.warn(`[Job ${job.id}] ⚠️ Subgraph detected in AI output - applying aggressive removal...`);
+        const initialLength = report.length;
         
-        // Extract context around remaining subgraph for debugging
-        const subgraphIndex = report.indexOf('subgraph');
-        const context = report.substring(Math.max(0, subgraphIndex - 100), Math.min(report.length, subgraphIndex + 200));
-        console.error(`[Job ${job.id}] 📋 Context: ${context}`);
+        // Multi-pass removal with different patterns
+        let previousLength = report.length;
+        let passCount = 0;
+        const MAX_PASSES = 5;
         
-        // Last resort: Remove entire Mermaid blocks containing subgraph
-        report = report.replace(/```mermaid[\s\S]*?subgraph[\s\S]*?```/gi, '');
+        while (report.includes('subgraph') && passCount < MAX_PASSES) {
+          passCount++;
+          
+          // Pattern 1: Standard subgraph...end block
+          report = report.replace(/subgraph\s+[^\n]*\n[\s\S]*?\n\s*end\b/gi, '');
+          
+          // Pattern 2: Single-line subgraph (edge case)
+          report = report.replace(/subgraph\s+[^\n]*\s+end\b/gi, '');
+          
+          // Pattern 3: Subgraph without proper end (malformed)
+          report = report.replace(/subgraph\s+[^\n]*\n(?:(?!```)[^\n]*\n)*?(?=\n\s*(?:flowchart|graph|```|$))/gi, '');
+          
+          // Pattern 4: Aggressive cleanup - remove any line containing 'subgraph' keyword
+          report = report.replace(/^.*\bsubgraph\b.*$/gim, '');
+          
+          const currentLength = report.length;
+          console.log(`[Job ${job.id}] 🔧 Pass ${passCount}: Removed ${previousLength - currentLength} chars`);
+          
+          if (currentLength === previousLength) {
+            break; // No more changes
+          }
+          previousLength = currentLength;
+        }
         
+        const totalRemoved = initialLength - report.length;
+        console.log(`[Job ${job.id}] ✅ Subgraph removal complete: ${totalRemoved} chars removed in ${passCount} passes`);
+        
+        // Final check - if subgraph still exists, log details but don't fail
         if (report.includes('subgraph')) {
-          console.error(`[Job ${job.id}] ❌ CRITICAL: Subgraph cannot be removed - rejecting material`);
-          throw new Error('AI generated subgraph syntax that could not be automatically removed. Material rejected.');
-        } else {
-          console.log(`[Job ${job.id}] ✅ Subgraph removed by deleting entire Mermaid blocks`);
+          const remainingSubgraphs = (report.match(/subgraph/gi) || []).length;
+          console.error(`[Job ${job.id}] ⚠️ WARNING: ${remainingSubgraphs} 'subgraph' occurrences remain after ${passCount} removal passes`);
+          
+          // Extract context around remaining subgraph for debugging
+          const subgraphIndex = report.indexOf('subgraph');
+          const context = report.substring(Math.max(0, subgraphIndex - 100), Math.min(report.length, subgraphIndex + 200));
+          console.error(`[Job ${job.id}] 📋 Context: ${context}`);
+          
+          // Last resort: Remove entire Mermaid blocks containing subgraph
+          report = report.replace(/```mermaid[\s\S]*?subgraph[\s\S]*?```/gi, '');
+          
+          if (report.includes('subgraph')) {
+            console.error(`[Job ${job.id}] ❌ CRITICAL: Subgraph cannot be removed - rejecting material`);
+            throw new Error('AI generated subgraph syntax that could not be automatically removed. Material rejected.');
+          } else {
+            console.log(`[Job ${job.id}] ✅ Subgraph removed by deleting entire Mermaid blocks`);
+          }
         }
       }
+      
+      // 2. Expand single-line Mermaid code to multi-line
+      const mermaidBlockRegex = /```mermaid\s*\n([^`]+)```/g;
+      report = report.replace(mermaidBlockRegex, (match: string, code: string) => {
+        const lines = code.split('\n').filter((l: string) => l.trim());
+        
+        // If code has less than 3 lines or appears to be single-line, expand it
+        if (lines.length < 3 || code.includes(';')) {
+          console.warn(`[Job ${job.id}] ⚠️ Single-line Mermaid detected, expanding...`);
+          const expanded = code
+            .replace(/;\s*/g, '\n    ')
+            .replace(/-->/g, '\n    -->')
+            .replace(/==>/g, '\n    ==>')
+            .trim();
+          return `\`\`\`mermaid\n${expanded}\n\`\`\``;
+        }
+        return match;
+      });
     }
     
-    // 2. Expand single-line Mermaid code to multi-line
-    const mermaidBlockRegex = /```mermaid\s*\n([^`]+)```/g;
-    report = report.replace(mermaidBlockRegex, (match: string, code: string) => {
-      const lines = code.split('\n').filter((l: string) => l.trim());
-      
-      // If code has less than 3 lines or appears to be single-line, expand it
-      if (lines.length < 3 || code.includes(';')) {
-        console.warn(`[Job ${job.id}] ⚠️ Single-line Mermaid detected, expanding...`);
-        const expanded = code
-          .replace(/;\s*/g, '\n    ')
-          .replace(/-->/g, '\n    -->')
-          .replace(/==>/g, '\n    ==>')
-          .trim();
-        return `\`\`\`mermaid\n${expanded}\n\`\`\``;
-      }
-      return match;
-    });
-    
     // 3. Final validation: ensure no subgraph remains
-    if (report.includes('subgraph')) {
+    if (report && report.includes('subgraph')) {
       console.error(`[Job ${job.id}] ❌ Subgraph detected at final validation stage`);
       throw new Error('Subgraph syntax detected in final output. Material rejected.');
     }
     
     console.log(`[Job ${job.id}] ✅ Pre-save Mermaid cleaning complete`);
+
+    if (!report) throw new Error('Failed to generate report after retries');
 
     await saveReportToLecture(supabase, lectureId, report, job.id);
     

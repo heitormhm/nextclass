@@ -105,7 +105,7 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
             />
           ),
           
-          // Custom H3 styling - PHASE 1: Arrow only for main titles
+          // Custom H3 styling - PHASE 3: Arrow only for main titles, NOT for bold subtitles
           h3: ({node, children, ...props}) => {
             // Extract text for analysis
             const extractText = (child: any): string => {
@@ -116,15 +116,16 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
             };
             const text = extractText(children);
             
-            // Subtitles that should NOT have arrow (keywords with or without colon)
-            const isSubtitle = /^(Enunciado|Dados Fornecidos|Dados|Incógnita|Raciocínio|Discussão|Verificação|Calculadora|Identificar|Formular|Comparar|Solução|Resposta|Análise|Balanço de Energia para Sistemas Fechados)(:|\s|$)/i.test(text);
+            // PHASE 3: Expanded regex to detect **bold** markdown subtitles
+            // Match patterns like "**Enunciado:**", "**Raciocínio**", etc.
+            const isSubtitle = /^(\*\*)?[\s]*(Enunciado|Dados Fornecidos|Dados|Incógnita|Raciocínio|Discussão|Verificação|Calculadora|Identificar|Formular|Comparar|Solução|Resposta|Análise|Balanço de Energia para Sistemas Fechados)[\s]*(:)?[\s]*(\*\*)?$/i.test(text);
             
             if (isSubtitle) {
-              // No arrow, simple style
+              // No arrow, simple style for example subtitles
               return (
-                <h3 className="text-xl font-bold mt-6 mb-3 text-purple-700" {...props}>
+                <h4 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mt-6 mb-3 border-l-4 border-purple-400 pl-3" {...props}>
                   {children}
-                </h3>
+                </h4>
               );
             }
             
