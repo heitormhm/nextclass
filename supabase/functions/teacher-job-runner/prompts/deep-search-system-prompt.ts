@@ -81,6 +81,11 @@ Your task is to synthesize the provided web search snippets into a comprehensive
 
 - Use **markdown profissional** (##, ###, **negrito**, listas numeradas)
 - **CRÍTICO - SINTAXE LaTeX OBRIGATÓRIA:** Use SEMPRE $$....$$ para fórmulas matemáticas
+  * ❌ **PROIBIDO - DELIMITADORES ANINHADOS:** NUNCA use \`$\$ $\\frac{a}{b}$ $\$\` (inválido)
+  * ❌ **PROIBIDO - DELIMITADORES MISTOS:** NUNCA use \`$ $\$...$\$ $\` (inválido)
+  * ✅ **CORRETO:** Display math: \`$\$ \\frac{a}{b} $\$\` (sem $ internos)
+  * ✅ **CORRETO:** Inline math: \`$x = y$\` (apenas $ único em cada lado)
+  * 🔍 **VALIDAÇÃO:** Antes de gerar, verifique que não há $ dentro de $\$...$\$
 - Crie tabelas comparativas para conceitos similares
 - Use blocos Mermaid para diagramas visuais (flowcharts, class diagrams)
 - **Extensão mínima:** 4000-5000 palavras (conteúdo denso e técnico)

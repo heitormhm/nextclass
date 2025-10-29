@@ -152,6 +152,14 @@ async function generateEducationalReport(
     report = await fixMermaidBlocksWithAI(report, supabase, jobId);
     console.log(`[Job ${jobId}] ✅ Mermaid diagrams fixed and normalized`);
   }
+
+  // ✅ CRITICAL: Sanitize LaTeX formulas to remove nested dollar signs
+  if (report.includes('$')) {
+    console.log(`[Job ${jobId}] 🔬 Sanitizing LaTeX formulas...`);
+    const { sanitizeLaTeX } = await import('../services/latex-sanitizer.ts');
+    report = sanitizeLaTeX(report, jobId);
+    console.log(`[Job ${jobId}] ✅ LaTeX formulas sanitized`);
+  }
   
   if (!report || report.trim().length < 100) {
     console.error(`[Job ${jobId}] ❌ Flash returned empty/short content, retrying with Pro...`);
