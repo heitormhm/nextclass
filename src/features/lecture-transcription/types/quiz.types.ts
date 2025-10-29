@@ -1,8 +1,14 @@
 export interface QuizQuestion {
-  pergunta: string;
-  opcoes: string[];
-  resposta_correta: string;
-  explicacao?: string;
+  question: string;
+  options: {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+  };
+  correctAnswer: string;
+  explanation?: string;
+  bloomLevel?: string;
 }
 
 export interface GeneratedQuiz {

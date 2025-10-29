@@ -14,10 +14,9 @@ export const MaterialGenerationButton: React.FC<MaterialGenerationButtonProps> =
 }) => {
   return (
     <Button 
-      size="sm"
       disabled={isGenerating || disabled}
       onClick={onClick}
-      className="gap-2 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold border-0 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 whitespace-nowrap"
+      className="gap-2 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold border-0 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 whitespace-nowrap min-w-[240px]"
     >
       {isGenerating ? (
         <>

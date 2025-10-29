@@ -19,17 +19,16 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ questions, maxItems = 
               <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold mr-2">
                 {index + 1}
               </span>
-              {question.pergunta}
+              {question.question}
             </p>
             
             <div className="grid grid-cols-1 gap-2">
-              {question.opcoes.map((opcao, optIndex) => {
-                const isCorrect = opcao === question.resposta_correta;
-                const letter = String.fromCharCode(65 + optIndex); // A, B, C, D
+              {Object.entries(question.options).map(([letter, text]) => {
+                const isCorrect = letter === question.correctAnswer;
                 
                 return (
                   <div
-                    key={optIndex}
+                    key={letter}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs transition-colors ${
                       isCorrect
                         ? 'bg-green-50 border border-green-200 text-green-900'
@@ -41,7 +40,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ questions, maxItems = 
                     }`}>
                       {letter}
                     </span>
-                    <span className="flex-1 line-clamp-1">{opcao}</span>
+                    <span className="flex-1 line-clamp-1">{text}</span>
                     {isCorrect && (
                       <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
                     )}
