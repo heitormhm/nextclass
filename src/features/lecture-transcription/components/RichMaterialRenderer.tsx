@@ -51,7 +51,7 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
   };
 
   return (
-    <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-purple-700 prose-li:text-foreground prose-a:text-primary hover:prose-a:text-primary/80">
+    <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-purple-700 prose-li:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 [&_.katex-display]:bg-purple-50 [&_.katex-display]:p-4 [&_.katex-display]:rounded-lg [&_.katex-display]:my-4 [&_.katex-display]:border [&_.katex-display]:border-purple-200">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[
@@ -84,13 +84,36 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
             />
           ),
           
-          // Custom H3 styling
-          h3: ({node, ...props}) => (
-            <h3 
-              className="text-2xl font-bold mt-8 mb-4 text-purple-700 flex items-center gap-2 before:content-['▸'] before:text-purple-500"
-              {...props} 
-            />
-          ),
+          // Custom H3 styling - PHASE 1: Arrow only for main titles
+          h3: ({node, children, ...props}) => {
+            // Extract text for analysis
+            const extractText = (child: any): string => {
+              if (typeof child === 'string') return child;
+              if (Array.isArray(child)) return child.map(extractText).join('');
+              if (child?.props?.children) return extractText(child.props.children);
+              return String(child);
+            };
+            const text = extractText(children);
+            
+            // Subtitles that should NOT have arrow (keywords + colon)
+            const isSubtitle = /^(Enunciado|Dados Fornecidos|Dados|Incógnita|Raciocínio|Discussão|Verificação|Calculadora|Identificar|Formular|Comparar|Solução|Resposta|Análise):/i.test(text);
+            
+            if (isSubtitle) {
+              // No arrow, simple style
+              return (
+                <h3 className="text-xl font-bold mt-6 mb-3 text-purple-700" {...props}>
+                  {children}
+                </h3>
+              );
+            }
+            
+            // Main title: with arrow
+            return (
+              <h3 className="text-2xl font-bold mt-8 mb-4 text-purple-700 flex items-center gap-2 before:content-['▸'] before:text-purple-500" {...props}>
+                {children}
+              </h3>
+            );
+          },
           
           // Purple callout boxes (blockquotes with special syntax)
           blockquote: ({node, children, ...props}) => {
@@ -191,13 +214,13 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
             <strong className="font-bold text-purple-700" {...props} />
           ),
           
-          // Lists with purple markers
+          // Lists with purple markers - PHASE 3: Fixed spacing (removed space-y-2)
           ul: ({node, ...props}) => (
-            <ul className="list-disc list-inside space-y-2 my-4 marker:text-purple-500" {...props} />
+            <ul className="list-disc list-inside my-4 marker:text-purple-500" {...props} />
           ),
           
           ol: ({node, ...props}) => (
-            <ol className="list-decimal list-inside space-y-2 my-4 marker:text-purple-500" {...props} />
+            <ol className="list-decimal list-inside my-4 marker:text-purple-500" {...props} />
           ),
         }}
       >

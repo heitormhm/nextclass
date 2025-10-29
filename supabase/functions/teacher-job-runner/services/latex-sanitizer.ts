@@ -83,7 +83,7 @@ export function sanitizeLaTeX(markdown: string, jobId: string): string {
   // ✅ PHASE 2: NEW - Normalize inline math
   sanitized = sanitized.replace(/\$\s+([^$]+?)\s+\$/g, '$ $1 $');
   
-  // ✅ PHASE 7: NEW - Fix missing space between formula blocks
+  // ✅ PHASE 7: Fix missing space between formula blocks
   // Pattern: $...$WORD or $...$Q = (no space after closing $)
   sanitized = sanitized.replace(
     /\$([^$]+)\$([A-Z])/g,
@@ -91,6 +91,36 @@ export function sanitizeLaTeX(markdown: string, jobId: string): string {
       fixCount++;
       console.log(`[Job ${jobId}] 🔧 Added space after formula: ${match.substring(0, 30)}...`);
       return `$ ${formula.trim()} $ ${after}`;
+    }
+  );
+  
+  // ✅ PHASE 2.1: Fix \text{...}$$WORD (missing space after display math)
+  sanitized = sanitized.replace(
+    /\$\$([^$]+)\$\$([A-Z_])/g,
+    (match, formula, after) => {
+      fixCount++;
+      console.log(`[Job ${jobId}] 🔧 Added space after display math: ${match.substring(0, 30)}...`);
+      return `$$ ${formula.trim()} $$ ${after}`;
+    }
+  );
+  
+  // ✅ PHASE 2.2: Fix formula$ TEXT (inline math followed by text without space)
+  sanitized = sanitized.replace(
+    /\$([^$]+)\$([A-Za-z])/g,
+    (match, formula, after) => {
+      fixCount++;
+      console.log(`[Job ${jobId}] 🔧 Added space after inline math: ${match.substring(0, 30)}...`);
+      return `$ ${formula.trim()} $ ${after}`;
+    }
+  );
+  
+  // ✅ PHASE 2.3: Fix orphaned \text{} commands outside delimiters (convert to plain text)
+  sanitized = sanitized.replace(
+    /(?<!\$)\\text\{([^}]+)\}(?!\$)/g,
+    (match, text) => {
+      fixCount++;
+      console.log(`[Job ${jobId}] 🔧 Converted orphaned \\text to plain: ${text}`);
+      return text;
     }
   );
   
