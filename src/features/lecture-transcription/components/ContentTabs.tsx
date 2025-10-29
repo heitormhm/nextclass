@@ -35,8 +35,8 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
   onRegenerateMaterial,
 }) => {
   return (
-    <Card className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20">
-      <CardContent className="p-6">
+    <Card className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 overflow-hidden">
+      <CardContent className="p-6 max-w-full overflow-x-hidden">
         <Tabs defaultValue="transcript" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="transcript" className="flex items-center gap-2">

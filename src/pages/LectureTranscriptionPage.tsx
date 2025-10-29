@@ -264,7 +264,7 @@ const LectureTranscriptionPage = () => {
           <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
-        <div data-teacher-mode="true" className="relative z-10 container mx-auto px-4 py-8">
+        <div data-teacher-mode="true" className="relative z-10 container mx-auto px-4 py-8 max-w-full overflow-x-hidden">
         <LectureHeader lectureTitle={lectureTitle} />
         
       {/* Processing Banner */}
@@ -347,9 +347,9 @@ const LectureTranscriptionPage = () => {
         </div>
       )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 mt-8 max-w-full overflow-hidden">
           {/* Main Content */}
-          <div className="space-y-6">
+          <div className="space-y-6 max-w-full overflow-hidden">
             {/* 1. Título da Aula - Card separado */}
             <div className="backdrop-blur-sm bg-white/95 shadow-xl border border-white/20 rounded-lg p-6">
               <LectureTitleEditor
