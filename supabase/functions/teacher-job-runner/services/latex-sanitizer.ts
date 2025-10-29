@@ -124,6 +124,16 @@ export function sanitizeLaTeX(markdown: string, jobId: string): string {
     }
   );
   
+  // ✅ PHASE 8: Fix invalid \cdotpt command (AI mistake) → \cdot
+  sanitized = sanitized.replace(
+    /\\cdotpt\b/g,
+    () => {
+      fixCount++;
+      console.log(`[Job ${jobId}] 🔧 Fixed invalid \\cdotpt → \\cdot`);
+      return '\\cdot';
+    }
+  );
+  
   // ✅ PHASE 2: NEW - Fix unbalanced delimiters (emergency cleanup)
   const displayMatches = sanitized.match(/\$\$/g);
   const displayCount = displayMatches ? displayMatches.length : 0;
