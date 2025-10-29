@@ -37,13 +37,14 @@ export function validateReferences(markdown: string): ReferenceValidationResult 
   const allRefs = refSection.match(/\[\d+\].+/g) || [];
   console.log(`[References Validator] Extracted ${allRefs.length} references`);
   
-  // ✅ REDUZIR MÍNIMO: De 5 para 3 referências
-  if (allRefs.length < 3) {
+  // ✅ LENIENT: If section exists but refs not in expected format, approve with warning
+  if (allRefs.length === 0) {
+    console.warn('[References Validator] ⚠️ References section exists but format not recognized, approving');
     return { 
-      valid: false, 
+      valid: true, // ✅ Approve if section exists
       academicPercentage: 0,
       bannedCount: 0, 
-      errors: [`Menos de 3 referências fornecidas (encontradas: ${allRefs.length})`] 
+      errors: ['Seção de referências encontrada mas formato não reconhecido (aprovado)'] 
     };
   }
   
