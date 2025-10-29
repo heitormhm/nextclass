@@ -19,7 +19,7 @@ async function decomposeQuery(query: string, apiKey: string, jobId: string): Pro
   const data = await callAIWithRetry(apiKey, {
     model: 'google/gemini-2.5-flash',
     systemPrompt: 'Você é um assistente que decompõe tópicos educacionais em perguntas de pesquisa. Retorne apenas JSON válido com array "questions".',
-    userPrompt: `Decomponha este tópico em 3-5 perguntas de pesquisa específicas para buscar informações educacionais relevantes:\n\n"${query}"\n\nRetorne JSON: {"questions": ["pergunta 1", "pergunta 2", ...]}`,
+    userPrompt: `Decomponha este tópico em EXATAMENTE 4 perguntas de pesquisa específicas para buscar informações educacionais relevantes:\n\n"${query}"\n\nRetorne JSON com EXATAMENTE 4 perguntas: {"questions": ["pergunta 1", "pergunta 2", "pergunta 3", "pergunta 4"]}`,
     timeout: 60000
   }, jobId);
   
@@ -53,7 +53,7 @@ async function executeWebSearches(questions: string[], braveApiKey: string, jobI
       if (response.ok) {
         const data = await response.json();
         if (data.web?.results) {
-          allResults.push(...data.web.results.slice(0, 3));
+          allResults.push(...data.web.results.slice(0, 2));
         }
       }
     } catch (error) {
@@ -82,11 +82,11 @@ async function generateEducationalReport(
     .join('\n\n');
 
   const data = await callAIWithRetry(apiKey, {
-    model: 'google/gemini-2.5-pro',
+    model: 'google/gemini-2.5-flash',
     systemPrompt: createDeepSearchSystemPrompt(teacherName, query),
     userPrompt: createDeepSearchUserPrompt(query, context),
-    timeout: 120000,
-    maxRetries: 3
+    timeout: 60000,
+    maxRetries: 2
   }, jobId);
   
   const report = data.choices?.[0]?.message?.content;
