@@ -29,7 +29,7 @@ export const useLectureData = (lectureId: string | undefined) => {
           
           setStructuredContent({
             ...data.structured_content,
-            material_didatico: cleanedMarkdown
+            material_didatico_html: cleanedMarkdown
           } as StructuredContent);
         } else {
           setStructuredContent(data.structured_content as StructuredContent);
