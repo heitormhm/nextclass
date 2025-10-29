@@ -12,37 +12,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple markdown to HTML converter
-function convertMarkdownToHTML(markdown: string): string {
-  let html = markdown;
-  
-  // Headers
-  html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
-  
-  // Bold and italic
-  html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  
-  // Lists
-  html = html.replace(/^\* (.*$)/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-  
-  // Paragraphs
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = '<p>' + html + '</p>';
-  
-  // Code blocks
-  html = html.replace(/```mermaid\n([\s\S]*?)```/g, '<pre class="mermaid">$1</pre>');
-  html = html.replace(/```(.*?)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
-  
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  
-  return html;
-}
+// Markdown conversion removed - frontend handles rich rendering
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -147,11 +117,11 @@ serve(async (req) => {
 
     console.log('[generate-lecture-material] Generated:', generatedMarkdown.length, 'chars');
 
-    // STEP 3: Convert to HTML
-    console.log('[generate-lecture-material] Step 3: Converting to HTML...');
-    const htmlContent = convertMarkdownToHTML(generatedMarkdown);
+    // STEP 3: Keep as Markdown (frontend will render)
+    console.log('[generate-lecture-material] Step 3: Preparing content...');
+    const markdownContent = generatedMarkdown;
 
-    // STEP 4: Save to database
+    // STEP 4: Save to database (store markdown, not HTML)
     console.log('[generate-lecture-material] Step 4: Saving to database...');
     
     const { data: existingLecture } = await supabase
@@ -167,7 +137,7 @@ serve(async (req) => {
       .update({
         structured_content: {
           ...existingContent,
-          material_didatico_html: htmlContent,
+          material_didatico_html: markdownContent,
           titulo_aula: lectureTitle
         },
         updated_at: new Date().toISOString()
@@ -183,7 +153,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        htmlLength: htmlContent.length,
+        markdownLength: markdownContent.length,
         message: 'Material gerado com sucesso'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

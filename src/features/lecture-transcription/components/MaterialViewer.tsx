@@ -1,13 +1,13 @@
 /**
- * PHASE 3: New Material Viewer Component
- * Simple, self-contained HTML viewer with regeneration
+ * MaterialViewer Component
+ * Displays generated markdown content with rich rendering
  */
 
 import React, { useState } from 'react';
-import DOMPurify from 'dompurify';
 import { AlertCircle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MaterialGenerationLoading } from '@/features/material-didatico-generation/components/MaterialGenerationLoading';
+import { RichMaterialRenderer } from './RichMaterialRenderer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface MaterialViewerProps {
-  htmlContent?: string;
+  markdownContent?: string;
   isGenerating?: boolean;
   progress?: number;
   progressMessage?: string;
@@ -29,7 +29,7 @@ interface MaterialViewerProps {
 }
 
 export const MaterialViewer: React.FC<MaterialViewerProps> = ({
-  htmlContent,
+  markdownContent,
   isGenerating = false,
   progress = 0,
   progressMessage = 'Processando...',
@@ -38,26 +38,26 @@ export const MaterialViewer: React.FC<MaterialViewerProps> = ({
 }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Validate HTML content
-  const validateContent = (html: string | undefined) => {
-    if (!html) return { isValid: false, reason: 'empty' };
+  // Validate markdown content
+  const validateContent = (markdown: string | undefined) => {
+    if (!markdown) return { isValid: false, reason: 'empty' };
     
-    const stripped = html
-      .replace(/<[^>]*>/g, '')
-      .replace(/&[a-z]+;/gi, '')
-      .replace(/&#\d+;/g, '')
+    const stripped = markdown
+      .replace(/[#*`>\[\]()]/g, '')
+      .replace(/\$\$.*?\$\$/g, '')
+      .replace(/\$.*?\$/g, '')
       .trim();
 
     const wordCount = stripped.split(/\s+/).filter(w => w.length > 2).length;
 
-    if (wordCount < 5) {
+    if (wordCount < 20) {
       return { isValid: false, reason: 'too-short', wordCount };
     }
 
     return { isValid: true, reason: 'valid', wordCount };
   };
 
-  const validation = validateContent(htmlContent);
+  const validation = validateContent(markdownContent);
 
   // Loading state
   if (isGenerating) {
@@ -102,16 +102,6 @@ export const MaterialViewer: React.FC<MaterialViewerProps> = ({
     );
   }
 
-  // Sanitize HTML
-  const sanitizedHTML = DOMPurify.sanitize(htmlContent!, {
-    ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'a', 'code', 'pre', 'blockquote', 'div', 'span',
-      'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img'
-    ],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'id', 'src', 'alt', 'style']
-  });
-
   const handleRegenerateClick = () => {
     if (onRegenerate) {
       setShowConfirmModal(true);
@@ -142,10 +132,7 @@ export const MaterialViewer: React.FC<MaterialViewerProps> = ({
           </div>
         )}
         
-        <div
-          className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground prose-a:text-primary hover:prose-a:text-primary/80"
-          dangerouslySetInnerHTML={{ __html: sanitizedHTML }}
-        />
+        <RichMaterialRenderer markdown={markdownContent!} />
       </div>
 
       <AlertDialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>

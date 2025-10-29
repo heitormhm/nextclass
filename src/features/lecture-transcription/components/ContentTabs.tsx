@@ -60,9 +60,9 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
           </TabsContent>
 
           <TabsContent value="material" className="mt-4">
-            {htmlContent || isGeneratingMaterial ? (
+            {structuredContent?.material_didatico_html || isGeneratingMaterial ? (
               <MaterialViewer
-                htmlContent={htmlContent}
+                markdownContent={structuredContent?.material_didatico_html}
                 isGenerating={isGeneratingMaterial}
                 progress={materialProgress}
                 progressMessage={materialProgressMessage}
