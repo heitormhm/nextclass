@@ -46,6 +46,11 @@ export const useMaterialGenerationRealtime = ({
 
     const handleUpdate = (job: any) => {
       if (!isMounted.current || abortPolling.current) return;
+      console.log('📊 [Realtime] Calling onJobUpdate with:', {
+        status: job.status,
+        progress: job.progress,
+        error: job.error_message
+      });
       onJobUpdate(job);
     };
 
@@ -67,9 +72,9 @@ export const useMaterialGenerationRealtime = ({
       .subscribe((status) => {
         console.log('🔌 [Realtime] Subscription status:', status);
         
-        // Fallback to polling if subscription fails
-        if (status !== 'SUBSCRIBED') {
-          console.warn('⚠️ [Realtime] Starting polling fallback...');
+        // SEMPRE iniciar polling como fallback garantido
+        if (!pollInterval.current) {
+          console.log('🔄 [Realtime] Starting polling fallback...');
           
           pollInterval.current = setInterval(async () => {
             if (abortPolling.current) return;
@@ -81,10 +86,16 @@ export const useMaterialGenerationRealtime = ({
               .single();
               
             if (job) {
-              console.log('🔄 [Poll] Update:', job.status);
+              console.log('🔄 [Poll] Update:', job.status, job.progress);
               handleUpdate(job);
+              
+              // Parar polling se job terminou
+              if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+                console.log('✅ [Poll] Job finished, stopping polling');
+                stopPolling();
+              }
             }
-          }, 3000);
+          }, 2000); // Poll a cada 2s
         }
       });
 

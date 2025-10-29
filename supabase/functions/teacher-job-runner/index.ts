@@ -623,11 +623,11 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
       
       const academicPercentage = (academicCount / allRefs.length) * 100;
       
-      // ✅ FASE 12: CRITÉRIOS DE VALIDAÇÃO REALISTAS
-      const isValid = bannedCount <= 2 && academicPercentage >= 40;
+      // ✅ FASE 12: CRITÉRIOS DE VALIDAÇÃO REALISTAS (ajustado para 25% + livros-texto)
+      const isValid = bannedCount <= 3 && academicPercentage >= 25;
       
       if (!isValid) {
-        errors.push(`REJECTED: ${bannedCount} fontes banidas (máx: 2), ${academicPercentage.toFixed(0)}% acadêmicas (mín: 40%)`);
+        errors.push(`REJECTED: ${bannedCount} fontes banidas (máx: 3), ${academicPercentage.toFixed(0)}% acadêmicas (mín: 25%)`);
       }
       
       console.log(`[References] ${academicCount}/${allRefs.length} academic (${academicPercentage.toFixed(0)}%), ${bannedCount} banned`);
@@ -645,20 +645,20 @@ async function processLectureDeepSearch(job: any, supabase: any, lovableApiKey: 
     const refValidation = validateReferences(report);
     if (!refValidation.valid) {
       console.error(`[Job ${job.id}] ❌ MATERIAL REJEITADO: Reference validation failed`);
-      console.error(`[Job ${job.id}] Academic %: ${refValidation.academicPercentage.toFixed(0)}% (required: 40%)`);
+      console.error(`[Job ${job.id}] Academic %: ${refValidation.academicPercentage.toFixed(0)}% (required: 25%)`);
       
       await supabase
         .from('teacher_jobs')
         .update({
           status: 'FAILED',
-          error_message: `Material rejeitado: Apenas ${refValidation.academicPercentage.toFixed(0)}% das referências são de fontes acadêmicas. Mínimo exigido: 40%. Por favor, regenere o material priorizando fontes como IEEE, Springer, ScienceDirect, .edu, .gov e SciELO.`,
+          error_message: `Material rejeitado: Apenas ${refValidation.academicPercentage.toFixed(0)}% das referências são de fontes acadêmicas. Mínimo exigido: 25%. Por favor, regenere o material priorizando fontes como IEEE, Springer, ScienceDirect, .edu, .gov e SciELO.`,
           updated_at: new Date().toISOString()
         })
         .eq('id', job.id);
       
       throw new Error(
         `Material rejeitado por baixa qualidade acadêmica:\n` +
-        `- Fontes acadêmicas: ${refValidation.academicPercentage.toFixed(0)}% (mínimo: 40%)\n` +
+        `- Fontes acadêmicas: ${refValidation.academicPercentage.toFixed(0)}% (mínimo: 25%)\n` +
         `- Fontes banidas detectadas: ${refValidation.errors.filter(e => e.includes('banida')).length}\n\n` +
         `Por favor, regenere o material usando fontes de maior qualidade acadêmica.`
       );

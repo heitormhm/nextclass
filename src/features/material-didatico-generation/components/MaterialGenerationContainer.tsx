@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useMaterialGenerationJob } from '../hooks/useMaterialGenerationJob';
 import { MaterialGenerationButton } from './MaterialGenerationButton';
 import { MaterialGenerationProgress } from './MaterialGenerationProgress';
@@ -54,20 +54,38 @@ export const MaterialGenerationContainer: React.FC<MaterialGenerationContainerPr
 
   return (
     <>
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col items-center gap-4 w-full">
+        {/* Barra de progresso ACIMA (apenas quando gerando) */}
+        {isGenerating && (
+          <div className="w-full max-w-md space-y-3">
+            <div className="flex items-center justify-center gap-3">
+              <Loader2 className="h-6 w-6 text-purple-600 animate-spin" />
+              <div className="text-center">
+                <p className="text-sm font-medium text-purple-900">
+                  Gerando material didático...
+                </p>
+                <p className="text-xs text-purple-600">
+                  {progressMessage || 'Isso pode levar alguns minutos'}
+                </p>
+              </div>
+            </div>
+            <MaterialGenerationProgress
+              currentStep={currentStep}
+              progressMessage={progressMessage}
+              isVisible={true}
+            />
+          </div>
+        )}
+        
+        {/* Botão centralizado (sempre visível) */}
         <MaterialGenerationButton
           isGenerating={isGenerating}
           onClick={handleButtonClick}
         />
-
-        <MaterialGenerationProgress
-          currentStep={currentStep}
-          progressMessage={progressMessage}
-          isVisible={isGenerating}
-        />
-
+        
+        {/* Erro abaixo do botão (se houver) */}
         {error && !isGenerating && (
-          <Alert variant="destructive" className="flex-1 min-w-[300px]">
+          <Alert variant="destructive" className="w-full max-w-md">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-xs">
               {error}
@@ -75,7 +93,7 @@ export const MaterialGenerationContainer: React.FC<MaterialGenerationContainerPr
           </Alert>
         )}
       </div>
-
+      
       <MaterialGenerationModal
         isOpen={showConfirmModal}
         onConfirm={handleGenerate}

@@ -56,11 +56,22 @@ export const useMaterialGenerationJob = (callbacks?: MaterialGenerationCallbacks
       setIsGenerating(false);
       setJobId(null);
       callbacks?.onError?.(errorMsg);
-      toast({
-        variant: 'destructive',
-        title: 'Erro na geração',
-        description: errorMsg,
-      });
+      
+      // Toast mais detalhado baseado no tipo de erro
+      if (errorMsg.includes('acadêmica') || errorMsg.includes('referências')) {
+        toast({
+          variant: 'destructive',
+          title: '❌ Material rejeitado',
+          description: 'O material foi rejeitado por falta de fontes acadêmicas. Tente novamente ou ajuste o conteúdo.',
+          duration: 8000, // Toast mais longo para erros de validação
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erro na geração',
+          description: errorMsg,
+        });
+      }
     }
   }, [callbacks, toast]);
 
