@@ -85,7 +85,7 @@ async function generateEducationalReport(
     model: 'google/gemini-2.5-flash',
     systemPrompt: createDeepSearchSystemPrompt(teacherName, query),
     userPrompt: createDeepSearchUserPrompt(query, context),
-    timeout: 60000,
+    timeout: 90000,  // 90s para garantir 3000+ palavras
     maxRetries: 2
   }, jobId);
   
@@ -128,6 +128,13 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
       await updateJobProgress(supabase, job.id, 0.8, `Gerando material (tentativa ${attempt}/${MAX_RETRIES})...`);
       report = await generateEducationalReport(query, searchResults, teacherName, lovableApiKey, job.id);
       
+      // ✅ FALLBACK: Se muito curto, retry com contexto expandido
+      const quickWordCount = report.split(/\s+/).length;
+      if (attempt === 1 && quickWordCount < 2000) {
+        console.warn(`[Job ${job.id}] ⚠️ Attempt ${attempt} generated ${quickWordCount} words (target: 3000+), retrying with expanded context...`);
+        continue; // Vai para attempt 2
+      }
+      
       // Validação de Mermaid (warnings only)
       const validation = validateMermaidDiagrams(report);
       if (!validation.valid) {
@@ -140,6 +147,7 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
       if (lastRefValidation.valid) {
         console.log(`[Job ${job.id}] ✅ Validation passed on attempt ${attempt}`);
         console.log(`[Job ${job.id}] 📊 Reference quality: ${lastRefValidation.academicPercentage.toFixed(0)}% academic, ${lastRefValidation.bannedCount} banned sources`);
+        console.log(`[Job ${job.id}] 📝 Content length: ${quickWordCount} words`);
         break; // ✅ Sucesso!
       } else {
         // ✅ FASE 4: MENSAGENS DE ERRO DETALHADAS

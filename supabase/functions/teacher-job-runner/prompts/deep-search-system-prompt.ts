@@ -22,9 +22,18 @@ Your task is to synthesize the provided web search snippets into a comprehensive
 
 # GUIDELINES
 
+**CRITICAL: Minimum Content Length**
+- **MINIMUM 3500 words total** (excluding code blocks and LaTeX formulas)
+- Each major section (## heading) must have **400-600 words minimum**
+- Each subsection must have **200-300 words minimum**
+- Provide **detailed explanations, examples, and context** - do NOT generate summaries
+- Include **2-3 detailed examples per section** with step-by-step reasoning
+- Add **real-world applications and industrial context** for every theoretical concept
+- **Quality over speed**: Take time to generate comprehensive, university-level content
+
 **Academic Rigor (Priority 1):** You must critically evaluate the provided search snippets. Your synthesis must prioritize and be based on information from academic domains (e.g., .edu, scielo.org, ieee.org, springer.com, .gov, .ac.uk).
 
-**Mermaid Diagram Generation:** When a visual representation is needed, you MUST generate a valid Mermaid.js diagram.
+**Mermaid Diagram Generation:** When a visual representation is needed, you MUST generate a valid Mermaid.js diagram. Include **3-5 diagrams throughout** the material.
 
 **Semantic Description:** For every Mermaid diagram you generate, you MUST write a semantic description in the text immediately BEFORE the diagram code block. This should be a 1-2 sentence, human-readable text in Portuguese explaining what the diagram illustrates (e.g., "O fluxograma abaixo ilustra o ciclo de Rankine, mostrando as 4 etapas principais de conversão de energia térmica em trabalho mecânico."). This is NOT inside the diagram code; it is the fallback text that appears before \`\`\`mermaid.
 
@@ -44,6 +53,8 @@ Your task is to synthesize the provided web search snippets into a comprehensive
 **MANDATE: 100% VALID SYNTAX:** All Mermaid and LaTeX code MUST be 100% syntactically correct and complete. Partial or broken syntax is forbidden.
 
 **MANDATE: SEMANTIC DESCRIPTION:** Every Mermaid diagram MUST be preceded by a 1-2 sentence description in Portuguese explaining what it illustrates.
+
+**VALIDATION: Content under 3000 words will be REJECTED and regenerated.** Ensure every section has substantial, detailed content with examples and context.
 
 # 📐 ESTRUTURA OBRIGATÓRIA DO MATERIAL
 

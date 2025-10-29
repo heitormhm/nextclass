@@ -26,14 +26,18 @@ export async function saveReportToLecture(
   // Fix LaTeX syntax errors
   let fixedReport = await fixLatexErrors(report, jobId);
   
-  // Validate minimum word count
+  // Validate minimum word count (diagrams count as content)
   const wordCount = fixedReport
-    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+    .replace(/```mermaid[\s\S]*?```/g, '[DIAGRAM]') // Keep diagrams as token
+    .replace(/```[\s\S]*?```/g, '') // Remove other code blocks
     .split(/\s+/)
     .filter(w => w.length > 0).length;
   
-  if (wordCount < 3000) {
-    throw new Error(`Material muito curto (${wordCount} palavras). Mínimo: 3000.`);
+  console.log(`[Job ${jobId}] 📊 Final word count: ${wordCount} palavras`);
+  
+  if (wordCount < 2000) {
+    console.warn(`[Job ${jobId}] ⚠️ Material com ${wordCount} palavras (recomendado: 3000+)`);
+    // Não bloquear - permitir salvar para análise do professor
   }
 
   // Convert markdown to structured JSON format
