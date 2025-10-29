@@ -333,10 +333,18 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
     // ✅ CRITICAL: Pre-save Mermaid cleaning
     console.log(`[Job ${job.id}] 🧹 Applying pre-save Mermaid cleaning...`);
     
-    // 1. Detect and REJECT subgraph syntax
+    // 1. Detect and ATTEMPT TO FIX subgraph syntax (don't reject immediately)
     if (report.includes('subgraph')) {
-      console.error(`[Job ${job.id}] ❌ CRITICAL: Subgraph detected in AI output - REJECTING`);
-      throw new Error('AI generated forbidden subgraph syntax. Material rejected - regenerate without subgraph.');
+      console.warn(`[Job ${job.id}] ⚠️ Subgraph detected in AI output - attempting to remove...`);
+      const initialLength = report.length;
+      report = report.replace(/subgraph[^`]*?end/gs, '');
+      console.log(`[Job ${job.id}] 🔧 Removed ${initialLength - report.length} chars of subgraph syntax`);
+      
+      // Check if removal was successful
+      if (report.includes('subgraph')) {
+        console.error(`[Job ${job.id}] ❌ CRITICAL: Subgraph still present after removal attempt`);
+        throw new Error('AI generated subgraph syntax that could not be automatically removed. Material rejected.');
+      }
     }
     
     // 2. Expand single-line Mermaid code to multi-line
@@ -357,11 +365,10 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
       return match;
     });
     
-    // 3. Final subgraph removal (defensive layer)
-    const initialLength = report.length;
-    report = report.replace(/subgraph[^`]*?end/gs, '');
-    if (report.length !== initialLength) {
-      console.warn(`[Job ${job.id}] ⚠️ Removed ${initialLength - report.length} chars of subgraph syntax`);
+    // 3. Final validation: ensure no subgraph remains
+    if (report.includes('subgraph')) {
+      console.error(`[Job ${job.id}] ❌ Subgraph detected at final validation stage`);
+      throw new Error('Subgraph syntax detected in final output. Material rejected.');
     }
     
     console.log(`[Job ${job.id}] ✅ Pre-save Mermaid cleaning complete`);

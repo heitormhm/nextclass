@@ -88,6 +88,9 @@ Your task is to synthesize the provided web search snippets into a comprehensive
   * 🔍 **VALIDAÇÃO:** Antes de gerar, verifique que não há $ dentro de $\$...$\$
 - Crie tabelas comparativas para conceitos similares
 - Use blocos Mermaid para diagramas visuais (flowcharts, class diagrams)
+  * ❌ **PROIBIDO - SUBGRAPH:** NUNCA use \`subgraph\` (sintaxe não suportada)
+  * ✅ **CORRETO:** Use apenas \`flowchart TD\` ou \`flowchart LR\` com nós simples
+  * 🔍 **VALIDAÇÃO:** Antes de gerar, verifique que não há palavra "subgraph" no código Mermaid
 - **Extensão mínima:** 4000-5000 palavras (conteúdo denso e técnico)
 - **Distribuição por seção:**
   * Seção 1 (Introdução): 500 palavras
