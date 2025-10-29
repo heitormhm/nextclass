@@ -19,7 +19,8 @@ export const useLectureData = (lectureId: string | undefined) => {
       setLecture(data);
 
       if (data?.structured_content) {
-        const materialDidatico = data.structured_content.material_didatico;
+        // FIX: Read from material_didatico_html (new schema) instead of material_didatico (old/empty)
+        const materialDidatico = data.structured_content.material_didatico_html || data.structured_content.material_didatico;
         
         if (materialDidatico) {
           const cleanedMarkdown = await LectureService.postProcessMaterialDidatico(
