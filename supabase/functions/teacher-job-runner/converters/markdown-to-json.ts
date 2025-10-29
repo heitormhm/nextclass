@@ -1,6 +1,6 @@
 /**
- * Markdown to JSON Converter
- * Parses markdown content into structured JSON format for database storage
+ * Markdown to Structured JSON Converter
+ * Converts educational markdown content into structured JSON format
  */
 
 import { aggressiveLatexFix, normalizeLatexSyntax } from './latex-normalizer.ts';
@@ -14,6 +14,8 @@ export async function convertMarkdownToStructuredJSON(
   title: string,
   jobId: string
 ): Promise<any> {
+  console.log(`[Job ${jobId}] 🔄 Converting markdown to structured JSON...`);
+  
   // Apply LaTeX fixes and normalization
   const fixed = aggressiveLatexFix(markdown);
   const normalized = normalizeLatexSyntax(fixed);
@@ -52,7 +54,7 @@ export async function convertMarkdownToStructuredJSON(
     const line = lines[i];
     const trimmedLine = line.trim();
     
-    // Handle empty lines (finalize current block)
+    // Handle empty lines (finalize current block to prevent concatenation)
     if (!trimmedLine) {
       finalizeParagraph();
       finalizeList();
@@ -164,46 +166,48 @@ export async function convertMarkdownToStructuredJSON(
       continue;
     }
     
-    // Accumulate regular text as paragraphs (don't concatenate everything)
+    // Accumulate regular text as paragraphs (CRITICAL: don't concatenate all content)
     if (!trimmedLine.startsWith('#') && !trimmedLine.startsWith('```')) {
-      // If we have a list, finalize paragraph before starting list
+      // If we have an active list, finalize paragraph before continuing
       if (currentList.length > 0) {
         finalizeParagraph();
       }
       
-      // If this is a new paragraph (previous was finalized), start fresh
+      // Start new paragraph or continue existing one
       if (!currentParagraph) {
         currentParagraph = trimmedLine;
       } else {
-        // Continue same paragraph
+        // Continue same paragraph with space separator
         currentParagraph += ' ' + trimmedLine;
       }
     }
   }
   
-  // Add final blocks
+  // Finalize remaining content
   finalizeParagraph();
   finalizeList();
   
-  // Validate no nested JSON strings
+  // CRITICAL VALIDATION: No nested JSON strings allowed
   conteudo.forEach((bloco, index) => {
-    if (bloco.texto && typeof bloco.texto === 'string' && bloco.texto.startsWith('{')) {
-      console.error(`[Job ${jobId}] ❌ CRITICAL: Nested JSON string detected at block ${index}`);
-      throw new Error('Invalid JSON nesting - corrupt data structure');
+    if (bloco.texto && typeof bloco.texto === 'string' && bloco.texto.trim().startsWith('{')) {
+      console.error(`[Job ${jobId}] ❌ CRITICAL: Nested JSON detected at block ${index}:`, bloco.texto.substring(0, 100));
+      throw new Error('Invalid JSON nesting detected - parser failed');
     }
   });
   
-  console.log(`[Job ${jobId}] ✅ Converted to ${conteudo.length} structured blocks`);
-  console.log(`[Job ${jobId}] 📝 Block breakdown:`);
+  // Detailed logging for debugging
+  console.log(`[Job ${jobId}] ✅ Parsed ${conteudo.length} structured blocks`);
+  conteudo.slice(0, 3).forEach((bloco, i) => {
+    const preview = bloco.texto?.substring(0, 60) || bloco.definicao_mermaid?.substring(0, 60) || '';
+    console.log(`  Block ${i}: ${bloco.tipo} - ${preview}...`);
+  });
   
   const blockTypes = conteudo.reduce((acc: any, bloco) => {
     acc[bloco.tipo] = (acc[bloco.tipo] || 0) + 1;
     return acc;
   }, {});
   
-  Object.entries(blockTypes).forEach(([tipo, count]) => {
-    console.log(`  - ${tipo}: ${count}`);
-  });
+  console.log(`[Job ${jobId}] 📊 Block type distribution:`, blockTypes);
   
   return {
     titulo_geral: title,

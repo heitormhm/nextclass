@@ -12,19 +12,54 @@ import { QualityMetricsDisplay } from './QualityMetricsDisplay';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
-// Helper to detect if data is legacy markdown format
+// Helper: Check if data is legacy markdown format
 const isLegacyMarkdownFormat = (data: any): boolean => {
+  // Case 1: Pure string
   if (typeof data === 'string') return true;
   
-  // Check if it's a single paragraph block with nested JSON string
+  // Case 2: Malformed JSON with "report" key
+  if (data?.report && typeof data.report === 'string') {
+    console.warn('[StructuredContentRenderer] Detected legacy "report" key format');
+    return true;
+  }
+  
+  // Case 3: Single paragraph with nested JSON
   if (data?.conteudo?.length === 1 && 
       data.conteudo[0]?.tipo === 'paragrafo' &&
       typeof data.conteudo[0]?.texto === 'string' &&
       data.conteudo[0].texto.trim().startsWith('{')) {
+    console.warn('[StructuredContentRenderer] Detected nested JSON string in paragraph');
     return true;
   }
   
   return false;
+};
+
+// Helper: Extract markdown from complex structures
+const extractMarkdownContent = (data: any): string => {
+  if (typeof data === 'string') return data;
+  
+  // Try to extract from "report" key
+  if (data?.report) {
+    try {
+      const parsed = JSON.parse(data.report);
+      return parsed.markdown || data.report;
+    } catch {
+      return data.report;
+    }
+  }
+  
+  // Try to extract from nested paragraph JSON
+  if (data?.conteudo?.[0]?.texto) {
+    try {
+      const parsed = JSON.parse(data.conteudo[0].texto);
+      return parsed.report || data.conteudo[0].texto;
+    } catch {
+      return data.conteudo[0].texto;
+    }
+  }
+  
+  return 'Erro ao extrair conteúdo';
 };
 
 // ✅ FASE 10.1: Renderizar LaTeX diretamente sem placeholders intermediários
@@ -121,11 +156,8 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
 
   // Handle legacy markdown format (backward compatibility)
   if (isLegacyMarkdownFormat(structuredData)) {
-    console.warn('[StructuredContentRenderer] Legacy markdown detected, using fallback renderer');
-    
-    const markdownContent = typeof structuredData === 'string' 
-      ? structuredData 
-      : structuredData.conteudo[0].texto;
+    console.warn('[StructuredContentRenderer] Using legacy markdown fallback');
+    const markdownContent = extractMarkdownContent(structuredData);
     
     return (
       <div className="prose prose-sm max-w-none dark:prose-invert">

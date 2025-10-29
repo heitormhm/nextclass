@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewer';
 import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
-import { FileText, BookOpen, Sparkles } from 'lucide-react';
+import { FileText, BookOpen, Sparkles, RotateCcw } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import type { StructuredContent } from '../types/lecture.types';
 
@@ -11,14 +11,20 @@ interface ContentTabsProps {
   structuredContent: StructuredContent | null;
   topics?: Array<{ conceito: string; definicao: string }>;
   materialGenerationComponent?: React.ReactNode;
+  onRegenerateMaterial?: () => void;
 }
 
 export const ContentTabs: React.FC<ContentTabsProps> = ({
   rawTranscript,
   structuredContent,
   topics,
-  materialGenerationComponent
+  materialGenerationComponent,
+  onRegenerateMaterial
 }) => {
+  const handleRegenerateMaterial = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRegenerateMaterial?.();
+  };
   return (
     <Card className="backdrop-blur-sm bg-white/95 shadow-xl border-white/20">
       <CardContent className="pt-6">
@@ -32,9 +38,19 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
               <FileText className="h-4 w-4" />
               Transcrição
             </TabsTrigger>
-            <TabsTrigger value="material" className="gap-2">
+            <TabsTrigger value="material" className="gap-2 relative">
               <Sparkles className="h-4 w-4" />
               Material Didático
+              {structuredContent?.material_didatico && (
+                <button
+                  onClick={handleRegenerateMaterial}
+                  className="ml-2 p-1 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-full transition-colors"
+                  title="Refazer pesquisa profunda"
+                  aria-label="Refazer pesquisa de material didático"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                </button>
+              )}
             </TabsTrigger>
           </TabsList>
 

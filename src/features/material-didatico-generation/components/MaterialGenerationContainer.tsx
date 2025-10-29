@@ -61,10 +61,10 @@ export const MaterialGenerationContainer: React.FC<MaterialGenerationContainerPr
             <div className="flex items-center justify-center gap-3">
               <Loader2 className="h-6 w-6 text-purple-600 animate-spin" />
               <div className="text-center">
-                <p className="text-sm font-medium text-purple-900">
+                <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
                   Gerando material didático...
                 </p>
-                <p className="text-xs text-purple-600">
+                <p className="text-xs text-purple-600 dark:text-purple-300">
                   {progressMessage || 'Isso pode levar alguns minutos'}
                 </p>
               </div>
@@ -74,6 +74,13 @@ export const MaterialGenerationContainer: React.FC<MaterialGenerationContainerPr
               progressMessage={progressMessage}
               isVisible={true}
             />
+          </div>
+        )}
+        
+        {/* Feedback quando material já existe */}
+        {currentMaterial && !isGenerating && (
+          <div className="text-center text-sm text-muted-foreground mb-2">
+            <p>Material já gerado. Clique para refazer a pesquisa profunda.</p>
           </div>
         )}
         

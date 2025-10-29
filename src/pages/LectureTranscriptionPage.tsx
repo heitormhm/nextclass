@@ -381,6 +381,10 @@ const LectureTranscriptionPage = () => {
                   onSuccess={reloadLecture}
                 />
               }
+              onRegenerateMaterial={() => {
+                // Material regeneration is handled by MaterialGenerationContainer button
+                console.log('[LecturePage] Regenerate material requested');
+              }}
             />
             
             {/* 3. Quiz */}
