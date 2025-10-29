@@ -37,13 +37,13 @@ interface TeacherFlashcardViewerModalProps {
 }
 
 export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, hasQuiz, onViewQuiz }: TeacherFlashcardViewerModalProps) => {
-  const [viewMode, setViewMode] = useState<'list' | 'interactive'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'interactive'>('interactive');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [flippedCardsInList, setFlippedCardsInList] = useState<{ [key: number]: boolean }>({});
 
   const handleClose = () => {
-    setViewMode('list');
+    setViewMode('interactive');
     setCurrentIndex(0);
     setIsFlipped(false);
     setFlippedCardsInList({});
@@ -56,7 +56,7 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
 
   useEffect(() => {
     if (isOpen) {
-      setViewMode('list');
+      setViewMode('interactive');
       setCurrentIndex(0);
       setIsFlipped(false);
       setFlippedCardsInList({});
@@ -84,7 +84,7 @@ export const TeacherFlashcardViewerModal = ({ isOpen, onClose, flashcardSet, has
       <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-2">
+            <DialogTitle className="text-lg flex items-center gap-2">
               <Layers className="h-6 w-6 text-purple-600" />
               {flashcardSet.title}
             </DialogTitle>

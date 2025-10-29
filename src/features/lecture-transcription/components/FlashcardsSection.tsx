@@ -31,7 +31,7 @@ export const FlashcardsSection: React.FC<FlashcardsSectionProps> = ({
             ) : (
               <Layers className="h-5 w-5 text-purple-600" />
             )}
-            <CardTitle>Flashcards</CardTitle>
+            <CardTitle className="text-lg">Flashcards</CardTitle>
           </div>
           {flashcards && !isLoading && (
             <Badge className="bg-green-100 text-green-700 border-green-300">

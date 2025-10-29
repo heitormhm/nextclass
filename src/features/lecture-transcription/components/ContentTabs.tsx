@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewer';
-import { FileText, BookOpen, Sparkles } from 'lucide-react';
+import { FileText, BookOpen, Sparkles, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -9,6 +9,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import type { StructuredContent } from '../types/lecture.types';
 import { MaterialGenerationButton } from '@/features/material-didatico-generation/components/MaterialGenerationButton';
+import { MaterialGenerationProgress } from '@/features/material-didatico-generation/components/MaterialGenerationProgress';
 
 interface ContentTabsProps {
   rawTranscript?: string;
@@ -16,6 +17,8 @@ interface ContentTabsProps {
   topics?: Array<{ conceito: string; definicao: string }>;
   onGenerateMaterial?: () => void;
   isGenerating?: boolean;
+  currentStep?: number;
+  progressMessage?: string;
 }
 
 export const ContentTabs: React.FC<ContentTabsProps> = ({
@@ -23,7 +26,9 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
   structuredContent,
   topics,
   onGenerateMaterial,
-  isGenerating = false
+  isGenerating = false,
+  currentStep = 0,
+  progressMessage = ''
 }) => {
   return (
     <Card className="backdrop-blur-sm bg-white/95 shadow-xl border-white/20">
@@ -78,14 +83,40 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
           <TabsContent value="material" className="mt-4">
             {!structuredContent?.material_didatico ? (
               <div className="text-center py-12 space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Material didático ainda não foi gerado
-                </p>
-                {onGenerateMaterial && (
-                  <MaterialGenerationButton 
-                    isGenerating={isGenerating}
-                    onClick={onGenerateMaterial}
-                  />
+                {isGenerating ? (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-center gap-3">
+                      <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-purple-900">
+                          Gerando material didático...
+                        </p>
+                        <p className="text-xs text-purple-600">
+                          Isso pode levar alguns minutos
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="max-w-md mx-auto">
+                      <MaterialGenerationProgress
+                        currentStep={currentStep}
+                        progressMessage={progressMessage}
+                        isVisible={true}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Material didático ainda não foi gerado
+                    </p>
+                    {onGenerateMaterial && (
+                      <MaterialGenerationButton 
+                        isGenerating={false}
+                        onClick={onGenerateMaterial}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             ) : (

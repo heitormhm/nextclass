@@ -31,7 +31,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
             ) : (
               <FileCheck className="h-5 w-5 text-purple-600" />
             )}
-            <CardTitle>Quiz</CardTitle>
+            <CardTitle className="text-lg">Quiz</CardTitle>
           </div>
           {quiz && !isLoading && (
             <Badge className="bg-green-100 text-green-700 border-green-300">
