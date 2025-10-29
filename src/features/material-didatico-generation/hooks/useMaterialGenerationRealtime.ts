@@ -46,11 +46,7 @@ export const useMaterialGenerationRealtime = ({
 
     const handleUpdate = (job: any) => {
       if (!isMounted.current || abortPolling.current) return;
-      console.log('📊 [Realtime] Calling onJobUpdate with:', {
-        status: job.status,
-        progress: job.progress,
-        error: job.error_message
-      });
+      console.log(`🔄 [Update] ${job.status} ${(job.progress * 100).toFixed(0)}% - ${job.progress_message || ''}`);
       onJobUpdate(job);
     };
 
@@ -86,16 +82,15 @@ export const useMaterialGenerationRealtime = ({
               .single();
               
             if (job) {
-              console.log('🔄 [Poll] Update:', job.status, job.progress);
               handleUpdate(job);
               
               // Parar polling se job terminou
               if (job.status === 'COMPLETED' || job.status === 'FAILED') {
-                console.log('✅ [Poll] Job finished, stopping polling');
+                console.log('✅ [Poll] Job finished:', job.status);
                 stopPolling();
               }
             }
-          }, 2000); // Poll a cada 2s
+          }, 1500); // ✅ 1.5 segundos - equilibrado entre responsividade e performance
         }
       });
 

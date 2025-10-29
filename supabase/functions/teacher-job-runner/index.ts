@@ -1,4 +1,13 @@
-// Last updated: 2025-10-29 03:00 - Force rebuild with complete debugging fixes
+/**
+ * Teacher Job Runner
+ * Processes background jobs for teacher materials generation
+ * DEPLOY VERSION: 2025-10-29T04:00:00Z - FIX JSON PARSING AND RENDERING
+ */
+
+// Force deployment with unique version identifier
+const DEPLOY_VERSION = '2025-10-29T04:00:00Z';
+console.log(`[Deploy] teacher-job-runner version: ${DEPLOY_VERSION}`);
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 

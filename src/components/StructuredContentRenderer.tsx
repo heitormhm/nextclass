@@ -1,4 +1,8 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { MermaidDiagram } from './MermaidDiagram';
 import { MermaidErrorBoundary } from './MermaidErrorBoundary';
@@ -7,6 +11,21 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { QualityMetricsDisplay } from './QualityMetricsDisplay';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+
+// Helper to detect if data is legacy markdown format
+const isLegacyMarkdownFormat = (data: any): boolean => {
+  if (typeof data === 'string') return true;
+  
+  // Check if it's a single paragraph block with nested JSON string
+  if (data?.conteudo?.length === 1 && 
+      data.conteudo[0]?.tipo === 'paragrafo' &&
+      typeof data.conteudo[0]?.texto === 'string' &&
+      data.conteudo[0].texto.trim().startsWith('{')) {
+    return true;
+  }
+  
+  return false;
+};
 
 // ✅ FASE 10.1: Renderizar LaTeX diretamente sem placeholders intermediários
 const convertMarkdownToHtml = (text: string): string => {
@@ -91,6 +110,35 @@ interface StructuredContentRendererProps {
 }
 
 export const StructuredContentRenderer = ({ structuredData }: StructuredContentRendererProps) => {
+  // Handle invalid/empty data
+  if (!structuredData || typeof structuredData !== 'object') {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Nenhum conteúdo estruturado disponível.
+      </div>
+    );
+  }
+
+  // Handle legacy markdown format (backward compatibility)
+  if (isLegacyMarkdownFormat(structuredData)) {
+    console.warn('[StructuredContentRenderer] Legacy markdown detected, using fallback renderer');
+    
+    const markdownContent = typeof structuredData === 'string' 
+      ? structuredData 
+      : structuredData.conteudo[0].texto;
+    
+    return (
+      <div className="prose prose-sm max-w-none dark:prose-invert">
+        <ReactMarkdown 
+          remarkPlugins={[remarkGfm, remarkMath]} 
+          rehypePlugins={[rehypeKatex]}
+        >
+          {markdownContent}
+        </ReactMarkdown>
+      </div>
+    );
+  }
+
   // Preparar blocos com objetivos de aprendizagem da metadata se disponíveis
   const blocosComObjetivos = React.useMemo(() => {
     // ✅ FASE 12.4: COMPATIBILIDADE - Aceitar `conteudo` OU `material_didatico.conteudo`

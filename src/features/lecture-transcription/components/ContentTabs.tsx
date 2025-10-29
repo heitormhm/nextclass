@@ -1,11 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewer';
+import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
 import { FileText, BookOpen, Sparkles } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import type { StructuredContent } from '../types/lecture.types';
 
@@ -75,19 +72,16 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
           <TabsContent value="material" className="mt-4">
             {!structuredContent?.material_didatico ? (
               <div className="text-center py-12">
-                {materialGenerationComponent}
+                {materialGenerationComponent || (
+                  <p className="text-muted-foreground">
+                    Nenhum material didático disponível
+                  </p>
+                )}
               </div>
             ) : (
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm, remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
-                >
-                  {typeof structuredContent.material_didatico === 'string' 
-                    ? structuredContent.material_didatico 
-                    : JSON.stringify(structuredContent.material_didatico, null, 2)}
-                </ReactMarkdown>
-              </div>
+              <StructuredContentRenderer 
+                structuredData={structuredContent.material_didatico as any}
+              />
             )}
           </TabsContent>
         </Tabs>

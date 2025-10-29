@@ -29,13 +29,14 @@ export async function saveReportToLecture(
   // Validate minimum word count (diagrams count as content)
   const wordCount = fixedReport
     .replace(/```mermaid[\s\S]*?```/g, '[DIAGRAM]') // Keep diagrams as token
+    .replace(/```json[\s\S]*?```/g, '') // Remove JSON metadata blocks
     .replace(/```[\s\S]*?```/g, '') // Remove other code blocks
     .split(/\s+/)
-    .filter(w => w.length > 0).length;
+    .filter(w => w.length > 2).length; // Ignore very short tokens
   
-  console.log(`[Job ${jobId}] 📊 Final word count: ${wordCount} palavras`);
+  console.log(`[Job ${jobId}] 📊 Word count validation: ${wordCount} palavras`);
   
-  if (wordCount < 2000) {
+  if (wordCount < 1500) {
     console.warn(`[Job ${jobId}] ⚠️ Material com ${wordCount} palavras (recomendado: 3000+)`);
     // Não bloquear - permitir salvar para análise do professor
   }
