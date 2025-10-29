@@ -119,7 +119,7 @@ export const MaterialViewer: React.FC<MaterialViewerProps> = ({
   return (
     <>
       {showRegenerateButton && onRegenerate && (
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b p-4 mb-4 -mx-6 -mt-6 flex justify-between items-center">
+        <div className="sticky top-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b p-4 mb-4 flex justify-between items-center rounded-t-lg">
           {validation.wordCount < 100 && (
             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-sm">
               <AlertCircle className="h-4 w-4" />
