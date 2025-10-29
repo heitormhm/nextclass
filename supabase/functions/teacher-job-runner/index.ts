@@ -6,18 +6,10 @@ import { createDeepSearchSystemPrompt, createDeepSearchUserPrompt } from './prom
 import { QUIZ_SYSTEM_PROMPT, createQuizUserPrompt } from './prompts/quiz-generation-prompt.ts';
 import { FLASHCARDS_SYSTEM_PROMPT, createFlashcardsUserPrompt } from './prompts/flashcards-generation-prompt.ts';
 import { validateReferences } from './validators/reference-validator.ts';
-import { validateMermaidDiagrams } from './validators/mermaid-validator.ts';
+import { validateMermaidDiagrams, validateAndFixMermaidSyntax, validateMermaidStructure } from './validators/mermaid-validator.ts';
 import { callAIWithRetry } from './services/ai-client.ts';
 import { sanitizeJSON, updateJobProgress } from './utils/common.ts';
-
-// Import legacy functions (to be refactored in future iterations)
-import { 
-  preprocessMermaidBlocks,
-  fixLatexErrors,
-  convertMarkdownToStructuredJSON,
-  saveReportToLecture,
-  processTranscript
-} from './legacy/index.ts';
+import { fixLatexErrors, aggressiveLatexFix, normalizeLatexSyntax } from './converters/latex-normalizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -101,6 +93,122 @@ async function generateEducationalReport(
   if (!report) throw new Error('No report generated');
   
   return report;
+}
+
+// Helper: Save report to lecture (simplified version)
+async function saveReportToLecture(supabase: any, lectureId: string, report: string, jobId: string) {
+  const { data: lecture } = await supabase.from('lectures').select('structured_content').eq('id', lectureId).single();
+  const existingContent = lecture?.structured_content || {};
+  
+  // Fix LaTeX and validate length
+  let fixedReport = await fixLatexErrors(report, jobId);
+  const wordCount = fixedReport.replace(/```[\s\S]*?```/g, '').split(/\s+/).filter(w => w.length > 0).length;
+  
+  if (wordCount < 3000) {
+    throw new Error(`Material muito curto (${wordCount} palavras). Mínimo: 3000.`);
+  }
+
+  // Convert to structured JSON
+  const structuredJSON = await convertMarkdownToStructuredJSON(fixedReport, 'Material Didático', jobId);
+  
+  await supabase.from('lectures').update({
+    structured_content: {
+      ...existingContent,
+      material_didatico: structuredJSON
+    },
+    updated_at: new Date().toISOString()
+  }).eq('id', lectureId);
+}
+
+// Helper: Convert markdown to structured JSON
+async function convertMarkdownToStructuredJSON(markdown: string, title: string, jobId: string): Promise<any> {
+  const fixed = aggressiveLatexFix(markdown);
+  const normalized = normalizeLatexSyntax(fixed);
+  const cleanedMarkdown = normalized.replace(/^(#{1,4})\s*(.+)$/gm, (match, hashes, content) => {
+    return `${hashes} ${content.replace(/\*\*/g, '').trim()}`;
+  });
+  
+  const lines = cleanedMarkdown.split('\n');
+  const conteudo: any[] = [];
+  let currentParagraph = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) {
+      if (currentParagraph) {
+        conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+        currentParagraph = '';
+      }
+      continue;
+    }
+    
+    if (line.startsWith('## ')) {
+      if (currentParagraph) {
+        conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+        currentParagraph = '';
+      }
+      conteudo.push({ tipo: 'h2', texto: line.replace('## ', '').replace(/\*\*/g, '').trim() });
+      continue;
+    }
+    
+    if (line.startsWith('```mermaid')) {
+      if (currentParagraph) {
+        conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+        currentParagraph = '';
+      }
+      let mermaidCode = '';
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        mermaidCode += lines[i] + '\n';
+        i++;
+      }
+      
+      const validation = await validateAndFixMermaidSyntax(mermaidCode, jobId);
+      if (validation.valid) {
+        conteudo.push({
+          tipo: 'fluxograma',
+          definicao_mermaid: validation.fixed.trim(),
+          titulo: '📊 Diagrama Visual',
+          descricao: 'Representação visual do conceito'
+        });
+      }
+      continue;
+    }
+    
+    if (!line.startsWith('#') && !line.startsWith('```')) {
+      currentParagraph += (currentParagraph ? ' ' : '') + line;
+    }
+  }
+  
+  if (currentParagraph.trim()) {
+    conteudo.push({ tipo: 'paragrafo', texto: currentParagraph.trim() });
+  }
+  
+  return { titulo_geral: title, conteudo };
+}
+
+// Helper: Process transcript
+async function processTranscript(job: any, supabase: any) {
+  const { lectureId, transcript } = job.input_payload;
+  
+  await updateJobProgress(supabase, job.id, 0.2, 'Analisando transcrição...');
+  
+  const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/process-lecture-transcript`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ lectureId, transcript, topic: 'Engenharia' }),
+  });
+
+  if (!response.ok) throw new Error(`Processamento falhou: ${response.status}`);
+  
+  await updateJobProgress(supabase, job.id, 1.0, 'Concluído!');
+  await supabase.from('teacher_jobs').update({
+    status: 'COMPLETED',
+    updated_at: new Date().toISOString()
+  }).eq('id', job.id);
 }
 
 // Process deep search for lecture material
