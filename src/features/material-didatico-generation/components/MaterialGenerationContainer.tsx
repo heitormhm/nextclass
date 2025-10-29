@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useMaterialGenerationJob } from '../hooks/useMaterialGenerationJob';
@@ -14,13 +14,20 @@ interface MaterialGenerationContainerProps {
   onSuccess?: () => void;
 }
 
-export const MaterialGenerationContainer: React.FC<MaterialGenerationContainerProps> = ({
+export interface MaterialGenerationContainerRef {
+  triggerRegeneration: () => void;
+}
+
+export const MaterialGenerationContainer = forwardRef<
+  MaterialGenerationContainerRef,
+  MaterialGenerationContainerProps
+>(({
   lectureId,
   lectureTitle,
   transcript,
   currentMaterial,
   onSuccess,
-}) => {
+}, ref) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const {
@@ -35,6 +42,18 @@ export const MaterialGenerationContainer: React.FC<MaterialGenerationContainerPr
     },
   });
 
+  // Expor método público para componentes pais
+  useImperativeHandle(ref, () => ({
+    triggerRegeneration: () => {
+      console.log('[Container] External trigger: Regeneration requested');
+      if (currentMaterial) {
+        setShowConfirmModal(true);
+      } else {
+        handleGenerate();
+      }
+    }
+  }));
+
   const handleButtonClick = () => {
     if (currentMaterial && !isGenerating) {
       setShowConfirmModal(true);
@@ -44,6 +63,13 @@ export const MaterialGenerationContainer: React.FC<MaterialGenerationContainerPr
   };
 
   const handleGenerate = () => {
+    console.group('[MaterialGeneration] Starting Flow');
+    console.log('- Lecture ID:', lectureId);
+    console.log('- Lecture Title:', lectureTitle);
+    console.log('- Has Material:', !!currentMaterial);
+    console.log('- Transcript Length:', transcript?.length || 0);
+    console.groupEnd();
+    
     setShowConfirmModal(false);
     startGeneration(lectureId, lectureTitle, transcript);
   };
@@ -108,4 +134,6 @@ export const MaterialGenerationContainer: React.FC<MaterialGenerationContainerPr
       />
     </>
   );
-};
+});
+
+MaterialGenerationContainer.displayName = 'MaterialGenerationContainer';

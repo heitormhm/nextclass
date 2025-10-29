@@ -3,7 +3,7 @@
  * Página modularizada usando custom hooks e componentes dedicados
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import MainLayout from '@/components/MainLayout';
@@ -35,7 +35,7 @@ import { ContentTabs } from '@/features/lecture-transcription/components/Content
 import { AudioPlayerCard } from '@/features/lecture-transcription/components/AudioPlayerCard';
 import { PublishingControls } from '@/features/lecture-transcription/components/PublishingControls';
 import { LessonPlanComparisonSection } from '@/features/lecture-transcription/components/LessonPlanComparisonSection';
-import { MaterialGenerationContainer } from '@/features/material-didatico-generation/components/MaterialGenerationContainer';
+import { MaterialGenerationContainer, MaterialGenerationContainerRef } from '@/features/material-didatico-generation/components/MaterialGenerationContainer';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -52,6 +52,9 @@ const LectureTranscriptionPage = () => {
   const [isProcessingTranscript, setIsProcessingTranscript] = useState(false);
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
   const [isLoadingFlashcards, setIsLoadingFlashcards] = useState(false);
+  
+  // Ref para controlar geração de material
+  const materialGenerationRef = useRef<MaterialGenerationContainerRef>(null);
 
   // Data Hooks
   const { lecture, isLoading, reloadLecture, structuredContent: initialContent, setStructuredContent: setLectureContent } = useLectureData(id);
@@ -368,6 +371,7 @@ const LectureTranscriptionPage = () => {
               topics={structuredContent?.topicos_principais}
               materialGenerationComponent={
                 <MaterialGenerationContainer
+                  ref={materialGenerationRef}
                   lectureId={id!}
                   lectureTitle={lectureTitle}
                   transcript={lecture.raw_transcript}
@@ -382,8 +386,16 @@ const LectureTranscriptionPage = () => {
                 />
               }
               onRegenerateMaterial={() => {
-                // Material regeneration is handled by MaterialGenerationContainer button
-                console.log('[LecturePage] Regenerate material requested');
+                console.log('[LecturePage] Redo button clicked - triggering regeneration');
+                if (!materialGenerationRef.current) {
+                  toast({
+                    variant: 'destructive',
+                    title: 'Erro',
+                    description: 'Sistema de geração não está pronto. Recarregue a página.',
+                  });
+                  return;
+                }
+                materialGenerationRef.current.triggerRegeneration();
               }}
             />
             

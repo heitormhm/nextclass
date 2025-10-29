@@ -41,16 +41,16 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({
             <TabsTrigger value="material" className="gap-2 relative">
               <Sparkles className="h-4 w-4" />
               Material Didático
-              {structuredContent?.material_didatico && (
-                <button
-                  onClick={handleRegenerateMaterial}
-                  className="ml-2 p-1 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-full transition-colors"
-                  title="Refazer pesquisa profunda"
-                  aria-label="Refazer pesquisa de material didático"
-                >
-                  <RotateCcw className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                </button>
-              )}
+            {structuredContent?.material_didatico && (
+              <button
+                onClick={handleRegenerateMaterial}
+                className="ml-2 p-1.5 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-full transition-all duration-200 flex items-center justify-center hover:scale-110 active:scale-95"
+                title="Refazer pesquisa profunda"
+                aria-label="Refazer pesquisa de material didático"
+              >
+                <RotateCcw className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </button>
+            )}
             </TabsTrigger>
           </TabsList>
 
