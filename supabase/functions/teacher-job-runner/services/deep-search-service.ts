@@ -374,6 +374,44 @@ export async function processLectureDeepSearch(job: any, supabase: any, lovableA
     console.log(`[Job ${job.id}] ✅ Pre-save Mermaid cleaning complete`);
 
     await saveReportToLecture(supabase, lectureId, report, job.id);
+    
+    // ✅ PHASE 5: Post-save verification
+    console.log(`[Job ${job.id}] 🔍 PHASE 5: Verifying saved content...`);
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('teacher_lectures')
+      .select('material_didatico_html, material_didatico')
+      .eq('id', lectureId)
+      .single();
+    
+    if (verifyError) {
+      console.warn(`[Job ${job.id}] ⚠️ Verification query failed:`, verifyError);
+    } else if (verifyData) {
+      const savedHtml = verifyData.material_didatico_html || '';
+      const savedMarkdown = verifyData.material_didatico || '';
+      
+      console.log(`[Job ${job.id}] ✅ Verification: HTML ${savedHtml.length} chars, Markdown ${savedMarkdown.length} chars`);
+      
+      // Check for issues in saved content
+      const nestedDelimiters = savedHtml.match(/\$\$[^$]*\$[^$]+\$[^$]*\$\$/g);
+      if (nestedDelimiters) {
+        console.warn(`[Job ${job.id}] ⚠️ Verification: Found ${nestedDelimiters.length} nested delimiters in HTML`);
+      }
+      
+      const singleLineMermaid = savedHtml.match(/```mermaid\nflowchart [^\n]*-->[^\n]*```/g);
+      if (singleLineMermaid) {
+        console.warn(`[Job ${job.id}] ⚠️ Verification: Found ${singleLineMermaid.length} single-line Mermaid blocks`);
+      }
+      
+      const hasContent = savedHtml.length > 1000 && savedMarkdown.length > 1000;
+      if (!hasContent) {
+        console.error(`[Job ${job.id}] ❌ Verification: Content too short! HTML: ${savedHtml.length}, MD: ${savedMarkdown.length}`);
+      }
+      
+      if (!nestedDelimiters && !singleLineMermaid && hasContent) {
+        console.log(`[Job ${job.id}] ✅ Verification: All quality checks passed ✅`);
+      }
+    }
+    
     await updateJobProgress(supabase, job.id, 1.0, 'Concluído!');
     
     await supabase.from('teacher_jobs').update({

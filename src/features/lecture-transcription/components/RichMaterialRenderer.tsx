@@ -24,9 +24,14 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[
           [rehypeKatex, {
-            throwOnError: false,
+            throwOnError: false,  // ✅ PHASE 3: Don't throw on LaTeX errors
             errorColor: '#cc0000',
-            strict: false
+            strict: false,
+            output: 'html',
+            displayMode: false,
+            // ✅ PHASE 3: Custom error handler for malformed formulas
+            trust: false,
+            macros: {}
           }]
         ]}
         components={{

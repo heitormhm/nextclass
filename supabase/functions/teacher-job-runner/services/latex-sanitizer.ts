@@ -44,6 +44,30 @@ export function sanitizeLaTeX(markdown: string, jobId: string): string {
     }
   );
   
+  // ✅ PHASE 2: NEW - Fix inline math inside display math
+  sanitized = sanitized.replace(
+    /\$\$([^$]*)\$([^$]+)\$([^$]*)\$\$/g,
+    (match, before, formula, after) => {
+      fixCount++;
+      console.log(`[Job ${jobId}] 🔧 Fixed inline in display math: ${match.substring(0, 50)}...`);
+      return `$$ ${before}${formula}${after} $$`.replace(/\s+/g, ' ').trim();
+    }
+  );
+  
+  // ✅ PHASE 2: NEW - Remove any $ inside $$ ... $$
+  sanitized = sanitized.replace(
+    /\$\$([^$]+(?:\$[^$]+)*)\$\$/g,
+    (match, content) => {
+      if (content.includes('$')) {
+        fixCount++;
+        const cleaned = content.replace(/\$/g, '');
+        console.log(`[Job ${jobId}] 🔧 Removed $ inside display math: ${match.substring(0, 50)}...`);
+        return `$$ ${cleaned.trim()} $$`;
+      }
+      return match;
+    }
+  );
+  
   // Fix 3: Normalize whitespace around display math delimiters
   sanitized = sanitized.replace(
     /\$\$\s{2,}([^$]+?)\s{2,}\$\$/g,
@@ -56,12 +80,21 @@ export function sanitizeLaTeX(markdown: string, jobId: string): string {
   sanitized = sanitized.replace(/\$\$\s+\$/g, '$$');
   sanitized = sanitized.replace(/\$\s+\$\$/g, '$$');
   
-  // Validation: Check for balanced display math delimiters
+  // ✅ PHASE 2: NEW - Normalize inline math
+  sanitized = sanitized.replace(/\$\s+([^$]+?)\s+\$/g, '$ $1 $');
+  
+  // ✅ PHASE 2: NEW - Fix unbalanced delimiters (emergency cleanup)
   const displayMatches = sanitized.match(/\$\$/g);
   const displayCount = displayMatches ? displayMatches.length : 0;
   
   if (displayCount % 2 !== 0) {
-    console.warn(`[Job ${jobId}] ⚠️ Unbalanced display math delimiters detected: ${displayCount} occurrences`);
+    console.warn(`[Job ${jobId}] ⚠️ Unbalanced display math delimiters detected: ${displayCount} occurrences - attempting fix`);
+    // Remove the last unpaired $$
+    const lastIndex = sanitized.lastIndexOf('$$');
+    if (lastIndex !== -1) {
+      sanitized = sanitized.substring(0, lastIndex) + sanitized.substring(lastIndex + 2);
+      fixCount++;
+    }
   }
   
   // Validation: Check for remaining nested delimiters

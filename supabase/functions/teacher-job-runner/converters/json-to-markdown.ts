@@ -90,12 +90,19 @@ function convertBlockToMarkdown(block: EducationalMaterialBlock): string {
       const caption = block.caption ? `${block.caption}\n\n` : '';
       const code = block.code || block.content || '';
       
-      // ✅ Normalize mermaid code: ensure proper line breaks
+      // ✅ PHASE 4: Enhanced mermaid normalization - ensure ALL elements get newlines
       const normalizedCode = code
         .replace(/\s+/g, ' ')  // Collapse whitespace
-        .replace(/\s*-->\s*/g, '\n    --> ')  // Arrow connections on new lines
-        .replace(/\s*(style\s+)/g, '\n    $1')  // Style statements on new lines
-        .replace(/flowchart\s+TD\s+/g, 'flowchart TD\n    ')  // Diagram type + newline
+        .replace(/\s*-->\s*/g, '\n    --> ')  // Arrow connections
+        .replace(/\s*---\s*/g, '\n    --- ')  // Line connections
+        .replace(/\s*==>\s*/g, '\n    ==> ')  // Thick arrow connections
+        .replace(/\s*->\s*/g, '\n    -> ')  // Simple arrows
+        .replace(/([A-Z0-9_]+\[[^\]]+\])/g, '\n    $1')  // Node declarations on new lines
+        .replace(/([A-Z0-9_]+\([^)]+\))/g, '\n    $1')  // Round node declarations
+        .replace(/\s*(style\s+)/g, '\n    $1')  // Style statements
+        .replace(/flowchart\s+(TD|LR)\s+/g, 'flowchart $1\n    ')  // Diagram type + newline
+        .replace(/sequenceDiagram\s+/g, 'sequenceDiagram\n    ')  // Sequence diagrams
+        .replace(/\n\s*\n/g, '\n')  // Remove double newlines
         .trim();
         
       return `${caption}\`\`\`mermaid\n${normalizedCode}\n\`\`\``;
