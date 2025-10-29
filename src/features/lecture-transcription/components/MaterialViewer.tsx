@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { AlertCircle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MaterialGenerationLoading } from '@/features/material-didatico-generation/components/MaterialGenerationLoading';
-import { RichMaterialRenderer } from './RichMaterialRenderer';
+import { TwoPhaseRenderer } from './TwoPhaseRenderer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -133,7 +133,8 @@ export const MaterialViewer: React.FC<MaterialViewerProps> = ({
           </div>
         )}
         
-        <RichMaterialRenderer markdown={markdownContent!} />
+        {/* ✅ PHASE 2: Two-phase rendering (text first, then Mermaid) */}
+        <TwoPhaseRenderer markdown={markdownContent!} />
       </div>
 
       <AlertDialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>

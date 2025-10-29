@@ -18,6 +18,53 @@ interface ReferenceValidationResult {
   errors: string[];
 }
 
+/**
+ * ✅ PHASE 1: Mermaid validation interfaces
+ */
+interface MermaidValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+/**
+ * ✅ PHASE 1: Validate Mermaid syntax (basic check)
+ */
+function validateMermaidDiagrams(materialDidatico: string): MermaidValidationResult {
+  const errors: string[] = [];
+  const mermaidBlocks = materialDidatico.match(/```mermaid\n([\s\S]*?)```/g) || [];
+  
+  console.log(`[Mermaid Validation] Found ${mermaidBlocks.length} Mermaid blocks`);
+  
+  mermaidBlocks.forEach((block, index) => {
+    const code = block.replace(/```mermaid\n|```$/g, '').trim();
+    
+    // Check 1: Must start with valid diagram type
+    if (!code.match(/^(graph|flowchart|sequenceDiagram|stateDiagram-v2|classDiagram)/)) {
+      errors.push(`Block ${index + 1}: Invalid diagram type`);
+    }
+    
+    // Check 2: No unicode arrows
+    if (code.match(/[→←↔⇒⇐⇔]/)) {
+      errors.push(`Block ${index + 1}: Contains unicode arrows - will be converted to ASCII`);
+    }
+    
+    // Check 3: No problematic chars in labels
+    const labelsMatch = code.match(/\[([^\]]+)\]/g);
+    if (labelsMatch) {
+      labelsMatch.forEach(label => {
+        if (label.match(/[Δ∆αβγθλμπσω]/)) {
+          errors.push(`Block ${index + 1}: Greek letters in label - will be converted`);
+        }
+      });
+    }
+  });
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
 function validateReferences(markdown: string): ReferenceValidationResult {
   console.log('[References Validator] 🔍 Checking reference quality...');
   
@@ -121,29 +168,42 @@ const corsHeaders = {
 };
 
 /**
- * Clean HTML artifacts from Mermaid blocks
+ * ✅ PHASE 1: Clean Mermaid blocks - remove HTML and fix syntax
  */
 function cleanMermaidBlocks(markdown: string): string {
-  const mermaidBlockRegex = /```mermaid\n([\s\S]*?)```/g;
-  
-  return markdown.replace(mermaidBlockRegex, (match, code) => {
-    // Remove HTML tags and entities from mermaid code
-    const cleaned = code
-      .replace(/<[^>]+>/g, '') // Remove all HTML tags
-      .replace(/&nbsp;/g, ' ') // Replace HTML entities
+  return markdown.replace(/```mermaid\n([\s\S]*?)```/g, (match, code) => {
+    let cleaned = code
+      // Remove HTML tags and entities
+      .replace(/<br\s*\/?>/gi, '\\n')
+      .replace(/<\/?(?:strong|b|em|i)>/gi, '')
+      .replace(/&nbsp;/g, ' ')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&')
-      .replace(/&#39;/g, "'")
-      .replace(/&quot;/g, '"')
-      .replace(/\r\n/g, '\n') // Normalize line endings
+      // Fix syntax issues
+      .replace(/;$/gm, '')                    // Remove trailing semicolons
+      .replace(/\s+--\s+/g, ' -- ')          // Normalize connection spacing
+      .replace(/\s+-->\s+/g, ' --> ')        // Normalize arrow spacing
+      .replace(/\[([^\]]{100,})\]/g, '[...]') // Truncate overly long labels
+      // Replace unicode arrows with ASCII
+      .replace(/→/g, '-->')
+      .replace(/⇒/g, '==>')
+      .replace(/←/g, '<--')
+      .replace(/⇐/g, '<==')
+      .replace(/↔/g, '<-->')
+      .replace(/⇔/g, '<==>')
+      // Replace Greek letters
+      .replace(/Δ|∆/g, 'Delta')
+      .replace(/α/g, 'alpha')
+      .replace(/β/g, 'beta')
+      .replace(/γ/g, 'gamma')
+      .replace(/θ/g, 'theta')
+      .replace(/λ/g, 'lambda')
+      .replace(/π/g, 'pi')
+      .replace(/σ/g, 'sigma')
+      .replace(/ω/g, 'omega')
+      .replace(/μ/g, 'mu')
       .trim();
-    
-    console.log('[Mermaid Cleanup] Block cleaned:', {
-      originalLength: code.length,
-      cleanedLength: cleaned.length,
-      hadHTML: /<[^>]+>/.test(code)
-    });
     
     return '```mermaid\n' + cleaned + '\n```';
   });
@@ -284,9 +344,18 @@ serve(async (req) => {
 
     console.log('[generate-lecture-material] Generated:', generatedMarkdown.length, 'chars');
 
-    // STEP 3: Clean Mermaid blocks and prepare content
-    console.log('[generate-lecture-material] Step 3: Preparing content...');
+    // ✅ PHASE 1: STEP 3 - Clean and validate Mermaid blocks
+    console.log('[generate-lecture-material] Step 3: Cleaning Mermaid diagrams...');
     let markdownContent = cleanMermaidBlocks(generatedMarkdown);
+    
+    // Validate Mermaid syntax
+    const mermaidValidation = validateMermaidDiagrams(markdownContent);
+    if (!mermaidValidation.valid) {
+      console.warn('[generate-lecture-material] ⚠️ Mermaid validation warnings:', mermaidValidation.errors);
+      // Don't block generation, but log for monitoring
+    } else {
+      console.log('[generate-lecture-material] ✅ All Mermaid diagrams validated successfully');
+    }
     
     // DIAGNOSTIC: Verify markdown format
     const mermaidBlocks = markdownContent.match(/```mermaid/g);
@@ -300,8 +369,8 @@ serve(async (req) => {
       sample: markdownContent.substring(0, 300)
     });
 
-    // ✅ PHASE 3: Validate references quality
-    console.log('[generate-lecture-material] Step 3.5: Validating references...');
+    // STEP 4: Validate references quality
+    console.log('[generate-lecture-material] Step 4: Validating references...');
     
     const refValidation = validateReferences(markdownContent);
     
@@ -327,8 +396,8 @@ serve(async (req) => {
       bannedCount: refValidation.bannedCount
     });
 
-    // STEP 4: Save to database (store markdown, not HTML)
-    console.log('[generate-lecture-material] Step 4: Saving to database...');
+    // STEP 5: Save to database (store markdown, not HTML)
+    console.log('[generate-lecture-material] Step 5: Saving to database...');
     
     const { data: existingLecture } = await supabase
       .from('lectures')

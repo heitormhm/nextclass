@@ -58,20 +58,25 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
     };
   }, []);
 
-  // ✅ PHASE 2: Fixed Mermaid rendering with safety timeout INSIDE
+  // ✅ PHASE 3: Fixed race condition with isMounted flag
   useEffect(() => {
+    let isMounted = true;
+    let safetyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    
     const renderDiagram = async () => {
-      if (!ref.current || !code) return;
+      if (!ref.current || !code || !isMounted) return;
 
       console.log('[Mermaid] Attempting to render diagram');
       setIsLoading(true);
       setError(null);
 
-      // ✅ PHASE 2: Safety timeout INSIDE renderDiagram
-      const safetyTimeout = setTimeout(() => {
-        console.warn('[Mermaid] Safety timeout triggered at 12s');
-        setIsLoading(false);
-        setError('timeout');
+      // Safety timeout with explicit cleanup tracking
+      safetyTimeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.warn('[Mermaid] Safety timeout triggered at 12s');
+          setIsLoading(false);
+          setError('timeout');
+        }
       }, 12000);
 
       try {
@@ -79,9 +84,11 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         
         if (!sanitizedCode || sanitizedCode.length < 10) {
           console.warn('[Mermaid] Empty code, showing placeholder');
-          clearTimeout(safetyTimeout);
-          setIsLoading(false);
-          setError('invalid');
+          if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
+          if (isMounted) {
+            setIsLoading(false);
+            setError('invalid');
+          }
           return;
         }
 
@@ -133,7 +140,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
             const renderPromise = strategy();
             const { svg } = (await Promise.race([renderPromise, renderTimeout])) as { svg: string };
 
-            if (ref.current) {
+            if (ref.current && isMounted) {
               ref.current.innerHTML = svg;
               rendered = true;
               break;
@@ -144,19 +151,23 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           }
         }
 
-        clearTimeout(safetyTimeout);
+        if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
 
         if (!rendered) {
           throw lastError || new Error('All rendering strategies failed');
         }
 
-        console.log('[Mermaid] ✅ Rendered successfully');
-        setIsLoading(false);
+        if (isMounted) {
+          console.log('[Mermaid] ✅ Rendered successfully');
+          setIsLoading(false);
+        }
       } catch (err) {
-        clearTimeout(safetyTimeout);
+        if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
         console.error('[Mermaid] Render failed:', err);
-        setIsLoading(false);
-        setError('hidden');
+        if (isMounted) {
+          setIsLoading(false);
+          setError('hidden');
+        }
       }
     };
     
@@ -164,6 +175,8 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
 
     // Cleanup on unmount
     return () => {
+      isMounted = false;
+      if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
       if (ref.current) {
         ref.current.innerHTML = '';
       }

@@ -101,23 +101,20 @@ export const RichMaterialRenderer: React.FC<RichMaterialRendererProps> = ({ mark
             );
           },
           
-          // Mermaid diagrams (code blocks with language="mermaid")
+          // ✅ PHASE 2: Mermaid placeholders (rendered separately by TwoPhaseRenderer)
           code: ({node, className, children, ...props}: any) => {
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : null;
             const inline = !className;
             
             if (!inline && language === 'mermaid') {
-              const code = String(children).replace(/\n$/, '');
+              // Show placeholder (diagrams rendered separately by TwoPhaseRenderer)
               return (
-                <MermaidErrorBoundary>
-                  <MermaidDiagram
-                    code={code}
-                    title="Diagrama"
-                    description="Representação visual do conceito"
-                    icon="📊"
-                  />
-                </MermaidErrorBoundary>
+                <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-lg p-4 my-4">
+                  <p className="text-sm text-purple-600">
+                    📊 Diagrama será carregado na seção de diagramas visuais...
+                  </p>
+                </div>
               );
             }
             
