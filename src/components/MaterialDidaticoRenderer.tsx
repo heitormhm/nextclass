@@ -1,97 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import mermaid from 'mermaid';
 import 'katex/dist/katex.min.css';
+import { MaterialMermaidDiagram } from './MaterialMermaidDiagram';
+import { MermaidErrorBoundary } from './MermaidErrorBoundary';
 
 interface MaterialDidaticoRendererProps {
   markdown: string;
 }
 
-// Simplified Mermaid component for inline rendering
-const InlineMermaidDiagram = ({ code }: { code: string }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [error, setError] = React.useState<boolean>(false);
-
-  useEffect(() => {
-    const renderDiagram = async () => {
-      if (!ref.current || !code) return;
-
-      try {
-        // Clean code
-        const cleanCode = code.trim()
-          .replace(/^```mermaid\s*/i, '')
-          .replace(/```$/g, '')
-          .trim();
-
-        if (cleanCode.length < 10) {
-          setError(true);
-          return;
-        }
-
-        // Initialize Mermaid
-        mermaid.initialize({
-          theme: 'default',
-          logLevel: 'error',
-          startOnLoad: false,
-          securityLevel: 'loose',
-          flowchart: {
-            useMaxWidth: true,
-            htmlLabels: true,
-            curve: 'basis',
-            padding: 20,
-          },
-          themeVariables: {
-            fontSize: '16px',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            primaryColor: '#f3e5f5',
-            primaryTextColor: '#000',
-            primaryBorderColor: '#7c3aed',
-            lineColor: '#7c3aed',
-            secondaryColor: '#e1f5fe',
-            tertiaryColor: '#f1f8e9',
-          }
-        });
-
-        const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const { svg } = await mermaid.render(uniqueId, cleanCode);
-
-        if (ref.current) {
-          ref.current.innerHTML = svg;
-        }
-
-        setError(false);
-      } catch (err) {
-        console.error('[MaterialDidatico] Mermaid render error:', err);
-        setError(true);
-      }
-    };
-
-    renderDiagram();
-  }, [code]);
-
-  if (error) {
-    return (
-      <div className="bg-muted/30 p-4 rounded-lg border border-border my-4">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <span>📊</span>
-          <span className="text-sm">Diagrama temporariamente indisponível</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-muted/30 p-4 rounded-lg border border-border my-4 w-full overflow-x-auto">
-      <div
-        ref={ref}
-        className="mermaid-diagram-container flex justify-center items-center min-h-[200px]"
-      />
-    </div>
-  );
-};
 
 export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> = ({ markdown }) => {
   if (!markdown || markdown.trim().length === 0) {
@@ -115,7 +34,11 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             const inline = !className;
 
             if (language === 'mermaid' && !inline) {
-              return <InlineMermaidDiagram code={String(children).trim()} />;
+              return (
+                <MermaidErrorBoundary key={`mermaid-${node?.position?.start?.line || Math.random()}`}>
+                  <MaterialMermaidDiagram code={String(children).trim()} />
+                </MermaidErrorBoundary>
+              );
             }
 
             if (inline) {

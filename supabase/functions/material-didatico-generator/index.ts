@@ -602,11 +602,19 @@ function fixLaTeXFormulas(markdown: string): string {
   // Fix ** 1$ ** patterns (corrupted formulas)
   cleaned = cleaned.replace(/\*\*\s*\d+\$\s*\*\*/g, '');
 
-  // Normalize: single $ → $$ (but be careful not to break existing $$)
-  // This regex matches $ that are not already part of $$
-  cleaned = cleaned.replace(/(?<!\$)\$(?!\$)([^\$\n]+?)(?<!\$)\$(?!\$)/g, '$$$$$1$$$$');
+  // Only convert $ → $$ if content contains mathematical operators
+  // Matches: $E = mc^2$, $\Delta U$, $x^2 + y^2$
+  // Ignores: "costs $50", "$100K budget"
+  cleaned = cleaned.replace(
+    /(?<!\$)\$(?!\$)([^\$\n]*?[\+\-\*\/\^\=\\{}_\(\)][^\$\n]*?)(?<!\$)\$(?!\$)/g,
+    '$$$$$1$$$$'
+  );
 
-  console.log('[Processor] ✓ LaTeX formulas sanitized');
+  // Ensure spacing around formulas for KaTeX rendering
+  cleaned = cleaned.replace(/([^\s])(\$\$)/g, '$1 $2'); // Before $$
+  cleaned = cleaned.replace(/(\$\$)([^\s])/g, '$1 $2'); // After $$
+
+  console.log('[Processor] ✓ LaTeX formulas sanitized with improved validation');
   return cleaned;
 }
 
