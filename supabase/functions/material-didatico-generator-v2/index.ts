@@ -786,64 +786,39 @@ Use callouts Markdown para destacar informações importantes:
 > ⚠️ Atenção: [Cuidado com erros comuns ou limitações]
 > 🔬 Exemplo Prático: [Caso real de aplicação]
 
-**OBRIGATÓRIO: USE PELO MENOS 3 TIPOS DIFERENTES DE DIAGRAMAS**
+**DIAGRAMAS: USE VARIEDADE DE TIPOS**
 
-Para CADA conceito principal, escolha o tipo mais adequado:
+Crie 3-4 diagramas usando TIPOS DIFERENTES (escolha o mais apropriado para cada conceito):
 
-**TIPO 1: flowchart TD/LR** - Processos, fluxos, sequências
-Exemplo para termodinâmica:
+1. **flowchart LR** - Para processos sequenciais e fluxos
 \`\`\`mermaid
 flowchart LR
-    Q[Calor Fornecido] --> Sistema[Sistema Termico]
-    Sistema --> W[Trabalho Realizado]
-    Sistema --> Perdas[Perdas Termicas]
+    A[Entrada] --> B[Processo] --> C[Saida]
 \`\`\`
 
-**TIPO 2: graph TD** - Relações entre conceitos, hierarquias
-Exemplo para termodinâmica:
+2. **graph TD** - Para hierarquias e relações entre conceitos
 \`\`\`mermaid
 graph TD
-    PrimeiraLei[Primeira Lei] --> ConservacaoEnergia[Conservacao]
-    PrimeiraLei --> BalancoEnergia[Balanco de Energia]
-    SegundaLei[Segunda Lei] --> Entropia[Entropia]
-    ConservacaoEnergia --> Aplicacoes[Aplicacoes Praticas]
+    Conceito1[Principal] --> Conceito2[Derivado]
+    Conceito1 --> Conceito3[Relacionado]
 \`\`\`
 
-**TIPO 3: stateDiagram-v2** - Estados, transições, ciclos
-Exemplo para termodinâmica:
+3. **stateDiagram-v2** - Para estados, transições e ciclos
 \`\`\`mermaid
 stateDiagram-v2
-    [*] --> Estado1: Fornecimento de Calor
-    Estado1 --> Estado2: Expansao Isotermica
-    Estado2 --> Estado3: Resfriamento
-    Estado3 --> [*]: Retorno ao Estado Inicial
+    [*] --> Estado1
+    Estado1 --> Estado2: Transicao
+    Estado2 --> [*]
 \`\`\`
 
-**TIPO 4: classDiagram** - Classificações, taxonomias
-Exemplo para termodinâmica:
+4. **classDiagram** - Para classificações e taxonomias (opcional)
 \`\`\`mermaid
 classDiagram
-    Energia <|-- EnergiaInterna
-    Energia <|-- EnergiaCinetica
-    Energia <|-- EnergiaPotencial
-    EnergiaInterna : temperatura
-    EnergiaInterna : pressao
+    Categoria <|-- Tipo1
+    Categoria <|-- Tipo2
 \`\`\`
 
-**TIPO 5: pie** - Distribuições, composições percentuais
-Exemplo para termodinâmica:
-\`\`\`mermaid
-pie title Distribuicao de Energia em Usina Termica
-    "Trabalho Util" : 35
-    "Calor Residual" : 45
-    "Perdas Mecanicas" : 15
-    "Outras Perdas" : 5
-\`\`\`
-
-**REGRA DE VARIEDADE**: 
-- Material com 3 diagramas → use 3 tipos diferentes
-- Material com 4-5 diagramas → use pelo menos 4 tipos diferentes
-- NUNCA use só flowchart!
+**IMPORTANTE**: Use pelo menos 2 tipos diferentes. NUNCA use apenas graph TD para todos os diagramas.
 
 **REGRAS CRÍTICAS PARA DIAGRAMAS**:
 - **NUNCA use caracteres especiais em labels**: Δ, Σ, ṁ, Q̇, Ẇ, α, β, γ, θ
@@ -943,7 +918,10 @@ INCORRETO (NÃO FAÇA):
     // Fix 1: ( $$ variable $$ ) → ($variable$)
     processedMarkdown = processedMarkdown.replace(/\(\s*\$\$\s*([^$]+?)\s*\$\$\s*\)/g, '($$$1$)');
     
-    // Fix 2: word $$ variable $$ word → word $variable$ word
+    // Fix 2: $variable $$ → $variable$ (THE CRITICAL MISSING PATTERN)
+    processedMarkdown = processedMarkdown.replace(/\$([A-Za-z_\\]+)\s+\$\$/g, '$$$1$');
+    
+    // Fix 3: word $$ variable $$ word → word $variable$ word
     processedMarkdown = processedMarkdown.replace(/(\w+)\s+\$\$\s*([A-Za-z_\\]+)\s*\$\$\s+(\w+)/g, '$1 $$$2$ $3');
     
     // Fix 3: Start of line with inline $$
