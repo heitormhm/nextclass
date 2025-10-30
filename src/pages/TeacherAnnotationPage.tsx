@@ -14,36 +14,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { toast, toast as sonnerToast } from 'sonner';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
-import { TwoPhaseRenderer } from '@/features/lecture-transcription/components/TwoPhaseRenderer';
+import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
 import { generateVisualPDF } from '@/utils/visualPdfGenerator';
 import { generateReportPDF } from '@/utils/pdfGenerator';
-import { AIFormattingService } from '@/services/aiFormattingService';
-
-// Legacy JSON to Markdown converter (for old annotations)
-const convertStructuredToMarkdown = (structuredData: any): string => {
-  if (!structuredData?.conteudo) return '';
-  
-  let markdown = `# ${structuredData.titulo_geral || 'Conteúdo'}\n\n`;
-  
-  structuredData.conteudo.forEach((bloco: any) => {
-    switch (bloco.tipo) {
-      case 'h2': markdown += `## ${bloco.texto}\n\n`; break;
-      case 'h3': markdown += `### ${bloco.texto}\n\n`; break;
-      case 'h4': markdown += `#### ${bloco.texto}\n\n`; break;
-      case 'paragrafo': markdown += `${bloco.texto?.replace(/<[^>]*>/g, '') || ''}\n\n`; break;
-      case 'caixa_de_destaque': markdown += `> **📌 ${bloco.titulo}**\n> ${bloco.texto}\n\n`; break;
-      case 'post_it': markdown += `> 💡 **${bloco.texto}**\n\n`; break;
-      default: break;
-    }
-  });
-  
-  return markdown;
-};
+import { structuredContentToMarkdown } from '@/utils/structuredContentToMarkdown';
 const TeacherAnnotationPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -495,10 +474,14 @@ const TeacherAnnotationPage = () => {
     }
 
     const currentContent = editorRef.current?.innerHTML || '';
+    console.log('[AI Action] 💾 Salvando estado antes de processar:', actionType);
+    console.log('[AI Action] Conteúdo atual (primeiros 100 chars):', currentContent.substring(0, 100));
     setPreAIContent(currentContent);
     
+    // Se ainda não temos originalInputContent, salvar agora
     if (!originalInputContent) {
       setOriginalInputContent(currentContent);
+      console.log('[AI Action] ✅ originalInputContent salvo pela primeira vez');
     }
     
     setIsProcessingAI(true);
@@ -531,78 +514,275 @@ const TeacherAnnotationPage = () => {
     }
     
     try {
-      // Usar serviço modular
-      const result = await AIFormattingService.formatContent(
-        content,
-        actionType as any,
-        { timeout: 120000 }
-      );
+      // Lógica especial para "Gerar Plano de Aula"
+    if (actionType === 'format_lesson_plan') {
+      try {
+        toast.info('Gerando plano de aula... 📚', {
+          description: 'Aguarde 60-90 segundos',
+          duration: 5000,
+        });
 
-      if (progressToastId) {
-        sonnerToast.dismiss(progressToastId);
-      }
+        const { data, error } = await supabase.functions.invoke('generate-lesson-plan', {
+          body: { content }
+        });
 
-      if (!result.success) {
-        throw new Error(result.error || 'Erro ao processar');
-      }
+        if (error) {
+          console.error('[Plano de Aula] Erro:', error);
+          toast.error('Erro ao gerar plano de aula');
+          setIsProcessingAI(false);
+          return;
+        }
 
-      // Aplicar resultado estruturado
-      if (result.isStructured && result.structuredContent) {
-        const jsonContent = JSON.stringify(result.structuredContent);
+        // ⭐ VALIDAÇÃO ROBUSTA DA RESPOSTA
+        if (!data || !data.structured_content) {
+          console.error('[Plano de Aula] Resposta inválida:', data);
+          toast.error('Erro: Resposta vazia do servidor', {
+            description: 'Tente novamente ou entre em contato com suporte',
+          });
+          setIsProcessingAI(false);
+          return;
+        }
+
+        const structuredData = data.structured_content;
+
+        // ⭐ VALIDAR CONTEÚDO
+        if (!structuredData.conteudo || !Array.isArray(structuredData.conteudo)) {
+          console.error('[Plano de Aula] Estrutura inválida:', structuredData);
+          toast.error('Erro: Plano de aula vazio', {
+            description: 'O servidor retornou uma estrutura inválida. Verifique os logs.',
+          });
+          setIsProcessingAI(false);
+          return;
+        }
+
+        if (structuredData.conteudo.length === 0) {
+          console.warn('[Plano de Aula] Plano gerado sem blocos');
+          toast.warning('Plano de aula gerado sem blocos 🤔', {
+            description: 'O conteúdo pode não ter sido suficiente. Tente adicionar mais detalhes.',
+            duration: 7000,
+          });
+          setIsProcessingAI(false);
+          return;
+        }
         
-        setStructuredContent(result.structuredContent);
-        setIsStructuredMode(true);
+        const jsonContent = JSON.stringify(structuredData);
+        
         setContent(jsonContent);
+        setStructuredContent(structuredData);
+        setIsStructuredMode(true);
         
         if (editorRef.current) {
           editorRef.current.innerHTML = '';
-          editorRef.current.blur();
         }
         
         saveToHistory(jsonContent);
         
-        if (result.warnings) {
-          result.warnings.forEach(w => {
-            sonnerToast.warning(`⚠️ ${w}`, { duration: 8000 });
-          });
+        toast.success('Plano de aula gerado! 🎓', {
+          description: `${structuredData.conteudo.length} blocos pedagógicos criados`,
+          duration: 5000,
+        });
+        setIsProcessingAI(false);
+        
+      } catch (error) {
+        console.error('[Plano de Aula] Erro:', error);
+        toast.error('Erro ao gerar plano de aula');
+        setIsProcessingAI(false);
+      }
+      return;
+    }
+      
+      // Para outras ações, usar a edge function padrão com timeout de segurança
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
+      
+      // Determinar qual função chamar baseado no actionType
+      const functionName = actionType === 'generate_activity' 
+        ? 'teacher-generate-activity' 
+        : 'teacher-ai-text-formatting';
+
+      console.log(`[AI Action] Chamando função: ${functionName} (action: ${actionType})`);
+
+      let data, error;
+      try {
+        const response = await supabase.functions.invoke(functionName, {
+          body: actionType === 'generate_activity'
+            ? { content } // Nova função só precisa de content
+            : { content, action: actionType }, // Função antiga precisa de action
+          // @ts-ignore - AbortSignal is supported but not in types
+          signal: controller.signal
+        });
+        data = response.data;
+        error = response.error;
+        clearTimeout(timeoutId);
+
+        // Log de sucesso específico por função
+        if (!error) {
+          console.log(`[AI Action] ✅ ${functionName} retornou resposta de ${data?.formattedText?.length || 0} caracteres`);
+        }
+      } catch (invokeError: any) {
+        clearTimeout(timeoutId);
+        if (invokeError.name === 'AbortError') {
+          throw new Error('Timeout: A geração demorou mais de 2 minutos. Tente com um texto menor ou mais conciso.');
+        }
+        throw invokeError;
+      }
+
+      if (error) throw error;
+      
+      if (data?.formattedText) {
+        // Detectar se é JSON estruturado (Designer Instrucional ou Atividade Avaliativa)
+        let jsonString = data.formattedText.trim();
+        
+        // Remover blocos de código markdown se presentes
+        if (jsonString.startsWith('```json')) {
+          jsonString = jsonString.replace(/^```json\s*\n/, '').replace(/\n```\s*$/, '');
+        } else if (jsonString.startsWith('```')) {
+          jsonString = jsonString.replace(/^```\s*\n/, '').replace(/\n```\s*$/, '');
         }
         
-        sonnerToast.success(
-          AIFormattingService.getSuccessMessage(actionType as any, result),
-          { duration: 6000 }
-        );
-      } else {
-        // HTML simples
-        setContent(result.formattedText || '');
+        // Tentar extrair JSON de texto misto (procurar primeiro { até último })
+        const firstBrace = jsonString.indexOf('{');
+        const lastBrace = jsonString.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
+          jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+        }
+        
+        // Verificar se é improve_didactic ou generate_activity e tentar parsear JSON estruturado
+        if (actionType === 'improve_didactic' || actionType === 'generate_activity') {
+          console.log(`[${actionType}] Iniciando parsing JSON...`);
+          console.log(`[${actionType}] JSON recebido (primeiros 200 chars):`, jsonString.substring(0, 200));
+          console.log(`[${actionType}] JSON recebido (últimos 200 chars):`, jsonString.substring(jsonString.length - 200));
+          
+          try {
+            const parsedContent = JSON.parse(jsonString);
+            
+            // Validação rigorosa da estrutura
+            if (!parsedContent || typeof parsedContent !== 'object') {
+              throw new Error('JSON não é um objeto válido');
+            }
+            
+            if (!parsedContent.conteudo || !Array.isArray(parsedContent.conteudo)) {
+              console.error(`[${actionType}] ❌ Estrutura inválida. Esperado: { conteudo: [...] }`);
+              console.error(`[${actionType}] Recebido:`, parsedContent);
+              throw new Error('JSON não possui array "conteudo"');
+            }
+            
+            if (parsedContent.conteudo.length === 0) {
+              console.warn(`[${actionType}] ⚠️ Array "conteudo" está vazio`);
+              throw new Error('Nenhum bloco de conteúdo gerado');
+            }
+            
+            // ✅ TUDO OK - Aplicar modo estruturado
+            console.log(`[${actionType}] ✅ ${parsedContent.conteudo.length} blocos detectados`);
+            console.log(`[${actionType}] Tipos de blocos:`, parsedContent.conteudo.map((b: any) => b.tipo).join(', '));
+            
+            // Check for removed diagrams and show warning
+            const removedDiagrams = parsedContent.conteudo.filter((b: any) => 
+              b.tipo === 'paragrafo' && 
+              (b.texto?.includes('Diagrama removido') || b.texto?.includes('diagrama removido'))
+            ).length;
+            
+            const jsonContent = JSON.stringify(parsedContent);
+            
+            // IMPORTANTE: Definir estados na ordem correta
+            setStructuredContent(parsedContent); // 1. Definir dados
+            setIsStructuredMode(true);            // 2. Ativar modo
+            setContent(jsonContent);              // 3. Salvar JSON string
+            
+            // CRÍTICO: Limpar editor HTML completamente
+            if (editorRef.current) {
+              editorRef.current.innerHTML = '';
+              editorRef.current.blur(); // Remover foco do editor
+            }
+            
+            saveToHistory(jsonContent);
+            
+            // Limpar toast de progresso se existir
+            if (progressToastId) {
+              toast.dismiss(progressToastId);
+            }
+            
+            // Show warning if diagrams were removed
+            if (removedDiagrams > 0) {
+              toast.warning(`⚠️ ${removedDiagrams} diagrama(s) removido(s) por conter erros`, {
+                description: 'Diagramas com sintaxe inválida foram substituídos por texto. O restante do conteúdo foi gerado normalmente.',
+                duration: 8000,
+              });
+            }
+            
+            // Toast específico para cada tipo
+            if (actionType === 'generate_activity') {
+              const questoesObjetivas = parsedContent.conteudo.filter((b: any) => b.tipo === 'questao_multipla_escolha').length;
+              const questoesAbertas = parsedContent.conteudo.filter((b: any) => b.tipo === 'questao_aberta').length;
+              
+              toast.success('✅ Atividade Avaliativa gerada com sucesso!', {
+                description: `${questoesObjetivas} questões objetivas + ${questoesAbertas} questões abertas`,
+                duration: 6000,
+              });
+            } else {
+              toast.success('✅ Material didático gerado com sucesso!', {
+                description: `${parsedContent.conteudo.length} blocos pedagógicos criados`,
+                duration: 6000,
+              });
+            }
+            
+            setIsProcessingAI(false);
+            return; // ✅ IMPORTANTE: Return early para não continuar com lógica HTML
+            
+          } catch (jsonError: any) {
+            console.error(`[${actionType}] ❌ Erro ao parsear JSON:`, jsonError.message);
+            console.error(`[${actionType}] JSON problemático (primeiros 500 chars):`, jsonString.substring(0, 500));
+            
+            toast.error('Erro ao processar conteúdo gerado', {
+              description: 'O formato retornado pela IA está incorreto. Tente novamente.',
+              duration: 8000,
+            });
+            
+            setIsProcessingAI(false);
+            return; // Não continuar com HTML
+          }
+        }
+        
+        // Se não for JSON estruturado ou não for improve_didactic, usar HTML normal
+        setContent(data.formattedText);
         if (editorRef.current) {
-          editorRef.current.innerHTML = result.formattedText || '';
+          editorRef.current.innerHTML = data.formattedText;
         }
-        saveToHistory(result.formattedText || '');
-        
-        sonnerToast.success('Texto formatado com sucesso!');
-        
-        if (result.suggestions) {
-          sonnerToast.info(`Sugestões: ${result.suggestions}`, { duration: 8000 });
-        }
-        
-        setLastAIFormattedContent(result.formattedText || '');
+        saveToHistory(data.formattedText);
+        toast.success('Texto formatado com sucesso!');
+      }
+      
+      if (data?.suggestions) {
+        toast.info(`Sugestões: ${data.suggestions}`, {
+          duration: 8000,
+        });
+      }
+      
+      setIsProcessingAI(false);
+      
+      // Se não for conteúdo estruturado, mas foi formatação de IA
+      if (actionType !== 'improve_didactic' && actionType !== 'format_lesson_plan') {
+        setLastAIFormattedContent(data.formattedText);
         setShowPDFExportButton(true);
+        
+        // Auto-esconder após 30 segundos
         setTimeout(() => setShowPDFExportButton(false), 30000);
       }
       
     } catch (error: any) {
-      if (progressToastId) {
-        sonnerToast.dismiss(progressToastId);
-      }
-
-      if (error?.message?.includes('429')) {
-        sonnerToast.error('Limite de requisições atingido');
+      console.error('Error processing with AI:', error);
+      
+      // Mensagens específicas baseadas no tipo de erro
+      if (error?.message?.includes('formattedText')) {
+        toast.error('Erro ao processar: formato de resposta inválido');
+      } else if (error?.message?.includes('429')) {
+        toast.error('Limite de requisições atingido. Tente novamente em instantes.');
       } else if (error?.message?.includes('402')) {
-        sonnerToast.error('Créditos esgotados');
+        toast.error('Créditos esgotados. Contate o administrador.');
       } else {
-        sonnerToast.error(error.message || 'Erro ao processar com IA');
+        toast.error('Erro ao processar com IA. Tente novamente.');
       }
-    } finally {
+      
       setIsProcessingAI(false);
     }
   };
@@ -1062,10 +1242,7 @@ const TeacherAnnotationPage = () => {
                           </Button>
                         </div>
                         <div className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg bg-gradient-to-br from-purple-50/50 to-blue-50/50">
-                          <TwoPhaseRenderer 
-                            markdown={convertStructuredToMarkdown(structuredContent)} 
-                            lectureId={id || ''}
-                          />
+                          <StructuredContentRenderer structuredData={structuredContent} />
                         </div>
                       </div>
                     );

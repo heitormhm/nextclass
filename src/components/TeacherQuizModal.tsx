@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Trophy, ArrowLeft, ArrowRight, FileCheck } from "lucide-react";
+import { CheckCircle, XCircle, Trophy, ArrowLeft, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,6 @@ interface TeacherQuizModalProps {
 }
 
 export const TeacherQuizModal = ({ open, onOpenChange, quizData }: TeacherQuizModalProps) => {
-  const [viewMode, setViewMode] = useState<'list' | 'interactive'>('list');
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<(string | null)[]>([]);
   const [showFeedback, setShowFeedback] = useState<{ [key: number]: boolean }>({});
@@ -34,7 +33,6 @@ export const TeacherQuizModal = ({ open, onOpenChange, quizData }: TeacherQuizMo
 
   useEffect(() => {
     if (open && quizData) {
-      setViewMode('list');
       setAnswers(new Array(quizData.questions.length).fill(null));
       setCurrentQuestion(0);
       setShowFeedback({});
@@ -107,7 +105,6 @@ export const TeacherQuizModal = ({ open, onOpenChange, quizData }: TeacherQuizMo
   };
 
   const handleClose = () => {
-    setViewMode('list');
     setCurrentQuestion(0);
     setAnswers([]);
     setShowFeedback({});
@@ -117,113 +114,8 @@ export const TeacherQuizModal = ({ open, onOpenChange, quizData }: TeacherQuizMo
   };
 
   if (!quizData) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Quiz não disponível</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground py-4">
-            Nenhum quiz foi gerado ainda. Por favor, gere um quiz primeiro.
-          </p>
-        </DialogContent>
-      </Dialog>
-    );
+    return null;
   }
-
-  // VIEW MODE: Lista de Perguntas
-  if (viewMode === 'list') {
-    return (
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-2">
-              <FileCheck className="h-6 w-6 text-purple-600" />
-              {quizData.title}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-6 py-6">
-            {/* Estatísticas */}
-            <div className="flex items-center justify-between bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-200">
-              <div>
-                <p className="text-sm text-muted-foreground">Total de Questões</p>
-                <p className="text-3xl font-bold text-purple-600">{quizData.questions.length}</p>
-              </div>
-            </div>
-
-            {/* Lista de Perguntas */}
-            <div className="space-y-4">
-              {quizData.questions.map((q, index) => (
-                <div key={index} className="bg-white border border-slate-300 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-3 mb-3">
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 font-semibold">
-                      Questão {index + 1}
-                    </Badge>
-                    {q.bloomLevel && (
-                      <Badge variant="secondary" className="text-xs">
-                        {q.bloomLevel}
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  <p className="text-base font-semibold text-slate-900 mb-4 leading-relaxed">
-                    {q.question}
-                  </p>
-                  
-                  <div className="space-y-2 mb-4">
-                    {['A', 'B', 'C', 'D'].map((letter) => {
-                      const isCorrect = letter === q.correctAnswer;
-                      return (
-                        <div 
-                          key={letter}
-                          className={cn(
-                            "p-3 rounded-md border-2 transition-colors",
-                            isCorrect 
-                              ? "bg-green-100 border-green-300" 
-                              : "bg-white border-slate-300"
-                          )}
-                        >
-                          <span className="font-semibold mr-2">{letter})</span>
-                          <span className={isCorrect ? "text-green-900" : "text-slate-700"}>
-                            {q.options[letter as keyof typeof q.options]}
-                          </span>
-                          {isCorrect && (
-                            <CheckCircle className="inline-block ml-2 h-4 w-4 text-green-600" />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  {q.explanation && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                      <p className="text-sm font-medium text-blue-900 mb-1">💡 Explicação:</p>
-                      <p className="text-sm text-blue-800">{q.explanation}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-between pt-4 border-t">
-            <Button variant="outline" onClick={handleClose}>
-              Fechar
-            </Button>
-            <Button
-              onClick={() => setViewMode('interactive')}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-            >
-              ▶️ Iniciar Quiz Interativo
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  // VIEW MODE: Quiz Interativo
 
   if (quizCompleted) {
     const score = calculateScore();

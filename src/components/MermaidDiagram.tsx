@@ -9,53 +9,26 @@ interface MermaidDiagramProps {
   icon: string;
 }
 
-// ✅ PHASE 3: Sanitize HTML and markdown markers
+// ✅ FASE 4: Simplificar - remover validação, confiar no backend
 const sanitizeMermaidCode = (code: string): string => {
   if (!code || code.trim().length < 10) {
-    console.warn('[MermaidDiagram] Code too short or empty');
+    console.warn('[Mermaid] Code too short or empty');
     return '';
   }
 
-  console.log(`[MermaidDiagram] 🧹 Sanitizing ${code.length} chars...`);
-  const htmlTagsFound = (code.match(/<[^>]+>/g) || []).length;
-
-  // Remove markdown markers and sanitize HTML
+  // APENAS remover markers, SEM validação
   let sanitized = code.trim()
     .replace(/^```mermaid\s*/i, '')
     .replace(/^```\s*$/, '')
-    .replace(/```$/, '')
-    .replace(/<br\s*\/>/gi, '<br>')  // Convert self-closing <br/> to <br>
-    .replace(/<\/?[^>]+(>|$)/g, '');  // Remove all other HTML tags
+    .replace(/```$/, '');
 
-  const charsRemoved = code.length - sanitized.trim().length;
-  console.log(`[MermaidDiagram] ✅ Result: ${sanitized.length} chars (removed ${charsRemoved} chars, ${htmlTagsFound} HTML tags)`);
+  console.log('[Mermaid] ✅ Code sanitized (no validation)');
   return sanitized.trim();
 };
 
 export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagramProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [svgContent, setSvgContent] = useState<string | null>(null);
-  const renderTimeoutRef = useRef<number | null>(null);
-
-  // ✅ PHASE 2: Safety timeout to prevent infinite loading (8 seconds)
-  useEffect(() => {
-    renderTimeoutRef.current = window.setTimeout(() => {
-      if (isLoading && !error && !svgContent) {
-        console.error('[MermaidDiagram] ⏱️ Rendering timeout (8s) - diagram may have syntax issues');
-        setError('timeout-exceeded');
-        setIsLoading(false);
-      }
-    }, 8000);
-
-    return () => {
-      if (renderTimeoutRef.current) {
-        clearTimeout(renderTimeoutRef.current);
-        renderTimeoutRef.current = null;
-      }
-    };
-  }, [isLoading, error, svgContent]);
 
   // Inject CSS to forcefully hide mermaid error messages
   useEffect(() => {
@@ -84,136 +57,129 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
     };
   }, []);
 
-  // ✅ PHASE 3: Fixed race condition with isMounted flag
+  // ✅ FASE 4: Simplificar validação - confiar no backend
   useEffect(() => {
-    let isMounted = true;
-    let safetyTimeoutId: ReturnType<typeof setTimeout> | null = null;
-    
     const renderDiagram = async () => {
-      if (!ref.current || !code || !isMounted) return;
-
-      console.log('[Mermaid] Attempting to render diagram');
-      setIsLoading(true);
-      setError(null);
-
-      // Safety timeout with explicit cleanup tracking (reduced to 8s)
-      safetyTimeoutId = setTimeout(() => {
-        if (isMounted) {
-          console.warn('[Mermaid] Safety timeout triggered at 8s');
-          setIsLoading(false);
-          setError('timeout');
-        }
-      }, 15000); // 15 seconds for complex diagrams
+      if (!ref.current || !code) return;
 
       try {
         const sanitizedCode = sanitizeMermaidCode(code);
         
         if (!sanitizedCode || sanitizedCode.length < 10) {
           console.warn('[Mermaid] Empty code, showing placeholder');
-          if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
-          if (isMounted) {
-            setIsLoading(false);
-            setError('invalid');
-          }
+          setError('invalid');
           return;
         }
 
-        // Initialize mermaid with custom config
-        await mermaid.initialize({
+        // ✅ FASE 3: Configuração Mermaid com responsividade total
+        mermaid.initialize({ 
+          theme: 'default',
+          logLevel: 'error',
           startOnLoad: false,
-          theme: 'base',
-          themeVariables: {
-            primaryColor: '#9b87f5',
-            primaryTextColor: '#1A1F2C',
-            primaryBorderColor: '#7E69AB',
-            lineColor: '#6E59A5',
-            secondaryColor: '#D6BCFA',
-            tertiaryColor: '#E5DEFF',
-            background: '#ffffff',
-            mainBkg: '#ffffff',
-            textColor: '#1A1F2C',
-            fontSize: '16px',
-          },
-          flowchart: {
+          securityLevel: 'loose',
+          flowchart: { 
             useMaxWidth: true,
             htmlLabels: true,
             curve: 'basis',
+            padding: 20,
           },
-          sequence: {
+          sequence: { 
             useMaxWidth: true,
+            wrap: true,
+            width: 150,
+            height: 50,
+            boxMargin: 10,
           },
           gantt: {
             useMaxWidth: true,
+            fontSize: 14,
+            numberSectionStyles: 4,
           },
+          class: {
+            useMaxWidth: true,
+          },
+          state: {
+            useMaxWidth: true,
+          },
+          er: {
+            useMaxWidth: true,
+          },
+          // ✅ Tema global otimizado para legibilidade
+          themeVariables: {
+            fontSize: '16px',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            primaryColor: '#f3e5f5',
+            primaryTextColor: '#000',
+            primaryBorderColor: '#7c3aed',
+            lineColor: '#7c3aed',
+            secondaryColor: '#e1f5fe',
+            tertiaryColor: '#f1f8e9',
+          }
         });
 
-        // Multiple strategies for rendering
+        const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        const renderTimeout = setTimeout(() => {
+          console.error('[Mermaid] Render timeout');
+          setError('timeout');
+        }, 10000); // Timeout de 10s
+
+        // ✅ FASE 5: Estratégia de fallback com múltiplas tentativas
         const renderStrategies = [
-          () => mermaid.render(`mermaid-${Date.now()}`, sanitizedCode),
-          () => mermaid.render(`mermaid-${Date.now()}-alt`, sanitizedCode.replace(/\n\s*\n/g, '\n')),
-          () => mermaid.render(`mermaid-${Date.now()}-clean`, sanitizedCode.replace(/style\s+\w+\s+fill:[^,\n]+/g, '')),
+          { name: 'Original', code: sanitizedCode },
+          { 
+            name: 'Add space after graph type', 
+            code: sanitizedCode.replace(/^graph([A-Z]{2,})/m, 'graph $1 ') 
+          },
+          { 
+            name: 'Remove quotes from labels', 
+            code: sanitizedCode.replace(/\["([^"]+)"\]/g, '[$1]') 
+          },
+          { 
+            name: 'Simplify text in labels', 
+            code: sanitizedCode.replace(/\[([^\]]{50,})\]/g, (match, content) => {
+              return `[${content.substring(0, 40)}...]`;
+            })
+          },
         ];
 
-        let rendered = false;
-        let lastError: Error | null = null;
-
+        let renderSuccess = false;
+        
         for (const strategy of renderStrategies) {
+          if (renderSuccess) break;
+          
           try {
-            const renderTimeout = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Render timeout')), 20000) // 20 seconds per strategy
-            );
-
-            const renderPromise = strategy();
-            const { svg } = (await Promise.race([renderPromise, renderTimeout])) as { svg: string };
-
-            if (ref.current && isMounted) {
+            console.log(`[Mermaid] Trying strategy: ${strategy.name}`);
+            const { svg } = await mermaid.render(`${uniqueId}-${strategy.name}`, strategy.code);
+            
+            clearTimeout(renderTimeout);
+            
+            if (ref.current) {
               ref.current.innerHTML = svg;
-              setSvgContent(svg);
-              rendered = true;
-              
-              // Clear timeout since rendering succeeded
-              if (renderTimeoutRef.current) {
-                clearTimeout(renderTimeoutRef.current);
-                renderTimeoutRef.current = null;
-              }
-              break;
             }
-          } catch (strategyError) {
-            lastError = strategyError as Error;
-            console.warn('[Mermaid] Strategy failed, trying next...', strategyError);
+            
+            setError(null);
+            renderSuccess = true;
+            console.log(`[Mermaid] ✅ Rendered successfully with strategy: ${strategy.name}`);
+          } catch (strategyErr) {
+            console.warn(`[Mermaid] Strategy "${strategy.name}" failed:`, strategyErr);
+            continue; // Tentar próxima estratégia
           }
         }
-
-        if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
-
-        if (!rendered) {
-          throw lastError || new Error('All rendering strategies failed');
-        }
-
-        if (isMounted) {
-          console.log('[Mermaid] ✅ Rendered successfully');
-          setIsLoading(false);
-        }
-      } catch (err) {
-        if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
-        console.error('[Mermaid] Render failed:', err);
-        if (isMounted) {
-          setIsLoading(false);
+        
+        if (!renderSuccess) {
+          clearTimeout(renderTimeout);
+          console.error('[Mermaid] All render strategies failed');
+          console.error('[Mermaid] Original code:', sanitizedCode);
           setError('hidden');
         }
+      } catch (err) {
+        console.error('[Mermaid] General error:', err);
+        setError('hidden');
       }
     };
     
     renderDiagram();
-
-    // Cleanup on unmount
-    return () => {
-      isMounted = false;
-      if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
-      if (ref.current) {
-        ref.current.innerHTML = '';
-      }
-    };
   }, [code]);
 
   return (
@@ -224,71 +190,24 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           <span>{title}</span>
         </h4>
         <p className="text-sm text-muted-foreground italic mb-4">{description}</p>
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center min-h-[300px] bg-purple-50/50 rounded-lg gap-3">
-            <div className="animate-spin h-10 w-10 border-4 border-purple-500 border-t-transparent rounded-full" />
-            <p className="text-sm text-purple-700 font-medium animate-pulse">
-              Renderizando diagrama visual...
-            </p>
-            <p className="text-xs text-purple-600">
-              Diagramas complexos podem levar até 15 segundos
-            </p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-start p-6 bg-red-50 dark:bg-red-950/20 rounded-lg border-2 border-red-200 dark:border-red-800 max-w-full overflow-hidden">
-            <div className="flex items-start gap-3 w-full">
-              <div className="text-4xl flex-shrink-0">⚠️</div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-red-700 dark:text-red-300 mb-1">
-                  Erro ao renderizar diagrama
-                </p>
-                <p className="text-xs text-red-600 dark:text-red-400 mb-3">
-                {error === 'timeout-exceeded' 
-                    ? 'Tempo de renderização excedido - possível erro de sintaxe no diagrama'
-                    : 'O sistema está processando este conteúdo visual'}
-                </p>
-                
-                <details className="mt-3 w-full overflow-hidden">
-                  <summary className="cursor-pointer text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 font-semibold text-sm flex items-center gap-2 mb-2 bg-red-100 dark:bg-red-900/30 px-3 py-2 rounded">
-                    🔍 Ver código do diagrama para debug
-                    <span className="text-xs font-normal opacity-75">(clique para expandir)</span>
-                  </summary>
-                  <div className="mt-2 space-y-2">
-                    <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 rounded text-xs">
-                      <p className="font-semibold text-amber-800 dark:text-amber-300 mb-1">💡 Possíveis causas:</p>
-                      <ul className="list-disc list-inside text-amber-700 dark:text-amber-400 space-y-1">
-                        <li><strong>Nós sem conexões (setas faltando)</strong> - Cada nó precisa de pelo menos uma seta</li>
-                        <li>Tags HTML no código Mermaid (&lt;br/&gt;, &lt;sup&gt;, etc.)</li>
-                        <li>Estilos definidos antes dos nós</li>
-                        <li>Linhas vazias dentro do diagrama</li>
-                        <li>Quebras de linha entre nó e seta (ex: `A[Node]\n--&gt;` em vez de `A[Node] --&gt;`)</li>
-                        <li>Sintaxe Mermaid inválida</li>
-                      </ul>
-                      
-                      <div className="mt-2 p-2 bg-white dark:bg-gray-900 rounded border border-amber-200">
-                        <p className="font-mono text-xs text-amber-900 dark:text-amber-200">
-                          <strong>Diagnóstico rápido:</strong><br/>
-                          Nós detectados: {(code.match(/[A-Z0-9_]+\[/g) || []).length}<br/>
-                          Setas detectadas: {(code.match(/(-->|---|==>|->)/g) || []).length}<br/>
-                          {(() => {
-                            const nodes = (code.match(/[A-Z0-9_]+\[/g) || []).length;
-                            const arrows = (code.match(/(-->|---|==>|->)/g) || []).length;
-                            const minArrows = Math.max(1, nodes - 1);
-                            return arrows < minArrows 
-                              ? `❌ Insuficiente! Precisa de pelo menos ${minArrows} setas para ${nodes} nós.`
-                              : `✅ Quantidade OK, mas pode haver nós órfãos.`;
-                          })()}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <pre className="p-4 bg-white dark:bg-gray-900 rounded border-2 border-red-200 dark:border-red-800 text-xs text-gray-800 dark:text-gray-200 font-mono leading-relaxed max-h-60 overflow-auto break-all whitespace-pre-wrap">
-{code.substring(0, 600)}{code.length > 600 ? '\n\n... (truncated for display)' : ''}
-                    </pre>
-                  </div>
-                </details>
+        {error ? (
+          <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="text-4xl opacity-40">📊</div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Diagrama temporariamente indisponível</p>
+                <p className="text-xs text-slate-500">O sistema está processando este conteúdo visual</p>
               </div>
             </div>
+            {/* Preview do código para debug */}
+            <details className="mt-3">
+              <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-700">
+                Ver código-fonte (debug)
+              </summary>
+              <pre className="mt-2 text-xs bg-slate-100 p-2 rounded overflow-x-auto max-h-40">
+                <code>{code.substring(0, 300)}{code.length > 300 ? '...' : ''}</code>
+              </pre>
+            </details>
           </div>
         ) : (
           <div className="w-full overflow-x-auto overflow-y-hidden">

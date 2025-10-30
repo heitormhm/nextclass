@@ -159,27 +159,6 @@ verify_jwt = false
 [functions.format-lecture-content]
 verify_jwt = false
 
-[functions.lecture-generate-quiz]
-verify_jwt = false
-
-[functions.lecture-generate-flashcards]
-verify_jwt = false
-
-[functions.fix-latex-formulas]
-verify_jwt = false
-
-[functions.fix-mermaid-diagram]
-verify_jwt = false
-
-[functions.fix-latex-in-material]
-verify_jwt = false
-
-[functions.fix-mermaid-html-in-material]
-verify_jwt = false
-
-[functions.remove-broken-mermaid]
-verify_jwt = false
-
 [api]
 enabled = true
 port = 54321

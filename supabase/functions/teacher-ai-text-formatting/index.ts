@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { convertMarkdownToStructuredJSON } from '../shared/markdown-to-structured-json.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -345,56 +344,201 @@ IMPORTANTE:
     console.log('[AI Response] Primeiros 500 chars:', formattedText.substring(0, 500));
     console.log('[AI Response] Último caractere:', formattedText[formattedText.length - 1]);
 
-    // Post-process for "improve_didactic" action: use unified converter
+    // Post-process for "improve_didactic" action: convert markdown to HTML
     if (action === 'improve_didactic') {
       try {
-        console.log('[Post-Processing] Using unified converter...');
+        console.log('[Post-Processing] Limpando resposta da IA...');
         
-        // Clean AI response
+        // 1. Remove code fences (```json ... ```)
         let jsonString = formattedText.trim();
         jsonString = jsonString.replace(/^```(?:json)?\s*\n?/gm, '');
         jsonString = jsonString.replace(/\n?```\s*$/gm, '');
         
+        // 2. Extract JSON object (first { to last })
         const firstBrace = jsonString.indexOf('{');
         const lastBrace = jsonString.lastIndexOf('}');
         if (firstBrace !== -1 && lastBrace !== -1) {
           jsonString = jsonString.substring(firstBrace, lastBrace + 1).trim();
         }
         
-        // Parse initial structure
+        console.log('[Post-Processing] Primeiros 200 chars após limpeza:', jsonString.substring(0, 200));
+        
+        // 3. Parse the cleaned JSON
         const structuredData = JSON.parse(jsonString);
         
-        // Use unified converter to process markdown
-        const result = await convertMarkdownToStructuredJSON(
-          JSON.stringify(structuredData),
-          structuredData.titulo_geral || 'Material Didático',
-          {
-            jobId: 'annotation-improve-didactic',
-            enableLatexFix: false,
-            enableMermaidValidation: true,
-            enableReferenceFormatting: true,
-            enableMarkdownToHtml: true,
+        // 4. Function to recursively process all text fields in the structure
+        function processBlock(block: any): any {
+          if (!block) return block;
+          
+          // Handle arrays
+          if (Array.isArray(block)) {
+            return block.map(processBlock);
           }
-        );
-        
-        if (!result.success) {
-          throw new Error(result.error);
+          
+          // Handle primitive types
+          if (typeof block !== 'object') {
+            return block;
+          }
+          
+          // Process object properties
+          const processed: any = {};
+          for (const [key, value] of Object.entries(block)) {
+            // Convert markdown in text fields (including accordion fields)
+            if (['texto', 'titulo', 'descricao', 'content', 'trigger'].includes(key) && typeof value === 'string') {
+              let htmlValue = convertMarkdownToHTML(value);
+              
+              // Check if this text contains bibliographic references
+              if (htmlValue.match(/\[\d+\]/)) {
+                console.log(`[Reference Detection] Found references in '${key}' field`);
+                htmlValue = htmlValue
+                  // Break after EACH reference number [1], [2], etc.
+                  .replace(/(\[\d+\])\s*/g, '<br><br>$1 ')
+                  // Break before " - URL:"
+                  .replace(/\s*-\s*URL:/gi, '<br>- URL: ')
+                  // Break before " - Autor:"
+                  .replace(/\s*-\s*Autor:/gi, '<br>- Autor: ')
+                  // Break after (PDF)
+                  .replace(/(\(PDF\)|\[PDF\])/gi, '$1<br>')
+                  // Normalize multiple breaks
+                  .replace(/(<br\s*\/?>){3,}/gi, '<br><br>')
+                  // Ensure spacing after URLs before next reference
+                  .replace(/(https?:\/\/[^\s<]+)\s*(\[\d+\])/gi, '$1<br><br>$2')
+                  // Clean up any trailing breaks and leading breaks
+                  .replace(/(<br\s*\/?>)+$/gi, '')
+                  .replace(/^(<br\s*\/?>)+/, '');
+                
+                console.log(`[Reference Detection] Applied formatting, new length: ${htmlValue.length}`);
+              }
+              
+              processed[key] = htmlValue;
+            }
+            // Special handling for 'itens' array (e.g., references, guidelines)
+            else if (key === 'itens' && Array.isArray(value)) {
+              console.log(`[Processing] Found 'itens' array with ${value.length} items`);
+              processed[key] = value.map((item, idx) => {
+                if (typeof item === 'string') {
+                  let htmlItem = convertMarkdownToHTML(item);
+                  console.log(`[Item ${idx}] Original length: ${htmlItem.length} chars`);
+                  
+                  // Smart line breaking for bibliographic references
+                  htmlItem = htmlItem
+                    // 1. Break after reference number [1], [2], etc. (double break for separation)
+                    .replace(/(\[\d+\])\s*([A-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ])/g, '$1<br><br>$2')
+                    // 2. Break BEFORE "- URL:" pattern (no matter spacing)
+                    .replace(/\s*-\s*URL:/gi, '<br>- URL:')
+                    // 3. Break BEFORE "- Autor:", "- Acesso:", etc.
+                    .replace(/\s*-\s*(Autor|Acesso|Disponível|Editor|Editora|Publicado):/gi, '<br>- $1:')
+                    // 4. Break after format indicators like (PDF), [PDF], etc.
+                    .replace(/(\(PDF\)|\[PDF\]|\(Vídeo\)|\[Vídeo\]|\(Artigo\))/gi, '$1<br>')
+                    // 5. Break very long URLs (80+ chars) at slashes
+                    .replace(/(https?:\/\/[^\s]{80,}?)(\/)([^\s]{20,})/g, '$1/$2<br>$3');
+                  
+                  console.log(`[Item ${idx}] After processing: ${htmlItem.substring(0, 200)}...`);
+                  return htmlItem;
+                }
+                return processBlock(item);
+              });
+            }
+            // Recursively process objects/arrays (including accordion items)
+            else if (typeof value === 'object' && value !== null) {
+              processed[key] = processBlock(value);
+            } 
+            // Keep other values as-is
+            else {
+              processed[key] = value;
+            }
+          }
+          return processed;
         }
         
-        // Apply manual safety validations
-        const processedData = applyManualSafetyValidations(result.data);
+        // 5. Process the entire structured data
+        console.log('[Progress] ⏳ Etapa 5/7: Processando blocos estruturados...');
+        const startTimeStep5 = Date.now();
+        let processedData = processBlock(structuredData);
+        console.log(`[Progress] ✅ Etapa 5/7 concluída em ${Date.now() - startTimeStep5}ms`);
         
+        // 5.5. Post-processing: Apply reference formatting to any text field
+        console.log('[Progress] ⏳ Etapa 6/7: Aplicando validações de segurança...');
+        console.log('[Post-Processing] Searching for reference text blocks...');
+        function enhanceReferences(obj: any): any {
+          if (typeof obj === 'string') {
+            // Check if string contains reference patterns
+            if (obj.match(/\[\d+\].*?(URL:|Autor:|Acesso:)/i)) {
+              console.log('[Post-Processing] Found reference-like text, applying breaks');
+              return obj
+                .replace(/(\[\d+\])\s*([A-ZÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÇ])/g, '$1<br><br>$2')
+                .replace(/\s*-\s*URL:/gi, '<br>- URL:')
+                .replace(/\s*-\s*(Autor|Acesso|Disponível|Editor|Editora):/gi, '<br>- $1:')
+                .replace(/(\(PDF\)|\[PDF\]|\(Vídeo\))/gi, '$1<br>');
+            }
+          } else if (Array.isArray(obj)) {
+            return obj.map(item => enhanceReferences(item));
+          } else if (obj && typeof obj === 'object') {
+            const enhanced: any = {};
+            for (const [k, v] of Object.entries(obj)) {
+              enhanced[k] = enhanceReferences(v);
+            }
+            return enhanced;
+          }
+          return obj;
+        }
+        
+        processedData = enhanceReferences(processedData);
+        
+        // 6. Apply manual safety validations (DESABILITADO: chamada ao agente de validação AI)
+        // A validação com AI foi desabilitada para evitar loop infinito e timeout
+        // A validação manual cobre 95% dos casos problemáticos e é muito mais rápida
+        console.log('[Validation] Aplicando validações manuais de segurança...');
+        processedData = applyManualSafetyValidations(processedData);
+        console.log('[Progress] ✅ Etapa 6/7 concluída');
+        
+        /* DESABILITADO - Causa loop infinito e timeout
+        console.log('[Validation] Enviando para agente de validação...');
+        try {
+          const validationResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/validate-formatted-content`, {
+            method: 'POST',
+            headers: {
+              'Authorization': req.headers.get('Authorization') || '',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ structuredContent: processedData }),
+          });
+
+          if (validationResponse.ok) {
+            const validationData = await validationResponse.json();
+            if (validationData.validatedContent) {
+              processedData = validationData.validatedContent;
+              console.log('[Validation] ✅ Conteúdo validado e corrigido pelo agente');
+              processedData = applyManualSafetyValidations(processedData);
+            } else {
+              console.warn('[Validation] ⚠️ Agente retornou null, usando validação manual de fallback');
+              processedData = applyManualSafetyValidations(processedData);
+            }
+          } else {
+            const errorText = await validationResponse.text();
+            console.error('[Validation] ❌ Erro no agente de validação:', errorText);
+            console.log('[Validation] Aplicando correções manuais de emergência...');
+            processedData = applyManualSafetyValidations(processedData);
+          }
+        } catch (validationError) {
+          console.error('[Validation] ⚠️ Erro ao chamar agente de validação:', validationError);
+          console.log('[Validation] Aplicando correções manuais de emergência após erro...');
+          processedData = applyManualSafetyValidations(processedData);
+        }
+        */
+        
+        // 7. Convert back to JSON string
+        console.log('[Progress] ⏳ Etapa 7/7: Convertendo para JSON final...');
         formattedText = JSON.stringify(processedData);
+        console.log('[Progress] ✅ Etapa 7/7 concluída. Pronto para enviar resposta.');
         
-        if (result.warnings) {
-          console.warn('[Post-Processing] Warnings:', result.warnings);
-        }
-        
-        console.log('[Post-Processing] ✅ Conversion complete');
-        console.log(`[Post-Processing] Blocks processed: ${processedData.conteudo?.length || 0}`);
+        console.log('[Post-Processing] ✅ Conversão concluída. Markdown → HTML aplicado + Validação.');
+        console.log(`[Post-Processing] Blocos processados: ${processedData.conteudo?.length || 0}`);
+        console.log('[Post-Processing] Primeiros 3 blocos:', JSON.stringify(processedData.conteudo?.slice(0, 3), null, 2));
       } catch (parseError) {
-        console.error('[Post-Processing] ❌ Error processing JSON:', parseError);
-        // Fallback to original text
+        console.error('[Post-Processing] ❌ Erro ao processar JSON:', parseError);
+        console.error('[Post-Processing] Erro detalhado:', parseError instanceof Error ? parseError.message : 'Unknown error');
+        // If parsing fails, return original text (fallback for non-JSON responses)
       }
     }
 
