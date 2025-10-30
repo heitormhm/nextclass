@@ -44,7 +44,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
   return (
     <div>
       {/* Progress Indicator - Fixed */}
-      <div className="fixed top-0 left-0 right-0 bg-background/98 backdrop-blur-md z-50 border-b border-border/30 py-1 px-6 shadow-sm">
+      <div className="fixed top-0 left-0 right-0 bg-background/98 backdrop-blur-md z-[100] border-b border-border/30 py-1 px-6 shadow-sm">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
           <span className="flex items-center gap-1">
             <span className="text-[10px]">📖</span>

@@ -956,17 +956,67 @@ INCORRETO (NÃO FAÇA):
     
     console.log('[LaTeX] ✅ Comprehensive inline fixes applied');
     
-    // PHASE 4.5: Remove LaTeX de palavras comuns em português
-    console.log('[LaTeX] Removing LaTeX from common words...');
+    // PHASE 4.5: Remove LaTeX de palavras comuns - VERSÃO FORTALECIDA
+    console.log('[LaTeX] Removing LaTeX from common words (comprehensive)...');
     
-    const commonWords = ['para', 'de', 'da', 'do', 'em', 'com', 'por', 'ao', 'um', 'uma', 'o', 'a', 'e', 'os', 'as'];
+    const commonWords = [
+      'para', 'de', 'da', 'do', 'em', 'com', 'por', 'ao', 'um', 'uma', 
+      'o', 'a', 'e', 'os', 'as', 'no', 'na', 'nos', 'nas', 'se', 'ou',
+      'mais', 'mas', 'que', 'como', 'quando', 'onde', 'qual', 'quais'
+    ];
+    
     commonWords.forEach(word => {
-      // Remove $palavra$ quando for palavra comum (case insensitive)
-      const regex = new RegExp(`\\$${word}\\$`, 'gi');
-      processedMarkdown = processedMarkdown.replace(regex, word);
+      // Pattern 1: $palavra$ (normal)
+      processedMarkdown = processedMarkdown.replace(
+        new RegExp(`\\$${word}\\$`, 'gi'), 
+        word
+      );
+      
+      // Pattern 2: $palavra $$ (com espaço extra antes de $$)
+      processedMarkdown = processedMarkdown.replace(
+        new RegExp(`\\$${word}\\s+\\$\\$`, 'gi'), 
+        word
+      );
+      
+      // Pattern 3: $$palavra$$ (duplo em ambos os lados)
+      processedMarkdown = processedMarkdown.replace(
+        new RegExp(`\\$\\$${word}\\$\\$`, 'gi'), 
+        word
+      );
+      
+      // Pattern 4: $ palavra$ (com espaço no início)
+      processedMarkdown = processedMarkdown.replace(
+        new RegExp(`\\$\\s+${word}\\$`, 'gi'), 
+        word
+      );
     });
     
-    console.log('[LaTeX] ✅ Common words cleaned');
+    console.log('[LaTeX] ✅ Common words cleaned (all patterns)');
+    
+    // PHASE 4.6: Final validation - detect remaining LaTeX errors
+    console.log('[LaTeX] Final validation check...');
+    
+    const suspiciousPatterns = [
+      /\$[a-z]{2,10}\$/gi,  // $palavra$ (lowercase only = likely common word)
+      /\$\s+[^$]+\s+\$/g,   // $ texto $ (spaces around = likely error)
+      /\$\$\s{2,}/g,        // $$  (double spaces after $$)
+    ];
+    
+    let foundIssues = 0;
+    suspiciousPatterns.forEach((pattern, idx) => {
+      const matches = processedMarkdown.match(pattern);
+      if (matches && matches.length > 0) {
+        console.warn(`[LaTeX] ⚠️ Pattern ${idx + 1} found ${matches.length} suspicious matches:`, matches.slice(0, 5));
+        foundIssues += matches.length;
+      }
+    });
+    
+    if (foundIssues > 10) {
+      console.error(`[LaTeX] ❌ CRITICAL: ${foundIssues} potential LaTeX errors remain!`);
+      // Não rejeita, mas loga para debug
+    }
+    
+    console.log('[LaTeX] ✅ Validation complete');
     
     processedMarkdown = processedMarkdown.replace(/\n{3,}/g, '\n\n'); // Remove excess blank lines
     

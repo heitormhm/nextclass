@@ -2003,17 +2003,14 @@ const LectureTranscriptionPage = () => {
                       
                       <TabsContent value="material-v2" className="overflow-x-auto mt-4">
                         {materialDidaticoV2 ? (
-                          <div className="min-w-0 bg-white p-6 rounded-lg">
+                          <div className="min-w-0 bg-white p-6 rounded-lg mt-16">
                             <div className="flex items-center gap-2 mb-3 p-2 bg-primary/5 border border-primary/10 rounded-md w-fit">
                               <Sparkles className="h-4 w-4 text-primary" />
                               <span className="text-xs font-medium text-primary">Sistema Modular v2</span>
                               <span className="text-xs text-muted-foreground">• Pesquisa avançada + Validação automática</span>
                             </div>
-                            <MaterialDidaticoRenderer 
-                              markdown={materialDidaticoV2} 
-                            />
                             
-                            {/* Compact Study Metrics Pills */}
+                            {/* Compact Study Metrics Pills - MOVED TO TOP */}
                             <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-border/50">
                               <span className="text-xs text-muted-foreground font-medium">Métricas:</span>
                               
@@ -2057,6 +2054,10 @@ const LectureTranscriptionPage = () => {
                                 </span>
                               </div>
                             </div>
+                            
+                            <MaterialDidaticoRenderer 
+                              markdown={materialDidaticoV2} 
+                            />
                           </div>
                         ) : (
                           <div className="text-center py-8 bg-slate-50 rounded-lg">
