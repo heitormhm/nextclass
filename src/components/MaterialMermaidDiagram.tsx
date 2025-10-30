@@ -79,35 +79,54 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
           setError('timeout');
         }, 10000);
 
-      // ESTRATÉGIA CORRIGIDA: Sem sanitização destrutiva ✅ FASE 2
-      const renderStrategies = [
-        { 
-          name: 'Clean Original', 
-          code: (() => {
-            // 1. NÃO TRUNCAR labels - preservar conteúdo completo
-            // 2. NÃO remover caracteres especiais (underscores, etc.)
-            // 3. Apenas normalizar espaços e quebras de linha
-            return sanitizedCode
-              .replace(/\s{2,}/g, ' ')           // Múltiplos espaços → 1
-              .replace(/\n{3,}/g, '\n\n')        // Múltiplas quebras → 2
-              .trim();
-          })()
-        },
-        { 
-          name: 'ASCII Fallback',
-          code: (() => {
-            // Apenas se primeira falhar: substituir underscores em labels por espaços
-            return sanitizedCode.replace(
-              /\[([^\]]+)\]/g, 
-              (match, content) => `[${content.replace(/_/g, ' ')}]`
-            );
-          })()
-        },
-        {
-          name: 'No Special Chars',
-          code: sanitizedCode.replace(/[^\x00-\x7F\n\[\](){};:,\s-]/g, '')
-        }
-      ];
+        // Protect LaTeX formulas BEFORE sanitization
+        const protectLatexFormulas = (code: string): { code: string; formulas: string[] } => {
+          const formulas: string[] = [];
+          let protectedCode = code;
+          
+          // Protect display formulas $$...$$
+          protectedCode = protectedCode.replace(/\$\$[\s\S]*?\$\$/g, (match) => {
+            const placeholder = `___LATEX_DISPLAY_${formulas.length}___`;
+            formulas.push(match);
+            return placeholder;
+          });
+          
+          // Protect inline formulas $...$
+          protectedCode = protectedCode.replace(/\$[^$\n]+?\$/g, (match) => {
+            const placeholder = `___LATEX_INLINE_${formulas.length}___`;
+            formulas.push(match);
+            return placeholder;
+          });
+          
+          return { code: protectedCode, formulas };
+        };
+
+        const restoreLatexFormulas = (code: string, formulas: string[]): string => {
+          let restored = code;
+          formulas.forEach((formula, index) => {
+            restored = restored.replace(`___LATEX_DISPLAY_${index}___`, formula);
+            restored = restored.replace(`___LATEX_INLINE_${index}___`, formula);
+          });
+          return restored;
+        };
+
+        const { code: protectedCode, formulas } = protectLatexFormulas(sanitizedCode);
+
+        // Multiple rendering strategies with LaTeX protection
+        const renderStrategies = [
+          { 
+            name: 'Original with LaTeX', 
+            code: restoreLatexFormulas(protectedCode, formulas)
+          },
+          { 
+            name: 'Auto-fixed', 
+            code: restoreLatexFormulas(autoFixMermaidCode(protectedCode), formulas)
+          },
+          {
+            name: 'Fallback without formulas',
+            code: protectedCode.replace(/___LATEX_(DISPLAY|INLINE)_\d+___/g, '')
+          }
+        ];
 
         let renderSuccess = false;
         

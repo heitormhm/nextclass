@@ -1098,22 +1098,23 @@ INCORRETO (NÃO FAÇA):
 
   console.log('[LaTeX] ✅ Validation complete');
 
-  // FASE 4 (continuação): Fix Mermaid diagram styles - Permitir variação ✅ FASE 7
-  console.log('[Mermaid] Enforcing consistent diagram styles (diverse types)...');
-
-  // Garantir que todos os diagramas tenham tipo especificado
+  // ✅ FASE 4: Minimal Mermaid diagram normalization
+  console.log('[Mermaid] Applying minimal normalization...');
+  
   processedMarkdown = processedMarkdown.replace(
-    /```mermaid\s*\n\s*(?!graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap)/gi,
-    '```mermaid\ngraph TD\n'
+    /```mermaid\s*\n([\s\S]*?)\n```/g,
+    (match, diagramCode) => {
+      let cleaned = diagramCode.trim();
+      
+      // Apenas normalizar espaçamento básico
+      cleaned = cleaned.replace(/\s{2,}/g, ' ');
+      cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+      
+      return `\`\`\`mermaid\n${cleaned}\n\`\`\``;
+    }
   );
-
-  // Adicionar espaço após tipo de diagrama se faltando
-  processedMarkdown = processedMarkdown.replace(
-    /```mermaid\s*\n\s*(graph|flowchart)([A-Z]{2})/gm,
-    '```mermaid\n$1 $2'
-  );
-
-  console.log('[Mermaid] ✅ Diagram styles normalized (diverse types allowed)');
+  
+  console.log('[Mermaid] ✅ Minimal normalization complete');
 
   // FASE 5: AI-Powered Final LaTeX Correction ✅ FASE 6 - DESABILITADO
   // NOTA: Fase desabilitada para evitar correções excessivas que podem introduzir novos erros
