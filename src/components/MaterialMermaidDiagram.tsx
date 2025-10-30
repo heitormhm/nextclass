@@ -51,9 +51,18 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
           setError('timeout');
         }, 10000);
 
-        // 4 fallback strategies for progressive rendering
+        // 5 fallback strategies (com sanitização de matemática)
         const renderStrategies = [
           { name: 'Original', code: sanitizedCode },
+          { 
+            name: 'Math Sanitization', 
+            code: sanitizedCode.replace(/\[([^\]]+)\]/g, (match, content) => {
+              // Remover TODOS os caracteres não-ASCII
+              const asciiOnly = content.replace(/[^\x00-\x7F]/g, '');
+              // Truncar se muito longo
+              return `[${asciiOnly.substring(0, 40)}]`;
+            })
+          },
           { 
             name: 'Add space after graph type', 
             code: sanitizedCode.replace(/^graph([A-Z]{2,})/m, 'graph $1 ') 
@@ -94,12 +103,27 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
           }
         }
         
-        if (!renderSuccess) {
-          clearTimeout(renderTimeout);
-          console.error('[MaterialMermaid] All render strategies failed');
-          console.error('[MaterialMermaid] Original code:', sanitizedCode);
-          setError('hidden');
+      if (!renderSuccess) {
+        clearTimeout(renderTimeout);
+        console.error('[MaterialMermaid] All render strategies failed');
+        console.error('[MaterialMermaid] Original code:', sanitizedCode);
+        
+        // Identificar caracteres problemáticos
+        const problematicChars = sanitizedCode.match(/[^\x00-\x7F]/g);
+        if (problematicChars && problematicChars.length > 0) {
+          console.error('[MaterialMermaid] Non-ASCII characters detected:', 
+            [...new Set(problematicChars)].join(', ')
+          );
         }
+        
+        // Contar labels longos
+        const longLabels = (sanitizedCode.match(/\[[^\]]{50,}\]/g) || []).length;
+        if (longLabels > 0) {
+          console.error(`[MaterialMermaid] ${longLabels} labels exceed 50 characters`);
+        }
+        
+        setError('hidden');
+      }
       } catch (err) {
         console.error('[MaterialMermaid] General error:', err);
         setError('hidden');

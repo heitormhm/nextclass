@@ -718,6 +718,28 @@ Use callouts Markdown para destacar informações importantes:
 > ⚠️ Atenção: [Cuidado com erros comuns ou limitações]
 > 🔬 Exemplo Prático: [Caso real de aplicação]
 
+REGRAS CRÍTICAS PARA DIAGRAMAS MERMAID:
+1. **NUNCA use caracteres especiais em labels**: Δ, Σ, ṁ, Q̇, Ẇ, α, β, γ, θ
+2. **Use notação ASCII**: "Delta", "Sigma", "Q_dot", "m_dot", "alpha"
+3. **Labels curtos**: Máximo 40 caracteres por label
+4. **Sem parênteses em labels**: Prefira hífens ou underscores
+5. **Fórmulas matemáticas**: Coloque em seção LaTeX separada, NUNCA em diagramas
+
+EXEMPLO CORRETO DE DIAGRAMA:
+\`\`\`mermaid
+flowchart TD
+    A[Primeira Lei] --> B[Conservacao de Energia]
+    B --> C[DeltaE = Q - W]
+    C --> D[Sistema Fechado]
+\`\`\`
+
+EXEMPLO INCORRETO (NÃO FAÇA):
+\`\`\`mermaid
+flowchart TD
+    A[Primeira Lei] --> B[ΔE = Q - W]  ❌ Caracteres especiais
+    B --> C[Q̇ - Ẇ = dE/dt + Σṁ...]  ❌ Fórmula muito longa
+\`\`\`
+
 EXEMPLO DE CALLOUT:
 > ✏️ Conceito-Chave: A Primeira Lei da Termodinâmica estabelece que a energia total de um sistema isolado permanece constante, podendo apenas mudar de forma entre energia interna, calor e trabalho.`;
 

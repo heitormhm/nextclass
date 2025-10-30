@@ -91,18 +91,62 @@ export const sanitizeMermaidCode = (code: string): string => {
 export const autoFixMermaidCode = (code: string): string => {
   let fixed = code;
   
-  // Fix 1: Add space after diagram type
+  // Fix 1: Substituir caracteres matemáticos especiais por texto ASCII
+  const mathCharReplacements: Record<string, string> = {
+    'Δ': 'Delta',
+    'Σ': 'Sigma',
+    'ṁ': 'm_dot',
+    'Q̇': 'Q_dot',
+    'Ẇ': 'W_dot',
+    'α': 'alpha',
+    'β': 'beta',
+    'γ': 'gamma',
+    'θ': 'theta',
+    'μ': 'mu',
+    'π': 'pi',
+    'ω': 'omega',
+    '°': 'deg',
+    '±': '+/-',
+    '≈': '~=',
+    '≤': '<=',
+    '≥': '>=',
+    '∞': 'infinity',
+    '∂': 'd',
+    '∫': 'integral',
+  };
+  
+  // Aplicar substituições dentro de labels [texto]
+  fixed = fixed.replace(/\[([^\]]+)\]/g, (match, content) => {
+    let sanitized = content;
+    for (const [char, replacement] of Object.entries(mathCharReplacements)) {
+      sanitized = sanitized.replaceAll(char, replacement);
+    }
+    
+    // Truncar labels muito longos (>45 chars)
+    if (sanitized.length > 45) {
+      sanitized = sanitized.substring(0, 42) + '...';
+    }
+    
+    // Remover parênteses em labels
+    if (sanitized.includes('(') || sanitized.includes(')')) {
+      sanitized = sanitized.replace(/\(/g, '').replace(/\)/g, '');
+    }
+    
+    return `[${sanitized}]`;
+  });
+  
+  // Fix 2: Add space after diagram type
   fixed = fixed.replace(/^(graph|flowchart)([A-Z]{2})/gm, '$1 $2');
   
-  // Fix 2: Remove unnecessary quotes in labels
+  // Fix 3: Remove unnecessary quotes in labels
   fixed = fixed.replace(/\["([^"]+)"\]/g, '[$1]');
   
-  // Fix 3: Escape special characters in labels
+  // Fix 4: Escape special characters in labels (< >)
   fixed = fixed.replace(/\[([^\]]*[<>].*?)\]/g, (match, content) => {
     return `["${content.replace(/"/g, "'")}"]`;
   });
   
-  // Fix 4: Add semicolons at end of lines (optional but helps)
+  // Fix 5: Add semicolons at end of lines (optional but helps)
   const lines = fixed.split('\n');
   fixed = lines.map(line => {
     const trimmed = line.trim();
