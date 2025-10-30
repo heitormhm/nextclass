@@ -168,6 +168,8 @@ const LectureTranscriptionPage = () => {
   const [materialGenerationProgress, setMaterialGenerationProgress] = useState<number>(0);
   const [isGeneratingMaterial, setIsGeneratingMaterial] = useState(false);
   const [generationMessage, setGenerationMessage] = useState<string>('');
+  const [isGeneratingMaterialV2, setIsGeneratingMaterialV2] = useState(false);
+  const [materialV2Progress, setMaterialV2Progress] = useState<string>('');
 
   // URL validation helper
   const isValidUrl = (url: string) => {
@@ -816,6 +818,47 @@ const LectureTranscriptionPage = () => {
       });
     } finally {
       setIsComparingPlan(false);
+    }
+  };
+
+  const handleGenerateMaterialV2 = async () => {
+    if (!id) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'ID da aula não encontrado' });
+      return;
+    }
+    
+    setIsGeneratingMaterialV2(true);
+    setMaterialV2Progress('Iniciando geração...');
+    
+    try {
+      setMaterialV2Progress('Executando pesquisa acadêmica...');
+      
+      const { data, error } = await supabase.functions.invoke('material-didatico-generator', {
+        body: { lectureId: id }
+      });
+      
+      if (error) throw error;
+      
+      setMaterialV2Progress('Salvando material...');
+      
+      toast({
+        title: '✅ Material Modular gerado com sucesso!',
+        description: `${data.researchCount} questões pesquisadas • ${Math.floor(data.markdownLength / 1000)}k chars • ${data.elapsedSeconds}s`
+      });
+      
+      // Reload lecture data to get material_didatico_v2
+      await loadLectureData();
+      
+    } catch (error) {
+      console.error('[Material V2] Generation error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar material modular',
+        description: error instanceof Error ? error.message : 'Tente novamente mais tarde'
+      });
+    } finally {
+      setIsGeneratingMaterialV2(false);
+      setMaterialV2Progress('');
     }
   };
 
@@ -1640,20 +1683,54 @@ const LectureTranscriptionPage = () => {
                       <FileText className="h-5 w-5 text-purple-600" />
                       Conteúdo Gerado
                     </CardTitle>
-                    <GenerateLectureDeepSearchSummary
-                      lectureId={id || ''}
-                      lectureTitle={lectureTitle}
-                      tags={lecture?.tags || []}
-                      currentMaterial={structuredContent.material_didatico}
-                      fullTranscript={lecture?.raw_transcript || ''}
-                      onUpdate={loadLectureData}
-                      onProgressUpdate={(progress, message) => {
-                        setMaterialGenerationProgress(progress);
-                        setGenerationMessage(message);
-                      }}
-                      onGeneratingChange={setIsGeneratingMaterial}
-                    />
+                    <div className="flex gap-2">
+                      <GenerateLectureDeepSearchSummary
+                        lectureId={id || ''}
+                        lectureTitle={lectureTitle}
+                        tags={lecture?.tags || []}
+                        currentMaterial={structuredContent.material_didatico}
+                        fullTranscript={lecture?.raw_transcript || ''}
+                        onUpdate={loadLectureData}
+                        onProgressUpdate={(progress, message) => {
+                          setMaterialGenerationProgress(progress);
+                          setGenerationMessage(message);
+                        }}
+                        onGeneratingChange={setIsGeneratingMaterial}
+                      />
+                      <Button
+                        onClick={handleGenerateMaterialV2}
+                        disabled={isGeneratingMaterialV2}
+                        size="sm"
+                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md"
+                      >
+                        {isGeneratingMaterialV2 ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Gerando...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Gerar Material Modular
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </CardHeader>
+                  
+                  {isGeneratingMaterialV2 && (
+                    <div className="px-6 pb-4">
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-purple-700">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm font-medium">{materialV2Progress}</span>
+                        </div>
+                        <p className="text-xs text-purple-600 mt-1">
+                          Este processo pode levar 1-2 minutos (pesquisa acadêmica + geração de conteúdo)
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <CardContent>
                     <Tabs defaultValue="resumo" className="w-full">
                       <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 gap-1 h-full min-h-[52px]">
@@ -1689,9 +1766,13 @@ const LectureTranscriptionPage = () => {
                           <Sparkles className="h-4 w-4" />
                           <span className="hidden sm:inline">Material Modular</span>
                           <span className="sm:hidden">Modular</span>
-                          {materialDidaticoV2 && (
-                            <Badge variant="default" className="ml-1 text-xs">
-                              Novo
+                          {materialDidaticoV2 ? (
+                            <Badge variant="default" className="ml-1 text-xs bg-green-600">
+                              ✓ Pronto
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="ml-1 text-xs">
+                              Gerar
                             </Badge>
                           )}
                         </TabsTrigger>
