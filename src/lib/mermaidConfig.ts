@@ -53,14 +53,17 @@ export const initializeMermaid = () => {
       useMaxWidth: true,
     },
     themeVariables: {
-      fontSize: '16px',
+      fontSize: '18px',
       fontFamily: 'Inter, system-ui, sans-serif',
       primaryColor: '#f3e5f5',
-      primaryTextColor: '#000',
+      primaryTextColor: '#1e293b',
       primaryBorderColor: '#7c3aed',
       lineColor: '#7c3aed',
       secondaryColor: '#e1f5fe',
       tertiaryColor: '#f1f8e9',
+      nodeBorder: '#7c3aed',
+      nodeTextColor: '#1e293b',
+      lineWidth: 2,
     }
   });
 

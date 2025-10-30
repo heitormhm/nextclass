@@ -92,6 +92,29 @@ const LectureTranscriptionPage = () => {
   const [structuredContent, setStructuredContent] = useState<StructuredContent | null>(null);
   const [materialDidaticoV2, setMaterialDidaticoV2] = useState<string | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
+  
+  // Helper function to generate references section
+  const generateReferencesMarkdown = (refs: Array<{ titulo: string; url: string; tipo: string }> = []) => {
+    if (!refs || refs.length === 0) return '';
+    
+    const typeIcons: Record<string, string> = {
+      'site': '🌐',
+      'livro': '📚',
+      'artigo': '📄',
+      'apresentação': '📊',
+      'vídeo': '🎥',
+    };
+    
+    let markdown = '\n\n---\n\n## 📚 Referências Bibliográficas\n\n';
+    
+    refs.forEach((ref, index) => {
+      const icon = typeIcons[ref.tipo] || '🔗';
+      markdown += `${index + 1}. ${icon} [${ref.titulo}](${ref.url}) _(${ref.tipo})_\n`;
+    });
+    
+    return markdown;
+  };
+  
   const [derivedTurmaId, setDerivedTurmaId] = useState<string>('');
   const [selectAllStudents, setSelectAllStudents] = useState(true);
   const [classes, setClasses] = useState<any[]>([]);
@@ -1991,7 +2014,9 @@ const LectureTranscriptionPage = () => {
                                 e validação automática de diagramas Mermaid e fórmulas LaTeX.
                               </p>
                             </div>
-                            <MaterialDidaticoRenderer markdown={materialDidaticoV2} />
+                            <MaterialDidaticoRenderer 
+                              markdown={materialDidaticoV2 + generateReferencesMarkdown(structuredContent?.referencias_externas)} 
+                            />
                           </div>
                         ) : (
                           <div className="text-center py-8 bg-slate-50 rounded-lg">

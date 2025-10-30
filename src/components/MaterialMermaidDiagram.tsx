@@ -15,6 +15,19 @@ interface MaterialMermaidDiagramProps {
  * NOT to be used outside of MaterialDidaticoRenderer
  */
 
+// Create safe base64 encoder for Unicode
+const safeBase64Encode = (str: string): string => {
+  try {
+    // Convert to UTF-8 bytes then base64
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => {
+      return String.fromCharCode(parseInt(p1, 16));
+    }));
+  } catch {
+    // Fallback: strip non-ASCII and encode
+    return btoa(str.replace(/[^\x00-\x7F]/g, ''));
+  }
+};
+
 export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +90,18 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
               return `[${content.substring(0, 40)}...]`;
             })
           },
+          { 
+            name: 'Ultra-Simple Fallback', 
+            code: sanitizedCode
+              .replace(/\[([^\]]+)\]/g, (match, content) => {
+                // Keep only first 20 chars, remove ALL special chars
+                const simple = content.substring(0, 20).replace(/[^a-zA-Z0-9\s]/g, '');
+                return `[${simple}]`;
+              })
+              .split('\n')
+              .filter(line => !line.includes('style')) // Remove style directives
+              .join('\n')
+          },
         ];
 
         let renderSuccess = false;
@@ -134,7 +159,7 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
   }, [code]);
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border-2 border-slate-200 dark:border-slate-800 my-4 w-full overflow-x-auto">
+    <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-lg border-2 border-slate-200 dark:border-slate-800 my-6 w-full overflow-x-auto">
       {error ? (
         <div>
           {/* Error message based on type */}
@@ -186,7 +211,7 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
           {/* Link to external debug tool */}
           <div className="mt-4 text-center">
             <a 
-              href={`https://mermaid.live/edit#pako:${btoa(code)}`}
+              href={`https://mermaid.live/edit#pako:${safeBase64Encode(code)}`}
               target="_blank" 
               rel="noopener noreferrer"
               className="text-xs text-primary hover:underline inline-flex items-center gap-1"
@@ -198,7 +223,11 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
       ) : (
         <div
           ref={ref}
-          className="mermaid-diagram-container flex justify-center items-center min-h-[200px]"
+          className="mermaid-diagram-container flex justify-center items-center min-h-[400px] min-w-full"
+          style={{ 
+            transform: 'scale(1.2)',
+            transformOrigin: 'top center',
+          }}
         />
       )}
     </div>

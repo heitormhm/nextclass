@@ -690,25 +690,51 @@ ESTRUTURA OBRIGATÓRIA:
 ## 1. Fundamentos Teóricos
 [Use 60-70% do material dos livros - mantenha citações de autores]
 
+### Diagrama 1: Visão Geral do Conceito
+\`\`\`mermaid
+flowchart TD
+    A[Conceito Principal] --> B[Sub-conceito 1]
+    A --> C[Sub-conceito 2]
+\`\`\`
+
 ## 2. Aplicações Práticas
 [Use 30-40% dos casos práticos da web - foque em indústria brasileira e normas]
+
+### Diagrama 2: Fluxo de Processo
+\`\`\`mermaid
+flowchart LR
+    Input[Entrada] --> Process[Processo]
+    Process --> Output[Saida]
+\`\`\`
 
 ## 3. Exercícios e Exemplos
 [Misture exemplos dos livros + casos práticos]
 
-## 4. Diagramas e Visualizações
+### Diagrama 3: Relações Entre Conceitos
 \`\`\`mermaid
-flowchart TD
-    A[Teoria] --> B[Prática]
+graph TD
+    Lei1[Primeira Lei] -.relaciona-se com.-> Lei2[Segunda Lei]
+    Lei1 --> Aplicacao[Aplicacoes]
 \`\`\`
 
 REGRAS CRÍTICAS:
-- LaTeX: Use $$formula$$ (NUNCA $formula$)
+- **LaTeX inline**: Use $formula$ (um símbolo $ em cada lado) APENAS para variáveis curtas
+  - Exemplo: A entalpia ($H$) é definida...
+  - Exemplo: O calor específico ($c_p$) varia...
+- **LaTeX em bloco**: Use $$formula$$ (dois símbolos $$ em cada lado) EM LINHA SEPARADA para equações
+  - Exemplo:
+  $$
+  \\Delta H = m \\times c_p \\times \\Delta T
+  $$
+- **NUNCA misture**: Não use $$ no meio de uma frase
+- **SEMPRE escape underscores**: Use c_p não cp em LaTeX
+- **Símbolos especiais**: Use \\Delta não Δ, \\Sigma não Σ
 - Cite fontes naturalmente: "Segundo Çengel..." ou "Beer e Johnston definem..."
 - Mermaid válido com \`\`\`mermaid
 - SEM tabelas HTML, SEM JSON, SEM código executável
 - Priorize RIGOR TÉCNICO e FUNDAMENTOS SÓLIDOS
 - A seção de fundamentos teóricos deve ser mais extensa que a de aplicações
+- **OBJETIVO**: 3-5 diagramas por material didático (diversos tipos)
 
 IMPORTANTE SOBRE CALLOUTS:
 Use callouts Markdown para destacar informações importantes:
@@ -724,6 +750,10 @@ REGRAS CRÍTICAS PARA DIAGRAMAS MERMAID:
 3. **Labels curtos**: Máximo 40 caracteres por label
 4. **Sem parênteses em labels**: Prefira hífens ou underscores
 5. **Fórmulas matemáticas**: Coloque em seção LaTeX separada, NUNCA em diagramas
+6. **Tipos de diagramas a usar**:
+   - flowchart TD/LR: Processos, hierarquias
+   - graph TD: Relações conceituais
+   - sequenceDiagram: Sequências de eventos (quando aplicável)
 
 EXEMPLO CORRETO DE DIAGRAMA:
 \`\`\`mermaid
@@ -741,7 +771,18 @@ flowchart TD
 \`\`\`
 
 EXEMPLO DE CALLOUT:
-> ✏️ Conceito-Chave: A Primeira Lei da Termodinâmica estabelece que a energia total de um sistema isolado permanece constante, podendo apenas mudar de forma entre energia interna, calor e trabalho.`;
+> ✏️ Conceito-Chave: A Primeira Lei da Termodinâmica estabelece que a energia total de um sistema isolado permanece constante, podendo apenas mudar de forma entre energia interna, calor e trabalho.
+
+EXEMPLO CORRETO DE LATEX:
+No texto: "A entalpia ($H$) é uma propriedade termodinâmica..."
+
+Em bloco separado:
+$$
+\\Delta H = m \\times c_p \\times \\Delta T
+$$
+
+INCORRETO (NÃO FAÇA):
+"A entalpia $$ H $$ é uma propriedade..." ❌`;
 
     const finalMarkdown = await callLovableAI([
       { role: 'system', content: integrationPrompt },

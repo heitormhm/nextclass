@@ -22,7 +22,19 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
   }
 
   return (
-    <div className="prose prose-lg max-w-none dark:prose-invert">
+    <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content">
+      <style>{`
+        .material-didatico-content .katex-error {
+          color: #dc2626 !important;
+          font-weight: bold;
+        }
+        .material-didatico-content code {
+          color: inherit;
+          background: rgba(0,0,0,0.05);
+          padding: 0.1em 0.3em;
+          border-radius: 0.25em;
+        }
+      `}</style>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
