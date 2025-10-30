@@ -64,44 +64,37 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
           setError('timeout');
         }, 10000);
 
-        // 5 fallback strategies (com sanitização de matemática)
+        // NOVA ESTRATÉGIA: Proteger $$...$$ ANTES de sanitizar ✅ FASE 4
         const renderStrategies = [
-          { name: 'Original', code: sanitizedCode },
           { 
-            name: 'Math Sanitization', 
-            code: sanitizedCode.replace(/\[([^\]]+)\]/g, (match, content) => {
-              // Remover TODOS os caracteres não-ASCII
-              const asciiOnly = content.replace(/[^\x00-\x7F]/g, '');
-              // Truncar se muito longo
-              return `[${asciiOnly.substring(0, 40)}]`;
-            })
+            name: 'Original with LaTeX Protection', 
+            code: (() => {
+              // Proteger fórmulas LaTeX
+              const formulas: string[] = [];
+              let protectedCode = sanitizedCode.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
+                const placeholder = `FORMULA_${formulas.length}`;
+                formulas.push(match);
+                return placeholder;
+              });
+              
+              // Agora sanitizar APENAS texto fora das fórmulas
+              // Remover caracteres não-ASCII EXCETO dentro de fórmulas
+              protectedCode = protectedCode
+                .replace(/\[([^\]]{80,})\]/g, (m, c) => `[${c.substring(0, 70)}...]`);  // Truncar labels muito longos
+              
+              // Restaurar fórmulas
+              formulas.forEach((formula, i) => {
+                protectedCode = protectedCode.replace(`FORMULA_${i}`, formula);
+              });
+              
+              return protectedCode;
+            })()
           },
+          // Manter apenas 1 fallback simples (sem fórmulas)
           { 
-            name: 'Add space after graph type', 
-            code: sanitizedCode.replace(/^graph([A-Z]{2,})/m, 'graph $1 ') 
-          },
-          { 
-            name: 'Remove quotes from labels', 
-            code: sanitizedCode.replace(/\["([^"]+)"\]/g, '[$1]') 
-          },
-          { 
-            name: 'Simplify text in labels', 
-            code: sanitizedCode.replace(/\[([^\]]{50,})\]/g, (match, content) => {
-              return `[${content.substring(0, 40)}...]`;
-            })
-          },
-          { 
-            name: 'Ultra-Simple Fallback', 
-            code: sanitizedCode
-              .replace(/\[([^\]]+)\]/g, (match, content) => {
-                // Keep only first 20 chars, remove ALL special chars
-                const simple = content.substring(0, 20).replace(/[^a-zA-Z0-9\s]/g, '');
-                return `[${simple}]`;
-              })
-              .split('\n')
-              .filter(line => !line.includes('style')) // Remove style directives
-              .join('\n')
-          },
+            name: 'Simple Fallback (no math)', 
+            code: sanitizedCode.replace(/\$\$.+?\$\$/g, '[Formula]')
+          }
         ];
 
         let renderSuccess = false;
@@ -156,6 +149,21 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
     };
     
     renderDiagram();
+  }, [code]);
+
+  // FASE 5: Detector de Suporte LaTeX em Diagramas ✅
+  useEffect(() => {
+    // Verificar se KaTeX CSS está carregado
+    const katexCSSLoaded = Array.from(document.styleSheets).some(sheet => 
+      sheet.href && sheet.href.includes('katex')
+    );
+    
+    const hasLatexInCode = code.includes('$$');
+    
+    if (hasLatexInCode && !katexCSSLoaded) {
+      console.error('[Mermaid] ⚠️ LaTeX detected but KaTeX CSS not loaded!');
+      console.warn('[Mermaid] Add: <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">');
+    }
   }, [code]);
 
   return (

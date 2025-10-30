@@ -29,24 +29,6 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
     <div>
       <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content pt-6">
         <style>{`
-  .material-didatico-content .katex-error {
-    color: #dc2626 !important;
-    font-weight: bold;
-    background: #fee2e2;
-    padding: 0.2em 0.4em;
-    border-radius: 0.25em;
-    border: 1px dashed #dc2626;
-    cursor: help;
-  }
-  .material-didatico-content .katex-error::before {
-    content: "⚠️ LaTeX Error: ";
-    font-size: 0.9em;
-  }
-  .material-didatico-content .katex-error::after {
-    content: " (verificar sintaxe)";
-    font-size: 0.8em;
-    font-style: italic;
-  }
         .material-didatico-content code {
           color: inherit;
           background: rgba(0,0,0,0.05);
@@ -111,7 +93,22 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
       `}</style>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[
+          [rehypeKatex, {
+            throwOnError: false,        // NÃO crashar em erros ✅ FASE 2
+            errorColor: '#dc2626',      // Cor de erro visível
+            strict: false,              // Aceitar LaTeX relaxado
+            trust: true,                // Permitir comandos avançados
+            fleqn: false,               // Centralizar equações
+            displayMode: false,         // Auto-detectar modo
+            output: 'html',             // HTML (não MathML)
+            macros: {
+              '\\RR': '\\mathbb{R}',    // Macros comuns
+              '\\CC': '\\mathbb{C}',
+              '\\vect': '\\mathbf{#1}'
+            }
+          }]
+        ]}
         components={{
           // Handle code blocks (including Mermaid)
           code: ({ node, className, children, ...props }: any) => {

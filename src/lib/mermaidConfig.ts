@@ -24,10 +24,11 @@ export const initializeMermaid = () => {
     theme: 'default',
     logLevel: 'error',
     startOnLoad: false,
-    securityLevel: 'loose',
+    securityLevel: 'loose',        // CRÍTICO: necessário para LaTeX ✅ FASE 3
+    
     flowchart: { 
       useMaxWidth: true,
-      htmlLabels: true,
+      htmlLabels: true,             // CRÍTICO: necessário para LaTeX
       curve: 'basis',
       padding: 20,
     },
