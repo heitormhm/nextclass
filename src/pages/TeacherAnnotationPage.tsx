@@ -19,11 +19,31 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
-import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
+import { TwoPhaseRenderer } from '@/features/lecture-transcription/components/TwoPhaseRenderer';
 import { generateVisualPDF } from '@/utils/visualPdfGenerator';
 import { generateReportPDF } from '@/utils/pdfGenerator';
-import { structuredContentToMarkdown } from '@/utils/structuredContentToMarkdown';
 import { AIFormattingService } from '@/services/aiFormattingService';
+
+// Legacy JSON to Markdown converter (for old annotations)
+const convertStructuredToMarkdown = (structuredData: any): string => {
+  if (!structuredData?.conteudo) return '';
+  
+  let markdown = `# ${structuredData.titulo_geral || 'Conteúdo'}\n\n`;
+  
+  structuredData.conteudo.forEach((bloco: any) => {
+    switch (bloco.tipo) {
+      case 'h2': markdown += `## ${bloco.texto}\n\n`; break;
+      case 'h3': markdown += `### ${bloco.texto}\n\n`; break;
+      case 'h4': markdown += `#### ${bloco.texto}\n\n`; break;
+      case 'paragrafo': markdown += `${bloco.texto?.replace(/<[^>]*>/g, '') || ''}\n\n`; break;
+      case 'caixa_de_destaque': markdown += `> **📌 ${bloco.titulo}**\n> ${bloco.texto}\n\n`; break;
+      case 'post_it': markdown += `> 💡 **${bloco.texto}**\n\n`; break;
+      default: break;
+    }
+  });
+  
+  return markdown;
+};
 const TeacherAnnotationPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -1042,7 +1062,10 @@ const TeacherAnnotationPage = () => {
                           </Button>
                         </div>
                         <div className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg bg-gradient-to-br from-purple-50/50 to-blue-50/50">
-                          <StructuredContentRenderer structuredData={structuredContent} />
+                          <TwoPhaseRenderer 
+                            markdown={convertStructuredToMarkdown(structuredContent)} 
+                            lectureId={id || ''}
+                          />
                         </div>
                       </div>
                     );
