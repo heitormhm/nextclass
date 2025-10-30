@@ -93,6 +93,29 @@ const LectureTranscriptionPage = () => {
   const [materialDidaticoV2, setMaterialDidaticoV2] = useState<string | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [teacherName, setTeacherName] = useState<string | null>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    const handleScroll = () => {
+      clearTimeout(timeoutId);
+      
+      timeoutId = setTimeout(() => {
+        const windowHeight = window.innerHeight;
+        const docHeight = document.documentElement.scrollHeight;
+        const scrollTop = window.scrollY;
+        const progress = (scrollTop / (docHeight - windowHeight)) * 100;
+        setScrollProgress(Math.min(progress, 100));
+      }, 50);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
   
   // Helper function to generate references section
   const generateReferencesMarkdown = (refs: Array<{ titulo: string; url: string; tipo: string }> = []) => {
@@ -1876,30 +1899,13 @@ const LectureTranscriptionPage = () => {
                   )}
                   <CardContent>
                     <Tabs defaultValue="resumo" className="w-full">
-                      <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 gap-1 h-full min-h-[52px]">
+                      <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 gap-1 h-full min-h-[52px]">
                         <TabsTrigger 
                           value="resumo" 
                           className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center"
                         >
                           <FileText className="h-4 w-4 mr-2" />
                           Transcrição da Aula
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="material" 
-                          disabled={!structuredContent.material_didatico && !isGeneratingMaterial}
-                          className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center gap-2"
-                        >
-                          <Brain className="h-4 w-4" />
-                          <span className="hidden sm:inline">Material Didático (Antigo)</span>
-                          <span className="sm:hidden">Material</span>
-                          {isGeneratingMaterial && (
-                            <Badge variant="secondary" className="ml-1 text-xs animate-pulse">
-                              {materialGenerationProgress}%
-                            </Badge>
-                          )}
-                          {!structuredContent.material_didatico && !isGeneratingMaterial && (
-                            <span className="ml-2 text-xs text-slate-500 hidden md:inline">(Gerar)</span>
-                          )}
                         </TabsTrigger>
                         <TabsTrigger 
                           value="material-v2" 
@@ -1920,162 +1926,99 @@ const LectureTranscriptionPage = () => {
                           )}
                         </TabsTrigger>
                       </TabsList>
+
+                      {/* Fixed Reading Progress Bar - Below Tabs */}
+                      {materialDidaticoV2 && (
+                        <div className="sticky top-0 left-0 right-0 bg-primary/10 backdrop-blur-lg z-[90] border-b-2 border-primary/30 py-2 px-6 shadow-lg mt-2">
+                          <div className="flex items-center justify-between text-sm font-medium text-foreground mb-1">
+                            <span className="flex items-center gap-2">
+                              <span className="text-lg">📖</span>
+                              <span>Leitura: ~{(() => {
+                                const words = materialDidaticoV2.split(/\s+/).length;
+                                return Math.ceil(words / 200);
+                              })()} min</span>
+                            </span>
+                            <span className="flex items-center gap-2">
+                              <span className="text-lg">📊</span>
+                              <span>Progresso: {Math.round(scrollProgress)}%</span>
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-muted/70 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 transition-all duration-300 shadow-sm"
+                              style={{ width: `${scrollProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
                       
                       <TabsContent value="resumo" className="overflow-x-auto mt-4">
                         <FormattedTranscriptViewer transcript={lecture?.raw_transcript || ''} />
                       </TabsContent>
                       
-                      <TabsContent value="material" className="overflow-x-auto mt-4">
-                        {structuredContent.material_didatico ? (
-                          <>
-                            <div className="min-w-0 bg-white p-4 rounded-lg">
-                              {(() => {
-                                try {
-                                  console.log('[Render] 🔍 Raw material_didatico type:', typeof structuredContent.material_didatico);
-                                  console.log('[Render] 🔍 First 300 chars:', structuredContent.material_didatico.substring(0, 300));
-                                  
-                                  const parsed = JSON.parse(structuredContent.material_didatico);
-                                  
-                                  console.log('[Render] 📦 Parsed JSON keys:', Object.keys(parsed));
-                                  console.log('[Render] 📦 titulo_geral:', parsed.titulo_geral);
-                                  console.log('[Render] 📦 Content blocks count:', parsed.conteudo?.length);
-                                  console.log('[Render] 📦 First 3 blocks types:', parsed.conteudo?.slice(0, 3).map((b: any) => b.tipo));
-                                  
-                                  if (parsed.conteudo && Array.isArray(parsed.conteudo)) {
-                                    console.log('[Render] ✅ Rendering structured content via StructuredContentRenderer');
-                                    return <StructuredContentRenderer structuredData={parsed} />;
-                                  } else {
-                                    console.error('[Render] ❌ parsed.conteudo is not an array:', parsed.conteudo);
-                                  }
-                                } catch (e) {
-                                  console.error('[Render] ❌ JSON parse error:', e);
-                                  console.log('[Render] ⚠️ Falling back to ReactMarkdown');
-                                }
-                                
-                                // Fallback: render plain markdown
-                                return (
-                                  <div className="prose prose-sm max-w-none overflow-x-auto">
-                                    <ReactMarkdown
-                                      remarkPlugins={[remarkGfm, remarkMath]}
-                                      rehypePlugins={[
-                                        [rehypeKatex, {
-                                          throwOnError: false,
-                                          errorColor: '#cc0000',
-                                          strict: false,
-                                          trust: true
-                                        }]
-                                      ]}
-                                      components={{
-                                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-slate-900" {...props} />,
-                                        h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-slate-900" {...props} />,
-                                        h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-2 mb-1 text-slate-900" {...props} />,
-                                        p: ({node, ...props}) => <p className="mb-2 text-slate-900 leading-relaxed" {...props} />,
-                                        strong: ({node, ...props}) => <strong className="font-bold text-purple-700" {...props} />,
-                                        ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-900" {...props} />,
-                                        ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-900" {...props} />,
-                                        li: ({node, ...props}) => <li className="mb-1 text-slate-900" {...props} />,
-                                        code: ({node, inline, className, children, ...props}: any) => {
-                                          // Código inline
-                                          if (inline) {
-                                            return <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm text-purple-700 font-mono" {...props}>{children}</code>;
-                                          }
-                                          
-                                          // Código em bloco
-                                          return <code className="block bg-slate-100 p-3 rounded mb-2 overflow-x-auto text-sm font-mono text-slate-900" {...props}>{children}</code>;
-                                        },
-                                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-600 pl-4 italic text-slate-700 my-2" {...props} />,
-                                      }}
-                                    >
-                                      {structuredContent.material_didatico}
-                                    </ReactMarkdown>
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                            <div className="flex justify-end gap-2 mt-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9"
-                                onClick={() => openEditModal('Material Didático', { material_didatico: structuredContent.material_didatico })}
-                              >
-                                <Sparkles className="h-4 w-4 mr-1" />
-                                Editar com IA
-                              </Button>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="text-center py-8 bg-slate-50 rounded-lg">
-                            <Brain className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                            <p className="text-slate-600 mb-4 font-medium">Nenhum material didático gerado ainda</p>
-                            <p className="text-slate-500 text-sm px-4">
-                              Clique em "Gerar Material Didático" para criar conteúdo com pesquisa profunda
-                            </p>
-                          </div>
-                        )}
-                      </TabsContent>
-                      
                       <TabsContent value="material-v2" className="overflow-x-auto mt-4">
                         {materialDidaticoV2 ? (
-                          <div className="min-w-0 bg-white p-6 rounded-lg mt-4">
-                            {/* Teacher Badge */}
+                          <>
+                            {/* Teacher Badge - MOVED OUTSIDE CARD */}
                             {teacherName && (
-                              <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
-                                <Users className="h-4 w-4" />
-                                <span>Professor: <strong className="text-foreground">{teacherName}</strong></span>
+                              <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-md w-fit">
+                                <Users className="h-4 w-4 text-primary" />
+                                <span className="text-xs font-medium">Professor: <strong className="text-foreground">{teacherName}</strong></span>
                               </div>
                             )}
                             
-                            <MaterialDidaticoRenderer 
-                              markdown={materialDidaticoV2} 
-                            />
-                            
-                            {/* Compact Study Metrics Pills - MOVED TO BOTTOM */}
-                            <div className="mt-8 pt-6 border-t-2 border-border/50">
-                              <p className="text-sm font-semibold text-muted-foreground mb-3">📊 Resumo do Material:</p>
-                              <div className="flex flex-wrap items-center gap-2">
-                                {/* Pill 1: Conceitos */}
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-full">
-                                  <span className="text-sm">✏️</span>
-                                  <span className="text-xs font-medium">
-                                    {(() => {
-                                      const count = (materialDidaticoV2.match(/✏️ Conceito-Chave/g) || []).length;
-                                      return `${count} conceito${count !== 1 ? 's' : ''}`;
-                                    })()}
-                                  </span>
-                                </div>
-                                
-                                {/* Pill 2: Diagramas */}
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-full">
-                                  <span className="text-sm">📊</span>
-                                  <span className="text-xs font-medium">
-                                    {(() => {
-                                      const diagramCount = (materialDidaticoV2.match(/```mermaid/g) || []).length;
-                                      const types = new Set<string>();
-                                      if (materialDidaticoV2.match(/flowchart (TD|LR)/g)) types.add('f');
-                                      if (materialDidaticoV2.match(/graph TD/g)) types.add('g');
-                                      if (materialDidaticoV2.match(/stateDiagram-v2/g)) types.add('s');
-                                      if (materialDidaticoV2.match(/classDiagram/g)) types.add('c');
-                                      
-                                      return `${diagramCount} diagrama${diagramCount !== 1 ? 's' : ''} (${types.size} tipos)`;
-                                    })()}
-                                  </span>
-                                </div>
-                                
-                                {/* Pill 3: Complexidade */}
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-full">
-                                  <span className="text-sm">🎯</span>
-                                  <span className="text-xs font-medium">
-                                    {(() => {
-                                      const formulaCount = (materialDidaticoV2.match(/\$\$/g) || []).length / 2;
-                                      const level = formulaCount > 10 ? 'Avançado' : formulaCount > 5 ? 'Intermediário' : 'Básico';
-                                      return `${level} (${Math.floor(formulaCount)} fórmulas)`;
-                                    })()}
-                                  </span>
+                            <div className="min-w-0 bg-white p-6 rounded-lg mt-2">
+                              <MaterialDidaticoRenderer 
+                                markdown={materialDidaticoV2} 
+                              />
+                              
+                              {/* Compact Study Metrics Pills - MOVED TO BOTTOM */}
+                              <div className="mt-8 pt-6 border-t-2 border-border/50">
+                                <p className="text-sm font-semibold text-muted-foreground mb-3">📊 Resumo do Material:</p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {/* Pill 1: Conceitos */}
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-full">
+                                    <span className="text-sm">✏️</span>
+                                    <span className="text-xs font-medium">
+                                      {(() => {
+                                        const count = (materialDidaticoV2.match(/✏️ Conceito-Chave/g) || []).length;
+                                        return `${count} conceito${count !== 1 ? 's' : ''}`;
+                                      })()}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Pill 2: Diagramas */}
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-full">
+                                    <span className="text-sm">📊</span>
+                                    <span className="text-xs font-medium">
+                                      {(() => {
+                                        const diagramCount = (materialDidaticoV2.match(/```mermaid/g) || []).length;
+                                        const types = new Set<string>();
+                                        if (materialDidaticoV2.match(/flowchart (TD|LR)/g)) types.add('f');
+                                        if (materialDidaticoV2.match(/graph TD/g)) types.add('g');
+                                        if (materialDidaticoV2.match(/stateDiagram-v2/g)) types.add('s');
+                                        if (materialDidaticoV2.match(/classDiagram/g)) types.add('c');
+                                        
+                                        return `${diagramCount} diagrama${diagramCount !== 1 ? 's' : ''} (${types.size} tipos)`;
+                                      })()}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Pill 3: Complexidade */}
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-full">
+                                    <span className="text-sm">🎯</span>
+                                    <span className="text-xs font-medium">
+                                      {(() => {
+                                        const formulaCount = (materialDidaticoV2.match(/\$\$/g) || []).length / 2;
+                                        const level = formulaCount > 10 ? 'Avançado' : formulaCount > 5 ? 'Intermediário' : 'Básico';
+                                        return `${level} (${Math.floor(formulaCount)} fórmulas)`;
+                                      })()}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          </>
                         ) : (
                           <div className="text-center py-8 bg-slate-50 rounded-lg">
                             <Sparkles className="h-12 w-12 text-slate-300 mx-auto mb-3" />

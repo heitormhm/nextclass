@@ -13,34 +13,9 @@ interface MaterialDidaticoRendererProps {
 
 
 export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> = ({ markdown }) => {
-  const [scrollProgress, setScrollProgress] = React.useState(0);
-
   // Calculate reading time
   const words = markdown.split(/\s+/).length;
   const readingTimeMin = Math.ceil(words / 200); // Average reading speed
-
-  // Add scroll listener for progress tracking (window-based) with debounce
-  React.useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    const handleScroll = () => {
-      clearTimeout(timeoutId);
-      
-      timeoutId = setTimeout(() => {
-        const windowHeight = window.innerHeight;
-        const docHeight = document.documentElement.scrollHeight;
-        const scrollTop = window.scrollY;
-        const progress = (scrollTop / (docHeight - windowHeight)) * 100;
-        setScrollProgress(Math.min(progress, 100));
-      }, 50); // Debounce de 50ms
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
 
   if (!markdown || markdown.trim().length === 0) {
     return (
@@ -52,27 +27,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
   return (
     <div>
-      {/* Fixed Reading Progress Indicator - Enhanced Visibility */}
-      <div className="fixed top-0 left-0 right-0 bg-primary/10 backdrop-blur-lg z-[100] border-b-2 border-primary/30 py-2 px-6 shadow-lg">
-        <div className="flex items-center justify-between text-sm font-medium text-foreground mb-2">
-          <span className="flex items-center gap-2">
-            <span className="text-lg">📖</span>
-            <span>Leitura: ~{readingTimeMin} min</span>
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="text-lg">📊</span>
-            <span>Progresso: {Math.round(scrollProgress)}%</span>
-          </span>
-        </div>
-        <div className="w-full h-1.5 bg-muted/70 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 transition-all duration-300 shadow-sm"
-            style={{ width: `${scrollProgress}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content pt-24">
+      <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content pt-6">
         <style>{`
   .material-didatico-content .katex-error {
     color: #dc2626 !important;
@@ -208,7 +163,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           ),
           // Style headings
             h1: ({ node, ...props }) => (
-              <h1 className="text-3xl font-bold mt-2 mb-4 text-foreground" {...props} />
+              <h1 className="text-3xl font-bold mt-0 mb-3 text-foreground" {...props} />
             ),
           h2: ({ node, children, ...props }) => {
             const hasEmoji = /^[\p{Emoji}]/u.test(String(children));

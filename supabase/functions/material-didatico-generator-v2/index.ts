@@ -1029,6 +1029,50 @@ INCORRETO (NÃO FAÇA):
 
   console.log('[LaTeX] ✅ Advanced syntax corrections applied');
 
+  // PHASE 4.8: Ultra-aggressive LaTeX malformed expression cleanup
+  console.log('[LaTeX] Cleaning malformed expressions (ultra-aggressive)...');
+
+  // Fix 1: Remove operadores órfãos entre $...$
+  // $*+$ → " e ", $-$ → "-"
+  processedMarkdown = processedMarkdown.replace(/\$\s*[\*\+]\s*\$/g, ' e ');
+  processedMarkdown = processedMarkdown.replace(/\$\s*[\-÷×]\s*\$/g, ' ');
+
+  // Fix 2: Remove $palavra$ DENTRO de expressões LaTeX maiores
+  // "20^\circ\text{C} $para$ 80^\circ\text{C}" → "20^\circ\mathrm{C} para 80^\circ\mathrm{C}"
+  processedMarkdown = processedMarkdown.replace(
+    /(\$[^$]+\$)\s+\$([a-z]{2,8})\$\s+(\$[^$]+\$)/gi,
+    '$1 $2 $3'
+  );
+
+  // Fix 3: Expressões quebradas com $*+$ no meio
+  // "$\dot{m} = 5 \text{ kg/s} $*+$ h_{entrada}$"
+  // → "$\dot{m} = 5 \mathrm{ kg/s}$ e $h_{entrada}$"
+  processedMarkdown = processedMarkdown.replace(
+    /(\$[^$]+)\s*\$[\*\+\-]\$\s*([^$]+\$)/g,
+    '$1$ e $$2'
+  );
+
+  // Fix 4: Grau Celsius com \text → \mathrm
+  // "20^\circ\text{C}" → "20^\circ\mathrm{C}"
+  processedMarkdown = processedMarkdown.replace(
+    /(\d+)\^\\circ\\text\{([A-Z])\}/g,
+    '$1^\\circ\\mathrm{$2}'
+  );
+
+  // Fix 5: Subscripts com underscores quebrados fora de math mode
+  // "h_{entrada}" → "$h_{\text{entrada}}$"
+  processedMarkdown = processedMarkdown.replace(
+    /(?<!\$)([a-zA-Z])_\{([a-z]+)\}(?!\$)/g,
+    '$$1_{\\text{$2}}$$'
+  );
+
+  // Fix 6: Remove espaços extras ao redor de $ (causa render errors)
+  // "$ x = 5 $" → "$x = 5$"
+  processedMarkdown = processedMarkdown.replace(/\$\s+/g, '$');
+  processedMarkdown = processedMarkdown.replace(/\s+\$/g, '$');
+
+  console.log('[LaTeX] ✅ Ultra-aggressive cleanup complete');
+
   // PHASE 4.7: Final validation - detect remaining LaTeX errors
   console.log('[LaTeX] Final validation check...');
 
