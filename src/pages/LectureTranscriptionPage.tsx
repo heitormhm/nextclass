@@ -2015,7 +2015,7 @@ const LectureTranscriptionPage = () => {
                               </p>
                             </div>
                             <MaterialDidaticoRenderer 
-                              markdown={materialDidaticoV2 + generateReferencesMarkdown(structuredContent?.referencias_externas)} 
+                              markdown={materialDidaticoV2} 
                             />
                           </div>
                         ) : (

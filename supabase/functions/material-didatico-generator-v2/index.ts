@@ -717,28 +717,30 @@ graph TD
     Lei1 --> Aplicacao[Aplicacoes]
 \`\`\`
 
-REGRAS CRÍTICAS PARA LATEX (SUPER IMPORTANTES):
+REGRAS CRÍTICAS PARA LATEX (LEIA COM ATENÇÃO):
 
-1. **Fórmulas inline (dentro de frases)**: Use SEMPRE $formula$ (UM $ em cada lado)
-   ✅ CORRETO: "A entalpia ($H$) é definida como..."
-   ✅ CORRETO: "O calor específico ($c_p$) varia com..."
-   ✅ CORRETO: "A equação ($\\Delta U = Q - W$) mostra..."
-   ❌ ERRADO: "A entalpia ($$ H $$) é definida..." (NUNCA use $$ inline)
-   ❌ ERRADO: "O calor (Q $$) varia..." (NUNCA misture)
+❌ **ERROS MAIS COMUNS QUE VOCÊ DEVE EVITAR:**
+1. NUNCA: "libera calor ( $$ Q $$ ) que é transferido..."
+2. NUNCA: "realiza trabalho ( $$ W $$ ), que é convertido..."
+3. NUNCA: "A energia interna ( $$ U $$ ) é uma função..."
+4. NUNCA: "calor específico ( $$ c_p $$ ) em processos..."
+5. NUNCA: "onde ( $$ \\Delta U $$ ) representa a variação..."
 
-2. **Fórmulas em bloco (equações isoladas)**: Use $$formula$$ EM LINHA SEPARADA
-   ✅ CORRETO:
-   Para sistemas fechados:
-   $$
-   \\Delta U = Q - W
-   $$
-   
-   ❌ ERRADO: "A equação é $$ \\Delta U = Q - W $$ para sistemas..."
+✅ **FORMA CORRETA:**
+1. SIM: "libera calor ($Q$) que é transferido..."
+2. SIM: "realiza trabalho ($W$), que é convertido..."
+3. SIM: "A energia interna ($U$) é uma função..."
+4. SIM: "calor específico ($c_p$) em processos..."
+5. SIM: "onde ($\\Delta U$) representa a variação..."
 
-3. **Escape obrigatório**: Use \\Delta não Δ, \\Sigma não Σ, c_p não cp
+**REGRA ABSOLUTA**: 
+- NO MEIO DE UMA FRASE → use SEMPRE $variavel$ (um $ de cada lado)
+- EQUAÇÃO ISOLADA EM LINHA PRÓPRIA → use $$
+$$
+\\Delta U = Q - W
+$$
 
-4. **REGRA DE OURO**: Se a fórmula está NO MEIO de uma frase → use $
-                      Se a fórmula está SOZINHA em linha → use $$
+**TESTE MENTAL**: Se você vê a variável ENTRE palavras → use $ e NÃO $$
 
 REGRAS PARA REFERÊNCIAS BIBLIOGRÁFICAS:
 
@@ -784,47 +786,64 @@ Use callouts Markdown para destacar informações importantes:
 > ⚠️ Atenção: [Cuidado com erros comuns ou limitações]
 > 🔬 Exemplo Prático: [Caso real de aplicação]
 
-TIPOS DE DIAGRAMAS MERMAID (use variedade):
+**OBRIGATÓRIO: USE PELO MENOS 3 TIPOS DIFERENTES DE DIAGRAMAS**
 
-1. **flowchart TD/LR** - Para processos sequenciais:
+Para CADA conceito principal, escolha o tipo mais adequado:
+
+**TIPO 1: flowchart TD/LR** - Processos, fluxos, sequências
+Exemplo para termodinâmica:
 \`\`\`mermaid
 flowchart LR
-    Entrada[Calor Q] --> Sistema[Sistema]
-    Sistema --> Saida[Trabalho W]
+    Q[Calor Fornecido] --> Sistema[Sistema Termico]
+    Sistema --> W[Trabalho Realizado]
+    Sistema --> Perdas[Perdas Termicas]
 \`\`\`
 
-2. **graph TD** - Para relações conceituais:
+**TIPO 2: graph TD** - Relações entre conceitos, hierarquias
+Exemplo para termodinâmica:
 \`\`\`mermaid
 graph TD
     PrimeiraLei[Primeira Lei] --> ConservacaoEnergia[Conservacao]
-    PrimeiraLei --> BalancoEnergia[Balanco]
-    ConservacaoEnergia --> Aplicacoes[Aplicacoes]
+    PrimeiraLei --> BalancoEnergia[Balanco de Energia]
+    SegundaLei[Segunda Lei] --> Entropia[Entropia]
+    ConservacaoEnergia --> Aplicacoes[Aplicacoes Praticas]
 \`\`\`
 
-3. **stateDiagram-v2** - Para estados termodinâmicos:
+**TIPO 3: stateDiagram-v2** - Estados, transições, ciclos
+Exemplo para termodinâmica:
 \`\`\`mermaid
 stateDiagram-v2
-    [*] --> EstadoInicial
-    EstadoInicial --> ProcessoIsotermico: T constante
-    ProcessoIsotermico --> EstadoFinal
-    EstadoFinal --> [*]
+    [*] --> Estado1: Fornecimento de Calor
+    Estado1 --> Estado2: Expansao Isotermica
+    Estado2 --> Estado3: Resfriamento
+    Estado3 --> [*]: Retorno ao Estado Inicial
 \`\`\`
 
-4. **classDiagram** - Para classificações:
+**TIPO 4: classDiagram** - Classificações, taxonomias
+Exemplo para termodinâmica:
 \`\`\`mermaid
 classDiagram
     Energia <|-- EnergiaInterna
-    Energia <|-- Calor
-    Energia <|-- Trabalho
+    Energia <|-- EnergiaCinetica
+    Energia <|-- EnergiaPotencial
+    EnergiaInterna : temperatura
+    EnergiaInterna : pressao
 \`\`\`
 
-5. **pie** - Para composições (quando aplicável):
+**TIPO 5: pie** - Distribuições, composições percentuais
+Exemplo para termodinâmica:
 \`\`\`mermaid
-pie title Distribuicao de Energia
+pie title Distribuicao de Energia em Usina Termica
     "Trabalho Util" : 35
     "Calor Residual" : 45
-    "Perdas" : 20
+    "Perdas Mecanicas" : 15
+    "Outras Perdas" : 5
 \`\`\`
+
+**REGRA DE VARIEDADE**: 
+- Material com 3 diagramas → use 3 tipos diferentes
+- Material com 4-5 diagramas → use pelo menos 4 tipos diferentes
+- NUNCA use só flowchart!
 
 **REGRAS CRÍTICAS PARA DIAGRAMAS**:
 - **NUNCA use caracteres especiais em labels**: Δ, Σ, ṁ, Q̇, Ẇ, α, β, γ, θ
@@ -832,11 +851,6 @@ pie title Distribuicao de Energia
 - **Labels curtos**: Máximo 40 caracteres por label
 - **Sem parênteses em labels**: Prefira hífens ou underscores
 - **Fórmulas matemáticas**: Coloque em seção LaTeX separada, NUNCA em diagramas
-- **OBJETIVO**: Usar 3-5 diagramas, variando os tipos conforme o conceito
-  - Processos → flowchart/stateDiagram
-  - Hierarquias → graph/classDiagram
-  - Composições → pie
-  - Sequências → sequenceDiagram
 
 EXEMPLO CORRETO DE DIAGRAMA:
 \`\`\`mermaid
@@ -902,16 +916,46 @@ INCORRETO (NÃO FAÇA):
         });
       });
       
+      // Check diagram type diversity
+      const diagramTypes = new Set<string>();
+      mermaidBlocks.forEach(block => {
+        const typeMatch = block.match(/```mermaid\s+(flowchart|graph|stateDiagram|classDiagram|pie|sequenceDiagram)/);
+        if (typeMatch) {
+          diagramTypes.add(typeMatch[1]);
+        }
+      });
+      
+      if (mermaidBlocks.length >= 3 && diagramTypes.size < 3) {
+        errors.push(`Only ${diagramTypes.size} diagram types used (${Array.from(diagramTypes).join(', ')}). Need variety!`);
+      }
+      
       return { valid: errors.length === 0, errors };
     };
     
     const contentValidation = validateContent(processedMarkdown);
     if (!contentValidation.valid) {
       console.warn('⚠️ Content validation warnings:', contentValidation.errors);
-      // Auto-fix what we can
-      processedMarkdown = processedMarkdown.replace(/\(\s*\$\$\s*([^$]+?)\s*\$\$\s*\)/g, '($$$1$)');
-      processedMarkdown = processedMarkdown.replace(/\s+\$\$\s+([A-Za-z_\\]+)\s+\$\$/g, ' $$$1$ ');
     }
+    
+    // PHASE 4: Aggressive LaTeX inline fix (catches ALL inline $$ patterns)
+    console.log('[LaTeX] Applying comprehensive inline formula fixes...');
+    
+    // Fix 1: ( $$ variable $$ ) → ($variable$)
+    processedMarkdown = processedMarkdown.replace(/\(\s*\$\$\s*([^$]+?)\s*\$\$\s*\)/g, '($$$1$)');
+    
+    // Fix 2: word $$ variable $$ word → word $variable$ word
+    processedMarkdown = processedMarkdown.replace(/(\w+)\s+\$\$\s*([A-Za-z_\\]+)\s*\$\$\s+(\w+)/g, '$1 $$$2$ $3');
+    
+    // Fix 3: Start of line with inline $$
+    processedMarkdown = processedMarkdown.replace(/^(\*\s+|\d+\.\s+|>\s+)(.+?)\$\$\s*([^$\n]+?)\s*\$\$/gm, '$1$2$$$3$');
+    
+    // Fix 4: Single variable between $$  $$ → $ $
+    processedMarkdown = processedMarkdown.replace(/\$\$\s*([A-Za-z_\\]{1,10})\s*\$\$/g, '$$$1$');
+    
+    // Fix 5: In parentheses or after comma
+    processedMarkdown = processedMarkdown.replace(/([,(])\s*\$\$\s*([^$\n]+?)\s*\$\$\s*([,)])/g, '$1$$$2$$3');
+    
+    console.log('[LaTeX] ✅ Comprehensive inline fixes applied');
     
     processedMarkdown = processedMarkdown.replace(/\n{3,}/g, '\n\n'); // Remove excess blank lines
     

@@ -24,18 +24,24 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
   return (
     <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content">
       <style>{`
-        .material-didatico-content .katex-error {
-          color: #dc2626 !important;
-          font-weight: bold;
-          background: #fee2e2;
-          padding: 0.2em 0.4em;
-          border-radius: 0.25em;
-          border: 1px dashed #dc2626;
-        }
-        .material-didatico-content .katex-error::after {
-          content: " ⚠️";
-          font-size: 0.9em;
-        }
+  .material-didatico-content .katex-error {
+    color: #dc2626 !important;
+    font-weight: bold;
+    background: #fee2e2;
+    padding: 0.2em 0.4em;
+    border-radius: 0.25em;
+    border: 1px dashed #dc2626;
+    cursor: help;
+  }
+  .material-didatico-content .katex-error::before {
+    content: "⚠️ LaTeX Error: ";
+    font-size: 0.9em;
+  }
+  .material-didatico-content .katex-error::after {
+    content: " (verificar sintaxe)";
+    font-size: 0.8em;
+    font-style: italic;
+  }
         .material-didatico-content code {
           color: inherit;
           background: rgba(0,0,0,0.05);
