@@ -1073,6 +1073,35 @@ INCORRETO (NÃO FAÇA):
 
   console.log('[LaTeX] ✅ Ultra-aggressive cleanup complete');
 
+  // FASE 3: PHASE 4.9: CRITICAL - Fix $$$$ (4+ dollar signs)
+  console.log('[LaTeX] Fixing critical $$$$ patterns...');
+
+  // Fix 1: $$$$ → $$ (múltiplos cifrões consecutivos)
+  processedMarkdown = processedMarkdown.replace(/\$\$\$\$+/g, '$$');
+  processedMarkdown = processedMarkdown.replace(/\$\$\$/g, '$$');
+
+  // Fix 2: \ldot → \dot (typo comum)
+  processedMarkdown = processedMarkdown.replace(/\\ldot\{/g, '\\dot{');
+
+  // Fix 3: Fix subscripts com underscore em variáveis com \dot
+  // \dot{Q}_{vapor} → \dot{Q}_{\text{vapor}}
+  processedMarkdown = processedMarkdown.replace(
+    /\\dot\{([A-Z])\}_\{([a-z]+)\}/g,
+    '\\dot{$1}_{\\text{$2}}'
+  );
+
+  // Fix 4: Remove "(verificar sintaxe)" que pode ter vazado do erro
+  processedMarkdown = processedMarkdown.replace(/\(verificar sintaxe\)/gi, '');
+
+  // Fix 5: Fix expressões com \mathrm seguido de $$$
+  // kg/s}]$$$$$\dot{W} → kg/s}$$ \dot{W}
+  processedMarkdown = processedMarkdown.replace(
+    /([a-z\/]+)\]\$\$\$+\\dot\{/g,
+    '$1$$ \\dot{'
+  );
+
+  console.log('[LaTeX] ✅ Critical $$$$ patterns fixed');
+
   // PHASE 4.7: Final validation - detect remaining LaTeX errors
   console.log('[LaTeX] Final validation check...');
 
@@ -1096,6 +1125,116 @@ INCORRETO (NÃO FAÇA):
   }
 
   console.log('[LaTeX] ✅ Validation complete');
+
+  // FASE 4: Fix Mermaid diagram styles
+  console.log('[Mermaid] Enforcing consistent diagram styles...');
+
+  // Replace generic "graph" with "graph LR" (left-to-right)
+  processedMarkdown = processedMarkdown.replace(
+    /```mermaid\s*\n\s*graph\s+(?!LR|TD|TB)/g,
+    '```mermaid\ngraph LR\n'
+  );
+
+  // Ensure all flowcharts are LR (left-to-right) instead of TD (top-down)
+  processedMarkdown = processedMarkdown.replace(
+    /```mermaid\s*\n\s*flowchart\s+TD/g,
+    '```mermaid\nflowchart LR'
+  );
+
+  console.log('[Mermaid] ✅ Diagram styles normalized');
+
+  // FASE 5: AI-Powered Final LaTeX Correction
+  console.log('[AI] Initiating Gemini-powered LaTeX correction...');
+
+  try {
+    const aiCorrectionPrompt = `Você é um especialista em LaTeX e markdown científico. Corrija APENAS os erros de sintaxe LaTeX no markdown abaixo, seguindo estas regras:
+
+REGRAS CRÍTICAS:
+1. Remova TODOS os padrões $$$$, $$$, deixando apenas $$ para display ou $ para inline
+2. Corrija \\ldot para \\dot
+3. Substitua TODOS os \\text{} por \\mathrm{} em unidades (kg, m/s, kJ, etc)
+4. Remova "(verificar sintaxe)" se aparecer
+5. Corrija subscripts quebrados: Q_{vapor} → Q_{\\text{vapor}}
+6. NÃO altere o conteúdo, estrutura ou significado
+7. NÃO adicione explicações, retorne APENAS o markdown corrigido
+
+Markdown:
+${processedMarkdown}`;
+
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'Você é um corretor de sintaxe LaTeX. Corrija erros sem alterar conteúdo.' 
+          },
+          { role: 'user', content: aiCorrectionPrompt }
+        ],
+        temperature: 0.1,
+        max_tokens: 16000,
+      }),
+    });
+
+    if (aiResponse.ok) {
+      const aiData = await aiResponse.json();
+      const correctedMarkdown = aiData.choices[0].message.content;
+      
+      // Validação de segurança (80%-120% do tamanho original)
+      const lengthRatio = correctedMarkdown.length / processedMarkdown.length;
+      
+      if (lengthRatio >= 0.8 && lengthRatio <= 1.2) {
+        // Contar erros antes e depois
+        const errorsBefore = (processedMarkdown.match(/\$\$\$/g) || []).length;
+        const errorsAfter = (correctedMarkdown.match(/\$\$\$/g) || []).length;
+        
+        processedMarkdown = correctedMarkdown;
+        console.log(`[AI] ✅ Correction applied - Errors reduced: ${errorsBefore} → ${errorsAfter}`);
+      } else {
+        console.warn(`[AI] ⚠️ Correction rejected (length ${lengthRatio.toFixed(2)}x)`);
+      }
+    } else {
+      const errorText = await aiResponse.text();
+      console.warn('[AI] ⚠️ API error:', aiResponse.status, errorText);
+    }
+  } catch (error) {
+    console.error('[AI] ❌ Correction failed:', error);
+  }
+
+  // FASE 6: Final LaTeX Quality Check
+  console.log('[LaTeX] Running final quality check...');
+
+  const criticalErrors = [
+    { pattern: /\$\$\$\$+/g, name: 'Quadruple dollar signs', severity: 'CRITICAL' },
+    { pattern: /\$\$\$/g, name: 'Triple dollar signs', severity: 'CRITICAL' },
+    { pattern: /\\ldot\{/g, name: 'Invalid \\ldot command', severity: 'HIGH' },
+    { pattern: /\(verificar sintaxe\)/gi, name: 'Error message in text', severity: 'HIGH' },
+    { pattern: /\$[a-z]{2,8}\$/g, name: 'Orphaned common words in math', severity: 'MEDIUM' },
+  ];
+
+  let totalErrors = 0;
+  const errorReport: string[] = [];
+
+  criticalErrors.forEach(({ pattern, name, severity }) => {
+    const matches = processedMarkdown.match(pattern);
+    if (matches && matches.length > 0) {
+      totalErrors += matches.length;
+      errorReport.push(`[${severity}] ${name}: ${matches.length} occurrences`);
+      console.warn(`[LaTeX] ⚠️ ${name}: ${matches.length} found`);
+    }
+  });
+
+  if (totalErrors > 0) {
+    console.error(`[LaTeX] ❌ QUALITY CHECK FAILED: ${totalErrors} errors remain`);
+    console.error('[LaTeX] Error Report:', errorReport.join('\n'));
+  } else {
+    console.log('[LaTeX] ✅ Quality check passed - no critical errors');
+  }
     
     processedMarkdown = processedMarkdown.replace(/\n{3,}/g, '\n\n'); // Remove excess blank lines
     
