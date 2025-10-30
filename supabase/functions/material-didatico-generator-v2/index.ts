@@ -26,6 +26,110 @@ const corsHeaders = {
 };
 
 // ==========================================
+// BOOK-FIRST HYBRID APPROACH: Known Engineering Books
+// ==========================================
+
+const KNOWN_ENGINEERING_BOOKS = [
+  {
+    title: 'Termodinâmica',
+    authors: 'Yunus A. Çengel & Michael A. Boles',
+    topics: ['termodinâmica', 'primeira lei', 'segunda lei', 'entropia', 'entalpia', 'ciclos térmicos', 'energia'],
+    trustScore: 10.0
+  },
+  {
+    title: 'Mecânica dos Fluidos',
+    authors: 'Frank M. White',
+    topics: ['fluidos', 'escoamento', 'viscosidade', 'reynolds', 'bernoulli', 'turbulência', 'hidrodinâmica'],
+    trustScore: 10.0
+  },
+  {
+    title: 'Resistência dos Materiais',
+    authors: 'Ferdinand P. Beer & E. Russell Johnston Jr.',
+    topics: ['tensão', 'deformação', 'flexão', 'torção', 'fadiga', 'estruturas', 'materiais'],
+    trustScore: 10.0
+  },
+  {
+    title: 'Fundamentos de Circuitos Elétricos',
+    authors: 'Charles K. Alexander & Matthew N.O. Sadiku',
+    topics: ['circuitos', 'corrente', 'tensão', 'resistência', 'capacitância', 'indutância', 'eletricidade'],
+    trustScore: 10.0
+  },
+  {
+    title: 'Estática',
+    authors: 'R.C. Hibbeler',
+    topics: ['estática', 'forças', 'equilíbrio', 'momentos', 'estruturas', 'vigas', 'treliças'],
+    trustScore: 10.0
+  },
+  {
+    title: 'Dinâmica',
+    authors: 'R.C. Hibbeler',
+    topics: ['dinâmica', 'movimento', 'velocidade', 'aceleração', 'energia cinética', 'momento linear'],
+    trustScore: 10.0
+  },
+  {
+    title: 'Transferência de Calor e Massa',
+    authors: 'Yunus A. Çengel',
+    topics: ['transferência calor', 'condução', 'convecção', 'radiação', 'calor', 'massa'],
+    trustScore: 10.0
+  },
+  {
+    title: 'Sistemas de Controle Modernos',
+    authors: 'Richard C. Dorf & Robert H. Bishop',
+    topics: ['controle', 'sistemas', 'automação', 'realimentação', 'estabilidade', 'controladores'],
+    trustScore: 10.0
+  },
+  {
+    title: 'Análise Estrutural',
+    authors: 'R.C. Hibbeler',
+    topics: ['estruturas', 'análise estrutural', 'vigas', 'pórticos', 'treliças', 'deslocamentos'],
+    trustScore: 10.0
+  },
+  {
+    title: 'Física para Cientistas e Engenheiros',
+    authors: 'Raymond A. Serway',
+    topics: ['física', 'mecânica', 'ondas', 'termodinâmica', 'eletromagnetismo', 'ótica'],
+    trustScore: 9.0
+  },
+  {
+    title: 'Cálculo',
+    authors: 'James Stewart',
+    topics: ['cálculo', 'derivadas', 'integrais', 'limites', 'séries', 'equações diferenciais'],
+    trustScore: 9.0
+  },
+  {
+    title: 'Mecânica dos Materiais',
+    authors: 'Beer, Johnston, DeWolf',
+    topics: ['materiais', 'propriedades mecânicas', 'tensão', 'deformação', 'elasticidade'],
+    trustScore: 10.0
+  },
+];
+
+const TRUSTED_DOMAINS = {
+  tier1_books: [
+    'mheducation.com', 'pearson.com', 'cengage.com',
+    'blucher.com.br', 'grupo-gen.com.br', 'grupoa.com.br',
+    'wiley.com', 'springer.com', 'cambridge.org'
+  ],
+  tier2_academic: [
+    'sciencedirect.com', 'ieeexplore.ieee.org', 'asme.org',
+    'scielo.br', 'periodicos.capes.gov.br', 'elsevier.com',
+    'tandfonline.com', 'sagepub.com'
+  ],
+  tier3_universities: [
+    'mit.edu', 'stanford.edu', 'caltech.edu',
+    'usp.br', 'unicamp.br', 'ita.br', 'ufrj.br', 'ufsc.br',
+    'edu'
+  ],
+};
+
+const BLACKLISTED_DOMAINS = [
+  'wikipedia.org', 'wikihow.com', 'fandom.com',
+  'brainly.com', 'medium.com', 'blogspot.com', 'wordpress.com',
+  'sparknotes.com', 'cliffsnotes.com', 'shmoop.com',
+  'yahoo.com', 'answers.com'
+];
+
+// ==========================================
 // PHASE 1: Retry Logic with Exponential Backoff
 // ==========================================
 
@@ -62,17 +166,61 @@ async function retryWithBackoff<T>(
 }
 
 // ==========================================
-// PHASE 1: Web Search with Retry
+// TRUST SCORE CALCULATION
+// ==========================================
+
+function calculateTrustScore(url: string, title: string): number {
+  try {
+    const domain = new URL(url).hostname.toLowerCase();
+    
+    // Blacklist check (immediate disqualification)
+    if (BLACKLISTED_DOMAINS.some(blocked => domain.includes(blocked))) {
+      console.log(`[Filter] ❌ Blacklisted: ${domain}`);
+      return 0;
+    }
+    
+    // Tier 1: Engineering textbooks (highest priority)
+    if (TRUSTED_DOMAINS.tier1_books.some(trusted => domain.includes(trusted))) {
+      const bookKeywords = ['textbook', 'livro', 'fundamentals', 'fundamentos', 'principles', 'engineering'];
+      const hasBookKeyword = bookKeywords.some(kw => title.toLowerCase().includes(kw));
+      return hasBookKeyword ? 10.0 : 8.0;
+    }
+    
+    // Tier 2: Academic publishers
+    if (TRUSTED_DOMAINS.tier2_academic.some(trusted => domain.includes(trusted))) {
+      return 7.0;
+    }
+    
+    // Tier 3: Universities
+    if (TRUSTED_DOMAINS.tier3_universities.some(trusted => domain.includes(trusted))) {
+      return 5.0;
+    }
+    
+    // Unknown sources (low priority, but not blocked)
+    return 2.0;
+  } catch (error) {
+    console.warn('[TrustScore] Invalid URL:', url);
+    return 0;
+  }
+}
+
+// ==========================================
+// PHASE 1: Web Search with Retry & Filtering
 // ==========================================
 
 async function searchWeb(
   query: string,
   braveApiKey: string,
   numResults = 10
-): Promise<Array<{ url: string; title: string; snippet: string }>> {
+): Promise<Array<{ url: string; title: string; snippet: string; trustScore: number }>> {
   return retryWithBackoff(async () => {
-    const encodedQuery = encodeURIComponent(query);
-    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodedQuery}&count=${numResults}`;
+    // Enhanced query for engineering content
+    const enhancedQuery = query.includes('livro') || query.includes('textbook') 
+      ? query 
+      : `${query} engineering textbook OR livro engenharia`;
+    
+    const encodedQuery = encodeURIComponent(enhancedQuery);
+    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodedQuery}&count=20`; // Fetch more to compensate for filtering
 
     const response = await fetch(url, {
       headers: {
@@ -91,14 +239,28 @@ async function searchWeb(
     const data = await response.json();
     const results = data.web?.results || [];
     
-    return results
+    // Filter, score, and sort by trust
+    const scoredResults = results
       .filter((r: any) => r.url && r.title)
-      .map((r: any) => ({
-        url: r.url,
-        title: r.title,
-        snippet: r.description || '',
-      }))
+      .map((r: any) => {
+        const trustScore = calculateTrustScore(r.url, r.title);
+        return {
+          url: r.url,
+          title: r.title,
+          snippet: r.description || '',
+          trustScore
+        };
+      })
+      .filter((r: { trustScore: number }) => r.trustScore > 0) // Remove blacklisted
+      .sort((a: { trustScore: number }, b: { trustScore: number }) => b.trustScore - a.trustScore) // Sort by trust score (highest first)
       .slice(0, numResults);
+    
+    console.log(`[Search] Query: "${query}" → ${scoredResults.length} trusted results`);
+    if (scoredResults.length > 0) {
+      console.log(`[Search] Top source: ${scoredResults[0].title} (trust: ${scoredResults[0].trustScore})`);
+    }
+    
+    return scoredResults;
   }, `Brave Search: ${query}`);
 }
 
@@ -235,6 +397,114 @@ function validateMarkdown(markdown: string): { valid: boolean; warnings: string[
 }
 
 // ==========================================
+// BOOK IDENTIFICATION (Using Gemini's Internal Knowledge)
+// ==========================================
+
+async function identifyRelevantBooks(
+  lectureTitle: string,
+  lovableApiKey: string
+): Promise<Array<{ title: string; authors: string; relevance: string }>> {
+  const bookList = KNOWN_ENGINEERING_BOOKS
+    .map(b => `- ${b.title} (${b.authors})`)
+    .join('\n');
+
+  const response = await callLovableAI([
+    {
+      role: 'system',
+      content: `Você é um especialista em literatura acadêmica de Engenharia. Identifique os 3 livros-texto clássicos mais relevantes para o tópico fornecido.`
+    },
+    {
+      role: 'user',
+      content: `Tópico: ${lectureTitle}\n\nLivros disponíveis:\n${bookList}\n\nRetorne APENAS os 3 mais relevantes no formato:\n1. [Título] - [Autor] - [Capítulos/conceitos relevantes]`
+    }
+  ], lovableApiKey, 'Book Identification');
+
+  // Parse response
+  const books = response.split('\n')
+    .filter(line => /^\d+\./.test(line))
+    .map(line => {
+      const match = line.match(/^(\d+)\.\s*(.+?)\s*-\s*(.+?)\s*-\s*(.+)$/);
+      return match ? {
+        title: match[2].trim(),
+        authors: match[3].trim(),
+        relevance: match[4].trim()
+      } : null;
+    })
+    .filter((book): book is { title: string; authors: string; relevance: string } => book !== null)
+    .slice(0, 3);
+
+  console.log(`[Books] ✅ Identified ${books.length} relevant books`);
+  books.forEach(b => console.log(`[Books]   - ${b.title} (${b.authors})`));
+  
+  return books;
+}
+
+// ==========================================
+// EXTRACT CONCEPTS FROM BOOKS (Gemini's Internal Knowledge)
+// ==========================================
+
+async function extractBookConcepts(
+  lectureTitle: string,
+  books: Array<{ title: string; authors: string; relevance: string }>,
+  lovableApiKey: string
+): Promise<string> {
+  const bookContext = books
+    .map(b => `**${b.title}** (${b.authors}): ${b.relevance}`)
+    .join('\n');
+
+  const response = await callLovableAI([
+    {
+      role: 'system',
+      content: `Você é um professor de Engenharia com conhecimento profundo dos seguintes livros:
+
+${bookContext}
+
+TAREFA: Extraia os conceitos fundamentais sobre "${lectureTitle}" EXATAMENTE como apresentados nesses livros clássicos.
+
+ESTRUTURA OBRIGATÓRIA (Markdown):
+
+## Fundamentos Teóricos (Base: Livros Clássicos)
+
+### 1. Definição Formal
+[Definição exata conforme os livros, com citação natural do autor]
+
+### 2. Equações Fundamentais
+$$equação1$$
+$$equação2$$
+[Use LaTeX com $$ $$, NUNCA $ $]
+
+### 3. Premissas e Limitações
+- Premissa 1
+- Premissa 2
+
+### 4. Conceitos Relacionados
+[Conceitos que os livros relacionam com o tópico]
+
+### 5. Diagrama Conceitual
+\`\`\`mermaid
+flowchart TD
+    A[Conceito] --> B[Sub-conceito]
+\`\`\`
+
+REGRAS CRÍTICAS:
+- Use terminologia EXATA dos livros
+- Cite autores naturalmente: "Segundo Çengel..." ou "Beer e Johnston definem..."
+- Mantenha rigor matemático original
+- Use APENAS Markdown, LaTeX ($$formula$$) e Mermaid
+- NÃO invente informações além do que está nos livros
+- FOQUE EM FUNDAMENTOS TEÓRICOS, não em aplicações práticas`
+    },
+    {
+      role: 'user',
+      content: `Tópico: ${lectureTitle}\n\nExtraia os conceitos fundamentais dos livros identificados acima.`
+    }
+  ], lovableApiKey, 'Book Concept Extraction');
+
+  console.log(`[Books] ✅ Extracted ${response.length} chars of book-based content`);
+  return response;
+}
+
+// ==========================================
 // PHASE 3: Log Telemetry
 // ==========================================
 
@@ -243,6 +513,10 @@ async function logTelemetry(
   jobId: string,
   lectureId: string,
   metrics: {
+    booksIdentified?: number;
+    bookContentLength?: number;
+    bookContentPercentage?: number;
+    webContentPercentage?: number;
     researchQueriesCount: number;
     webSearchesCount: number;
     markdownLength: number;
@@ -251,6 +525,7 @@ async function logTelemetry(
     generationTimeMs: number;
     success: boolean;
     errorType?: string;
+    identifiedBooks?: string[];
   }
 ) {
   try {
@@ -286,6 +561,10 @@ async function processGenerationJob(jobId: string, lectureId: string, lectureTit
   
   const startTime = Date.now();
   const metrics = {
+    booksIdentified: 0,
+    bookContentLength: 0,
+    bookContentPercentage: 0,
+    webContentPercentage: 0,
     researchQueriesCount: 0,
     webSearchesCount: 0,
     markdownLength: 0,
@@ -294,6 +573,7 @@ async function processGenerationJob(jobId: string, lectureId: string, lectureTit
     generationTimeMs: 0,
     success: false,
     errorType: undefined as string | undefined,
+    identifiedBooks: [] as string[],
   };
 
   try {
@@ -303,82 +583,153 @@ async function processGenerationJob(jobId: string, lectureId: string, lectureTit
       .update({ status: 'PROCESSING', updated_at: new Date().toISOString() })
       .eq('id', jobId);
 
-    await updateJobProgress(supabase, jobId, 10, 'Iniciando pesquisa...');
+    await updateJobProgress(supabase, jobId, 5, 'Iniciando geração (Book-First Approach)...');
 
     // Get API keys
     const braveApiKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
-    if (!braveApiKey) {
-      throw new Error('MISSING_KEY: BRAVE_SEARCH_API_KEY não configurada. Contate o administrador.');
-    }
     if (!lovableApiKey) {
       throw new Error('MISSING_KEY: LOVABLE_API_KEY não configurada. Contate o administrador.');
     }
 
-    // Step 1: Decompose into research questions
-    await updateJobProgress(supabase, jobId, 20, 'Gerando perguntas de pesquisa...');
+    // === PHASE 1: BOOK-BASED CONTENT (60% Target) ===
+    console.log('\n=== PHASE 1: BOOK-BASED CONTENT ===');
+    await updateJobProgress(supabase, jobId, 15, 'Identificando livros-texto relevantes...');
     
-    const decomposeResponse = await callLovableAI([
-      {
-        role: 'system',
-        content: 'Você é um assistente de pesquisa. Decomponha o tópico em 5-7 perguntas de pesquisa focadas.'
-      },
-      {
-        role: 'user',
-        content: `Tópico: ${lectureTitle}\n\nRetorne apenas as perguntas, uma por linha.`
+    const relevantBooks = await identifyRelevantBooks(lectureTitle, lovableApiKey);
+    metrics.booksIdentified = relevantBooks.length;
+    metrics.identifiedBooks = relevantBooks.map(b => `${b.title} - ${b.authors}`);
+
+    await updateJobProgress(supabase, jobId, 30, 'Extraindo conceitos fundamentais dos livros...');
+    
+    const bookBasedContent = await extractBookConcepts(lectureTitle, relevantBooks, lovableApiKey);
+    metrics.bookContentLength = bookBasedContent.length;
+
+    // === PHASE 2: WEB SEARCH FOR PRACTICAL CASES (40% Target) ===
+    console.log('\n=== PHASE 2: WEB SEARCH FOR PRACTICAL CASES ===');
+    
+    let practicalContext = '';
+    const sourcesUsed: Array<{ url: string; domain: string; trustScore: number }> = [];
+    
+    // Only do web search if Brave API key is available (fallback to 100% books if not)
+    if (braveApiKey) {
+      await updateJobProgress(supabase, jobId, 50, 'Buscando aplicações práticas e casos reais...');
+      
+      // Focused queries for practical content (reduced from 5-7 to 3-4)
+      const practicalQueries = [
+        `${lectureTitle} aplicação industrial Brasil`,
+        `${lectureTitle} normas técnicas ABNT NBR`,
+        `${lectureTitle} caso prático engenharia`,
+      ];
+
+      const searchResults: any[] = [];
+      for (const query of practicalQueries) {
+        try {
+          const results = await searchWeb(query, braveApiKey, 5);
+          searchResults.push({ query, sources: results });
+          metrics.webSearchesCount += results.length;
+          
+          // Track sources for telemetry
+          results.forEach((r: any) => {
+            try {
+              const domain = new URL(r.url).hostname;
+              sourcesUsed.push({
+                url: r.url,
+                domain,
+                trustScore: r.trustScore || 0
+              });
+            } catch (e) {
+              console.warn('[Sources] Invalid URL:', r.url);
+            }
+          });
+        } catch (error: any) {
+          console.warn(`[Web Search] Failed for query "${query}":`, error.message);
+          // Continue with other queries
+        }
       }
-    ], lovableApiKey, 'Question Decomposition');
-    
-    const questions = decomposeResponse.split('\n').filter(q => q.trim().length > 10).slice(0, 7);
-    metrics.researchQueriesCount = questions.length;
-    
-    // Step 2: Execute web searches
-    await updateJobProgress(supabase, jobId, 40, `Pesquisando na web (${questions.length} consultas)...`);
-    
-    const searchResults: any[] = [];
-    for (const question of questions) {
-      const results = await searchWeb(question, braveApiKey, 5);
-      searchResults.push({ question, sources: results });
-      metrics.webSearchesCount += results.length;
+
+      practicalContext = searchResults
+        .map(r => `**Consulta:** ${r.query}\n\n${r.sources.map((s: any) => `- ${s.title} (confiança: ${s.trustScore || 0}/10): ${s.snippet}`).join('\n')}`)
+        .join('\n\n---\n\n');
+      
+      console.log(`[Web] ✅ Found ${sourcesUsed.length} trusted sources for practical cases`);
+    } else {
+      console.warn('[Web] ⚠️ Brave API key not configured, using 100% book-based content');
+      practicalContext = '(Sem chave Brave API - conteúdo 100% baseado em livros)';
     }
+
+    // === PHASE 3: CONTENT INTEGRATION ===
+    console.log('\n=== PHASE 3: CONTENT INTEGRATION ===');
+    await updateJobProgress(supabase, jobId, 70, 'Integrando conteúdo teórico + prático...');
     
-    // Step 3: Generate report
-    await updateJobProgress(supabase, jobId, 60, 'Gerando material didático...');
-    
-    const researchContext = searchResults
-      .map((r: any) => `**Pergunta:** ${r.question}\n\n${r.sources.map((s: any) => `- ${s.title}: ${s.snippet}`).join('\n')}`)
-      .join('\n\n---\n\n');
-    
-    const systemPrompt = `Você é um professor de Engenharia. Crie material didático EM PORTUGUÊS baseado na pesquisa fornecida.
+    const integrationPrompt = `Você é um professor experiente de Engenharia criando material didático completo EM PORTUGUÊS.
+
+VOCÊ TEM DOIS TIPOS DE CONTEÚDO:
+
+1. **FUNDAMENTOS TEÓRICOS (dos livros clássicos):**
+${bookBasedContent}
+
+2. **CASOS PRÁTICOS E APLICAÇÕES (da web):**
+${practicalContext}
+
+TAREFA: Integre esses dois conteúdos em um material didático coeso e bem estruturado.
+
+ESTRUTURA OBRIGATÓRIA:
+
+# ${lectureTitle}
+
+## 1. Fundamentos Teóricos
+[Use 60-70% do material dos livros - mantenha citações de autores]
+
+## 2. Aplicações Práticas
+[Use 30-40% dos casos práticos da web - foque em indústria brasileira e normas]
+
+## 3. Exercícios e Exemplos
+[Misture exemplos dos livros + casos práticos]
+
+## 4. Diagramas e Visualizações
+\`\`\`mermaid
+flowchart TD
+    A[Teoria] --> B[Prática]
+\`\`\`
 
 REGRAS CRÍTICAS:
-1. Use APENAS Markdown, LaTeX e Mermaid
-2. LaTeX: Use $$formula$$ para equações (NUNCA $formula$)
-3. Mermaid: Blocos válidos com \`\`\`mermaid
-4. SEM tabelas, SEM HTML, SEM JSON
-5. Inclua diagramas Mermaid relevantes
-6. Foque em conceitos práticos de Engenharia`;
+- LaTeX: Use $$formula$$ (NUNCA $formula$)
+- Cite fontes naturalmente: "Segundo Çengel..." ou "Beer e Johnston definem..."
+- Mermaid válido com \`\`\`mermaid
+- SEM tabelas HTML, SEM JSON, SEM código executável
+- Priorize RIGOR TÉCNICO e FUNDAMENTOS SÓLIDOS
+- A seção de fundamentos teóricos deve ser mais extensa que a de aplicações`;
 
-    const reportMarkdown = await callLovableAI([
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: `# ${lectureTitle}\n\n${researchContext}` }
-    ], lovableApiKey, 'Report Generation');
+    const finalMarkdown = await callLovableAI([
+      { role: 'system', content: integrationPrompt },
+      { role: 'user', content: `Integre o conteúdo completo para: ${lectureTitle}` }
+    ], lovableApiKey, 'Content Integration');
     
-    // Step 4: Process markdown
-    await updateJobProgress(supabase, jobId, 80, 'Processando e validando conteúdo...');
+    // === PHASE 4: PROCESSING & VALIDATION ===
+    console.log('\n=== PHASE 4: PROCESSING & VALIDATION ===');
+    await updateJobProgress(supabase, jobId, 85, 'Processando e validando conteúdo...');
     
-    let processedMarkdown = fixLaTeXFormulas(reportMarkdown);
+    let processedMarkdown = fixLaTeXFormulas(finalMarkdown);
     processedMarkdown = processedMarkdown.replace(/\n{3,}/g, '\n\n'); // Remove excess blank lines
     
     // Validate
     const validation = validateMarkdown(processedMarkdown);
+    
+    // Calculate content distribution
+    const totalContentLength = bookBasedContent.length + practicalContext.length;
+    metrics.bookContentPercentage = totalContentLength > 0 
+      ? Math.round((bookBasedContent.length / totalContentLength) * 100)
+      : 100; // 100% if no web content
+    metrics.webContentPercentage = 100 - metrics.bookContentPercentage;
+    
+    console.log(`[Quality] Content distribution: ${metrics.bookContentPercentage}% books, ${metrics.webContentPercentage}% web`);
+    console.log(`[Quality] Books identified: ${metrics.booksIdentified}`);
+    console.log(`[Quality] Web sources: ${sourcesUsed.length}`);
+    
     if (validation.warnings.length > 0) {
       console.warn('[Validation] Warnings:', validation.warnings);
-      await supabase
-        .from('material_v2_jobs')
-        .update({ metadata: { warnings: validation.warnings } })
-        .eq('id', jobId);
     }
     
     // Count metrics
@@ -386,8 +737,9 @@ REGRAS CRÍTICAS:
     metrics.mermaidCount = (processedMarkdown.match(/```mermaid/g) || []).length;
     metrics.latexCount = (processedMarkdown.match(/\$\$/g) || []).length / 2;
     
-    // Step 5: Save to lecture
-    await updateJobProgress(supabase, jobId, 90, 'Salvando material...');
+    // === PHASE 5: SAVE TO DATABASE ===
+    console.log('\n=== PHASE 5: SAVE TO DATABASE ===');
+    await updateJobProgress(supabase, jobId, 93, 'Salvando material...');
     
     await supabase
       .from('lectures')
@@ -401,20 +753,34 @@ REGRAS CRÍTICAS:
     metrics.generationTimeMs = Date.now() - startTime;
     metrics.success = true;
     
+    const jobMetadata = {
+      warnings: validation.warnings,
+      identifiedBooks: metrics.identifiedBooks,
+      bookContentPercentage: metrics.bookContentPercentage,
+      webContentPercentage: metrics.webContentPercentage,
+      sourcesUsed: sourcesUsed.slice(0, 10), // Top 10 sources
+      avgTrustScore: sourcesUsed.length > 0 
+        ? (sourcesUsed.reduce((sum, s) => sum + s.trustScore, 0) / sourcesUsed.length).toFixed(2)
+        : 'N/A'
+    };
+    
     await supabase
       .from('material_v2_jobs')
       .update({
         status: 'COMPLETED',
         progress: 100,
-        progress_step: 'Concluído!',
+        progress_step: `Concluído! (${metrics.bookContentPercentage}% livros, ${metrics.webContentPercentage}% web)`,
         result: processedMarkdown.substring(0, 500) + '...',
+        metadata: jobMetadata,
         updated_at: new Date().toISOString()
       })
       .eq('id', jobId);
     
     await logTelemetry(supabase, jobId, lectureId, metrics);
     
-    console.log(`✅ Job ${jobId} completed successfully in ${metrics.generationTimeMs}ms`);
+    console.log(`\n✅ Job ${jobId} completed successfully in ${(metrics.generationTimeMs / 1000).toFixed(1)}s`);
+    console.log(`📚 Final stats: ${metrics.booksIdentified} books, ${sourcesUsed.length} web sources`);
+    console.log(`📊 Distribution: ${metrics.bookContentPercentage}% books / ${metrics.webContentPercentage}% web\n`);
     
   } catch (error: any) {
     console.error(`❌ Job ${jobId} failed:`, error);
