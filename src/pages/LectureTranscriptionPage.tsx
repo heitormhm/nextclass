@@ -2004,72 +2004,58 @@ const LectureTranscriptionPage = () => {
                       <TabsContent value="material-v2" className="overflow-x-auto mt-4">
                         {materialDidaticoV2 ? (
                           <div className="min-w-0 bg-white p-6 rounded-lg">
-                            <div className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Sparkles className="h-5 w-5 text-primary" />
-                                <h4 className="font-semibold text-primary">Sistema Modular (Novo)</h4>
-                              </div>
-                              <p className="text-sm text-muted-foreground">
-                                Material didático gerado com pesquisa acadêmica avançada, formatação Markdown otimizada, 
-                                e validação automática de diagramas Mermaid e fórmulas LaTeX.
-                              </p>
+                            <div className="flex items-center gap-2 mb-3 p-2 bg-primary/5 border border-primary/10 rounded-md w-fit">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                              <span className="text-xs font-medium text-primary">Sistema Modular v2</span>
+                              <span className="text-xs text-muted-foreground">• Pesquisa avançada + Validação automática</span>
                             </div>
                             <MaterialDidaticoRenderer 
                               markdown={materialDidaticoV2} 
                             />
                             
-                            {/* Study Coach Features - Interactive Study Tools */}
-                            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <Card className="p-4 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/30 dark:to-background border-purple-200 dark:border-purple-800">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-2xl">✏️</span>
-                                  <h3 className="font-semibold text-foreground">Conceitos-Chave</h3>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                  {(() => {
-                                    const keyConceptCount = (materialDidaticoV2.match(/✏️ Conceito-Chave/g) || []).length;
-                                    return `${keyConceptCount} conceitos principais identificados`;
-                                  })()}
-                                </p>
-                              </Card>
+                            {/* Compact Study Metrics Pills */}
+                            <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-border/50">
+                              <span className="text-xs text-muted-foreground font-medium">Métricas:</span>
                               
-                              <Card className="p-4 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-background border-blue-200 dark:border-blue-800">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-2xl">📊</span>
-                                  <h3 className="font-semibold text-foreground">Diagramas</h3>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
+                              {/* Pill 1: Conceitos */}
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-full">
+                                <span className="text-sm">✏️</span>
+                                <span className="text-xs font-medium">
+                                  {(() => {
+                                    const count = (materialDidaticoV2.match(/✏️ Conceito-Chave/g) || []).length;
+                                    return `${count} conceito${count !== 1 ? 's' : ''}`;
+                                  })()}
+                                </span>
+                              </div>
+                              
+                              {/* Pill 2: Diagramas */}
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-full">
+                                <span className="text-sm">📊</span>
+                                <span className="text-xs font-medium">
                                   {(() => {
                                     const diagramCount = (materialDidaticoV2.match(/```mermaid/g) || []).length;
                                     const types = new Set<string>();
-                                    const flowchartMatch = materialDidaticoV2.match(/flowchart (TD|LR)/g);
-                                    const graphMatch = materialDidaticoV2.match(/graph TD/g);
-                                    const stateMatch = materialDidaticoV2.match(/stateDiagram-v2/g);
-                                    const classMatch = materialDidaticoV2.match(/classDiagram/g);
+                                    if (materialDidaticoV2.match(/flowchart (TD|LR)/g)) types.add('f');
+                                    if (materialDidaticoV2.match(/graph TD/g)) types.add('g');
+                                    if (materialDidaticoV2.match(/stateDiagram-v2/g)) types.add('s');
+                                    if (materialDidaticoV2.match(/classDiagram/g)) types.add('c');
                                     
-                                    if (flowchartMatch) types.add('flowchart');
-                                    if (graphMatch) types.add('graph');
-                                    if (stateMatch) types.add('state');
-                                    if (classMatch) types.add('class');
-                                    
-                                    return `${diagramCount} visualizações (${types.size} tipos)`;
+                                    return `${diagramCount} diagrama${diagramCount !== 1 ? 's' : ''} (${types.size} tipos)`;
                                   })()}
-                                </p>
-                              </Card>
+                                </span>
+                              </div>
                               
-                              <Card className="p-4 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/30 dark:to-background border-yellow-200 dark:border-yellow-800">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-2xl">🎯</span>
-                                  <h3 className="font-semibold text-foreground">Complexidade</h3>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
+                              {/* Pill 3: Complexidade */}
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-full">
+                                <span className="text-sm">🎯</span>
+                                <span className="text-xs font-medium">
                                   {(() => {
                                     const formulaCount = (materialDidaticoV2.match(/\$\$/g) || []).length / 2;
                                     const level = formulaCount > 10 ? 'Avançado' : formulaCount > 5 ? 'Intermediário' : 'Básico';
-                                    return `Nível ${level} (${Math.floor(formulaCount)} fórmulas)`;
+                                    return `${level} (${Math.floor(formulaCount)} fórmulas)`;
                                   })()}
-                                </p>
-                              </Card>
+                                </span>
+                              </div>
                             </div>
                           </div>
                         ) : (

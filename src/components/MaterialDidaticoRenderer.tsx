@@ -44,19 +44,21 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
   return (
     <div>
-      {/* Progress Indicator */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border pb-2 mb-4">
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-          <span className="flex items-center gap-2">
-            📖 <span>Tempo estimado: ~{readingTimeMin} min</span>
+      {/* Progress Indicator - Compact */}
+      <div className="sticky top-0 bg-background/98 backdrop-blur-md z-10 border-b border-border/30 py-1 px-2 shadow-sm">
+        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+          <span className="flex items-center gap-1">
+            <span className="text-[10px]">📖</span>
+            <span>~{readingTimeMin} min</span>
           </span>
-          <span className="flex items-center gap-2">
-            📊 <span>Progresso: {Math.round(scrollProgress)}%</span>
+          <span className="flex items-center gap-1">
+            <span className="text-[10px]">📊</span>
+            <span>{Math.round(scrollProgress)}%</span>
           </span>
         </div>
-        <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+        <div className="w-full h-0.5 bg-muted/50 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-primary transition-all duration-300"
+            className="h-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-500"
             style={{ width: `${scrollProgress}%` }}
           />
         </div>
@@ -92,8 +94,6 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
         
         /* Enhanced UX Styles */
         .material-didatico-content {
-          max-height: 80vh;
-          overflow-y: auto;
           scroll-behavior: smooth;
         }
         
@@ -113,10 +113,37 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           margin: 2rem 0;
         }
         
-        /* Section dividers with smooth scroll */
+        /* Better heading hierarchy */
         .material-didatico-content h2 {
           margin-top: 3rem !important;
-          scroll-margin-top: 100px;
+          margin-bottom: 1.5rem !important;
+          padding-bottom: 0.5rem;
+          border-bottom: 2px solid hsl(var(--primary) / 0.2);
+          font-size: 1.75rem !important;
+          font-weight: 700 !important;
+          color: hsl(var(--foreground));
+          scroll-margin-top: 60px;
+        }
+        
+        .material-didatico-content h3 {
+          margin-top: 2rem !important;
+          margin-bottom: 1rem !important;
+          font-size: 1.35rem !important;
+          font-weight: 600 !important;
+          color: hsl(var(--foreground));
+          background: linear-gradient(120deg, hsl(var(--primary) / 0.05) 0%, transparent 100%);
+          padding: 0.5rem 1rem;
+          border-left: 3px solid hsl(var(--primary) / 0.5);
+          border-radius: 0.25rem;
+          scroll-margin-top: 60px;
+        }
+        
+        .material-didatico-content h4 {
+          margin-top: 1.5rem !important;
+          margin-bottom: 0.75rem !important;
+          font-size: 1.15rem !important;
+          font-weight: 600 !important;
+          color: hsl(var(--foreground));
         }
       `}</style>
       <ReactMarkdown
