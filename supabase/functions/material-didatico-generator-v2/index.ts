@@ -683,7 +683,42 @@ ${practicalContext}
 
 TAREFA: Integre esses dois conteúdos em um material didático coeso e bem estruturado.
 
-ESTRUTURA OBRIGATÓRIA:
+🎯 DIAGRAMAS: REGRA ABSOLUTA DE VARIEDADE
+
+Você DEVE criar 3-4 diagramas de TIPOS DIFERENTES. Esta é a ÚNICA instrução sobre diagramas:
+
+**OBRIGATÓRIO:** Pelo menos 1 de cada tipo abaixo:
+1. flowchart LR (processos sequenciais)
+2. graph TD (hierarquias/relações)
+3. stateDiagram-v2 OU classDiagram (estados/classificações)
+
+**EXEMPLOS MÍNIMOS:**
+
+Tipo 1 - flowchart:
+\`\`\`mermaid
+flowchart LR
+    A --> B --> C
+\`\`\`
+
+Tipo 2 - graph:
+\`\`\`mermaid
+graph TD
+    Conceito --> SubA
+    Conceito --> SubB
+\`\`\`
+
+Tipo 3 - stateDiagram:
+\`\`\`mermaid
+stateDiagram-v2
+    [*] --> Estado1
+    Estado1 --> Estado2
+\`\`\`
+
+NUNCA crie 3 do mesmo tipo. SEMPRE use pelo menos 2 tipos diferentes.
+
+---
+
+ESTRUTURA DO MATERIAL:
 
 # ${lectureTitle}
 
@@ -695,39 +730,6 @@ ESTRUTURA OBRIGATÓRIA:
 
 ## 3. Exercícios e Exemplos
 [Misture exemplos dos livros + casos práticos]
-
----
-
-**AGORA ADICIONE 3-4 DIAGRAMAS MERMAID (TIPOS OBRIGATÓRIOS):**
-
-Você DEVE criar pelo menos 3 diagramas de TIPOS DIFERENTES. Escolha os mais apropriados:
-
-**Diagrama Tipo A: flowchart LR/TD** (para processos sequenciais)
-Posicione no contexto apropriado (não necessariamente logo após o título).
-Exemplo:
-\`\`\`mermaid
-flowchart LR
-    Entrada --> Processo --> Saida
-\`\`\`
-
-**Diagrama Tipo B: graph TD** (para hierarquias de conceitos)
-Posicione onde fizer sentido mostrar relações entre ideias.
-Exemplo:
-\`\`\`mermaid
-graph TD
-    Principal --> Derivado1
-    Principal --> Derivado2
-\`\`\`
-
-**Diagrama Tipo C: stateDiagram-v2** (para estados/transições/ciclos)
-Use para processos cíclicos ou mudanças de estado.
-Exemplo:
-\`\`\`mermaid
-stateDiagram-v2
-    [*] --> Estado1
-    Estado1 --> Estado2: Transicao
-    Estado2 --> [*]
-\`\`\`
 
 **REGRA ABSOLUTA:** CADA diagrama deve ser de um TIPO diferente. Se você criar 3 diagramas, use 3 TIPOS diferentes (flowchart + graph + stateDiagram).
 
@@ -953,6 +955,18 @@ INCORRETO (NÃO FAÇA):
     processedMarkdown = processedMarkdown.replace(/([,(])\s*\$\$\s*([^$\n]+?)\s*\$\$\s*([,)])/g, '$1$$$2$$3');
     
     console.log('[LaTeX] ✅ Comprehensive inline fixes applied');
+    
+    // PHASE 4.5: Remove LaTeX de palavras comuns em português
+    console.log('[LaTeX] Removing LaTeX from common words...');
+    
+    const commonWords = ['para', 'de', 'da', 'do', 'em', 'com', 'por', 'ao', 'um', 'uma', 'o', 'a', 'e', 'os', 'as'];
+    commonWords.forEach(word => {
+      // Remove $palavra$ quando for palavra comum (case insensitive)
+      const regex = new RegExp(`\\$${word}\\$`, 'gi');
+      processedMarkdown = processedMarkdown.replace(regex, word);
+    });
+    
+    console.log('[LaTeX] ✅ Common words cleaned');
     
     processedMarkdown = processedMarkdown.replace(/\n{3,}/g, '\n\n'); // Remove excess blank lines
     

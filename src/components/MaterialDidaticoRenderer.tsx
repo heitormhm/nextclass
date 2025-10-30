@@ -19,19 +19,18 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
   const words = markdown.split(/\s+/).length;
   const readingTimeMin = Math.ceil(words / 200); // Average reading speed
 
-  // Add scroll listener for progress tracking
+  // Add scroll listener for progress tracking (window-based)
   React.useEffect(() => {
     const handleScroll = () => {
-      const element = document.querySelector('.material-didatico-content');
-      if (element) {
-        const progress = (element.scrollTop / (element.scrollHeight - element.clientHeight)) * 100;
-        setScrollProgress(Math.min(progress, 100));
-      }
+      const windowHeight = window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY;
+      const progress = (scrollTop / (docHeight - windowHeight)) * 100;
+      setScrollProgress(Math.min(progress, 100));
     };
     
-    const element = document.querySelector('.material-didatico-content');
-    element?.addEventListener('scroll', handleScroll);
-    return () => element?.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   if (!markdown || markdown.trim().length === 0) {
@@ -44,8 +43,8 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
   return (
     <div>
-      {/* Progress Indicator - Compact */}
-      <div className="sticky top-0 bg-background/98 backdrop-blur-md z-10 border-b border-border/30 py-1 px-2 shadow-sm">
+      {/* Progress Indicator - Fixed */}
+      <div className="fixed top-0 left-0 right-0 bg-background/98 backdrop-blur-md z-50 border-b border-border/30 py-1 px-6 shadow-sm">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
           <span className="flex items-center gap-1">
             <span className="text-[10px]">📖</span>
@@ -64,7 +63,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
         </div>
       </div>
 
-      <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content">
+      <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content pt-20">
         <style>{`
   .material-didatico-content .katex-error {
     color: #dc2626 !important;
