@@ -647,38 +647,33 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
       
       case 'referencias':
         return (
-          <div key={index} className="mt-16 pt-10 border-t-4 border-primary/20">
-            <h2 className="text-4xl font-bold mb-8 text-foreground flex items-center gap-3">
-              <span className="text-5xl">📚</span>
+          <div key={index} className="mt-12 pt-8 border-t-2 border-border">
+            <h2 className="text-3xl font-bold mb-6 text-foreground flex items-center gap-2">
+              <span>📚</span>
               <span>Fontes e Referências</span>
             </h2>
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-8 shadow-lg">
-              <ol className="space-y-5">
-                {bloco.lista?.map((ref: any, i: number) => (
-                  <li key={i} className="flex gap-4 items-start group hover:bg-white dark:hover:bg-slate-700 p-4 rounded-lg transition-all">
-                    <span className="flex-shrink-0 w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-base shadow-md group-hover:scale-110 transition-transform">
-                      {i + 1}
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-foreground leading-relaxed text-base">
-                        {ref.descricao}
-                      </p>
-                      {ref.url && (
-                        <a 
-                          href={ref.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center gap-2 text-primary hover:text-primary/80 underline text-sm font-medium transition-colors"
-                        >
-                          <span>🔗</span>
-                          <span>Acessar fonte</span>
-                        </a>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
+            <ol className="space-y-4">
+              {bloco.lista?.map((ref: any, i: number) => (
+                <li key={i} className="flex gap-3 items-start group">
+                  <span className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-110 transition-transform">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 text-sm leading-relaxed">
+                    <span className="text-foreground">{ref.descricao}</span>
+                    {ref.url && (
+                      <a 
+                        href={ref.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="ml-2 text-primary hover:text-primary/80 underline inline-flex items-center gap-1 transition-colors"
+                      >
+                        🔗 Acessar
+                      </a>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         );
       

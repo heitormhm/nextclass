@@ -114,41 +114,30 @@ function finalContentSanitization(structuredContent: any, jobId: string): any {
   
   const jsonStr = JSON.stringify(structuredContent, null, 2);
   
-  // 1. Detectar problemas ANTES de corrigir
+  // 1. Detectar problemas ANTES de limpar
   const issues = {
     latexDoublePlaceholders: (jsonStr.match(/___LATEX_DOUBLE_\d+___/g) || []).length,
     latexSinglePlaceholders: (jsonStr.match(/___LATEX_SINGLE_\d+___/g) || []).length,
     corruptedDollarSigns: (jsonStr.match(/\d+\$+\s*\d*/g) || []).length,
     isolatedVariables: (jsonStr.match(/"\s*[a-z]\s+[a-z]\s+[a-z]\s*"/gi) || []).length,
-    rawLatexCommands: (jsonStr.match(/\\(Delta|sum|int|frac|times|cdot)[^$]/g) || []).length,
   };
   
   if (Object.values(issues).some(count => count > 0)) {
     console.error(`[Job ${jobId}] [Final Sanitization] ❌ ISSUES DETECTED:`, issues);
   }
   
-  // 2. Remover TODOS os artefatos corrompidos
+  // 2. Remover TODOS os placeholders corrompidos
   let cleaned = jsonStr
-    .replace(/___LATEX_DOUBLE_\d+___/g, '')
-    .replace(/___LATEX_SINGLE_\d+___/g, '')
-    .replace(/\d+\$\$\s*\d*/g, '')
-    .replace(/\$\s*\d+\s*\$/g, '')
-    .replace(/\*\*\s*\d+\$\s*\*\*/g, '')
-    .replace(/\d+\$\s+\d+\$/g, '');
+    .replace(/___LATEX_DOUBLE_\d+___/g, '') // Remove ___LATEX_DOUBLE_0___
+    .replace(/___LATEX_SINGLE_\d+___/g, '') // Remove ___LATEX_SINGLE_0___
+    .replace(/\d+\$\$\s*\d*/g, '') // Remove "1$$", "2$$1"
+    .replace(/\$\s*\d+\s*\$/g, '') // Remove "$ 1 $"
+    .replace(/\*\*\s*\d+\$\s*\*\*/g, '') // Remove "** 1$ **"
+    .replace(/\d+\$\s+\d+\$/g, ''); // Remove "1$ 1$"
   
-  // 3. Envolver comandos LaTeX soltos em $$...$$
-  cleaned = cleaned.replace(
-    /"texto":\s*"([^"]*)(\\(?:Delta|sum|int|frac|times|cdot|alpha|beta|gamma)[^$\n"]{0,50})([^"]*)"/g,
-    (match, before, latexCommand, after) => {
-      if (!before.includes('$$') && !after.includes('$$')) {
-        return `"texto": "${before}$$${latexCommand}$$${after}"`;
-      }
-      return match;
-    }
-  );
-  
-  // 4. Limpar variáveis isoladas (e a e → removidas se não estão em LaTeX)
+  // 3. Limpar variáveis isoladas (q e w → removidas se não estão em LaTeX)
   cleaned = cleaned.replace(/"texto":\s*"([^"]*)\s+([a-z])\s+([a-z])\s+([a-z])\s*([^"]*)"/gi, (match, before, var1, var2, var3, after) => {
+    // Se não tem $$ ao redor, remover as variáveis
     if (!before.includes('$$') && !after.includes('$$')) {
       console.warn(`[Job ${jobId}] [Sanitization] Removed isolated variables: ${var1} ${var2} ${var3}`);
       return `"texto": "${before.trim()} ${after.trim()}"`;
@@ -156,18 +145,19 @@ function finalContentSanitization(structuredContent: any, jobId: string): any {
     return match;
   });
   
+  // 4. Parse e validar estrutura JSON
   try {
     const parsed = JSON.parse(cleaned);
     
-    // 5. Verificação final
-    const finalStr = JSON.stringify(parsed);
-    const remaining = {
-      latexPlaceholders: (finalStr.match(/___LATEX_/g) || []).length,
-      corruptedDollars: (finalStr.match(/\d+\$\$/g) || []).length,
+    // 5. Log de qualidade final
+    const finalJsonStr = JSON.stringify(parsed);
+    const remainingIssues = {
+      latexPlaceholders: (finalJsonStr.match(/___LATEX_/g) || []).length,
+      corruptedDollars: (finalJsonStr.match(/\d+\$\$/g) || []).length,
     };
     
-    if (remaining.latexPlaceholders > 0 || remaining.corruptedDollars > 0) {
-      console.error(`[Job ${jobId}] [Final Sanitization] ⚠️ STILL HAS ISSUES:`, remaining);
+    if (remainingIssues.latexPlaceholders > 0 || remainingIssues.corruptedDollars > 0) {
+      console.error(`[Job ${jobId}] [Final Sanitization] ⚠️ STILL HAS ISSUES:`, remainingIssues);
     } else {
       console.log(`[Job ${jobId}] [Final Sanitization] ✅ Clean - No placeholders detected`);
     }
@@ -744,39 +734,20 @@ A Primeira Lei pode ser expressa matematicamente como $$\Delta U = Q - W$$, onde
 Para um **sistema fechado**, a massa permanece constante...
 \`\`\`
 
-# 🎓 SISTEMA DE REFERÊNCIAS (FORMATO JSON OBRIGATÓRIO)
-
-**CRITICAL: A seção de referências DEVE ser gerada como JSON estruturado, NÃO como markdown!**
+# 🎓 SISTEMA DE REFERÊNCIAS (OBRIGATÓRIO)
 
 **Durante o texto:**
-- Cite inline: "...conforme Smith [1]..."
+- Cite fontes inline: "...conforme demonstrado por Smith et al. [1]"
 - Use numeração sequencial: [1], [2], [3]
 
-**NO FINAL DO MATERIAL:** Crie este bloco JSON:
-\`\`\`json
-{
-  "tipo": "referencias",
-  "lista": [
-    {
-      "descricao": "Çengel, Y. A., & Boles, M. A. (2019). Termodinâmica. 9ª ed. AMGH Editora.",
-      "url": ""
-    },
-    {
-      "descricao": "IEEE (2021). First Law of Thermodynamics. IEEE Xplore Digital Library.",
-      "url": "https://ieeexplore.ieee.org/document/123456"
-    },
-    {
-      "descricao": "Moran et al. (2018). Fundamentals of Engineering Thermodynamics. Wiley.",
-      "url": "https://www.wiley.com/..."
-    }
-  ]
-}
+**Seção final "Fontes e Referências":**
 \`\`\`
+## 7. Fontes e Referências
 
-**VALIDAÇÃO:** Material será REJEITADO se:
-- Não tiver bloco "tipo": "referencias"
-- Não tiver array "lista" com mínimo 8 referências
-- Referências não incluírem autores, ano e título completo
+[1] Título completo do artigo/livro - Autor(es), Ano
+[2] Nome da fonte - URL completa
+[3] Título do paper - Revista/Conferência, Volume, Páginas
+\`\`\`
 
 # 📚 REQUISITOS DE FONTES
 
@@ -1145,22 +1116,23 @@ function validateAndFixMermaidSyntax(code: string): { valid: boolean; fixed: str
   
   console.log('[Mermaid Validator] 🔍 Checking syntax...');
   
-  // 0. ✅ Corrigir 'end' colado: "endA[...]" → "end\n    A[...]"
-  fixed = fixed.replace(/^(\s*)(end)([A-Z][a-zA-Z0-9]*\[)/gm, (match, indent, endKw, rest) => {
-    console.log(`[Mermaid Fix] 'end' colado: "${match}"`);
-    return `${indent}${endKw}\n${indent}    ${rest}`;
+  // ✅ FASE 1: Corrigir APENAS código inválido, preservar código válido
+  // Detectar: "graphTDA[" (sem espaço/quebra) → Corrigir
+  // Preservar: "graph TD\n    A[" (já válido) → Manter
+  
+  // 0. ✅ Corrigir 'end' colado com node name: "endA[...]" → "end\n    A[...]"
+  fixed = fixed.replace(/^(\s*)(end)([A-Z][^\n\[]*\[)/gm, (match, indent, endKeyword, rest) => {
+    console.log(`[Mermaid Fix] 'end' colado detectado: "${match}"`);
+    return `${indent}${endKeyword}\n${indent}    ${rest}`;
   });
 
   // 0.5. ✅ Corrigir 'direction' colado: "directionLRS[...]" → "direction LR\n    S[...]"
-  fixed = fixed.replace(/^(\s*)(direction)([A-Z]{2})([A-Z][a-zA-Z0-9]*\[)/gm, (match, indent, dirKw, dirType, rest) => {
-    console.log(`[Mermaid Fix] 'direction' colado: "${match}"`);
-    return `${indent}${dirKw} ${dirType}\n${indent}    ${rest}`;
-  });
-  
-  // 0.6. ✅ Corrigir 'subgraph' colado: "subgraphNome" → "subgraph Nome"
-  fixed = fixed.replace(/^(\s*)(subgraph)([A-Z][a-zA-Z0-9]*)/gm, (match, indent, sgKw, name) => {
-    console.log(`[Mermaid Fix] 'subgraph' colado: "${match}"`);
-    return `${indent}${sgKw} ${name}`;
+  fixed = fixed.replace(/^(\s*)(direction)([A-Z]{2,})([A-Z]+\[)/gm, (match, indent, dirKeyword, dirType, rest) => {
+    console.log(`[Mermaid Fix] 'direction' colado detectado: "${match}"`);
+    // Ex: "directionLRS[" → "direction LR\n    S["
+    const graphDirection = dirType.substring(0, 2); // "LR"
+    const nodeName = dirType.substring(2) + rest; // "S["
+    return `${indent}${dirKeyword} ${graphDirection}\n${indent}    ${nodeName}`;
   });
   
   // Detectar padrão inválido: graphTYPEA[ onde TYPE+A estão colados

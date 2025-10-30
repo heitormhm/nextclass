@@ -71,7 +71,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           return;
         }
 
-        // ✅ FASE 3: Configuração Mermaid com responsividade total
+        // ✅ FASE 3: Configuração Mermaid com responsividade máxima
         mermaid.initialize({ 
           theme: 'default',
           logLevel: 'error',
@@ -80,40 +80,28 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           flowchart: { 
             useMaxWidth: true,
             htmlLabels: true,
-            curve: 'basis',
-            padding: 20,
+            curve: 'basis'
           },
           sequence: { 
             useMaxWidth: true,
             wrap: true,
             width: 150,
-            height: 50,
-            boxMargin: 10,
+            height: 50
           },
           gantt: {
             useMaxWidth: true,
-            fontSize: 14,
-            numberSectionStyles: 4,
+            fontSize: 14
           },
           class: {
-            useMaxWidth: true,
+            useMaxWidth: true
           },
           state: {
-            useMaxWidth: true,
+            useMaxWidth: true
           },
-          er: {
-            useMaxWidth: true,
-          },
-          // ✅ Tema global otimizado para legibilidade
+          // Configuração global de largura máxima
           themeVariables: {
-            fontSize: '16px',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            primaryColor: '#f3e5f5',
-            primaryTextColor: '#000',
-            primaryBorderColor: '#7c3aed',
-            lineColor: '#7c3aed',
-            secondaryColor: '#e1f5fe',
-            tertiaryColor: '#f1f8e9',
+            fontSize: '14px',
+            fontFamily: 'Inter, system-ui, sans-serif'
           }
         });
 
@@ -210,17 +198,15 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
             </details>
           </div>
         ) : (
-          <div className="w-full overflow-x-auto overflow-y-hidden">
+          <div className="overflow-x-auto overflow-y-hidden w-full">
             <div 
               ref={ref} 
-              className="mermaid-diagram-container"
+              className="mermaid-responsive min-h-[200px] flex justify-center items-center bg-white rounded-lg p-4"
               style={{
-                minWidth: '100%',
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '300px',
+                minWidth: '80%',
+                maxWidth: '100%',
+                width: 'fit-content',
+                margin: '0 auto'
               }}
             />
           </div>
