@@ -495,8 +495,49 @@ All colors MUST be HSL. Design tokens for consistent theming.
 }
 
 /* ============================================================================
-   FASE 3: Mermaid Responsive Styles - Responsividade máxima
+   FASE 3: Mermaid Responsive Styles - Responsividade Total
    ============================================================================ */
+
+/* === Mermaid Diagrams - Responsividade Total === */
+.mermaid-diagram-container {
+  width: 100%;
+  min-height: 300px;
+}
+
+.mermaid-diagram-container svg {
+  max-width: 100% !important;
+  width: 100% !important;
+  height: auto !important;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Legibilidade de texto */
+.mermaid-diagram-container text {
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 14px !important;
+}
+
+/* Aumentar espessura de linhas */
+.mermaid-diagram-container .node rect,
+.mermaid-diagram-container .node circle,
+.mermaid-diagram-container .node polygon {
+  stroke-width: 2px !important;
+}
+
+/* Mobile: scroll horizontal se necessário */
+@media (max-width: 768px) {
+  .mermaid-diagram-container {
+    overflow-x: auto;
+  }
+  
+  .mermaid-diagram-container svg {
+    min-width: 600px;
+    width: auto !important;
+  }
+}
+
+/* Compatibilidade com classe antiga */
 .mermaid-responsive {
   max-width: 100%;
   overflow: visible;
@@ -504,17 +545,9 @@ All colors MUST be HSL. Design tokens for consistent theming.
 
 .mermaid-responsive svg {
   max-width: 100%;
-  min-width: 80%; /* Ocupar pelo menos 80% do container */
   height: auto;
   display: block;
   margin: 0 auto;
-}
-
-/* Em desktop, permitir expansão total */
-@media (min-width: 1024px) {
-  .mermaid-responsive svg {
-    min-width: 90%;
-  }
 }
 
 /* Para diagramas muito largos: permitir scroll horizontal */
