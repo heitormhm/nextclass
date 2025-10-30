@@ -717,24 +717,64 @@ graph TD
     Lei1 --> Aplicacao[Aplicacoes]
 \`\`\`
 
-REGRAS CRÍTICAS:
-- **LaTeX inline**: Use $formula$ (um símbolo $ em cada lado) APENAS para variáveis curtas
-  - Exemplo: A entalpia ($H$) é definida...
-  - Exemplo: O calor específico ($c_p$) varia...
-- **LaTeX em bloco**: Use $$formula$$ (dois símbolos $$ em cada lado) EM LINHA SEPARADA para equações
-  - Exemplo:
-  $$
-  \\Delta H = m \\times c_p \\times \\Delta T
-  $$
-- **NUNCA misture**: Não use $$ no meio de uma frase
-- **SEMPRE escape underscores**: Use c_p não cp em LaTeX
-- **Símbolos especiais**: Use \\Delta não Δ, \\Sigma não Σ
-- Cite fontes naturalmente: "Segundo Çengel..." ou "Beer e Johnston definem..."
-- Mermaid válido com \`\`\`mermaid
-- SEM tabelas HTML, SEM JSON, SEM código executável
-- Priorize RIGOR TÉCNICO e FUNDAMENTOS SÓLIDOS
-- A seção de fundamentos teóricos deve ser mais extensa que a de aplicações
-- **OBJETIVO**: 3-5 diagramas por material didático (diversos tipos)
+REGRAS CRÍTICAS PARA LATEX (SUPER IMPORTANTES):
+
+1. **Fórmulas inline (dentro de frases)**: Use SEMPRE $formula$ (UM $ em cada lado)
+   ✅ CORRETO: "A entalpia ($H$) é definida como..."
+   ✅ CORRETO: "O calor específico ($c_p$) varia com..."
+   ✅ CORRETO: "A equação ($\\Delta U = Q - W$) mostra..."
+   ❌ ERRADO: "A entalpia ($$ H $$) é definida..." (NUNCA use $$ inline)
+   ❌ ERRADO: "O calor (Q $$) varia..." (NUNCA misture)
+
+2. **Fórmulas em bloco (equações isoladas)**: Use $$formula$$ EM LINHA SEPARADA
+   ✅ CORRETO:
+   Para sistemas fechados:
+   $$
+   \\Delta U = Q - W
+   $$
+   
+   ❌ ERRADO: "A equação é $$ \\Delta U = Q - W $$ para sistemas..."
+
+3. **Escape obrigatório**: Use \\Delta não Δ, \\Sigma não Σ, c_p não cp
+
+4. **REGRA DE OURO**: Se a fórmula está NO MEIO de uma frase → use $
+                      Se a fórmula está SOZINHA em linha → use $$
+
+REGRAS PARA REFERÊNCIAS BIBLIOGRÁFICAS:
+
+**OBRIGATÓRIO**: Inclua 5-7 referências diversificadas ao final:
+
+1. **2-3 Livros-texto clássicos**:
+   - Çengel, Y. A., & Boles, M. A. (Termodinâmica, 9ª ed.)
+   - Moran, M. J., & Shapiro, H. N. (Fundamentos de Termodinâmica, 6ª ed.)
+   - Van Wylen, G. J., & Sonntag, R. E. (Fundamentos da Termodinâmica)
+
+2. **1-2 Normas técnicas brasileiras**:
+   - ABNT (se aplicável ao tópico)
+   - INMETRO (para aspectos de medição)
+
+3. **1-2 Artigos/papers acadêmicos**:
+   - Preferencialmente de universidades brasileiras (USP, UNICAMP, UFRJ)
+   - SciELO, Google Scholar
+
+4. **1 Recurso online de qualidade**:
+   - MIT OpenCourseWare
+   - Khan Academy (em português quando disponível)
+   - NPTEL (Indian Institute of Technology)
+
+FORMATO DAS REFERÊNCIAS (ao final do documento):
+## 📚 Referências Bibliográficas
+
+1. [Título do Livro] - [Autores] - [Editora, Ano]
+2. [Título do Artigo] - [Autores] - [Journal/Conferência, Ano]
+...
+
+Cite fontes naturalmente no texto: "Segundo Çengel..." ou "Beer e Johnston definem..."
+Mermaid válido com \`\`\`mermaid
+SEM tabelas HTML, SEM JSON, SEM código executável
+Priorize RIGOR TÉCNICO e FUNDAMENTOS SÓLIDOS
+A seção de fundamentos teóricos deve ser mais extensa que a de aplicações
+**OBJETIVO**: 3-5 diagramas por material didático (diversos tipos)
 
 IMPORTANTE SOBRE CALLOUTS:
 Use callouts Markdown para destacar informações importantes:
@@ -744,16 +784,59 @@ Use callouts Markdown para destacar informações importantes:
 > ⚠️ Atenção: [Cuidado com erros comuns ou limitações]
 > 🔬 Exemplo Prático: [Caso real de aplicação]
 
-REGRAS CRÍTICAS PARA DIAGRAMAS MERMAID:
-1. **NUNCA use caracteres especiais em labels**: Δ, Σ, ṁ, Q̇, Ẇ, α, β, γ, θ
-2. **Use notação ASCII**: "Delta", "Sigma", "Q_dot", "m_dot", "alpha"
-3. **Labels curtos**: Máximo 40 caracteres por label
-4. **Sem parênteses em labels**: Prefira hífens ou underscores
-5. **Fórmulas matemáticas**: Coloque em seção LaTeX separada, NUNCA em diagramas
-6. **Tipos de diagramas a usar**:
-   - flowchart TD/LR: Processos, hierarquias
-   - graph TD: Relações conceituais
-   - sequenceDiagram: Sequências de eventos (quando aplicável)
+TIPOS DE DIAGRAMAS MERMAID (use variedade):
+
+1. **flowchart TD/LR** - Para processos sequenciais:
+\`\`\`mermaid
+flowchart LR
+    Entrada[Calor Q] --> Sistema[Sistema]
+    Sistema --> Saida[Trabalho W]
+\`\`\`
+
+2. **graph TD** - Para relações conceituais:
+\`\`\`mermaid
+graph TD
+    PrimeiraLei[Primeira Lei] --> ConservacaoEnergia[Conservacao]
+    PrimeiraLei --> BalancoEnergia[Balanco]
+    ConservacaoEnergia --> Aplicacoes[Aplicacoes]
+\`\`\`
+
+3. **stateDiagram-v2** - Para estados termodinâmicos:
+\`\`\`mermaid
+stateDiagram-v2
+    [*] --> EstadoInicial
+    EstadoInicial --> ProcessoIsotermico: T constante
+    ProcessoIsotermico --> EstadoFinal
+    EstadoFinal --> [*]
+\`\`\`
+
+4. **classDiagram** - Para classificações:
+\`\`\`mermaid
+classDiagram
+    Energia <|-- EnergiaInterna
+    Energia <|-- Calor
+    Energia <|-- Trabalho
+\`\`\`
+
+5. **pie** - Para composições (quando aplicável):
+\`\`\`mermaid
+pie title Distribuicao de Energia
+    "Trabalho Util" : 35
+    "Calor Residual" : 45
+    "Perdas" : 20
+\`\`\`
+
+**REGRAS CRÍTICAS PARA DIAGRAMAS**:
+- **NUNCA use caracteres especiais em labels**: Δ, Σ, ṁ, Q̇, Ẇ, α, β, γ, θ
+- **Use notação ASCII**: "Delta", "Sigma", "Q_dot", "m_dot", "alpha"
+- **Labels curtos**: Máximo 40 caracteres por label
+- **Sem parênteses em labels**: Prefira hífens ou underscores
+- **Fórmulas matemáticas**: Coloque em seção LaTeX separada, NUNCA em diagramas
+- **OBJETIVO**: Usar 3-5 diagramas, variando os tipos conforme o conceito
+  - Processos → flowchart/stateDiagram
+  - Hierarquias → graph/classDiagram
+  - Composições → pie
+  - Sequências → sequenceDiagram
 
 EXEMPLO CORRETO DE DIAGRAMA:
 \`\`\`mermaid
@@ -794,6 +877,42 @@ INCORRETO (NÃO FAÇA):
     await updateJobProgress(supabase, jobId, 85, 'Processando e validando conteúdo...');
     
     let processedMarkdown = fixLaTeXFormulas(finalMarkdown);
+    
+    // Post-generation validation and auto-fix
+    const validateContent = (markdown: string): { valid: boolean; errors: string[] } => {
+      const errors: string[] = [];
+      
+      // Check for inline $$ usage (should be single $)
+      const inlineDoubleDollar = markdown.match(/\w+\s*\$\$\s*[A-Za-z_\\]+\s*\$\$/g);
+      if (inlineDoubleDollar) {
+        errors.push(`Found ${inlineDoubleDollar.length} inline $$ formulas (should use single $)`);
+      }
+      
+      // Check for special characters in Mermaid labels
+      const mermaidBlocks = markdown.match(/```mermaid[\s\S]*?```/g) || [];
+      mermaidBlocks.forEach((block, i) => {
+        const labels = block.match(/\[([^\]]+)\]/g) || [];
+        labels.forEach(label => {
+          if (/[ΔΣṁQ̇Ẇαβγθμπω]/.test(label)) {
+            errors.push(`Mermaid diagram ${i+1} has special characters in label: ${label}`);
+          }
+          if (label.length > 50) {
+            errors.push(`Mermaid diagram ${i+1} has long label (${label.length} chars): ${label.substring(0, 30)}...`);
+          }
+        });
+      });
+      
+      return { valid: errors.length === 0, errors };
+    };
+    
+    const contentValidation = validateContent(processedMarkdown);
+    if (!contentValidation.valid) {
+      console.warn('⚠️ Content validation warnings:', contentValidation.errors);
+      // Auto-fix what we can
+      processedMarkdown = processedMarkdown.replace(/\(\s*\$\$\s*([^$]+?)\s*\$\$\s*\)/g, '($$$1$)');
+      processedMarkdown = processedMarkdown.replace(/\s+\$\$\s+([A-Za-z_\\]+)\s+\$\$/g, ' $$$1$ ');
+    }
+    
     processedMarkdown = processedMarkdown.replace(/\n{3,}/g, '\n\n'); // Remove excess blank lines
     
     // Validate

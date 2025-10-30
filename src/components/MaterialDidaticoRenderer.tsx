@@ -27,12 +27,21 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
         .material-didatico-content .katex-error {
           color: #dc2626 !important;
           font-weight: bold;
+          background: #fee2e2;
+          padding: 0.2em 0.4em;
+          border-radius: 0.25em;
+          border: 1px dashed #dc2626;
+        }
+        .material-didatico-content .katex-error::after {
+          content: " ⚠️";
+          font-size: 0.9em;
         }
         .material-didatico-content code {
           color: inherit;
           background: rgba(0,0,0,0.05);
           padding: 0.1em 0.3em;
           border-radius: 0.25em;
+          font-family: 'Courier New', monospace;
         }
       `}</style>
       <ReactMarkdown
