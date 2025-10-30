@@ -690,32 +690,46 @@ ESTRUTURA OBRIGATÓRIA:
 ## 1. Fundamentos Teóricos
 [Use 60-70% do material dos livros - mantenha citações de autores]
 
-### Diagrama 1: Visão Geral do Conceito
-\`\`\`mermaid
-flowchart TD
-    A[Conceito Principal] --> B[Sub-conceito 1]
-    A --> C[Sub-conceito 2]
-\`\`\`
-
 ## 2. Aplicações Práticas
 [Use 30-40% dos casos práticos da web - foque em indústria brasileira e normas]
-
-### Diagrama 2: Fluxo de Processo
-\`\`\`mermaid
-flowchart LR
-    Input[Entrada] --> Process[Processo]
-    Process --> Output[Saida]
-\`\`\`
 
 ## 3. Exercícios e Exemplos
 [Misture exemplos dos livros + casos práticos]
 
-### Diagrama 3: Relações Entre Conceitos
+---
+
+**AGORA ADICIONE 3-4 DIAGRAMAS MERMAID (TIPOS OBRIGATÓRIOS):**
+
+Você DEVE criar pelo menos 3 diagramas de TIPOS DIFERENTES. Escolha os mais apropriados:
+
+**Diagrama Tipo A: flowchart LR/TD** (para processos sequenciais)
+Posicione no contexto apropriado (não necessariamente logo após o título).
+Exemplo:
+\`\`\`mermaid
+flowchart LR
+    Entrada --> Processo --> Saida
+\`\`\`
+
+**Diagrama Tipo B: graph TD** (para hierarquias de conceitos)
+Posicione onde fizer sentido mostrar relações entre ideias.
+Exemplo:
 \`\`\`mermaid
 graph TD
-    Lei1[Primeira Lei] -.relaciona-se com.-> Lei2[Segunda Lei]
-    Lei1 --> Aplicacao[Aplicacoes]
+    Principal --> Derivado1
+    Principal --> Derivado2
 \`\`\`
+
+**Diagrama Tipo C: stateDiagram-v2** (para estados/transições/ciclos)
+Use para processos cíclicos ou mudanças de estado.
+Exemplo:
+\`\`\`mermaid
+stateDiagram-v2
+    [*] --> Estado1
+    Estado1 --> Estado2: Transicao
+    Estado2 --> [*]
+\`\`\`
+
+**REGRA ABSOLUTA:** CADA diagrama deve ser de um TIPO diferente. Se você criar 3 diagramas, use 3 TIPOS diferentes (flowchart + graph + stateDiagram).
 
 REGRAS CRÍTICAS PARA LATEX (LEIA COM ATENÇÃO):
 
@@ -901,7 +915,12 @@ INCORRETO (NÃO FAÇA):
       });
       
       if (mermaidBlocks.length >= 3 && diagramTypes.size < 3) {
-        errors.push(`Only ${diagramTypes.size} diagram types used (${Array.from(diagramTypes).join(', ')}). Need variety!`);
+        errors.push(`REJECTED: Only ${diagramTypes.size} diagram types used (${Array.from(diagramTypes).join(', ')}). REQUIRED: 3 different types (flowchart + graph + stateDiagram/classDiagram).`);
+      }
+      
+      // Also check for minimum variety (at least 2 types even with 2 diagrams)
+      if (mermaidBlocks.length >= 2 && diagramTypes.size < 2) {
+        errors.push(`REJECTED: All diagrams are the same type. REQUIRED: Use different types.`);
       }
       
       return { valid: errors.length === 0, errors };
@@ -918,8 +937,8 @@ INCORRETO (NÃO FAÇA):
     // Fix 1: ( $$ variable $$ ) → ($variable$)
     processedMarkdown = processedMarkdown.replace(/\(\s*\$\$\s*([^$]+?)\s*\$\$\s*\)/g, '($$$1$)');
     
-    // Fix 2: $variable $$ → $variable$ (THE CRITICAL MISSING PATTERN)
-    processedMarkdown = processedMarkdown.replace(/\$([A-Za-z_\\]+)\s+\$\$/g, '$$$1$');
+    // Fix 2: $variable $$ → $variable$ (ENHANCED: catches subscripts, superscripts)
+    processedMarkdown = processedMarkdown.replace(/\$([A-Za-z_\\{}\^]+)\s+\$\$/g, '$$$1$');
     
     // Fix 3: word $$ variable $$ word → word $variable$ word
     processedMarkdown = processedMarkdown.replace(/(\w+)\s+\$\$\s*([A-Za-z_\\]+)\s*\$\$\s+(\w+)/g, '$1 $$$2$ $3');

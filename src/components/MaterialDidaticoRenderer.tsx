@@ -13,6 +13,27 @@ interface MaterialDidaticoRendererProps {
 
 
 export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> = ({ markdown }) => {
+  const [scrollProgress, setScrollProgress] = React.useState(0);
+
+  // Calculate reading time
+  const words = markdown.split(/\s+/).length;
+  const readingTimeMin = Math.ceil(words / 200); // Average reading speed
+
+  // Add scroll listener for progress tracking
+  React.useEffect(() => {
+    const handleScroll = () => {
+      const element = document.querySelector('.material-didatico-content');
+      if (element) {
+        const progress = (element.scrollTop / (element.scrollHeight - element.clientHeight)) * 100;
+        setScrollProgress(Math.min(progress, 100));
+      }
+    };
+    
+    const element = document.querySelector('.material-didatico-content');
+    element?.addEventListener('scroll', handleScroll);
+    return () => element?.removeEventListener('scroll', handleScroll);
+  }, []);
+
   if (!markdown || markdown.trim().length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -22,8 +43,27 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
   }
 
   return (
-    <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content">
-      <style>{`
+    <div>
+      {/* Progress Indicator */}
+      <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border pb-2 mb-4">
+        <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+          <span className="flex items-center gap-2">
+            📖 <span>Tempo estimado: ~{readingTimeMin} min</span>
+          </span>
+          <span className="flex items-center gap-2">
+            📊 <span>Progresso: {Math.round(scrollProgress)}%</span>
+          </span>
+        </div>
+        <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-primary transition-all duration-300"
+            style={{ width: `${scrollProgress}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content">
+        <style>{`
   .material-didatico-content .katex-error {
     color: #dc2626 !important;
     font-weight: bold;
@@ -48,6 +88,35 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           padding: 0.1em 0.3em;
           border-radius: 0.25em;
           font-family: 'Courier New', monospace;
+        }
+        
+        /* Enhanced UX Styles */
+        .material-didatico-content {
+          max-height: 80vh;
+          overflow-y: auto;
+          scroll-behavior: smooth;
+        }
+        
+        /* Highlight important terms */
+        .material-didatico-content strong {
+          background: linear-gradient(120deg, hsl(var(--accent) / 0.2) 0%, hsl(var(--accent) / 0.1) 100%);
+          padding: 0.1em 0.2em;
+          border-radius: 0.2em;
+        }
+        
+        /* Better spacing for formulas */
+        .material-didatico-content .katex-display {
+          background: hsl(var(--muted));
+          padding: 1.5rem;
+          border-radius: 0.5rem;
+          border-left: 4px solid hsl(var(--primary));
+          margin: 2rem 0;
+        }
+        
+        /* Section dividers with smooth scroll */
+        .material-didatico-content h2 {
+          margin-top: 3rem !important;
+          scroll-margin-top: 100px;
         }
       `}</style>
       <ReactMarkdown
@@ -225,6 +294,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
       >
         {markdown}
       </ReactMarkdown>
+      </div>
     </div>
   );
 };

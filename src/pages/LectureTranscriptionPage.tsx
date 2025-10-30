@@ -2017,6 +2017,60 @@ const LectureTranscriptionPage = () => {
                             <MaterialDidaticoRenderer 
                               markdown={materialDidaticoV2} 
                             />
+                            
+                            {/* Study Coach Features - Interactive Study Tools */}
+                            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <Card className="p-4 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/30 dark:to-background border-purple-200 dark:border-purple-800">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-2xl">✏️</span>
+                                  <h3 className="font-semibold text-foreground">Conceitos-Chave</h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {(() => {
+                                    const keyConceptCount = (materialDidaticoV2.match(/✏️ Conceito-Chave/g) || []).length;
+                                    return `${keyConceptCount} conceitos principais identificados`;
+                                  })()}
+                                </p>
+                              </Card>
+                              
+                              <Card className="p-4 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-background border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-2xl">📊</span>
+                                  <h3 className="font-semibold text-foreground">Diagramas</h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {(() => {
+                                    const diagramCount = (materialDidaticoV2.match(/```mermaid/g) || []).length;
+                                    const types = new Set<string>();
+                                    const flowchartMatch = materialDidaticoV2.match(/flowchart (TD|LR)/g);
+                                    const graphMatch = materialDidaticoV2.match(/graph TD/g);
+                                    const stateMatch = materialDidaticoV2.match(/stateDiagram-v2/g);
+                                    const classMatch = materialDidaticoV2.match(/classDiagram/g);
+                                    
+                                    if (flowchartMatch) types.add('flowchart');
+                                    if (graphMatch) types.add('graph');
+                                    if (stateMatch) types.add('state');
+                                    if (classMatch) types.add('class');
+                                    
+                                    return `${diagramCount} visualizações (${types.size} tipos)`;
+                                  })()}
+                                </p>
+                              </Card>
+                              
+                              <Card className="p-4 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/30 dark:to-background border-yellow-200 dark:border-yellow-800">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-2xl">🎯</span>
+                                  <h3 className="font-semibold text-foreground">Complexidade</h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {(() => {
+                                    const formulaCount = (materialDidaticoV2.match(/\$\$/g) || []).length / 2;
+                                    const level = formulaCount > 10 ? 'Avançado' : formulaCount > 5 ? 'Intermediário' : 'Básico';
+                                    return `Nível ${level} (${Math.floor(formulaCount)} fórmulas)`;
+                                  })()}
+                                </p>
+                              </Card>
+                            </div>
                           </div>
                         ) : (
                           <div className="text-center py-8 bg-slate-50 rounded-lg">
