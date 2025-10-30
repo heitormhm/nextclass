@@ -200,35 +200,40 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             const firstChild = node?.children?.[0] as any;
             const textContent = firstChild?.children?.[0]?.value || '';
             
-            const calloutTypes: Record<string, { bgColor: string; borderColor: string; textColor: string; icon: string }> = {
+            const calloutTypes: Record<string, { bgColor: string; borderColor: string; textColor: string; titleColor: string; icon: string }> = {
               '✏️ Conceito-Chave': {
-                bgColor: 'bg-purple-100/80 dark:bg-purple-950/30',
-                borderColor: 'border-purple-500',
-                textColor: 'text-purple-900 dark:text-purple-300',
+                bgColor: 'bg-purple-200/90 dark:bg-purple-900/50',
+                borderColor: 'border-purple-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-purple-800 dark:text-purple-200',
                 icon: '✏️',
               },
               '🤔 Pergunta para Reflexão': {
-                bgColor: 'bg-purple-100/80 dark:bg-purple-950/30',
-                borderColor: 'border-purple-600',
-                textColor: 'text-purple-900 dark:text-purple-300',
+                bgColor: 'bg-purple-200/90 dark:bg-purple-900/50',
+                borderColor: 'border-purple-700 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-purple-800 dark:text-purple-200',
                 icon: '🤔',
               },
               '💡 Dica Importante': {
-                bgColor: 'bg-yellow-100/80 dark:bg-yellow-950/30',
-                borderColor: 'border-yellow-500',
-                textColor: 'text-yellow-900 dark:text-yellow-300',
+                bgColor: 'bg-yellow-200/90 dark:bg-yellow-900/50',
+                borderColor: 'border-yellow-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-yellow-800 dark:text-yellow-200',
                 icon: '💡',
               },
               '⚠️ Atenção': {
-                bgColor: 'bg-orange-100/80 dark:bg-orange-950/30',
-                borderColor: 'border-orange-500',
-                textColor: 'text-orange-900 dark:text-orange-300',
+                bgColor: 'bg-orange-200/90 dark:bg-orange-900/50',
+                borderColor: 'border-orange-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-orange-800 dark:text-orange-200',
                 icon: '⚠️',
               },
               '🔬 Exemplo Prático': {
-                bgColor: 'bg-blue-100/80 dark:bg-blue-950/30',
-                borderColor: 'border-blue-500',
-                textColor: 'text-blue-900 dark:text-blue-300',
+                bgColor: 'bg-blue-200/90 dark:bg-blue-900/50',
+                borderColor: 'border-blue-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-blue-800 dark:text-blue-200',
                 icon: '🔬',
               },
             };
@@ -243,14 +248,14 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
             if (matchedCallout) {
               return (
-                <div className={`${matchedCallout.bgColor} ${matchedCallout.borderColor} border-l-4 rounded-r-lg p-4 my-6 shadow-sm`}>
+                <div className={`${matchedCallout.bgColor} ${matchedCallout.borderColor} rounded-r-lg p-4 my-6 shadow-sm`}>
                   <div className="flex items-start gap-3">
                     <span className="text-2xl flex-shrink-0">{matchedCallout.icon}</span>
                     <div className="flex-1">
-                      <p className={`font-bold ${matchedCallout.textColor} mb-2`}>
+                      <p className={`font-extrabold text-lg ${matchedCallout.titleColor} mb-2`}>
                         {matchedCallout.title.replace(matchedCallout.icon, '').trim()}
                       </p>
-                      <div className="text-gray-700 dark:text-gray-300">
+                      <div className={matchedCallout.textColor}>
                         {children}
                       </div>
                     </div>

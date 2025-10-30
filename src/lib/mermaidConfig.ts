@@ -150,7 +150,16 @@ export const autoFixMermaidCode = (code: string): string => {
     return `["${content.replace(/"/g, "'")}"]`;
   });
   
-  // Fix 5: Add semicolons at end of lines (optional but helps)
+  // Fix 5: DESABILITADO - Remove underscores necessários ✅ FASE 2.5
+  // Subscripts com underscores quebrados fora de math mode
+  // "h_{entrada}" → "$h_{\text{entrada}}$"
+  // PROBLEMA: Esta correção QUEBRA labels Mermaid válidos como "Q_combustao"
+  // processedMarkdown = processedMarkdown.replace(
+  //   /(?<!\$)([a-zA-Z])_\{([a-z]+)\}(?!\$)/g,
+  //   '$$1_{\\text{$2}}$$'
+  // );
+  
+  // Fix 6: Add semicolons at end of lines (optional but helps)
   const lines = fixed.split('\n');
   fixed = lines.map(line => {
     const trimmed = line.trim();

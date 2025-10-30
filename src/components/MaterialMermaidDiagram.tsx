@@ -38,6 +38,21 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
     injectMermaidErrorSuppression();
   }, []);
 
+  // FASE 5: Detector de Suporte LaTeX ✅
+  useEffect(() => {
+    // Verificar se KaTeX CSS está carregado
+    const katexCSSLoaded = Array.from(document.styleSheets).some(sheet => 
+      sheet.href && sheet.href.includes('katex')
+    );
+    
+    const hasLatexInCode = code.includes('$$');
+    
+    if (hasLatexInCode && !katexCSSLoaded) {
+      console.warn('[Mermaid] ⚠️ LaTeX detected in diagram but KaTeX CSS not loaded!');
+      console.warn('[Mermaid] Formulas may not render correctly. Please ensure KaTeX CSS is included.');
+    }
+  }, [code]);
+
   useEffect(() => {
     const renderDiagram = async () => {
       if (!ref.current || !code) return;
@@ -64,38 +79,35 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
           setError('timeout');
         }, 10000);
 
-        // NOVA ESTRATÉGIA: Proteger $$...$$ ANTES de sanitizar ✅ FASE 4
-        const renderStrategies = [
-          { 
-            name: 'Original with LaTeX Protection', 
-            code: (() => {
-              // Proteger fórmulas LaTeX
-              const formulas: string[] = [];
-              let protectedCode = sanitizedCode.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
-                const placeholder = `FORMULA_${formulas.length}`;
-                formulas.push(match);
-                return placeholder;
-              });
-              
-              // Agora sanitizar APENAS texto fora das fórmulas
-              // Remover caracteres não-ASCII EXCETO dentro de fórmulas
-              protectedCode = protectedCode
-                .replace(/\[([^\]]{80,})\]/g, (m, c) => `[${c.substring(0, 70)}...]`);  // Truncar labels muito longos
-              
-              // Restaurar fórmulas
-              formulas.forEach((formula, i) => {
-                protectedCode = protectedCode.replace(`FORMULA_${i}`, formula);
-              });
-              
-              return protectedCode;
-            })()
-          },
-          // Manter apenas 1 fallback simples (sem fórmulas)
-          { 
-            name: 'Simple Fallback (no math)', 
-            code: sanitizedCode.replace(/\$\$.+?\$\$/g, '[Formula]')
-          }
-        ];
+      // ESTRATÉGIA CORRIGIDA: Sem sanitização destrutiva ✅ FASE 2
+      const renderStrategies = [
+        { 
+          name: 'Clean Original', 
+          code: (() => {
+            // 1. NÃO TRUNCAR labels - preservar conteúdo completo
+            // 2. NÃO remover caracteres especiais (underscores, etc.)
+            // 3. Apenas normalizar espaços e quebras de linha
+            return sanitizedCode
+              .replace(/\s{2,}/g, ' ')           // Múltiplos espaços → 1
+              .replace(/\n{3,}/g, '\n\n')        // Múltiplas quebras → 2
+              .trim();
+          })()
+        },
+        { 
+          name: 'ASCII Fallback',
+          code: (() => {
+            // Apenas se primeira falhar: substituir underscores em labels por espaços
+            return sanitizedCode.replace(
+              /\[([^\]]+)\]/g, 
+              (match, content) => `[${content.replace(/_/g, ' ')}]`
+            );
+          })()
+        },
+        {
+          name: 'No Special Chars',
+          code: sanitizedCode.replace(/[^\x00-\x7F\n\[\](){};:,\s-]/g, '')
+        }
+      ];
 
         let renderSuccess = false;
         

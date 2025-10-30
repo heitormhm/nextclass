@@ -974,43 +974,6 @@ INCORRETO (NÃO FAÇA):
     
     console.log('[LaTeX] ✅ Comprehensive inline fixes applied');
     
-    // PHASE 4.5: Remove LaTeX de palavras comuns - VERSÃO FORTALECIDA
-    console.log('[LaTeX] Removing LaTeX from common words (comprehensive)...');
-    
-    const commonWords = [
-      'para', 'de', 'da', 'do', 'em', 'com', 'por', 'ao', 'um', 'uma', 
-      'o', 'a', 'e', 'os', 'as', 'no', 'na', 'nos', 'nas', 'se', 'ou',
-      'mais', 'mas', 'que', 'como', 'quando', 'onde', 'qual', 'quais'
-    ];
-    
-    commonWords.forEach(word => {
-      // Pattern 1: $palavra$ (normal)
-      processedMarkdown = processedMarkdown.replace(
-        new RegExp(`\\$${word}\\$`, 'gi'), 
-        word
-      );
-      
-      // Pattern 2: $palavra $$ (com espaço extra antes de $$)
-      processedMarkdown = processedMarkdown.replace(
-        new RegExp(`\\$${word}\\s+\\$\\$`, 'gi'), 
-        word
-      );
-      
-      // Pattern 3: $$palavra$$ (duplo em ambos os lados)
-      processedMarkdown = processedMarkdown.replace(
-        new RegExp(`\\$\\$${word}\\$\\$`, 'gi'), 
-        word
-      );
-      
-      // Pattern 4: $ palavra$ (com espaço no início)
-      processedMarkdown = processedMarkdown.replace(
-        new RegExp(`\\$\\s+${word}\\$`, 'gi'), 
-        word
-      );
-    });
-    
-    console.log('[LaTeX] ✅ Common words cleaned (all patterns)');
-    
   // NOVA PHASE 4: Minimal LaTeX Protection (NÃO-destrutiva) ✅ FASE 1
   console.log('[LaTeX] Applying MINIMAL protection (whitelist approach)...');
 
@@ -1032,14 +995,76 @@ INCORRETO (NÃO FAÇA):
     return placeholder;
   });
 
-  // 3. Limpar APENAS texto fora das fórmulas
+  // 3. AGORA processar texto fora das fórmulas (após proteção) ✅ FASE 1
+  // PHASE 4.5: Remove LaTeX de palavras comuns - VERSÃO FORTALECIDA
+  console.log('[LaTeX] Removing LaTeX from common words (comprehensive)...');
+  
+  const commonWords = [
+    'para', 'de', 'da', 'do', 'em', 'com', 'por', 'ao', 'um', 'uma', 
+    'o', 'a', 'e', 'os', 'as', 'no', 'na', 'nos', 'nas', 'se', 'ou',
+    'mais', 'mas', 'que', 'como', 'quando', 'onde', 'qual', 'quais'
+  ];
+  
+  commonWords.forEach(word => {
+    // Pattern 1: $palavra$ (normal)
+    processedMarkdown = processedMarkdown.replace(
+      new RegExp(`\\$${word}\\$`, 'gi'), 
+      word
+    );
+    
+    // Pattern 2: $palavra $$ (com espaço extra antes de $$)
+    processedMarkdown = processedMarkdown.replace(
+      new RegExp(`\\$${word}\\s+\\$\\$`, 'gi'), 
+      word
+    );
+    
+    // Pattern 3: $$palavra$$ (duplo em ambos os lados)
+    processedMarkdown = processedMarkdown.replace(
+      new RegExp(`\\$\\$${word}\\$\\$`, 'gi'), 
+      word
+    );
+    
+    // Pattern 4: $ palavra$ (com espaço no início)
+    processedMarkdown = processedMarkdown.replace(
+      new RegExp(`\\$\\s+${word}\\$`, 'gi'), 
+      word
+    );
+  });
+  
+  console.log('[LaTeX] ✅ Common words cleaned (all patterns)');
+  
+  // 4. Limpar APENAS texto fora das fórmulas
   // Remover apenas: emojis órfãos, tabs excessivos, quebras > 3 linhas
   processedMarkdown = processedMarkdown
     .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emojis
     .replace(/\t+/g, ' ')                    // Tabs
     .replace(/\n{4,}/g, '\n\n\n');          // Max 3 quebras
+  
+  // FASE 1: Adicionar correção de espaços em delimitadores LaTeX ✅
+  console.log('[LaTeX] Fixing spacing around delimiters...');
+  
+  // Fix: $$ texto → $$texto (remover espaço após $$)
+  processedMarkdown = processedMarkdown.replace(/\$\$\s+/g, '$$');
+  processedMarkdown = processedMarkdown.replace(/\s+\$\$/g, '$$');
+  
+  // Fix: $ texto$ → $texto$ (inline)
+  processedMarkdown = processedMarkdown.replace(/\$\s+([^$\n]+)/g, '$$$1');
+  processedMarkdown = processedMarkdown.replace(/([^$\n]+)\s+\$/g, '$1$$');
+  
+  console.log('[LaTeX] ✅ Delimiter spacing corrected');
 
-  // 4. Restaurar fórmulas LaTeX intactas
+  // 5. FASE 1: Verificar se número de placeholders = número de fórmulas protegidas
+  const expectedBlocks = (processedMarkdown.match(/___LATEX_BLOCK_\d+___/g) || []).length;
+  const expectedInline = (processedMarkdown.match(/___LATEX_INLINE_\d+___/g) || []).length;
+  
+  if (expectedBlocks !== latexBlocks.length) {
+    console.error(`[LaTeX] ⚠️ Block mismatch: ${expectedBlocks} placeholders, ${latexBlocks.length} formulas`);
+  }
+  if (expectedInline !== latexInline.length) {
+    console.error(`[LaTeX] ⚠️ Inline mismatch: ${expectedInline} placeholders, ${latexInline.length} formulas`);
+  }
+
+  // 6. Restaurar fórmulas LaTeX intactas
   latexBlocks.forEach((block, i) => {
     processedMarkdown = processedMarkdown.replace(`___LATEX_BLOCK_${i}___`, block);
   });
@@ -1197,8 +1222,23 @@ ${processedMarkdown}`;
     errorReport.push(`[WARNING] ${emptyMermaidBlocks} Mermaid diagrams without type`);
     console.warn(`[Mermaid] ⚠️ ${emptyMermaidBlocks} diagrams without type declaration`);
   }
+  
+  // Check 3 (NEW): Placeholders não restaurados ✅ FASE 8
+  const orphanedPlaceholders = (processedMarkdown.match(/___LATEX_(BLOCK|INLINE)_\d+___/g) || []).length;
+  if (orphanedPlaceholders > 0) {
+    totalErrors += orphanedPlaceholders;
+    errorReport.push(`[CRITICAL] ${orphanedPlaceholders} orphaned LaTeX placeholders`);
+    console.error(`[LaTeX] ❌ CRITICAL: ${orphanedPlaceholders} unrestored placeholders`);
+  }
+  
+  // Check 4 (NEW): Espaços extras em delimitadores ✅ FASE 8
+  const spacedDelimiters = (processedMarkdown.match(/\$\$\s+|\s+\$\$/g) || []).length;
+  if (spacedDelimiters > 0) {
+    errorReport.push(`[WARNING] ${spacedDelimiters} spacing issues in LaTeX delimiters`);
+    console.warn(`[LaTeX] ⚠️ ${spacedDelimiters} spacing issues around $$`);
+  }
 
-  // Check 3: Diversidade de diagramas (meta de qualidade)
+  // Check 5: Diversidade de diagramas (meta de qualidade)
   const flowchartCount = (processedMarkdown.match(/```mermaid\s*\n\s*flowchart/gi) || []).length;
   const totalMermaidCount = (processedMarkdown.match(/```mermaid/gi) || []).length;
   const diagramDiversityRatio = totalMermaidCount > 0 ? (totalMermaidCount - flowchartCount) / totalMermaidCount : 0;
