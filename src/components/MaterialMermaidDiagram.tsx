@@ -159,7 +159,7 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
   }, [code]);
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-lg border-2 border-slate-200 dark:border-slate-800 my-6 w-full overflow-x-auto">
+    <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-lg border-2 border-slate-200 dark:border-slate-800 my-6 w-full overflow-x-auto min-h-[300px]">
       {error ? (
         <div>
           {/* Error message based on type */}

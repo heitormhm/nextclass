@@ -993,30 +993,65 @@ INCORRETO (NÃO FAÇA):
     
     console.log('[LaTeX] ✅ Common words cleaned (all patterns)');
     
-    // PHASE 4.6: Final validation - detect remaining LaTeX errors
-    console.log('[LaTeX] Final validation check...');
-    
-    const suspiciousPatterns = [
-      /\$[a-z]{2,10}\$/gi,  // $palavra$ (lowercase only = likely common word)
-      /\$\s+[^$]+\s+\$/g,   // $ texto $ (spaces around = likely error)
-      /\$\$\s{2,}/g,        // $$  (double spaces after $$)
-    ];
-    
-    let foundIssues = 0;
-    suspiciousPatterns.forEach((pattern, idx) => {
-      const matches = processedMarkdown.match(pattern);
-      if (matches && matches.length > 0) {
-        console.warn(`[LaTeX] ⚠️ Pattern ${idx + 1} found ${matches.length} suspicious matches:`, matches.slice(0, 5));
-        foundIssues += matches.length;
-      }
-    });
-    
-    if (foundIssues > 10) {
-      console.error(`[LaTeX] ❌ CRITICAL: ${foundIssues} potential LaTeX errors remain!`);
-      // Não rejeita, mas loga para debug
+  // PHASE 4.6: Advanced LaTeX Syntax Correction
+  console.log('[LaTeX] Applying advanced syntax corrections...');
+
+  // Fix 1: Escape backslashes in LaTeX commands (CRITICAL)
+  // \dot{m} → \\dot{m}, \frac{a}{b} → \\frac{a}{b}
+  processedMarkdown = processedMarkdown.replace(
+    /\$([^$]*\\[a-zA-Z]+[^$]*)\$/g,
+    (match, content) => {
+      // Only double escape if not already escaped
+      const fixed = content.replace(/\\(?!\\)/g, '\\\\');
+      return `$${fixed}$`;
     }
-    
-    console.log('[LaTeX] ✅ Validation complete');
+  );
+
+  // Fix 2: Remove \text{} from units inside math mode
+  // $\text{kg/s}$ → $\mathrm{kg/s}$ (proper for units)
+  processedMarkdown = processedMarkdown.replace(
+    /\\text\{([^}]+)\}/g,
+    '\\mathrm{$1}'
+  );
+
+  // Fix 3: Split compound expressions with $ in the middle
+  // $\dot{m} = 5 \text{ kg/s} $+$ h_{entrada}$ → separate equations
+  processedMarkdown = processedMarkdown.replace(
+    /\$([^$]+)\s*\$\+\$\s*([^$]+)\$/g,
+    '$$1$$ e $$2$$'
+  );
+
+  // Fix 4: Fix subscripts outside math mode
+  processedMarkdown = processedMarkdown.replace(
+    /([a-zA-Z])_\{([^}]+)\}(?![^$]*\$)/g,
+    '$$$1_{$2}$$'
+  );
+
+  console.log('[LaTeX] ✅ Advanced syntax corrections applied');
+
+  // PHASE 4.7: Final validation - detect remaining LaTeX errors
+  console.log('[LaTeX] Final validation check...');
+
+  const suspiciousPatterns = [
+    /\$[a-z]{2,10}\$/gi,  // $palavra$ (lowercase only = likely common word)
+    /\$\s+[^$]+\s+\$/g,   // $ texto $ (spaces around = likely error)
+    /\$\$\s{2,}/g,        // $$  (double spaces after $$)
+  ];
+
+  let foundIssues = 0;
+  suspiciousPatterns.forEach((pattern, idx) => {
+    const matches = processedMarkdown.match(pattern);
+    if (matches && matches.length > 0) {
+      console.warn(`[LaTeX] ⚠️ Pattern ${idx + 1} found ${matches.length} suspicious matches:`, matches.slice(0, 5));
+      foundIssues += matches.length;
+    }
+  });
+
+  if (foundIssues > 10) {
+    console.error(`[LaTeX] ❌ CRITICAL: ${foundIssues} potential LaTeX errors remain!`);
+  }
+
+  console.log('[LaTeX] ✅ Validation complete');
     
     processedMarkdown = processedMarkdown.replace(/\n{3,}/g, '\n\n'); // Remove excess blank lines
     

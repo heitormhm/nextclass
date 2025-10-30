@@ -92,6 +92,7 @@ const LectureTranscriptionPage = () => {
   const [structuredContent, setStructuredContent] = useState<StructuredContent | null>(null);
   const [materialDidaticoV2, setMaterialDidaticoV2] = useState<string | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [teacherName, setTeacherName] = useState<string | null>(null);
   
   // Helper function to generate references section
   const generateReferencesMarkdown = (refs: Array<{ titulo: string; url: string; tipo: string }> = []) => {
@@ -605,7 +606,14 @@ const LectureTranscriptionPage = () => {
       setIsLoading(true);
       const { data, error } = await (supabase as any)
         .from('lectures')
-        .select('*')
+        .select(`
+          *,
+          teacher:teacher_id (
+            id,
+            full_name,
+            email
+          )
+        `)
         .eq('id', id)
         .single();
 
@@ -613,6 +621,12 @@ const LectureTranscriptionPage = () => {
 
       setLecture(data);
       setLectureTitle(data?.title || 'Nova Aula');
+      
+      // Extract teacher name
+      if (data?.teacher) {
+        const name = data.teacher.full_name || data.teacher.email?.split('@')[0] || 'Professor';
+        setTeacherName(name);
+      }
       
       // Load new modular material didático (Phase 3)
       if (data?.material_didatico_v2) {
@@ -2003,61 +2017,64 @@ const LectureTranscriptionPage = () => {
                       
                       <TabsContent value="material-v2" className="overflow-x-auto mt-4">
                         {materialDidaticoV2 ? (
-                          <div className="min-w-0 bg-white p-6 rounded-lg mt-16">
-                            <div className="flex items-center gap-2 mb-3 p-2 bg-primary/5 border border-primary/10 rounded-md w-fit">
-                              <Sparkles className="h-4 w-4 text-primary" />
-                              <span className="text-xs font-medium text-primary">Sistema Modular v2</span>
-                              <span className="text-xs text-muted-foreground">• Pesquisa avançada + Validação automática</span>
-                            </div>
-                            
-                            {/* Compact Study Metrics Pills - MOVED TO TOP */}
-                            <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-border/50">
-                              <span className="text-xs text-muted-foreground font-medium">Métricas:</span>
-                              
-                              {/* Pill 1: Conceitos */}
-                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-full">
-                                <span className="text-sm">✏️</span>
-                                <span className="text-xs font-medium">
-                                  {(() => {
-                                    const count = (materialDidaticoV2.match(/✏️ Conceito-Chave/g) || []).length;
-                                    return `${count} conceito${count !== 1 ? 's' : ''}`;
-                                  })()}
-                                </span>
+                          <div className="min-w-0 bg-white p-6 rounded-lg mt-4">
+                            {/* Teacher Badge */}
+                            {teacherName && (
+                              <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+                                <Users className="h-4 w-4" />
+                                <span>Professor: <strong className="text-foreground">{teacherName}</strong></span>
                               </div>
-                              
-                              {/* Pill 2: Diagramas */}
-                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-full">
-                                <span className="text-sm">📊</span>
-                                <span className="text-xs font-medium">
-                                  {(() => {
-                                    const diagramCount = (materialDidaticoV2.match(/```mermaid/g) || []).length;
-                                    const types = new Set<string>();
-                                    if (materialDidaticoV2.match(/flowchart (TD|LR)/g)) types.add('f');
-                                    if (materialDidaticoV2.match(/graph TD/g)) types.add('g');
-                                    if (materialDidaticoV2.match(/stateDiagram-v2/g)) types.add('s');
-                                    if (materialDidaticoV2.match(/classDiagram/g)) types.add('c');
-                                    
-                                    return `${diagramCount} diagrama${diagramCount !== 1 ? 's' : ''} (${types.size} tipos)`;
-                                  })()}
-                                </span>
-                              </div>
-                              
-                              {/* Pill 3: Complexidade */}
-                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-full">
-                                <span className="text-sm">🎯</span>
-                                <span className="text-xs font-medium">
-                                  {(() => {
-                                    const formulaCount = (materialDidaticoV2.match(/\$\$/g) || []).length / 2;
-                                    const level = formulaCount > 10 ? 'Avançado' : formulaCount > 5 ? 'Intermediário' : 'Básico';
-                                    return `${level} (${Math.floor(formulaCount)} fórmulas)`;
-                                  })()}
-                                </span>
-                              </div>
-                            </div>
+                            )}
                             
                             <MaterialDidaticoRenderer 
                               markdown={materialDidaticoV2} 
                             />
+                            
+                            {/* Compact Study Metrics Pills - MOVED TO BOTTOM */}
+                            <div className="mt-8 pt-6 border-t-2 border-border/50">
+                              <p className="text-sm font-semibold text-muted-foreground mb-3">📊 Resumo do Material:</p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                {/* Pill 1: Conceitos */}
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-full">
+                                  <span className="text-sm">✏️</span>
+                                  <span className="text-xs font-medium">
+                                    {(() => {
+                                      const count = (materialDidaticoV2.match(/✏️ Conceito-Chave/g) || []).length;
+                                      return `${count} conceito${count !== 1 ? 's' : ''}`;
+                                    })()}
+                                  </span>
+                                </div>
+                                
+                                {/* Pill 2: Diagramas */}
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-full">
+                                  <span className="text-sm">📊</span>
+                                  <span className="text-xs font-medium">
+                                    {(() => {
+                                      const diagramCount = (materialDidaticoV2.match(/```mermaid/g) || []).length;
+                                      const types = new Set<string>();
+                                      if (materialDidaticoV2.match(/flowchart (TD|LR)/g)) types.add('f');
+                                      if (materialDidaticoV2.match(/graph TD/g)) types.add('g');
+                                      if (materialDidaticoV2.match(/stateDiagram-v2/g)) types.add('s');
+                                      if (materialDidaticoV2.match(/classDiagram/g)) types.add('c');
+                                      
+                                      return `${diagramCount} diagrama${diagramCount !== 1 ? 's' : ''} (${types.size} tipos)`;
+                                    })()}
+                                  </span>
+                                </div>
+                                
+                                {/* Pill 3: Complexidade */}
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-full">
+                                  <span className="text-sm">🎯</span>
+                                  <span className="text-xs font-medium">
+                                    {(() => {
+                                      const formulaCount = (materialDidaticoV2.match(/\$\$/g) || []).length / 2;
+                                      const level = formulaCount > 10 ? 'Avançado' : formulaCount > 5 ? 'Intermediário' : 'Básico';
+                                      return `${level} (${Math.floor(formulaCount)} fórmulas)`;
+                                    })()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         ) : (
                           <div className="text-center py-8 bg-slate-50 rounded-lg">

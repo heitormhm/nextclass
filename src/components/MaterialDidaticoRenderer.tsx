@@ -19,18 +19,27 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
   const words = markdown.split(/\s+/).length;
   const readingTimeMin = Math.ceil(words / 200); // Average reading speed
 
-  // Add scroll listener for progress tracking (window-based)
+  // Add scroll listener for progress tracking (window-based) with debounce
   React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     const handleScroll = () => {
-      const windowHeight = window.innerHeight;
-      const docHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY;
-      const progress = (scrollTop / (docHeight - windowHeight)) * 100;
-      setScrollProgress(Math.min(progress, 100));
+      clearTimeout(timeoutId);
+      
+      timeoutId = setTimeout(() => {
+        const windowHeight = window.innerHeight;
+        const docHeight = document.documentElement.scrollHeight;
+        const scrollTop = window.scrollY;
+        const progress = (scrollTop / (docHeight - windowHeight)) * 100;
+        setScrollProgress(Math.min(progress, 100));
+      }, 50); // Debounce de 50ms
     };
     
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   if (!markdown || markdown.trim().length === 0) {
@@ -43,27 +52,27 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
   return (
     <div>
-      {/* Progress Indicator - Fixed */}
-      <div className="fixed top-0 left-0 right-0 bg-background/98 backdrop-blur-md z-[100] border-b border-border/30 py-1 px-6 shadow-sm">
-        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-          <span className="flex items-center gap-1">
-            <span className="text-[10px]">📖</span>
-            <span>~{readingTimeMin} min</span>
+      {/* Fixed Reading Progress Indicator - Enhanced Visibility */}
+      <div className="fixed top-0 left-0 right-0 bg-primary/10 backdrop-blur-lg z-[100] border-b-2 border-primary/30 py-2 px-6 shadow-lg">
+        <div className="flex items-center justify-between text-sm font-medium text-foreground mb-2">
+          <span className="flex items-center gap-2">
+            <span className="text-lg">📖</span>
+            <span>Leitura: ~{readingTimeMin} min</span>
           </span>
-          <span className="flex items-center gap-1">
-            <span className="text-[10px]">📊</span>
-            <span>{Math.round(scrollProgress)}%</span>
+          <span className="flex items-center gap-2">
+            <span className="text-lg">📊</span>
+            <span>Progresso: {Math.round(scrollProgress)}%</span>
           </span>
         </div>
-        <div className="w-full h-0.5 bg-muted/50 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-muted/70 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-500"
+            className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 transition-all duration-300 shadow-sm"
             style={{ width: `${scrollProgress}%` }}
           />
         </div>
       </div>
 
-      <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content pt-20">
+      <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content pt-24">
         <style>{`
   .material-didatico-content .katex-error {
     color: #dc2626 !important;
@@ -198,9 +207,9 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             <td className="px-4 py-3 text-sm" {...props} />
           ),
           // Style headings
-          h1: ({ node, ...props }) => (
-            <h1 className="text-3xl font-bold mt-8 mb-4 text-foreground" {...props} />
-          ),
+            h1: ({ node, ...props }) => (
+              <h1 className="text-3xl font-bold mt-2 mb-4 text-foreground" {...props} />
+            ),
           h2: ({ node, children, ...props }) => {
             const hasEmoji = /^[\p{Emoji}]/u.test(String(children));
             return (
