@@ -49,6 +49,7 @@ import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewe
 import { MermaidDiagram } from '@/components/MermaidDiagram';
 import { MermaidErrorBoundary } from '@/components/MermaidErrorBoundary';
 import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
+import { MaterialDidaticoRenderer } from '@/components/MaterialDidaticoRenderer';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
@@ -89,6 +90,7 @@ const LectureTranscriptionPage = () => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [lecture, setLecture] = useState<any>(null);
   const [structuredContent, setStructuredContent] = useState<StructuredContent | null>(null);
+  const [materialDidaticoV2, setMaterialDidaticoV2] = useState<string | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [derivedTurmaId, setDerivedTurmaId] = useState<string>('');
   const [selectAllStudents, setSelectAllStudents] = useState(true);
@@ -501,6 +503,12 @@ const LectureTranscriptionPage = () => {
 
       setLecture(data);
       setLectureTitle(data?.title || 'Nova Aula');
+      
+      // Load new modular material didático (Phase 3)
+      if (data?.material_didatico_v2) {
+        console.log('[LectureTranscription] Loading material_didatico_v2');
+        setMaterialDidaticoV2(data.material_didatico_v2);
+      }
       
       // Derive turma_id from disciplina_id if class_id is not set
       if (data?.disciplina_id && !data.class_id) {
@@ -1648,7 +1656,7 @@ const LectureTranscriptionPage = () => {
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="resumo" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 gap-1 h-full min-h-[52px]">
+                      <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 gap-1 h-full min-h-[52px]">
                         <TabsTrigger 
                           value="resumo" 
                           className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center"
@@ -1662,7 +1670,7 @@ const LectureTranscriptionPage = () => {
                           className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center gap-2"
                         >
                           <Brain className="h-4 w-4" />
-                          <span className="hidden sm:inline">Material Didático</span>
+                          <span className="hidden sm:inline">Material Didático (Antigo)</span>
                           <span className="sm:hidden">Material</span>
                           {isGeneratingMaterial && (
                             <Badge variant="secondary" className="ml-1 text-xs animate-pulse">
@@ -1671,6 +1679,20 @@ const LectureTranscriptionPage = () => {
                           )}
                           {!structuredContent.material_didatico && !isGeneratingMaterial && (
                             <span className="ml-2 text-xs text-slate-500 hidden md:inline">(Gerar)</span>
+                          )}
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="material-v2" 
+                          disabled={!materialDidaticoV2}
+                          className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center gap-2"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          <span className="hidden sm:inline">Material Modular</span>
+                          <span className="sm:hidden">Modular</span>
+                          {materialDidaticoV2 && (
+                            <Badge variant="default" className="ml-1 text-xs">
+                              Novo
+                            </Badge>
                           )}
                         </TabsTrigger>
                       </TabsList>
@@ -1764,6 +1786,32 @@ const LectureTranscriptionPage = () => {
                             <p className="text-slate-600 mb-4 font-medium">Nenhum material didático gerado ainda</p>
                             <p className="text-slate-500 text-sm px-4">
                               Clique em "Gerar Material Didático" para criar conteúdo com pesquisa profunda
+                            </p>
+                          </div>
+                        )}
+                      </TabsContent>
+                      
+                      <TabsContent value="material-v2" className="overflow-x-auto mt-4">
+                        {materialDidaticoV2 ? (
+                          <div className="min-w-0 bg-white p-6 rounded-lg">
+                            <div className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Sparkles className="h-5 w-5 text-primary" />
+                                <h4 className="font-semibold text-primary">Sistema Modular (Novo)</h4>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                Material didático gerado com pesquisa acadêmica avançada, formatação Markdown otimizada, 
+                                e validação automática de diagramas Mermaid e fórmulas LaTeX.
+                              </p>
+                            </div>
+                            <MaterialDidaticoRenderer markdown={materialDidaticoV2} />
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 bg-slate-50 rounded-lg">
+                            <Sparkles className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                            <p className="text-slate-600 mb-4 font-medium">Material modular ainda não gerado</p>
+                            <p className="text-slate-500 text-sm px-4">
+                              Este é o novo sistema de geração de material didático com pesquisa acadêmica e validação avançada
                             </p>
                           </div>
                         )}
