@@ -162,6 +162,9 @@ verify_jwt = false
 [functions.material-didatico-generator]
 verify_jwt = true
 
+[functions.material-didatico-generator-v2]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321

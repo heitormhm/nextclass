@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
+import { initializeMermaid, sanitizeMermaidCode, injectMermaidErrorSuppression } from '@/lib/mermaidConfig';
 
 interface MaterialMermaidDiagramProps {
   code: string;
@@ -11,51 +12,14 @@ interface MaterialMermaidDiagramProps {
  * NOT to be used outside of MaterialDidaticoRenderer
  */
 
-const sanitizeMermaidCode = (code: string): string => {
-  if (!code || code.trim().length < 10) {
-    console.warn('[MaterialMermaid] Code too short or empty');
-    return '';
-  }
-
-  // Remove markdown code fences only
-  let sanitized = code.trim()
-    .replace(/^```mermaid\s*/i, '')
-    .replace(/^```\s*$/, '')
-    .replace(/```$/, '');
-
-  console.log('[MaterialMermaid] ✅ Code sanitized');
-  return sanitized.trim();
-};
-
 export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Inject CSS to hide mermaid error messages
+  // Use global Mermaid configuration
   useEffect(() => {
-    const style = document.createElement('style');
-    style.id = 'material-mermaid-error-suppression';
-    style.innerHTML = `
-      /* Hide all Mermaid error messages globally */
-      .error-icon,
-      .error-text,
-      [id*="mermaid-error"],
-      [class*="error"]:has(svg),
-      svg text:contains("Syntax error"),
-      svg text:contains("version 10.9.4") {
-        display: none !important;
-        visibility: hidden !important;
-      }
-    `;
-    
-    if (!document.getElementById('material-mermaid-error-suppression')) {
-      document.head.appendChild(style);
-    }
-    
-    return () => {
-      const existingStyle = document.getElementById('material-mermaid-error-suppression');
-      if (existingStyle) existingStyle.remove();
-    };
+    initializeMermaid();
+    injectMermaidErrorSuppression();
   }, []);
 
   useEffect(() => {
@@ -71,50 +35,7 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
           return;
         }
 
-        // Full Mermaid configuration with support for all diagram types
-        mermaid.initialize({ 
-          theme: 'default',
-          logLevel: 'error',
-          startOnLoad: false,
-          securityLevel: 'loose',
-          flowchart: { 
-            useMaxWidth: true,
-            htmlLabels: true,
-            curve: 'basis',
-            padding: 20,
-          },
-          sequence: { 
-            useMaxWidth: true,
-            wrap: true,
-            width: 150,
-            height: 50,
-            boxMargin: 10,
-          },
-          gantt: {
-            useMaxWidth: true,
-            fontSize: 14,
-            numberSectionStyles: 4,
-          },
-          class: {
-            useMaxWidth: true,
-          },
-          state: {
-            useMaxWidth: true,
-          },
-          er: {
-            useMaxWidth: true,
-          },
-          themeVariables: {
-            fontSize: '16px',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            primaryColor: '#f3e5f5',
-            primaryTextColor: '#000',
-            primaryBorderColor: '#7c3aed',
-            lineColor: '#7c3aed',
-            secondaryColor: '#e1f5fe',
-            tertiaryColor: '#f1f8e9',
-          }
-        });
+        // Mermaid already initialized globally - no need to reinitialize
 
         const uniqueId = `material-mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         

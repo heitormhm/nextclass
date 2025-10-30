@@ -170,6 +170,7 @@ const LectureTranscriptionPage = () => {
   const [generationMessage, setGenerationMessage] = useState<string>('');
   const [isGeneratingMaterialV2, setIsGeneratingMaterialV2] = useState(false);
   const [materialV2Progress, setMaterialV2Progress] = useState<string>('');
+  const [currentMaterialV2Job, setCurrentMaterialV2Job] = useState<string | null>(null);
 
   // URL validation helper
   const isValidUrl = (url: string) => {
@@ -292,6 +293,90 @@ const LectureTranscriptionPage = () => {
       clearTimeout(timeout);
     };
   }, [lecture, structuredContent, id]);
+
+  // Subscribe to Material V2 job updates
+  useEffect(() => {
+    if (!id) return;
+
+    console.log('[Material V2] Setting up realtime subscription for job updates');
+
+    const channel = supabase
+      .channel(`material-v2-jobs-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'material_v2_jobs',
+          filter: `lecture_id=eq.${id}`
+        },
+        async (payload) => {
+          console.log('[Material V2 Realtime] Job update:', payload);
+          
+          const job = payload.new as any;
+          if (!job) return;
+
+          // Update progress
+          if (job.status === 'PROCESSING') {
+            setIsGeneratingMaterialV2(true);
+            setCurrentMaterialV2Job(job.id);
+            setMaterialV2Progress(job.progress_step || `${job.progress || 0}% concluído`);
+          }
+
+          // Handle completion
+          if (job.status === 'COMPLETED') {
+            setIsGeneratingMaterialV2(false);
+            setCurrentMaterialV2Job(null);
+            setMaterialV2Progress('');
+            
+            // Reload lecture data
+            await loadLectureData();
+            
+            toast({
+              title: '✅ Material Modular gerado!',
+              description: 'O conteúdo está disponível na aba Material Modular',
+            });
+          }
+
+          // Handle failure
+          if (job.status === 'FAILED') {
+            setIsGeneratingMaterialV2(false);
+            setCurrentMaterialV2Job(null);
+            setMaterialV2Progress('');
+            
+            // Parse error for user-friendly message
+            let errorMessage = job.error_message || 'Erro desconhecido';
+            let actionButton = null;
+            
+            if (errorMessage.includes('Limite de requisições')) {
+              actionButton = {
+                label: 'Tentar novamente',
+                onClick: handleGenerateMaterialV2
+              };
+            }
+            
+            toast({
+              variant: 'destructive',
+              title: 'Erro ao gerar material',
+              description: errorMessage,
+              action: actionButton ? (
+                <Button size="sm" onClick={actionButton.onClick}>
+                  {actionButton.label}
+                </Button>
+              ) : undefined
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Material V2 Realtime] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('[Material V2] Cleaning up subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
 
   // Subscribe to teacher_jobs updates for this lecture
   useEffect(() => {
@@ -828,37 +913,58 @@ const LectureTranscriptionPage = () => {
     }
     
     setIsGeneratingMaterialV2(true);
-    setMaterialV2Progress('Iniciando geração...');
+    setMaterialV2Progress('Criando job de geração...');
     
     try {
-      setMaterialV2Progress('Executando pesquisa acadêmica...');
-      
-      const { data, error } = await supabase.functions.invoke('material-didatico-generator', {
+      const { data, error } = await supabase.functions.invoke('material-didatico-generator-v2', {
         body: { lectureId: id }
       });
       
-      if (error) throw error;
+      if (error) {
+        // Handle specific error types
+        if (error.message?.includes('408')) {
+          throw new Error('Tempo esgotado. Verifique sua conexão e tente novamente.');
+        }
+        throw error;
+      }
       
-      setMaterialV2Progress('Salvando material...');
+      if (!data?.success || !data?.jobId) {
+        throw new Error('Falha ao iniciar geração');
+      }
+      
+      setCurrentMaterialV2Job(data.jobId);
+      setMaterialV2Progress('Aguardando processamento...');
       
       toast({
-        title: '✅ Material Modular gerado com sucesso!',
-        description: `${data.researchCount} questões pesquisadas • ${Math.floor(data.markdownLength / 1000)}k chars • ${data.elapsedSeconds}s`
+        title: 'Geração iniciada',
+        description: 'O material será gerado em background. Você pode navegar livremente.',
       });
       
-      // Reload lecture data to get material_didatico_v2
-      await loadLectureData();
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Material V2] Generation error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao gerar material modular',
-        description: error instanceof Error ? error.message : 'Tente novamente mais tarde'
-      });
-    } finally {
+      
       setIsGeneratingMaterialV2(false);
       setMaterialV2Progress('');
+      
+      let errorMessage = 'Tente novamente mais tarde';
+      if (error.message?.includes('Limite de requisições')) {
+        errorMessage = 'Aguarde alguns minutos e tente novamente.';
+      } else if (error.message?.includes('Créditos insuficientes')) {
+        errorMessage = 'Contate o administrador para adicionar créditos.';
+      } else if (error.message?.includes('Tempo esgotado')) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar material',
+        description: errorMessage,
+        action: errorMessage.includes('Aguarde') ? (
+          <Button size="sm" onClick={handleGenerateMaterialV2}>
+            Tentar novamente
+          </Button>
+        ) : undefined
+      });
     }
   };
 

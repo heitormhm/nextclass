@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { MermaidErrorBoundary } from './MermaidErrorBoundary';
+import { initializeMermaid, sanitizeMermaidCode, injectMermaidErrorSuppression } from '@/lib/mermaidConfig';
 
 interface MermaidDiagramProps {
   code: string;
@@ -9,52 +10,14 @@ interface MermaidDiagramProps {
   icon: string;
 }
 
-// ✅ FASE 4: Simplificar - remover validação, confiar no backend
-const sanitizeMermaidCode = (code: string): string => {
-  if (!code || code.trim().length < 10) {
-    console.warn('[Mermaid] Code too short or empty');
-    return '';
-  }
-
-  // APENAS remover markers, SEM validação
-  let sanitized = code.trim()
-    .replace(/^```mermaid\s*/i, '')
-    .replace(/^```\s*$/, '')
-    .replace(/```$/, '');
-
-  console.log('[Mermaid] ✅ Code sanitized (no validation)');
-  return sanitized.trim();
-};
-
 export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagramProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Inject CSS to forcefully hide mermaid error messages
+  // Use global Mermaid configuration
   useEffect(() => {
-    const style = document.createElement('style');
-    style.id = 'mermaid-error-suppression';
-    style.innerHTML = `
-      /* Hide all Mermaid error messages globally */
-      .error-icon,
-      .error-text,
-      [id*="mermaid-error"],
-      [class*="error"]:has(svg),
-      svg text:contains("Syntax error"),
-      svg text:contains("version 10.9.4") {
-        display: none !important;
-        visibility: hidden !important;
-      }
-    `;
-    
-    if (!document.getElementById('mermaid-error-suppression')) {
-      document.head.appendChild(style);
-    }
-    
-    return () => {
-      const existingStyle = document.getElementById('mermaid-error-suppression');
-      if (existingStyle) existingStyle.remove();
-    };
+    initializeMermaid();
+    injectMermaidErrorSuppression();
   }, []);
 
   // ✅ FASE 4: Simplificar validação - confiar no backend
@@ -71,51 +34,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
           return;
         }
 
-        // ✅ FASE 3: Configuração Mermaid com responsividade total
-        mermaid.initialize({ 
-          theme: 'default',
-          logLevel: 'error',
-          startOnLoad: false,
-          securityLevel: 'loose',
-          flowchart: { 
-            useMaxWidth: true,
-            htmlLabels: true,
-            curve: 'basis',
-            padding: 20,
-          },
-          sequence: { 
-            useMaxWidth: true,
-            wrap: true,
-            width: 150,
-            height: 50,
-            boxMargin: 10,
-          },
-          gantt: {
-            useMaxWidth: true,
-            fontSize: 14,
-            numberSectionStyles: 4,
-          },
-          class: {
-            useMaxWidth: true,
-          },
-          state: {
-            useMaxWidth: true,
-          },
-          er: {
-            useMaxWidth: true,
-          },
-          // ✅ Tema global otimizado para legibilidade
-          themeVariables: {
-            fontSize: '16px',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            primaryColor: '#f3e5f5',
-            primaryTextColor: '#000',
-            primaryBorderColor: '#7c3aed',
-            lineColor: '#7c3aed',
-            secondaryColor: '#e1f5fe',
-            tertiaryColor: '#f1f8e9',
-          }
-        });
+        // Mermaid already initialized globally - no need to reinitialize
 
         const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         

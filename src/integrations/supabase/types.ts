@@ -964,6 +964,116 @@ export type Database = {
           },
         ]
       }
+      material_generation_metrics: {
+        Row: {
+          created_at: string
+          error_type: string | null
+          generation_time_ms: number | null
+          id: string
+          job_id: string | null
+          latex_formulas_count: number | null
+          lecture_id: string
+          markdown_length: number | null
+          mermaid_diagrams_count: number | null
+          research_queries_count: number | null
+          success: boolean
+          web_searches_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          error_type?: string | null
+          generation_time_ms?: number | null
+          id?: string
+          job_id?: string | null
+          latex_formulas_count?: number | null
+          lecture_id: string
+          markdown_length?: number | null
+          mermaid_diagrams_count?: number | null
+          research_queries_count?: number | null
+          success: boolean
+          web_searches_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          error_type?: string | null
+          generation_time_ms?: number | null
+          id?: string
+          job_id?: string | null
+          latex_formulas_count?: number | null
+          lecture_id?: string
+          markdown_length?: number | null
+          mermaid_diagrams_count?: number | null
+          research_queries_count?: number | null
+          success?: boolean
+          web_searches_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_generation_metrics_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "material_v2_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_generation_metrics_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_v2_jobs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          lecture_id: string
+          metadata: Json | null
+          progress: number | null
+          progress_step: string | null
+          result: string | null
+          status: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lecture_id: string
+          metadata?: Json | null
+          progress?: number | null
+          progress_step?: string | null
+          result?: string | null
+          status?: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lecture_id?: string
+          metadata?: Json | null
+          progress?: number | null
+          progress_step?: string | null
+          result?: string | null
+          status?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_v2_jobs_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
