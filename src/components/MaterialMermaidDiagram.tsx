@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
-import { initializeMermaid, sanitizeMermaidCode, injectMermaidErrorSuppression } from '@/lib/mermaidConfig';
+import { initializeMermaid, sanitizeMermaidCode, injectMermaidErrorSuppression, autoFixMermaidCode } from '@/lib/mermaidConfig';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
+import { ExternalLink } from 'lucide-react';
 
 interface MaterialMermaidDiagramProps {
   code: string;
@@ -27,13 +30,16 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
       if (!ref.current || !code) return;
 
       try {
-        const sanitizedCode = sanitizeMermaidCode(code);
+        let sanitizedCode = sanitizeMermaidCode(code);
         
         if (!sanitizedCode || sanitizedCode.length < 10) {
           console.warn('[MaterialMermaid] Empty code, showing placeholder');
           setError('invalid');
           return;
         }
+
+        // Apply automatic fixes for common syntax issues
+        sanitizedCode = autoFixMermaidCode(sanitizedCode);
 
         // Mermaid already initialized globally - no need to reinitialize
 
@@ -104,22 +110,66 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
   }, [code]);
 
   return (
-    <div className="bg-muted/30 p-4 rounded-lg border border-border my-4 w-full overflow-x-auto">
+    <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border-2 border-slate-200 dark:border-slate-800 my-4 w-full overflow-x-auto">
       {error ? (
-        <div className="bg-muted/10 border-2 border-dashed border-border rounded-lg p-6">
-          <div className="flex flex-col items-center justify-center min-h-[200px]">
-            <div className="text-5xl mb-2 opacity-50">📊</div>
-            <p className="text-xs text-muted-foreground/70">Visualização em construção</p>
-          </div>
-          {/* Debug code preview */}
-          <details className="mt-3">
-            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-              🔍 Ver código-fonte (debug)
+        <div>
+          {/* Error message based on type */}
+          {error === 'timeout' && (
+            <div className="text-center mb-4">
+              <div className="text-5xl mb-3">⏱️</div>
+              <p className="text-slate-700 dark:text-slate-300 font-semibold mb-2">Tempo esgotado ao renderizar diagrama</p>
+              <p className="text-xs text-muted-foreground">O diagrama é muito complexo. Exibindo código-fonte:</p>
+            </div>
+          )}
+          
+          {error === 'invalid' && (
+            <div className="text-center mb-4">
+              <div className="text-5xl mb-3">📊</div>
+              <p className="text-slate-700 dark:text-slate-300 font-semibold mb-2">Diagrama não disponível</p>
+              <p className="text-xs text-muted-foreground">Código Mermaid vazio ou inválido</p>
+            </div>
+          )}
+          
+          {error === 'hidden' && (
+            <div className="text-center mb-4">
+              <div className="text-5xl mb-3">🔧</div>
+              <p className="text-slate-700 dark:text-slate-300 font-semibold mb-2">Erro ao renderizar diagrama</p>
+              <p className="text-xs text-muted-foreground mb-4">Todas as estratégias de renderização falharam</p>
+              
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(code);
+                  toast({ title: "Código copiado!", description: "Cole em mermaid.live para debug" });
+                }}
+              >
+                📋 Copiar código para debug
+              </Button>
+            </div>
+          )}
+          
+          {/* Always show source code in case of error */}
+          <details className="mt-4">
+            <summary className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer hover:text-foreground font-medium">
+              🔍 Ver código-fonte Mermaid
             </summary>
-            <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-x-auto max-h-40 font-mono">
-              <code>{code.substring(0, 500)}{code.length > 500 ? '...' : ''}</code>
+            <pre className="mt-3 text-xs bg-slate-100 dark:bg-slate-800 p-3 rounded border border-slate-300 dark:border-slate-700 overflow-x-auto max-h-64 font-mono">
+              <code>{code}</code>
             </pre>
           </details>
+          
+          {/* Link to external debug tool */}
+          <div className="mt-4 text-center">
+            <a 
+              href={`https://mermaid.live/edit#pako:${btoa(code)}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+            >
+              🔗 Abrir em Mermaid Live Editor <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
         </div>
       ) : (
         <div

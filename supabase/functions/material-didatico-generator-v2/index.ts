@@ -492,7 +492,15 @@ REGRAS CRÍTICAS:
 - Mantenha rigor matemático original
 - Use APENAS Markdown, LaTeX ($$formula$$) e Mermaid
 - NÃO invente informações além do que está nos livros
-- FOQUE EM FUNDAMENTOS TEÓRICOS, não em aplicações práticas`
+- FOQUE EM FUNDAMENTOS TEÓRICOS, não em aplicações práticas
+
+IMPORTANTE SOBRE CALLOUTS:
+- Use callouts Markdown para destacar conceitos importantes:
+  > ✏️ Conceito-Chave: [Definição fundamental]
+  > 🤔 Pergunta para Reflexão: [Questão instigante]
+  > 💡 Dica Importante: [Insight prático]
+  > ⚠️ Atenção: [Limitações ou cuidados]
+  > 🔬 Exemplo Prático: [Caso real]`
     },
     {
       role: 'user',
@@ -700,7 +708,18 @@ REGRAS CRÍTICAS:
 - Mermaid válido com \`\`\`mermaid
 - SEM tabelas HTML, SEM JSON, SEM código executável
 - Priorize RIGOR TÉCNICO e FUNDAMENTOS SÓLIDOS
-- A seção de fundamentos teóricos deve ser mais extensa que a de aplicações`;
+- A seção de fundamentos teóricos deve ser mais extensa que a de aplicações
+
+IMPORTANTE SOBRE CALLOUTS:
+Use callouts Markdown para destacar informações importantes:
+> ✏️ Conceito-Chave: [Definição fundamental que todo estudante deve memorizar]
+> 🤔 Pergunta para Reflexão: [Questão que estimula pensamento crítico]
+> 💡 Dica Importante: [Insight prático ou macete útil]
+> ⚠️ Atenção: [Cuidado com erros comuns ou limitações]
+> 🔬 Exemplo Prático: [Caso real de aplicação]
+
+EXEMPLO DE CALLOUT:
+> ✏️ Conceito-Chave: A Primeira Lei da Termodinâmica estabelece que a energia total de um sistema isolado permanece constante, podendo apenas mudar de forma entre energia interna, calor e trabalho.`;
 
     const finalMarkdown = await callLovableAI([
       { role: 'system', content: integrationPrompt },

@@ -86,6 +86,36 @@ export const sanitizeMermaidCode = (code: string): string => {
 };
 
 /**
+ * Automatically fix common Mermaid syntax issues
+ */
+export const autoFixMermaidCode = (code: string): string => {
+  let fixed = code;
+  
+  // Fix 1: Add space after diagram type
+  fixed = fixed.replace(/^(graph|flowchart)([A-Z]{2})/gm, '$1 $2');
+  
+  // Fix 2: Remove unnecessary quotes in labels
+  fixed = fixed.replace(/\["([^"]+)"\]/g, '[$1]');
+  
+  // Fix 3: Escape special characters in labels
+  fixed = fixed.replace(/\[([^\]]*[<>].*?)\]/g, (match, content) => {
+    return `["${content.replace(/"/g, "'")}"]`;
+  });
+  
+  // Fix 4: Add semicolons at end of lines (optional but helps)
+  const lines = fixed.split('\n');
+  fixed = lines.map(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.includes('```') && !trimmed.match(/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap)/)) {
+      return trimmed.endsWith(';') ? line : line + ';';
+    }
+    return line;
+  }).join('\n');
+  
+  return fixed;
+};
+
+/**
  * Inject CSS to suppress Mermaid error messages
  * Call once at app initialization
  */

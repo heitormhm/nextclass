@@ -79,9 +79,19 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           h1: ({ node, ...props }) => (
             <h1 className="text-3xl font-bold mt-8 mb-4 text-foreground" {...props} />
           ),
-          h2: ({ node, ...props }) => (
-            <h2 className="text-2xl font-bold mt-6 mb-3 text-foreground border-b pb-2" {...props} />
-          ),
+          h2: ({ node, children, ...props }) => {
+            const hasEmoji = /^[\p{Emoji}]/u.test(String(children));
+            return (
+              <h2 
+                className={`text-2xl font-bold mt-6 mb-3 border-b pb-2 ${
+                  hasEmoji ? 'text-purple-900 dark:text-purple-300 border-purple-300' : 'text-foreground border-border'
+                }`} 
+                {...props}
+              >
+                {children}
+              </h2>
+            );
+          },
           h3: ({ node, ...props }) => (
             <h3 className="text-xl font-semibold mt-5 mb-2 text-foreground" {...props} />
           ),
@@ -102,10 +112,76 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           li: ({ node, ...props }) => (
             <li className="text-foreground/90" {...props} />
           ),
-          // Style blockquotes
-          blockquote: ({ node, ...props }) => (
-            <blockquote className="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground" {...props} />
-          ),
+          // Style blockquotes with intelligent callout detection
+          blockquote: ({ node, children, ...props }) => {
+            const firstChild = node?.children?.[0] as any;
+            const textContent = firstChild?.children?.[0]?.value || '';
+            
+            const calloutTypes: Record<string, { bgColor: string; borderColor: string; textColor: string; icon: string }> = {
+              '✏️ Conceito-Chave': {
+                bgColor: 'bg-purple-100/80 dark:bg-purple-950/30',
+                borderColor: 'border-purple-500',
+                textColor: 'text-purple-900 dark:text-purple-300',
+                icon: '✏️',
+              },
+              '🤔 Pergunta para Reflexão': {
+                bgColor: 'bg-purple-100/80 dark:bg-purple-950/30',
+                borderColor: 'border-purple-600',
+                textColor: 'text-purple-900 dark:text-purple-300',
+                icon: '🤔',
+              },
+              '💡 Dica Importante': {
+                bgColor: 'bg-yellow-100/80 dark:bg-yellow-950/30',
+                borderColor: 'border-yellow-500',
+                textColor: 'text-yellow-900 dark:text-yellow-300',
+                icon: '💡',
+              },
+              '⚠️ Atenção': {
+                bgColor: 'bg-orange-100/80 dark:bg-orange-950/30',
+                borderColor: 'border-orange-500',
+                textColor: 'text-orange-900 dark:text-orange-300',
+                icon: '⚠️',
+              },
+              '🔬 Exemplo Prático': {
+                bgColor: 'bg-blue-100/80 dark:bg-blue-950/30',
+                borderColor: 'border-blue-500',
+                textColor: 'text-blue-900 dark:text-blue-300',
+                icon: '🔬',
+              },
+            };
+
+            let matchedCallout = null;
+            for (const [title, style] of Object.entries(calloutTypes)) {
+              if (textContent.startsWith(title)) {
+                matchedCallout = { title, ...style };
+                break;
+              }
+            }
+
+            if (matchedCallout) {
+              return (
+                <div className={`${matchedCallout.bgColor} ${matchedCallout.borderColor} border-l-4 rounded-r-lg p-4 my-6 shadow-sm`}>
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">{matchedCallout.icon}</span>
+                    <div className="flex-1">
+                      <p className={`font-bold ${matchedCallout.textColor} mb-2`}>
+                        {matchedCallout.title.replace(matchedCallout.icon, '').trim()}
+                      </p>
+                      <div className="text-gray-700 dark:text-gray-300">
+                        {children}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <blockquote className="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground" {...props}>
+                {children}
+              </blockquote>
+            );
+          },
           // Style links
           a: ({ node, ...props }) => (
             <a className="text-primary hover:underline font-medium" target="_blank" rel="noopener noreferrer" {...props} />
