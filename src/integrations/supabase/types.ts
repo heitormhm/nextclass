@@ -801,6 +801,7 @@ export type Database = {
           duration: number | null
           id: string
           lesson_plan_url: string | null
+          material_didatico_v2: string | null
           raw_transcript: string
           status: string
           structured_content: Json | null
@@ -818,6 +819,7 @@ export type Database = {
           duration?: number | null
           id?: string
           lesson_plan_url?: string | null
+          material_didatico_v2?: string | null
           raw_transcript: string
           status?: string
           structured_content?: Json | null
@@ -835,6 +837,7 @@ export type Database = {
           duration?: number | null
           id?: string
           lesson_plan_url?: string | null
+          material_didatico_v2?: string | null
           raw_transcript?: string
           status?: string
           structured_content?: Json | null
@@ -1304,7 +1307,7 @@ export type Database = {
           {
             foreignKeyName: "teacher_flashcards_lecture_id_fkey"
             columns: ["lecture_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "lectures"
             referencedColumns: ["id"]
           },
@@ -1395,7 +1398,7 @@ export type Database = {
           {
             foreignKeyName: "teacher_quizzes_lecture_id_fkey"
             columns: ["lecture_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "lectures"
             referencedColumns: ["id"]
           },
