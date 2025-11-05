@@ -117,6 +117,21 @@ const LectureTranscriptionPage = () => {
     }
   }, [materialDidaticoV2]);
 
+  // ✅ FASE 6: Detector de Material Sem Mermaid
+  React.useEffect(() => {
+    if (materialDidaticoV2) {
+      const hasMermaid = /```mermaid/g.test(materialDidaticoV2);
+      if (!hasMermaid) {
+        console.warn('[LectureTranscription] ⚠️ Material sem diagramas Mermaid');
+        toast({
+          title: "⚠️ Material Incompleto",
+          description: "Este material não contém diagramas visuais. Considere regenerar para incluir gráficos Mermaid.",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [materialDidaticoV2]);
+
   React.useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     

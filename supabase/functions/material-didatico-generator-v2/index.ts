@@ -678,56 +678,60 @@ ${practicalContext}
 
 TAREFA: Integre esses dois conteúdos em um material didático coeso e bem estruturado.
 
-🎯 DIAGRAMAS: REGRA ABSOLUTA DE VARIEDADE + LATEX INTEGRADO ✅ FASE 7
+🎯 DIAGRAMAS MERMAID: OBRIGATÓRIO (MÍNIMO 2 POR MATERIAL) ✅ FASE 2 & 3
 
-Você DEVE criar 3-4 diagramas de TIPOS DIFERENTES. Esta é a ÚNICA instrução sobre diagramas:
+**REGRA CRÍTICA**: Você DEVE gerar pelo menos 2 diagramas Mermaid por material didático.
 
-**OBRIGATÓRIO:** Pelo menos 1 de cada tipo abaixo:
-1. flowchart LR (processos sequenciais)
-2. graph TD (hierarquias/relações)
-3. stateDiagram-v2 OU classDiagram (estados/classificações)
+**TIPOS RECOMENDADOS** (use flowchart TD ou flowchart LR como padrão):
+1. **flowchart TD / LR** - Para processos, fluxos, algoritmos
+2. **graph TD / LR** - Para hierarquias e relações entre conceitos
+3. **stateDiagram-v2** - Para estados, transições, ciclos (opcional)
 
-**EXEMPLOS com LaTeX INTEGRADO:**
+**INTEGRAÇÃO DE LATEX EM DIAGRAMAS** (OBRIGATÓRIO):
+- Use $$formula$$ dentro de labels entre aspas duplas
+- Exemplo: ["Calcula $$Q = mc\\Delta T$$"]
+- Mantenha fórmulas simples dentro de diagramas
+- Se precisar de equações complexas, coloque em seção LaTeX separada
 
-Tipo 1 - flowchart com fórmulas:
+**EXEMPLOS DE DIAGRAMAS MERMAID + LATEX:**
+
+**Exemplo 1 - Primeira Lei (Sistema Fechado):**
+\`\`\`mermaid
+flowchart TD
+    Sistema["Sistema Fechado<br/>$$m = constante$$"]
+    Sistema --> Calor["Calor $$Q$$<br/>Entrada/Saída"]
+    Sistema --> Trabalho["Trabalho $$W$$<br/>Entrada/Saída"]
+    Calor --> Equacao["$$Q - W = \\Delta E$$"]
+    Trabalho --> Equacao
+    Equacao --> Resultado["$$\\Delta E = \\Delta U + \\Delta EC + \\Delta EP$$"]
+\`\`\`
+
+**Exemplo 2 - Ciclo Termodinâmico:**
 \`\`\`mermaid
 flowchart LR
-    A["Entrada: $$T_1, P_1$$"] --> B["Processo: $$Q = mc_p\\Delta T$$"]
-    B --> C["Saída: $$T_2, P_2$$"]
+    Estado1["Estado 1<br/>$$P_1, V_1, T_1$$"] -->|Processo Isobárico| Estado2["Estado 2<br/>$$P_2, V_2, T_2$$"]
+    Estado2 -->|Processo Isocórico| Estado3["Estado 3"]
+    Estado3 -->|Processo Adiabático| Estado4["Estado 4"]
+    Estado4 -->|Retorno| Estado1
 \`\`\`
 
-Tipo 2 - graph com equações:
+**Exemplo 3 - Análise de Componentes:**
 \`\`\`mermaid
-graph TD
-    Lei["Primeira Lei: $$\\Delta U = Q - W$$"]
-    Lei --> Calor["Calor $$Q$$"]
-    Lei --> Trabalho["Trabalho $$W$$"]
+flowchart TD
+    Caldeira["Caldeira<br/>$$Q_{entrada}$$"] --> Turbina["Turbina<br/>$$W_{saida}$$"]
+    Turbina --> Condensador["Condensador<br/>$$Q_{saida}$$"]
+    Condensador --> Bomba["Bomba<br/>$$W_{entrada}$$"]
+    Bomba --> Caldeira
 \`\`\`
 
-Tipo 3 - stateDiagram com variáveis:
-\`\`\`mermaid
-stateDiagram-v2
-    [*] --> Solido
-    Solido --> Liquido: $$T > T_{fusao}$$
-    Liquido --> Vapor: $$T > T_{ebulicao}$$
-\`\`\`
+**REGRAS MERMAID:**
+- Sempre use flowchart TD ou flowchart LR (top-down ou left-right)
+- Labels com fórmulas: use aspas duplas e $$...$$
+- Evite caracteres especiais em node IDs (use CamelCase)
+- Mantenha labels < 60 caracteres
+- Use <br/> para quebras de linha dentro de labels
 
-Tipo 4 - classDiagram (opcional):
-\`\`\`mermaid
-classDiagram
-    class Sistema {
-        +Pressao: $$P$$
-        +Volume: $$V$$
-        +Temperatura: $$T$$
-    }
-\`\`\`
-
-**IMPORTANTE SOBRE LATEX EM DIAGRAMAS:**
-- Use $$formula$$ dentro de labels entre aspas: ["Texto $$E=mc^2$$"]
-- Mantenha fórmulas simples (evite comandos complexos em diagramas)
-- Teste: Se a fórmula funciona sozinha em $$...$$, funcionará no diagrama
-
-NUNCA crie 3 do mesmo tipo. SEMPRE use pelo menos 2 tipos diferentes.
+**IMPORTANTE**: Se você não gerar Mermaid, o material será considerado incompleto!
 
 ---
 
@@ -911,19 +915,42 @@ INCORRETO (NÃO FAÇA):
         errors.push(`Found ${inlineDoubleDollar.length} inline $$ formulas (should use single $)`);
       }
       
-      // Check for special characters in Mermaid labels
-      const mermaidBlocks = markdown.match(/```mermaid[\s\S]*?```/g) || [];
-      mermaidBlocks.forEach((block, i) => {
-        const labels = block.match(/\[([^\]]+)\]/g) || [];
-        labels.forEach(label => {
-          if (/[ΔΣṁQ̇Ẇαβγθμπω]/.test(label)) {
-            errors.push(`Mermaid diagram ${i+1} has special characters in label: ${label}`);
+      // ✅ FASE 4: Detectar blocos Mermaid REAIS (não texto aleatório)
+      const mermaidBlocksRegex = /```mermaid\s+([\s\S]*?)```/g;
+      const mermaidBlocks: string[] = [];
+      let match;
+      while ((match = mermaidBlocksRegex.exec(markdown)) !== null) {
+        mermaidBlocks.push(match[0]);
+      }
+      
+      console.log(`[Mermaid] ✅ Found ${mermaidBlocks.length} REAL Mermaid blocks`);
+      
+      // Validar APENAS se há blocos reais
+      if (mermaidBlocks.length > 0) {
+        mermaidBlocks.forEach((block, i) => {
+          const code = block.replace(/```mermaid\s+/g, '').replace(/```$/g, '').trim();
+          
+          // Validar tipo de diagrama
+          const hasValidType = /^(flowchart|graph|stateDiagram|classDiagram|sequenceDiagram|pie)/m.test(code);
+          if (!hasValidType) {
+            errors.push(`Mermaid diagram ${i+1} has INVALID or MISSING type`);
           }
-          if (label.length > 50) {
-            errors.push(`Mermaid diagram ${i+1} has long label (${label.length} chars): ${label.substring(0, 30)}...`);
-          }
+          
+          // Validar labels (comprimento e caracteres especiais)
+          const labels = block.match(/\[([^\]]+)\]/g) || [];
+          labels.forEach(label => {
+            if (/[ΔΣṁQ̇Ẇαβγθμπω]/.test(label)) {
+              errors.push(`Mermaid diagram ${i+1} has special characters in label: ${label}`);
+            }
+            if (label.length > 60) {
+              errors.push(`Mermaid diagram ${i+1} has long label (${label.length} chars): ${label.substring(0, 30)}...`);
+            }
+          });
         });
-      });
+      } else {
+        // ⚠️ CRITICAL: Nenhum diagrama Mermaid encontrado
+        errors.push('⚠️ CRITICAL: NO Mermaid diagrams found in generated material!');
+      }
       
       // Check diagram type diversity
       const diagramTypes = new Set<string>();

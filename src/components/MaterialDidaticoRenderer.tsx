@@ -122,7 +122,21 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
             if (language === 'mermaid' && !inline) {
               const code = String(children).trim();
-              console.log('[MaterialDidaticoRenderer] ✅ Rendering Mermaid block (length:', code.length, ')');
+              
+              // ✅ FASE 5: Validar se código realmente é Mermaid válido
+              if (!code || code.length < 10) {
+                console.error('[MaterialDidaticoRenderer] ❌ Mermaid block is EMPTY or too short:', code);
+                return <div className="text-red-500">⚠️ Diagrama Mermaid vazio</div>;
+              }
+              
+              // Verificar se tem declaração de diagrama válida
+              const hasValidType = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|pie|erDiagram)/m.test(code);
+              if (!hasValidType) {
+                console.error('[MaterialDidaticoRenderer] ❌ Invalid Mermaid type:', code.substring(0, 50));
+                return <div className="text-red-500">⚠️ Tipo de diagrama Mermaid inválido</div>;
+              }
+              
+              console.log('[MaterialDidaticoRenderer] ✅ Rendering VALID Mermaid block (length:', code.length, ')');
               return (
                 <MermaidErrorBoundary key={`mermaid-${node?.position?.start?.line || Math.random()}`}>
                   <MermaidDiagram code={code} />
