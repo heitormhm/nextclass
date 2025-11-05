@@ -356,6 +356,44 @@ function fixLaTeXFormulas(markdown: string): string {
 }
 
 // ==========================================
+// POST-PROCESSING: Force $→$$ in Mermaid Labels
+// ==========================================
+
+/**
+ * Force conversion of single dollars to double dollars in Mermaid labels
+ * This ensures STRICT validation passes by converting $x$ → $$x$$ in quoted labels
+ */
+function forceDollarDoublingInMermaid(markdown: string): string {
+  console.log('[Mermaid] Starting forced $ → $$ conversion in labels...');
+  
+  const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
+  let mermaidBlocksFound = 0;
+  let conversionsCount = 0;
+  
+  const processed = markdown.replace(mermaidRegex, (fullMatch, diagramContent) => {
+    mermaidBlocksFound++;
+    
+    // Process all quoted labels in the diagram
+    const processedContent = diagramContent.replace(/"([^"]+)"/g, (labelMatch: string, labelContent: string) => {
+      // Convert single dollars to double dollars
+      // Regex: match $...$ but NOT $$...$$
+      const converted = labelContent.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, (match: string, formula: string) => {
+        conversionsCount++;
+        console.log(`[Mermaid] Converting: $${formula}$ → $$${formula}$$`);
+        return `$$${formula}$$`;
+      });
+      
+      return `"${converted}"`;
+    });
+    
+    return `\`\`\`mermaid\n${processedContent}\`\`\``;
+  });
+  
+  console.log(`[Mermaid] ✅ Processed ${mermaidBlocksFound} blocks, made ${conversionsCount} conversions ($→$$)`);
+  return processed;
+}
+
+// ==========================================
 // PHASE 2: Markdown Validation
 // ==========================================
 
@@ -958,6 +996,9 @@ INCORRETO (NÃO FAÇA):
     await updateJobProgress(supabase, jobId, 85, 'Processando e validando conteúdo...');
     
     let processedMarkdown = fixLaTeXFormulas(finalMarkdown);
+    
+    // Force single dollar conversion to double dollars in Mermaid labels BEFORE validation
+    processedMarkdown = forceDollarDoublingInMermaid(processedMarkdown);
     
     // Post-generation validation and auto-fix
     const validateContent = (markdown: string): { valid: boolean; errors: string[] } => {
