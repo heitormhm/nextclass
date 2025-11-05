@@ -121,50 +121,96 @@ Generate a photograph that an engineering professor would use as a realistic vis
 
     console.log('[Thumbnail] Calling Lovable AI for image generation...');
 
-    // Use retry logic for image generation
+    // Use retry logic for image generation with fallback
     const generateImage = async () => {
-      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-image-preview',
-          messages: [
-            {
-              role: 'user',
-              content: imagePrompt
-            }
-          ],
-          modalities: ['image', 'text']
-        }),
-      });
+      try {
+        // Tentativa primária: Gemini image generation
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash-image-preview',
+            messages: [
+              {
+                role: 'user',
+                content: imagePrompt
+              }
+            ],
+            modalities: ['image', 'text']
+          }),
+        });
 
-      if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error('[Thumbnail] Lovable AI error:', aiResponse.status, errorText);
-        
-        if (aiResponse.status === 429) {
-          throw new AIError(429, errorText, 'RATE_LIMITED: Excesso de requisições. Aguarde alguns minutos.');
+        if (!aiResponse.ok) {
+          const errorText = await aiResponse.text();
+          console.error('[Thumbnail] Lovable AI error:', aiResponse.status, errorText);
+          
+          if (aiResponse.status === 429) {
+            throw new AIError(429, errorText, 'RATE_LIMITED: Excesso de requisições. Aguarde alguns minutos.');
+          }
+          if (aiResponse.status === 402) {
+            throw new AIError(402, errorText, 'NO_CREDITS: Créditos insuficientes. Adicione créditos ao seu workspace Lovable.');
+          }
+          
+          throw new AIError(aiResponse.status, errorText);
         }
-        if (aiResponse.status === 402) {
-          throw new AIError(402, errorText, 'NO_CREDITS: Créditos insuficientes. Adicione créditos ao seu workspace Lovable.');
+
+        const aiData = await aiResponse.json();
+        const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+        if (!imageUrl) {
+          console.error('[Thumbnail] ❌ No image URL in AI response:', JSON.stringify(aiData).substring(0, 500));
+          throw new Error('No image generated in AI response');
+        }
+
+        return imageUrl;
+        
+      } catch (primaryError: any) {
+        // FALLBACK: Se Gemini falhar com 500, tentar OpenAI
+        if (primaryError instanceof AIError && 
+            primaryError.status === 500 && 
+            primaryError.responseText.includes('internal_server_error')) {
+          
+          console.warn('[Thumbnail] ⚠️ Geração de imagem Gemini falhou, tentando fallback OpenAI...');
+          
+          // Tentar OpenAI gpt-5 com geração de imagem
+          const fallbackResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lovableApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'openai/gpt-5',
+              messages: [{ role: 'user', content: imagePrompt }],
+              modalities: ['image', 'text']
+            }),
+          });
+
+          if (!fallbackResponse.ok) {
+            const errorText = await fallbackResponse.text();
+            console.error('[Thumbnail] ❌ OpenAI fallback também falhou:', fallbackResponse.status, errorText);
+            throw new AIError(fallbackResponse.status, errorText, 'Tanto Gemini quanto OpenAI falharam na geração de imagem');
+          }
+
+          const fallbackData = await fallbackResponse.json();
+          const fallbackImageUrl = fallbackData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+          if (!fallbackImageUrl) {
+            throw new Error('Sem imagem na resposta do OpenAI fallback');
+          }
+
+          console.log('[Thumbnail] ✅ FALLBACK thumbnail gerado com sucesso usando OpenAI');
+          return fallbackImageUrl;
         }
         
-        throw new AIError(aiResponse.status, errorText);
+        throw primaryError;
       }
-
-      return await aiResponse.json();
     };
 
-    const aiData = await retryWithBackoff(generateImage, 2, 2000); // 2 retries, 2s base delay
-    const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-    if (!imageUrl) {
-      console.error('[Thumbnail] ❌ No image URL in AI response:', JSON.stringify(aiData).substring(0, 500));
-      throw new Error('No image generated in AI response');
-    }
+    const imageUrl = await retryWithBackoff(generateImage, 2, 2000);
 
     console.log('[Thumbnail] ✅ Thumbnail generated successfully');
 

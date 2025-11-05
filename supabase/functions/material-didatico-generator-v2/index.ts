@@ -295,50 +295,98 @@ async function searchWeb(
 async function callLovableAI(
   messages: any[],
   lovableApiKey: string,
-  operation: string
+  operation: string,
+  modelOverride?: string
 ): Promise<string> {
-  return retryWithBackoff(async () => {
-    // ✅ FASE 2: Log payload ANTES da chamada para debugging
-    const payload = {
-      model: 'google/gemini-2.5-pro',
-      messages,
-      // ✅ FASE 1: Gemini 2.5 usa temperatura padrão de 1.0 (não configurável)
-      // Parâmetro 'temperature' removido para evitar erro 500 internal_server_error
-    };
-    
-    console.log(`[AI] Calling Lovable AI for ${operation}`);
-    console.log(`[AI] Payload:`, JSON.stringify(payload, null, 2).substring(0, 500) + '...');
-    
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+  const primaryModel = modelOverride || 'google/gemini-2.5-pro';
+  const fallbackModel = 'openai/gpt-5-mini'; // Equivalente ao gemini-2.5-pro
+  
+  // Tentativa com modelo primário
+  try {
+    return await retryWithBackoff(async () => {
+      const payload = {
+        model: primaryModel,
+        messages,
+      };
+      
+      console.log(`[AI] Calling Lovable AI for ${operation} with model: ${primaryModel}`);
+      console.log(`[AI] Payload:`, JSON.stringify(payload, null, 2).substring(0, 500) + '...');
+      
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (!response.ok) {
-      // ✅ Log detalhado do erro ANTES de lançar exceção
-      const errorText = await response.text();
-      console.error(`[AI] ❌ Error Response (${response.status}) for ${operation}:`, errorText);
-      
-      if (response.status === 429) {
-        throw new AIError(429, errorText, 'RATE_LIMITED: Excesso de requisições. Aguarde alguns minutos.');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[AI] ❌ Error Response (${response.status}) for ${operation}:`, errorText);
+        
+        if (response.status === 429) {
+          throw new AIError(429, errorText, 'RATE_LIMITED: Excesso de requisições. Aguarde alguns minutos.');
+        }
+        if (response.status === 402) {
+          throw new AIError(402, errorText, 'NO_CREDITS: Créditos insuficientes. Adicione créditos ao seu workspace Lovable.');
+        }
+        
+        throw new AIError(response.status, errorText);
       }
-      if (response.status === 402) {
-        throw new AIError(402, errorText, 'NO_CREDITS: Créditos insuficientes. Adicione créditos ao seu workspace Lovable.');
-      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      console.log(`[AI] ✅ ${operation} completed successfully (${content.length} chars)`);
+      return content;
+    }, operation, 2, 10000);
+  } catch (primaryError: any) {
+    // Se o modelo primário falhar com 500 internal_server_error, tentar fallback
+    if (primaryError instanceof AIError && 
+        primaryError.status === 500 && 
+        primaryError.responseText.includes('internal_server_error')) {
       
-      // Throw AIError with status for proper retry logic
-      throw new AIError(response.status, errorText);
+      console.warn(`[AI] ⚠️ Modelo primário (${primaryModel}) falhou com internal_server_error, tentando modelo fallback (${fallbackModel})`);
+      
+      // Tentativa com modelo fallback
+      return await retryWithBackoff(async () => {
+        const payload = {
+          model: fallbackModel,
+          messages,
+        };
+        
+        console.log(`[AI] 🔄 FALLBACK: Calling Lovable AI for ${operation} with model: ${fallbackModel}`);
+        
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[AI] ❌ FALLBACK Error Response (${response.status}) for ${operation}:`, errorText);
+          throw new AIError(response.status, errorText, `Modelo fallback também falhou: ${errorText}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || '';
+        
+        if (!content) {
+          throw new Error('Sem conteúdo na resposta do AI fallback');
+        }
+        
+        console.log(`[AI] ✅ FALLBACK ${operation} completado com sucesso usando ${fallbackModel} (${content.length} chars)`);
+        return content;
+      }, `Lovable AI Fallback: ${operation}`, 2, 10000);
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
-    console.log(`[AI] ✅ ${operation} completed successfully (${content.length} chars)`);
-    return content;
-  }, operation, 2, 10000); // Only 2 retries for AI calls, 10s delay
+    
+    // Se não for 500 internal_server_error, ou se fallback também falhar, relançar
+    throw primaryError;
+  }
 }
 
 // ==========================================
