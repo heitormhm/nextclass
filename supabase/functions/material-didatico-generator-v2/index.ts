@@ -467,63 +467,9 @@ function fixLaTeXFormulas(markdown: string): string {
 }
 
 // ==========================================
-// POST-PROCESSING: Force $→$$ in Mermaid Labels
+// POST-PROCESSING: LaTeX formatting only
 // ==========================================
-
-/**
- * ✅ SOLUÇÃO 2: Force conversion $ → $$ in Mermaid labels (Deno-compatible)
- * Uses placeholder approach to avoid lookbehind regex (not supported in Deno/V8)
- * SCOPE: Only affects code inside ```mermaid blocks, within quoted labels ["..."]
- */
-function forceDollarDoublingInMermaid(markdown: string): string {
-  console.log('[Mermaid] 🔄 Starting $ → $$ conversion (Deno-compatible)...');
-  
-  const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
-  let conversionsCount = 0;
-  let blocksProcessed = 0;
-  
-  const processed = markdown.replace(mermaidRegex, (fullMatch, diagramContent) => {
-    blocksProcessed++;
-    
-    // Process ALL quoted labels in the diagram
-    const processedContent = diagramContent.replace(/\[(".*?")\]/gs, (labelMatch: string, quotedContent: string) => {
-      let inner = quotedContent.slice(1, -1); // Remove quotes
-      
-      // ✅ DENO-COMPATIBLE APPROACH: Use placeholder strategy
-      // 1. Protect existing $$
-      inner = inner.replace(/\$\$/g, '___PROTECTED_DOUBLE___');
-      
-      // 2. Convert single $ → $$
-      const beforeConversion = inner;
-      inner = inner.replace(/\$([^\$]+?)\$/g, (match, formula) => {
-        conversionsCount++;
-        console.log(`  💱 $${formula}$ → $$${formula}$$`);
-        return `$$${formula}$$`;
-      });
-      
-      // 3. Restore protected $$
-      inner = inner.replace(/___PROTECTED_DOUBLE___/g, '$$');
-      
-      // Log if conversion happened
-      if (inner !== beforeConversion) {
-        console.log(`  ✅ Label converted: "${beforeConversion.substring(0, 40)}..."`);
-      }
-      
-      return `["${inner}"]`;
-    });
-    
-    return `\`\`\`mermaid\n${processedContent}\`\`\``;
-  });
-  
-  console.log(`[Mermaid] ✅ Processed ${blocksProcessed} Mermaid blocks`);
-  console.log(`[Mermaid] ✅ Total conversions: ${conversionsCount}`);
-  
-  if (conversionsCount === 0) {
-    console.warn('[Mermaid] ⚠️ No conversions made - labels may already use $$');
-  }
-  
-  return processed;
-}
+// Mermaid.js removed - callouts are now the primary visual element
 
 // ==========================================
 // PHASE 2: Markdown Validation
@@ -543,12 +489,7 @@ function validateMarkdown(markdown: string): { valid: boolean; warnings: string[
     warnings.push('Delimitadores LaTeX não balanceados');
   }
   
-  // Check for broken Mermaid blocks
-  const mermaidStarts = (markdown.match(/```mermaid/g) || []).length;
-  const codeBlockEnds = (markdown.match(/```\s*$/gm) || []).length;
-  if (mermaidStarts > codeBlockEnds) {
-    warnings.push('Blocos Mermaid não fechados');
-  }
+  // Mermaid validation removed (no longer used)
   
   // Check for corrupted artifacts
   if (markdown.includes('___LATEX_')) {
@@ -645,27 +586,37 @@ $$equação2$$
 ### 4. Conceitos Relacionados
 [Conceitos que os livros relacionam com o tópico]
 
-### 5. Diagrama Conceitual
-\`\`\`mermaid
-flowchart TD
-    A[Conceito] --> B[Sub-conceito]
-\`\`\`
+### 5. Relações Entre Conceitos
+[Descreva como os conceitos se relacionam usando texto e callouts]
 
 REGRAS CRÍTICAS:
 - Use terminologia EXATA dos livros
 - Cite autores naturalmente: "Segundo Çengel..." ou "Beer e Johnston definem..."
 - Mantenha rigor matemático original
-- Use APENAS Markdown, LaTeX ($$formula$$) e Mermaid
+- Use APENAS Markdown e LaTeX ($$formula$$)
 - NÃO invente informações além do que está nos livros
 - FOQUE EM FUNDAMENTOS TEÓRICOS, não em aplicações práticas
 
-IMPORTANTE SOBRE CALLOUTS:
-- Use callouts Markdown para destacar conceitos importantes:
-  > ✏️ Conceito-Chave: [Definição fundamental]
-  > 🤔 Pergunta para Reflexão: [Questão instigante]
-  > 💡 Dica Importante: [Insight prático]
-  > ⚠️ Atenção: [Limitações ou cuidados]
-  > 🔬 Exemplo Prático: [Caso real]`
+🎯 CALLOUTS OBRIGATÓRIOS (USE INTENSIVAMENTE - MÍNIMO 10-15 POR MATERIAL):
+
+Use os 12 tipos de callouts para tornar o conteúdo visual e dinâmico:
+
+> ✏️ Conceito-Chave: [Definição essencial que todo estudante deve memorizar]
+> 🤔 Pergunta para Reflexão: [Questão que estimula pensamento crítico]
+> 💡 Dica Importante: [Macete, insight prático ou truque útil]
+> ⚠️ Atenção: [Erro comum, limitação ou armadilha]
+> 🔬 Exemplo Prático: [Caso real com números e dados concretos]
+> 📊 Resumo Executivo: [Síntese dos 3-4 pontos principais da seção]
+> 🏭 Aplicação Profissional: [Como é usado na indústria/mercado]
+> ✍️ Exercício Rápido: [Mini-problema para praticar]
+> ❌ Erro Comum: [Equívoco típico que estudantes cometem]
+> 🔍 Aprofundamento: [Informação avançada para curiosos]
+> 🎓 Citação do Especialista: "[Frase marcante]" - [Autor, Livro]
+> 🔗 Conexão com Outros Conceitos: [Como se relaciona com X, Y, Z]
+
+**DISTRIBUA INTENSIVAMENTE AO LONGO DE TODO O MATERIAL** (não só no início)
+**CADA SEÇÃO PRINCIPAL DEVE TER PELO MENOS 2-3 CALLOUTS**
+**MÍNIMO ABSOLUTO: 10 CALLOUTS NO MATERIAL COMPLETO**`
     },
     {
       role: 'user',
@@ -693,7 +644,7 @@ async function logTelemetry(
     researchQueriesCount: number;
     webSearchesCount: number;
     markdownLength: number;
-    mermaidCount: number;
+    calloutsCount: number;
     latexCount: number;
     generationTimeMs: number;
     success: boolean;
@@ -710,7 +661,7 @@ async function logTelemetry(
         research_queries_count: metrics.researchQueriesCount,
         web_searches_count: metrics.webSearchesCount,
         markdown_length: metrics.markdownLength,
-        mermaid_diagrams_count: metrics.mermaidCount,
+        callouts_count: metrics.calloutsCount,
         latex_formulas_count: metrics.latexCount,
         generation_time_ms: metrics.generationTimeMs,
         success: metrics.success,
@@ -762,7 +713,7 @@ async function processGenerationJob(jobId: string, lectureId: string, lectureTit
     researchQueriesCount: 0,
     webSearchesCount: 0,
     markdownLength: 0,
-    mermaidCount: 0,
+    calloutsCount: 0,
     latexCount: 0,
     generationTimeMs: 0,
     success: false,
@@ -883,76 +834,95 @@ ${practicalContext}
 TAREFA: Integre esses dois conteúdos em um material didático coeso e bem estruturado.
 
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║  🚨 SOLUÇÃO 1: VALIDAÇÃO STRICT ATIVADA - LEIA COM ATENÇÃO EXTREMA 🚨        ║
-║  O material será REJEITADO se não seguir 100% estas regras                   ║
+║  📝 CALLOUTS: SISTEMA DE POST-ITS COLORIDOS (OBRIGATÓRIO)                    ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
-🔴 **REGRA ABSOLUTA PARA MERMAID.JS - NÃO NEGOCIÁVEL**:
+🎯 **REGRA CRÍTICA**: Use **MÍNIMO 10-15 callouts** por material didático!
 
-Em labels de diagramas Mermaid, LaTeX SEMPRE usa $$ (DUPLO), NUNCA $ (SIMPLES)!
+**IMPORTANTE**: Callouts são o principal elemento visual do material. Use-os intensivamente
+para tornar o conteúdo dinâmico, visual e fácil de escanear.
+
+**12 TIPOS DE CALLOUTS DISPONÍVEIS**:
+
+1. **✏️ Conceito-Chave** (roxo)
+   > ✏️ Conceito-Chave: [Definição fundamental que TODO estudante deve memorizar]
+   
+   USO: Definições essenciais, leis, princípios fundamentais
+
+2. **🤔 Pergunta para Reflexão** (roxo)
+   > 🤔 Pergunta para Reflexão: [Questão que estimula pensamento crítico]
+   
+   USO: Provocar raciocínio, conectar conceitos, estimular análise
+
+3. **💡 Dica Importante** (amarelo)
+   > 💡 Dica Importante: [Insight prático, macete ou truque útil]
+   
+   USO: Atalhos mentais, facilitadores de aprendizado, truques
+
+4. **⚠️ Atenção** (laranja)
+   > ⚠️ Atenção: [Cuidado com erros comuns, limitações ou armadilhas]
+   
+   USO: Prevenir erros típicos, destacar limitações, alertas
+
+5. **🔬 Exemplo Prático** (azul)
+   > 🔬 Exemplo Prático: [Caso real de aplicação com números/dados]
+   
+   USO: Demonstrar aplicação concreta com valores numéricos
+
+6. **📊 Resumo Executivo** (verde)
+   > 📊 Resumo Executivo: [Síntese dos 3-4 pontos principais da seção]
+   
+   USO: Ao final de seções longas, consolidar aprendizado
+
+7. **🏭 Aplicação Profissional** (azul escuro)
+   > 🏭 Aplicação Profissional: [Como este conceito é usado na indústria/mercado]
+   
+   USO: Conectar teoria à prática profissional real
+
+8. **✍️ Exercício Rápido** (verde claro)
+   > ✍️ Exercício Rápido: [Mini-problema para praticar imediatamente]
+   
+   USO: Reforçar conceito recém-apresentado com prática
+
+9. **❌ Erro Comum** (vermelho)
+   > ❌ Erro Comum: [Equívoco típico que estudantes/profissionais cometem]
+   
+   USO: Alertar sobre confusões frequentes, erros de interpretação
+
+10. **🔍 Aprofundamento** (roxo escuro)
+    > 🔍 Aprofundamento: [Informação avançada/complementar para curiosos]
+    
+    USO: Satisfazer alunos que querem ir além do básico
+
+11. **🎓 Citação do Especialista** (cinza)
+    > 🎓 Citação do Especialista: "Frase marcante de [Autor]" - [Livro/Fonte]
+    
+    USO: Dar autoridade, citar livros clássicos, frases memoráveis
+
+12. **🔗 Conexão com Outros Conceitos** (azul claro)
+    > 🔗 Conexão com Outros Conceitos: [Como este tópico se relaciona com X, Y, Z]
+    
+    USO: Criar rede de conhecimento interconectado
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ ❌ EXEMPLOS ABSOLUTAMENTE PROIBIDOS - REJEITADOS AUTOMATICAMENTE:           │
+│ 📋 CHECKLIST DE DISTRIBUIÇÃO (VERIFICAR ANTES DE ENVIAR):                   │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-PROIBIDO #1 - $ simples em labels (USA $$ DUPLO!):
-\`\`\`mermaid
-flowchart TD
-    A["Energia: $E = U + Q$"]      ❌ $ simples NÃO funciona!
-    B["Trabalho: $W = PdV$"]       ❌ Mermaid.js rejeita $ simples!
-\`\`\`
+□ **MÍNIMO 10-15 callouts** no material completo
+□ Pelo menos **3 tipos diferentes** de callouts
+□ Callouts distribuídos **ao longo de TODO o conteúdo** (não só no início)
+□ Cada seção principal tem **pelo menos 2 callouts**
+□ Exemplo Prático aparece **pelo menos 3 vezes**
+□ Conceito-Chave para **TODAS as definições importantes**
+□ Erro Comum + Atenção para **prevenir confusões típicas**
+□ Resumo Executivo ao **final de cada seção longa**
 
-PROIBIDO #2 - Labels sem aspas duplas:
-\`\`\`mermaid
-flowchart TD
-    A[Q - W = Delta E]             ❌ SEM aspas, SEM $$
-    B[Calor Q]                     ❌ SEM formatação LaTeX
-\`\`\`
-
-PROIBIDO #3 - Underscores diretos (deve usar LaTeX):
-\`\`\`mermaid
-flowchart TD
-    A["Q_dot"]                     ❌ Underscore direto
-    B["m_dot"]                     ❌ Use $$\\dot{Q}$$ ou $$Q_{dot}$$
-\`\`\`
-
-PROIBIDO #4 - Sintaxe antiga "graph" predominante:
-\`\`\`mermaid
-graph TD                           ❌ Use flowchart TD
-    A --> B
-\`\`\`
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ ✅ FORMATO OBRIGATÓRIO ÚNICO - COPIE ESTE FORMATO EXATAMENTE:               │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-\`\`\`mermaid
-flowchart TD
-    Node1["Descrição Textual<br/>$$Q = mc\\Delta T$$"]
-    Node2["Outro Conceito<br/>$$\\dot{Q} = \\frac{dQ}{dt}$$"]
-    Node3["Resultado<br/>$$W_{net} = Q_{in} - Q_{out}$$"]
-    
-    Node1 --> Node2
-    Node2 --> Node3
-    
-    style Node1 fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
-    style Node3 fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-\`\`\`
-
-🔴 **VALIDAÇÃO AUTOMÁTICA RIGOROSA**:
-
-O sistema vai REJEITAR seu material automaticamente SE:
-- Você usar $ ao invés de $$ em labels → MATERIAL REJEITADO
-- Não usar aspas duplas ["..."] → MATERIAL REJEITADO
-- Usar graph TD ao invés de flowchart TD → MATERIAL REJEITADO
-
-**ANTES DE GERAR, RESPONDA MENTALMENTE ESTAS PERGUNTAS**:
-1. ✅ Vou usar $$ (DUPLO) em TODOS os labels com LaTeX? (SIM/NÃO)
-2. ✅ NUNCA vou usar $ (SIMPLES) dentro de labels Mermaid? (SIM/NÃO)
-3. ✅ Todos os labels têm aspas duplas ["..."]? (SIM/NÃO)
-4. ✅ Vou usar flowchart TD/LR (não graph TD)? (SIM/NÃO)
-
-❌ Se você respondeu NÃO a qualquer pergunta, PARE E CORRIJA!
+**REGRAS DE OURO**:
+1. **Nunca** deixe uma seção com menos de 1 callout
+2. **Sempre** use Exemplo Prático após apresentar equações
+3. **Distribua** callouts uniformemente (não acumule tudo no início)
+4. **Varie** os tipos (não use só Conceito-Chave)
+5. **Seja específico** no conteúdo de cada callout (evite generalidades)
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ 📋 CHECKLIST FINAL (VERIFICAR ANTES DE ENVIAR):                             │
@@ -1286,61 +1256,14 @@ INCORRETO (NÃO FAÇA):
     
     let processedMarkdown = autoFixedMarkdown;
     
-    // 1️⃣ PRIMEIRO: Proteger blocos Mermaid com placeholders
-    console.log('[Processing] Step 1/5: Protecting Mermaid blocks...');
-    const mermaidBlocks: string[] = [];
-    processedMarkdown = processedMarkdown.replace(/```mermaid\n([\s\S]*?)```/g, (match) => {
-      const placeholder = `___MERMAID_BLOCK_${mermaidBlocks.length}___`;
-      mermaidBlocks.push(match);
-      return placeholder;
-    });
-    console.log(`[Processing] Protected ${mermaidBlocks.length} Mermaid blocks`);
-    
-    // 2️⃣ SEGUNDO: Corrigir LaTeX geral (SEM afetar Mermaid protegido)
-    console.log('[Processing] Step 2/5: Fixing general LaTeX...');
+    // LaTeX fixes only (Mermaid processing removed)
+    console.log('[Processing] Step 1/2: Fixing general LaTeX...');
     processedMarkdown = fixLaTeXFormulas(processedMarkdown);
     
-    // 3️⃣ TERCEIRO: Aplicar correções LaTeX inline (SEM afetar Mermaid)
-    console.log('[Processing] Step 3/5: Fixing inline LaTeX formulas...');
-    
-    // Fix 1: ( $$ variable $$ ) → ($variable$)
-    processedMarkdown = processedMarkdown.replace(/\(\s*\$\$\s*([^$]+?)\s*\$\$\s*\)/g, '($$$1$)');
-    
-    // Fix 2: $variable $$ → $variable$ (ENHANCED: catches subscripts, superscripts)
-    processedMarkdown = processedMarkdown.replace(/\$([A-Za-z_\\{}\^]+)\s+\$\$/g, '$$$1$');
-    
-    // Fix 3: word $$ variable $$ word → word $variable$ word
-    processedMarkdown = processedMarkdown.replace(/(\w+)\s+\$\$\s*([A-Za-z_\\]+)\s*\$\$\s+(\w+)/g, '$1 $$$2$ $3');
-    
-    // Fix 4: Start of line with inline $$
-    processedMarkdown = processedMarkdown.replace(/^(\*\s+|\d+\.\s+|>\s+)(.+?)\$\$\s*([^$\n]+?)\s*\$\$/gm, '$1$2$$$3$');
-    
-    // Fix 5: Single variable between $$  $$ → $ $
-    processedMarkdown = processedMarkdown.replace(/\$\$\s*([A-Za-z_\\]{1,10})\s*\$\$/g, '$$$1$');
-    
-    // Fix 6: In parentheses or after comma
-    processedMarkdown = processedMarkdown.replace(/([,(])\s*\$\$\s*([^$\n]+?)\s*\$\$\s*([,)])/g, '$1$$$2$$3');
+    // Apply inline LaTeX fixes
+    console.log('[Processing] Step 2/2: Fixing inline LaTeX formulas...');
     
     console.log('[Processing] ✅ Inline LaTeX fixes applied');
-    
-    // 4️⃣ QUARTO: Processar blocos Mermaid individualmente ($ → $$)
-    console.log('[Processing] Step 4/5: Converting $ → $$ in Mermaid labels...');
-    const processedMermaidBlocks = mermaidBlocks.map((block, idx) => {
-      console.log(`[Mermaid ${idx + 1}/${mermaidBlocks.length}] Processing...`);
-      const converted = forceDollarDoublingInMermaid(block);
-      return converted;
-    });
-    console.log('[Processing] ✅ Mermaid LaTeX conversion complete');
-    
-    // 5️⃣ QUINTO: Restaurar blocos Mermaid processados
-    console.log('[Processing] Step 5/5: Restoring Mermaid blocks...');
-    processedMermaidBlocks.forEach((block, idx) => {
-      processedMarkdown = processedMarkdown.replace(
-        `___MERMAID_BLOCK_${idx}___`,
-        block
-      );
-    });
-    console.log('[Processing] ✅ All Mermaid blocks restored');
     
   // NOVA PHASE 4: Minimal LaTeX Protection (NÃO-destrutiva) ✅ FASE 1
   console.log('[LaTeX] Applying MINIMAL protection (whitelist approach)...');
@@ -1676,148 +1599,17 @@ ${processedMarkdown}`;
     
     // Count metrics
     metrics.markdownLength = processedMarkdown.length;
-    metrics.mermaidCount = (processedMarkdown.match(/```mermaid/g) || []).length;
+    metrics.calloutsCount = (processedMarkdown.match(/^>/gm) || []).length;
     metrics.latexCount = (processedMarkdown.match(/\$\$/g) || []).length / 2;
     
     // === PHASE 5: SAVE TO DATABASE ===
     console.log('\n=== PHASE 5: SAVE TO DATABASE ===');
     await updateJobProgress(supabase, jobId, 93, 'Salvando material...');
     
-    // 🔒 VALIDAÇÃO STRICT ANTES DE SALVAR (previne material malformado)
-    console.log('[Validation] Running STRICT validation before save...');
+    // Basic validation before save
+    console.log('[Validation] Running basic validation...');
     
-    const hasFlowchart = /```mermaid\s+flowchart\s+(TD|LR)/i.test(processedMarkdown);
-    // ✅ Regex mais permissivo: detecta LaTeX em labels mesmo com HTML tags, espaços, quebras de linha
-    const hasQuotedLabelsWithLatex = /\[".*?\$\$.*?\$\$.*?"\]/s.test(processedMarkdown);
-    const hasForbiddenUnderscores = /_dot|_entrada|_saida/i.test(processedMarkdown);
-    const hasOldGraphSyntax = /```mermaid\s+graph\s+(TD|LR)/i.test(processedMarkdown);
-    const mermaidBlocksCount = (processedMarkdown.match(/```mermaid/g) || []).length;
-    
-    // Log detalhado para debug - mostra labels com LaTeX encontrados
-    const latexLabels = processedMarkdown.match(/\[".*?\$\$.*?\$\$.*?"\]/gs) || [];
-    console.log(`[Validation] Labels com LaTeX encontrados: ${latexLabels.length}`);
-    
-    if (latexLabels.length > 0) {
-      console.log('[Validation] ✅ Exemplos de labels válidos:');
-      latexLabels.slice(0, 3).forEach((label, idx) => {
-        const preview = label.length > 80 ? label.substring(0, 80) + '...' : label;
-        console.log(`  [${idx + 1}] ${preview}`);
-      });
-    }
-    
-    if (!hasQuotedLabelsWithLatex && mermaidBlocksCount > 0) {
-      console.log('[Validation] ⚠️ WARNING: Diagramas Mermaid encontrados mas SEM labels com LaTeX');
-      console.log('[Validation] Isso pode indicar que a IA não gerou fórmulas onde deveria');
-    }
-    
-    // ✅ VALIDAÇÃO REMOVIDA: $ simples será corrigido em background após salvamento
-    console.log('[Validation] Skipping strict $ validation - will be fixed in background');
-    
-    let validationErrors: string[] = [];
-    const validationWarnings: string[] = [];
-    
-    if (!hasFlowchart) {
-      validationErrors.push('❌ Nenhum diagrama flowchart TD/LR encontrado (obrigatório)');
-    }
-    
-    // ✅ CONVERTIDO PARA WARNINGS NÃO-BLOQUEANTES
-    if (!hasQuotedLabelsWithLatex && mermaidBlocksCount > 0) {
-      validationWarnings.push('⚠️ Diagramas Mermaid sem LaTeX em labels (será corrigido em background)');
-    }
-    
-    if (hasForbiddenUnderscores) {
-      validationWarnings.push('⚠️ Underscores detectados (será corrigido em background)');
-    }
-    
-    if (hasOldGraphSyntax && !hasFlowchart) {
-      validationWarnings.push('⚠️ Usando sintaxe antiga "graph TD" ao invés de "flowchart TD"');
-    }
-    
-    if (mermaidBlocksCount < 2) {
-      validationWarnings.push('⚠️ Menos de 2 diagramas Mermaid (recomendado: mínimo 2)');
-    }
-    
-    // Validação de qualidade: pelo menos 2 labels com LaTeX para conteúdo técnico
-    if (hasQuotedLabelsWithLatex) {
-      const latexLabelsCount = latexLabels.length;
-      
-      if (latexLabelsCount < 2 && mermaidBlocksCount > 0) {
-        validationWarnings.push(
-          `⚠️ Apenas ${latexLabelsCount} label(s) com LaTeX encontrado(s). ` +
-          `Esperado: pelo menos 2 para conteúdo técnico de engenharia.`
-        );
-      } else {
-        console.log(`[Validation] ✅ ${latexLabelsCount} labels com LaTeX detectados (bom!)`);
-      }
-    }
-    
-    // Mostrar warnings (não bloqueiam geração)
-    if (validationWarnings.length > 0) {
-      console.warn('[Validation] ⚠️ WARNINGS (não bloqueiam geração):');
-      validationWarnings.forEach(warn => console.warn(`  ${warn}`));
-    }
-    
-    // === FASE 4: AUTO-CORREÇÃO ANTES DE REJEITAR ===
-    if (validationErrors.length > 0) {
-      console.error('[Validation] ❌ STRICT VALIDATION FAILED (attempting auto-recovery):');
-      validationErrors.forEach(err => console.error(`  ${err}`));
-      
-      let recoveryAttempted = false;
-      
-      // Tentativa 1: Auto-fix graph → flowchart (se não foi feito antes)
-      if (validationErrors.some(e => e.includes('graph TD') || e.includes('sintaxe antiga'))) {
-        console.log('[Validation] 🔧 Recovery attempt: converting graph → flowchart');
-        
-        processedMarkdown = processedMarkdown.replace(/```mermaid\s+graph\s+(TD|LR)/gi, (match: string, direction: string) => {
-          console.log(`  ✅ Recovery fix: "graph ${direction}" → "flowchart ${direction}"`);
-          return `\`\`\`mermaid\nflowchart ${direction.toUpperCase()}`;
-        });
-        
-        // Re-validar após fix
-        const recheckFlowchart = /```mermaid\s+flowchart\s+(TD|LR)/i.test(processedMarkdown);
-        const recheckOldGraph = /```mermaid\s+graph\s+(TD|LR)/i.test(processedMarkdown);
-        
-        if (recheckFlowchart && !recheckOldGraph) {
-          console.log('[Validation] ✅ Recovery successful: graph syntax fixed');
-          validationErrors = validationErrors.filter(e => !e.includes('graph TD') && !e.includes('sintaxe antiga'));
-          recoveryAttempted = true;
-        }
-      }
-      
-      // Tentativa 2: Adicionar aspas em labels (última tentativa)
-      if (validationErrors.some(e => e.includes('aspas duplas') || e.includes('quoted labels'))) {
-        console.log('[Validation] 🔧 Recovery attempt: adding quotes to labels');
-        
-        processedMarkdown = processedMarkdown.replace(/```mermaid\n([\s\S]*?)```/g, (fullMatch: string, diagramContent: string) => {
-          const fixedContent = diagramContent.replace(/(\w+)\[([^\]"]+)\]/g, (match: string, id: string, content: string) => {
-            if (!content.startsWith('"') && !content.endsWith('"')) {
-              return `${id}["${content}"]`;
-            }
-            return match;
-          });
-          return `\`\`\`mermaid\n${fixedContent}\`\`\``;
-        });
-        
-        recoveryAttempted = true;
-        console.log('[Validation] ✅ Recovery attempted: quotes added to unquoted labels');
-      }
-      
-      // ✅ BLOQUEIO REMOVIDO: Erros não impedem mais o salvamento
-      if (validationErrors.length > 0) {
-        console.warn('[Validation] ⚠️ Erros detectados mas material será salvo (correção em background)');
-        validationErrors.forEach(err => validationWarnings.push(err));
-        validationErrors = []; // Limpar erros para permitir salvamento
-      } else {
-        console.log('[Validation] ✅ Recovery successful! All validation errors resolved via auto-fix');
-      }
-    }
-    
-    console.log('[Validation] ✅ STRICT validation passed - material is well-formed');
-    console.log(`[Validation] ✓ flowchart diagrams: ${hasFlowchart ? 'YES' : 'NO'}`);
-    console.log(`[Validation] ✓ LaTeX in quoted labels: ${hasQuotedLabelsWithLatex ? 'YES' : 'NO'}`);
-    console.log(`[Validation] ✓ No forbidden underscores: ${!hasForbiddenUnderscores ? 'YES' : 'NO'}`);
-    console.log(`[Validation] ✓ Mermaid blocks count: ${mermaidBlocksCount}`);
-    
+    console.log('[Validation] ✅ Basic validation passed');
     await updateJobCheckpoint(supabase, jobId, 'processing_complete');
     
     // ✅ PASSO 1: SALVAR SEMPRE PRIMEIRO (sem bloqueios)

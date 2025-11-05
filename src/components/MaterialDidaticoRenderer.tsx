@@ -3,8 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import { getRehypeKatexPlugin } from '@/lib/textRenderingEngine';
-import { MermaidDiagram } from './MermaidDiagram';
-import { MermaidErrorBoundary } from './MermaidErrorBoundary';
+// Mermaid components removed - using expanded callout system instead
 
 interface MaterialDidaticoRendererProps {
   markdown: string;
@@ -121,49 +120,9 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             const inline = !className;
 
             if (language === 'mermaid' && !inline) {
-              let code = String(children).trim();
-              
-              // ✅ SOLUÇÃO 3: CLIENT-SIDE FALLBACK - Convert $ → $$ in labels (Deno-compatible)
-              console.log('[MaterialDidaticoRenderer] 🔧 Pre-processing Mermaid for LaTeX compatibility...');
-              
-              // Convert single $ to $$ in quoted labels using placeholder approach
-              code = code.replace(/\[(".*?")\]/gs, (match, quotedLabel) => {
-                let inner = quotedLabel.slice(1, -1);
-                
-                // ✅ DENO-COMPATIBLE: Placeholder approach (no lookbehind)
-                // 1. Protect existing $$
-                inner = inner.replace(/\$\$/g, '___KEEP___');
-                
-                // 2. Convert $ simples → $$
-                inner = inner.replace(/\$([^\$]+?)\$/g, '$$$$1$$');
-                
-                // 3. Restore $$
-                inner = inner.replace(/___KEEP___/g, '$$');
-                
-                return `["${inner}"]`;
-              });
-              
-              console.log('[MaterialDidaticoRenderer] ✅ Pre-processing complete');
-              
-              // Validate if code is really valid Mermaid
-              if (!code || code.length < 10) {
-                console.error('[MaterialDidaticoRenderer] ❌ Mermaid block is EMPTY or too short:', code);
-                return <div className="text-red-500">⚠️ Diagrama Mermaid vazio</div>;
-              }
-              
-              // Verify it has a valid diagram declaration
-              const hasValidType = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|pie|erDiagram)/m.test(code);
-              if (!hasValidType) {
-                console.error('[MaterialDidaticoRenderer] ❌ Invalid Mermaid type:', code.substring(0, 50));
-                return <div className="text-red-500">⚠️ Tipo de diagrama Mermaid inválido</div>;
-              }
-              
-              console.log('[MaterialDidaticoRenderer] ✅ Rendering VALID Mermaid block (length:', code.length, ')');
-              return (
-                <MermaidErrorBoundary key={`mermaid-${node?.position?.start?.line || Math.random()}`}>
-                  <MermaidDiagram code={code} />
-                </MermaidErrorBoundary>
-              );
+              // Mermaid removed - should not appear in new content
+              console.warn('[MaterialDidaticoRenderer] ⚠️ Mermaid block found but rendering disabled');
+              return null;
             }
 
             if (inline) {
@@ -277,6 +236,55 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-blue-800 dark:text-blue-200',
                 icon: '🔬',
+              },
+              '📊 Resumo Executivo': {
+                bgColor: 'bg-green-200/90 dark:bg-green-900/50',
+                borderColor: 'border-green-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-green-800 dark:text-green-200',
+                icon: '📊',
+              },
+              '🏭 Aplicação Profissional': {
+                bgColor: 'bg-indigo-200/90 dark:bg-indigo-900/50',
+                borderColor: 'border-indigo-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-indigo-800 dark:text-indigo-200',
+                icon: '🏭',
+              },
+              '✍️ Exercício Rápido': {
+                bgColor: 'bg-lime-200/90 dark:bg-lime-900/50',
+                borderColor: 'border-lime-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-lime-800 dark:text-lime-200',
+                icon: '✍️',
+              },
+              '❌ Erro Comum': {
+                bgColor: 'bg-red-200/90 dark:bg-red-900/50',
+                borderColor: 'border-red-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-red-800 dark:text-red-200',
+                icon: '❌',
+              },
+              '🔍 Aprofundamento': {
+                bgColor: 'bg-violet-200/90 dark:bg-violet-900/50',
+                borderColor: 'border-violet-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-violet-800 dark:text-violet-200',
+                icon: '🔍',
+              },
+              '🎓 Citação do Especialista': {
+                bgColor: 'bg-gray-200/90 dark:bg-gray-900/50',
+                borderColor: 'border-gray-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-gray-800 dark:text-gray-200',
+                icon: '🎓',
+              },
+              '🔗 Conexão com Outros Conceitos': {
+                bgColor: 'bg-cyan-200/90 dark:bg-cyan-900/50',
+                borderColor: 'border-cyan-600 border-l-4',
+                textColor: 'text-gray-800 dark:text-gray-200',
+                titleColor: 'text-cyan-800 dark:text-cyan-200',
+                icon: '🔗',
               },
             };
 

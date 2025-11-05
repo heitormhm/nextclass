@@ -1033,6 +1033,7 @@ export type Database = {
       }
       material_v2_jobs: {
         Row: {
+          callouts_count: number | null
           created_at: string
           error_message: string | null
           id: string
@@ -1046,6 +1047,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          callouts_count?: number | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -1059,6 +1061,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          callouts_count?: number | null
           created_at?: string
           error_message?: string | null
           id?: string

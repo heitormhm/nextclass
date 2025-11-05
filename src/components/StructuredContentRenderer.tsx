@@ -1,7 +1,6 @@
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { MermaidDiagram } from './MermaidDiagram';
-import { MermaidErrorBoundary } from './MermaidErrorBoundary';
+// Callout components (Mermaid removed)
 import { InteractiveChart } from './InteractiveChart';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import katex from 'katex';
@@ -267,15 +266,12 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
         );
       
       case 'cronograma_gantt':
+        // Mermaid removed - render as simple text
         return (
-          <MermaidErrorBoundary key={index}>
-            <MermaidDiagram
-              code={bloco.definicao_mermaid || ''}
-              title={bloco.titulo || '⏱️ Cronograma da Aula'}
-              description="Estrutura temporal e sequência de atividades"
-              icon="📅"
-            />
-          </MermaidErrorBoundary>
+          <div key={index} className="bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-900/30 dark:to-slate-800/30 border-l-4 border-slate-600 p-5 rounded-xl shadow-md my-6">
+            <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-3 text-lg">📅 {bloco.titulo || 'Cronograma'}</h4>
+            <p className="text-slate-700 dark:text-slate-300">{bloco.descricao || 'Visualização de cronograma'}</p>
+          </div>
         );
 
       case 'momento_pedagogico':
@@ -402,14 +398,10 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
           organograma: '🏢' 
         };
         return (
-          <MermaidErrorBoundary key={index}>
-            <MermaidDiagram
-              code={bloco.definicao_mermaid || ''}
-              title={bloco.titulo || ''}
-              description={bloco.descricao || ''}
-              icon={icons[bloco.tipo] || '📊'}
-            />
-          </MermaidErrorBoundary>
+          <div key={index} className="bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-900/30 dark:to-slate-800/30 border-l-4 border-slate-600 p-5 rounded-xl shadow-md my-6">
+            <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-3 text-lg">{icons[bloco.tipo] || '📊'} {bloco.titulo || 'Diagrama'}</h4>
+            <p className="text-slate-700 dark:text-slate-300">{bloco.descricao || 'Visualização'}</p>
+          </div>
         );
       
       case 'grafico':

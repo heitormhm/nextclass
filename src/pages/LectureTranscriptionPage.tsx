@@ -46,8 +46,7 @@ import { GenerateLectureDeepSearchSummary } from '@/components/GenerateLectureDe
 import { TeacherQuizModal } from '@/components/TeacherQuizModal';
 import { TeacherFlashcardViewerModal } from '@/components/TeacherFlashcardViewerModal';
 import { FormattedTranscriptViewer } from '@/components/FormattedTranscriptViewer';
-import { MermaidDiagram } from '@/components/MermaidDiagram';
-import { MermaidErrorBoundary } from '@/components/MermaidErrorBoundary';
+// Mermaid components removed - using expanded callout system
 import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
 import { MaterialDidaticoRenderer } from '@/components/MaterialDidaticoRenderer';
 import { supabase } from '@/integrations/supabase/client';
@@ -117,15 +116,15 @@ const LectureTranscriptionPage = () => {
     }
   }, [materialDidaticoV2]);
 
-  // ✅ FASE 6: Detector de Material Sem Mermaid
+  // Material quality check (callouts count)
   React.useEffect(() => {
     if (materialDidaticoV2) {
-      const hasMermaid = /```mermaid/g.test(materialDidaticoV2);
-      if (!hasMermaid) {
-        console.warn('[LectureTranscription] ⚠️ Material sem diagramas Mermaid');
+      const calloutsCount = (materialDidaticoV2.match(/^>/gm) || []).length;
+      if (calloutsCount < 5) {
+        console.warn('[LectureTranscription] ⚠️ Material com poucos callouts:', calloutsCount);
         toast({
-          title: "⚠️ Material Incompleto",
-          description: "Este material não contém diagramas visuais. Considere regenerar para incluir gráficos Mermaid.",
+          title: "⚠️ Material com Poucos Destaques",
+          description: `Apenas ${calloutsCount} callouts encontrados. Considere regenerar para material mais rico visualmente.`,
           variant: "destructive",
         });
       }
