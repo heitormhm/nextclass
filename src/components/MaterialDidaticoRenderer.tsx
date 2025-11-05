@@ -49,23 +49,13 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           border-radius: 0.2em;
         }
         
-        /* FASE 3: Caixas rosas centralizadas para fórmulas display ✅ */
+        /* Better spacing for formulas */
         .material-didatico-content .katex-display {
-          background: linear-gradient(135deg, #fce7f3 0%, #fae8ff 100%); /* Rosa/Purple gradient */
-          padding: 1.5rem 2rem;
-          border-radius: 0.75rem;
-          border: 2px solid #ec4899; /* Pink border */
-          box-shadow: 0 4px 6px rgba(236, 72, 153, 0.1); /* Pink shadow */
-          margin: 2rem auto; /* 'auto' para centralizar */
-          max-width: 90%; /* Não ocupar 100% da largura */
-          text-align: center; /* Centralizar conteúdo */
-        }
-        
-        /* Dark mode variant */
-        .dark .material-didatico-content .katex-display {
-          background: linear-gradient(135deg, #831843 0%, #581c87 100%);
-          border-color: #db2777;
-          box-shadow: 0 4px 6px rgba(219, 39, 119, 0.2);
+          background: hsl(var(--muted));
+          padding: 1.5rem;
+          border-radius: 0.5rem;
+          border-left: 4px solid hsl(var(--primary));
+          margin: 2rem 0;
         }
         
         /* Better heading hierarchy */

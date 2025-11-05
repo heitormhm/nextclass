@@ -24,11 +24,11 @@ export const initializeMermaid = () => {
     theme: 'default',
     logLevel: 'error',
     startOnLoad: false,
-    securityLevel: 'loose', // ✅ FASE 4.1: Necessário para LaTeX nativo (conforme PDF página 8)
+    securityLevel: 'strict',
     
     flowchart: { 
       useMaxWidth: true,
-      htmlLabels: true, // ✅ Necessário para LaTeX
+      htmlLabels: true,
       curve: 'basis',
       padding: 20,
     },
@@ -66,7 +66,7 @@ export const initializeMermaid = () => {
       nodeTextColor: '#1e293b',
       lineWidth: 2,
     }
-  } as any); // Type assertion para permitir futuras extensões
+  });
 
   isInitialized = true;
   console.log('[Mermaid Config] ✅ Global initialization complete');
@@ -90,15 +90,24 @@ export const sanitizeMermaidCode = (code: string): string => {
 };
 
 /**
- * FASE 4.1: autoFixMermaidCode REMOVIDO ✅
- * 
- * Conforme recomendação do PDF "Mermaid_LaTeX_KaTeX_Gráficos_Matemáticos_HTML",
- * correções automáticas causam mais problemas do que resolvem.
- * Deixar Mermaid.js lidar com sua própria sintaxe nativamente.
- * 
- * NOTA: Esta função foi completamente removida para evitar interferência
- * com o parsing nativo do Mermaid.js, especialmente ao lidar com LaTeX.
+ * Automatically fix common Mermaid syntax issues
  */
+export const autoFixMermaidCode = (code: string): string => {
+  let fixed = code;
+  
+  // Fix 1: Add space after diagram type
+  fixed = fixed.replace(/^(graph|flowchart)([A-Z]{2})/gm, '$1 $2');
+  
+  // Fix 2: Remove unnecessary quotes in labels
+  fixed = fixed.replace(/\["([^"]+)"\]/g, '[$1]');
+  
+  // Fix 3: Escape special characters in labels (< >)
+  fixed = fixed.replace(/\[([^\]]*[<>].*?)\]/g, (match, content) => {
+    return `["${content.replace(/"/g, "'")}"]`;
+  });
+  
+  return fixed;
+};
 
 /**
  * Inject CSS to suppress Mermaid error messages

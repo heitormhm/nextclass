@@ -1006,36 +1006,32 @@ INCORRETO (NÃO FAÇA):
   ];
   
   commonWords.forEach(word => {
-    // FASE 2: Preservar espaços adjacentes para evitar palavras grudadas ✅
-    // Pattern 1: $palavra$ (normal) - adicionar espaços
+    // Pattern 1: $palavra$ (normal)
     processedMarkdown = processedMarkdown.replace(
       new RegExp(`\\$${word}\\$`, 'gi'), 
-      ` ${word} ` // Espaços antes e depois
+      word
     );
     
     // Pattern 2: $palavra $$ (com espaço extra antes de $$)
     processedMarkdown = processedMarkdown.replace(
       new RegExp(`\\$${word}\\s+\\$\\$`, 'gi'), 
-      ` ${word} `
+      word
     );
     
     // Pattern 3: $$palavra$$ (duplo em ambos os lados)
     processedMarkdown = processedMarkdown.replace(
       new RegExp(`\\$\\$${word}\\$\\$`, 'gi'), 
-      ` ${word} `
+      word
     );
     
     // Pattern 4: $ palavra$ (com espaço no início)
     processedMarkdown = processedMarkdown.replace(
       new RegExp(`\\$\\s+${word}\\$`, 'gi'), 
-      ` ${word} `
+      word
     );
   });
   
-  // FASE 2: Normalizar espaços múltiplos após substituições ✅
-  processedMarkdown = processedMarkdown.replace(/\s{2,}/g, ' ');
-  
-  console.log('[LaTeX] ✅ Common words cleaned (all patterns + spacing preserved)');
+  console.log('[LaTeX] ✅ Common words cleaned (all patterns)');
   
   // 4. Limpar APENAS texto fora das fórmulas
   // Remover apenas: emojis órfãos, tabs excessivos, quebras > 3 linhas
@@ -1068,27 +1064,13 @@ INCORRETO (NÃO FAÇA):
     console.error(`[LaTeX] ⚠️ Inline mismatch: ${expectedInline} placeholders, ${latexInline.length} formulas`);
   }
 
-  // 6. Restaurar fórmulas LaTeX intactas (FASE 1: Global regex fix) ✅
+  // 6. Restaurar fórmulas LaTeX intactas
   latexBlocks.forEach((block, i) => {
-    const regex = new RegExp(`___LATEX_BLOCK_${i}___`, 'g'); // 'g' = global - substitui TODAS as ocorrências
-    processedMarkdown = processedMarkdown.replace(regex, block);
+    processedMarkdown = processedMarkdown.replace(`___LATEX_BLOCK_${i}___`, block);
   });
   latexInline.forEach((formula, i) => {
-    const regex = new RegExp(`___LATEX_INLINE_${i}___`, 'g'); // 'g' = global
-    processedMarkdown = processedMarkdown.replace(regex, formula);
+    processedMarkdown = processedMarkdown.replace(`___LATEX_INLINE_${i}___`, formula);
   });
-
-  // FASE 1: Verificar se TODOS os placeholders foram restaurados ✅
-  const remainingPlaceholders = processedMarkdown.match(/___LATEX_(BLOCK|INLINE)_\d+___/g);
-  if (remainingPlaceholders && remainingPlaceholders.length > 0) {
-    console.error(`[LaTeX] ❌ CRITICAL: ${remainingPlaceholders.length} placeholders not restored!`);
-    console.error('[LaTeX] Unreplaced:', remainingPlaceholders.slice(0, 10)); // Show first 10
-    
-    // Fallback: Remove placeholders órfãos
-    processedMarkdown = processedMarkdown.replace(/___LATEX_(BLOCK|INLINE)_\d+___/g, '[FORMULA ERROR]');
-  } else {
-    console.log('[LaTeX] ✅ All placeholders successfully restored');
-  }
 
   console.log('[LaTeX] ✅ Protection complete - LaTeX preserved');
 
@@ -1114,27 +1096,25 @@ INCORRETO (NÃO FAÇA):
     console.error(`[LaTeX] ❌ CRITICAL: ${foundIssues} potential LaTeX errors remain!`);
   }
 
-  // FASE 2: Detectar palavras suspeitamente longas (texto corrompido) ✅
-  const longWords = processedMarkdown.match(/[a-záàâãéêíóôõúçñ]{30,}/gi);
-  if (longWords && longWords.length > 0) {
-    console.error('[LaTeX] ⚠️ Suspected text corruption detected (words > 30 chars):');
-    longWords.slice(0, 5).forEach(word => console.error(`  - "${word.substring(0, 50)}..."`));
-  }
-
   console.log('[LaTeX] ✅ Validation complete');
 
-  // FASE 4.3: Minimal Mermaid diagram normalization (simplified) ✅
+  // ✅ FASE 4: Minimal Mermaid diagram normalization
   console.log('[Mermaid] Applying minimal normalization...');
   
   processedMarkdown = processedMarkdown.replace(
-    /```mermaid([\s\S]*?)```/g,
-    (match, content) => {
-      const trimmed = content.trim();
-      return `\`\`\`mermaid\n${trimmed}\n\`\`\``;
+    /```mermaid\s*\n([\s\S]*?)\n```/g,
+    (match, diagramCode) => {
+      let cleaned = diagramCode.trim();
+      
+      // Apenas normalizar espaçamento básico
+      cleaned = cleaned.replace(/\s{2,}/g, ' ');
+      cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+      
+      return `\`\`\`mermaid\n${cleaned}\n\`\`\``;
     }
   );
   
-  console.log('[Mermaid] ✅ Mermaid blocks normalized (line breaks only)');
+  console.log('[Mermaid] ✅ Minimal normalization complete');
 
   // FASE 5: AI-Powered Final LaTeX Correction ✅ FASE 6 - DESABILITADO
   // NOTA: Fase desabilitada para evitar correções excessivas que podem introduzir novos erros
