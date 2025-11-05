@@ -16,8 +16,8 @@ const corsHeaders = {
 };
 
 /**
- * AGGRESSIVE $ → $$ conversion in Mermaid labels
- * Ensures all LaTeX in labels uses double dollars for proper rendering
+ * Converts $ → $$ in Mermaid labels WITHOUT using lookbehind regex
+ * Compatible with Deno (no lookbehind support in V8)
  */
 function fixMermaidLatexInMarkdown(markdown: string): string {
   console.log('[Fix] Starting AGGRESSIVE $ → $$ conversion in Mermaid labels...');
@@ -31,23 +31,27 @@ function fixMermaidLatexInMarkdown(markdown: string): string {
     
     // Process ALL quoted labels within the diagram
     const processedContent = diagramContent.replace(/\[(".*?")\]/gs, (labelMatch: string, quotedContent: string) => {
-      // quotedContent includes the quotes
-      let innerContent = quotedContent.slice(1, -1); // Remove quotes to process
-      
-      // Convert single $ to $$ but PRESERVE existing $$
-      // Pattern: $ (not preceded by $) + content + $ (not followed by $)
+      let innerContent = quotedContent.slice(1, -1); // Remove quotes
       const originalLength = innerContent.length;
-      const converted = innerContent.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, (match: string, formula: string) => {
+      
+      // Step 1: Protect existing $$ with placeholders
+      innerContent = innerContent.replace(/\$\$/g, '___PROTECTED_DOUBLE___');
+      
+      // Step 2: Convert single $ → $$
+      innerContent = innerContent.replace(/\$([^\$]+?)\$/g, (match: string, formula: string) => {
         conversionsCount++;
         console.log(`[Fix] 💱 Converting: $${formula}$ → $$${formula}$$`);
         return `$$${formula}$$`;
       });
       
-      if (converted.length !== originalLength) {
-        console.log(`[Fix] Block ${blocksProcessed} converted label (${originalLength} → ${converted.length} chars)`);
+      // Step 3: Restore protected $$
+      innerContent = innerContent.replace(/___PROTECTED_DOUBLE___/g, '$$');
+      
+      if (innerContent.length !== originalLength) {
+        console.log(`[Fix] Block ${blocksProcessed} converted label (${originalLength} → ${innerContent.length} chars)`);
       }
       
-      return `["${converted}"]`;
+      return `["${innerContent}"]`;
     });
     
     return `\`\`\`mermaid\n${processedContent}\`\`\``;

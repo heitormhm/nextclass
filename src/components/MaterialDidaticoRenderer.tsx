@@ -123,15 +123,23 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             if (language === 'mermaid' && !inline) {
               let code = String(children).trim();
               
-              // ✅ FASE 5: CLIENT-SIDE FALLBACK - Convert $ → $$ in labels
+              // ✅ FASE 5: CLIENT-SIDE FALLBACK - Convert $ → $$ in labels (compatible approach)
               console.log('[MaterialDidaticoRenderer] 🔧 Pre-processing Mermaid for LaTeX compatibility...');
               
-              // Convert single $ to $$ in quoted labels to ensure Mermaid renders LaTeX correctly
+              // Convert single $ to $$ in quoted labels (without lookbehind - compatible)
               code = code.replace(/\[(".*?")\]/gs, (match, quotedLabel) => {
-                const inner = quotedLabel.slice(1, -1);
-                // Convert $ → $$ but preserve existing $$
-                const fixed = inner.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, '$$$$1$$');
-                return `["${fixed}"]`;
+                let inner = quotedLabel.slice(1, -1);
+                
+                // Step 1: Protect existing $$
+                inner = inner.replace(/\$\$/g, '___PROTECTED_DOUBLE___');
+                
+                // Step 2: Convert single $ → $$
+                inner = inner.replace(/\$([^\$]+?)\$/g, '$$$$1$$');
+                
+                // Step 3: Restore protected $$
+                inner = inner.replace(/___PROTECTED_DOUBLE___/g, '$$');
+                
+                return `["${inner}"]`;
               });
               
               // Validate if code is really valid Mermaid
