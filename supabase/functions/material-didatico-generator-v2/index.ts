@@ -683,7 +683,7 @@ ${practicalContext}
 
 TAREFA: Integre esses dois conteúdos em um material didático coeso e bem estruturado.
 
-🎯 DIAGRAMAS: REGRA ABSOLUTA DE VARIEDADE + LATEX INTEGRADO ✅ FASE 7
+🎯 DIAGRAMAS: REGRA ABSOLUTA DE VARIEDADE
 
 Você DEVE criar 3-4 diagramas de TIPOS DIFERENTES. Esta é a ÚNICA instrução sobre diagramas:
 
@@ -692,45 +692,27 @@ Você DEVE criar 3-4 diagramas de TIPOS DIFERENTES. Esta é a ÚNICA instrução
 2. graph TD (hierarquias/relações)
 3. stateDiagram-v2 OU classDiagram (estados/classificações)
 
-**EXEMPLOS com LaTeX INTEGRADO:**
+**EXEMPLOS MÍNIMOS:**
 
-Tipo 1 - flowchart com fórmulas:
+Tipo 1 - flowchart:
 \`\`\`mermaid
 flowchart LR
-    A["Entrada: $$T_1, P_1$$"] --> B["Processo: $$Q = mc_p\\Delta T$$"]
-    B --> C["Saída: $$T_2, P_2$$"]
+    A --> B --> C
 \`\`\`
 
-Tipo 2 - graph com equações:
+Tipo 2 - graph:
 \`\`\`mermaid
 graph TD
-    Lei["Primeira Lei: $$\\Delta U = Q - W$$"]
-    Lei --> Calor["Calor $$Q$$"]
-    Lei --> Trabalho["Trabalho $$W$$"]
+    Conceito --> SubA
+    Conceito --> SubB
 \`\`\`
 
-Tipo 3 - stateDiagram com variáveis:
+Tipo 3 - stateDiagram:
 \`\`\`mermaid
 stateDiagram-v2
-    [*] --> Solido
-    Solido --> Liquido: $$T > T_{fusao}$$
-    Liquido --> Vapor: $$T > T_{ebulicao}$$
+    [*] --> Estado1
+    Estado1 --> Estado2
 \`\`\`
-
-Tipo 4 - classDiagram (opcional):
-\`\`\`mermaid
-classDiagram
-    class Sistema {
-        +Pressao: $$P$$
-        +Volume: $$V$$
-        +Temperatura: $$T$$
-    }
-\`\`\`
-
-**IMPORTANTE SOBRE LATEX EM DIAGRAMAS:**
-- Use $$formula$$ dentro de labels entre aspas: ["Texto $$E=mc^2$$"]
-- Mantenha fórmulas simples (evite comandos complexos em diagramas)
-- Teste: Se a fórmula funciona sozinha em $$...$$, funcionará no diagrama
 
 NUNCA crie 3 do mesmo tipo. SEMPRE use pelo menos 2 tipos diferentes.
 
@@ -974,105 +956,122 @@ INCORRETO (NÃO FAÇA):
     
     console.log('[LaTeX] ✅ Comprehensive inline fixes applied');
     
-  // NOVA PHASE 4: Minimal LaTeX Protection (NÃO-destrutiva) ✅ FASE 1
-  console.log('[LaTeX] Applying MINIMAL protection (whitelist approach)...');
-
-  // 1. Proteger blocos LaTeX display ($$...$$) ANTES de processar
-  const latexBlocks: string[] = [];
-  processedMarkdown = processedMarkdown.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
-    const placeholder = `___LATEX_BLOCK_${latexBlocks.length}___`;
-    latexBlocks.push(match);
-    return placeholder;
-  });
-
-  // 2. Proteger fórmulas inline ($...$)
-  const latexInline: string[] = [];
-  processedMarkdown = processedMarkdown.replace(/\$([^$\n]+)\$/g, (match, formula) => {
-    // Ignorar se for $$ (já protegido acima)
-    if (formula.includes('$')) return match;
-    const placeholder = `___LATEX_INLINE_${latexInline.length}___`;
-    latexInline.push(match);
-    return placeholder;
-  });
-
-  // 3. AGORA processar texto fora das fórmulas (após proteção) ✅ FASE 1
-  // PHASE 4.5: Remove LaTeX de palavras comuns - VERSÃO FORTALECIDA
-  console.log('[LaTeX] Removing LaTeX from common words (comprehensive)...');
-  
-  const commonWords = [
-    'para', 'de', 'da', 'do', 'em', 'com', 'por', 'ao', 'um', 'uma', 
-    'o', 'a', 'e', 'os', 'as', 'no', 'na', 'nos', 'nas', 'se', 'ou',
-    'mais', 'mas', 'que', 'como', 'quando', 'onde', 'qual', 'quais'
-  ];
-  
-  commonWords.forEach(word => {
-    // Pattern 1: $palavra$ (normal)
-    processedMarkdown = processedMarkdown.replace(
-      new RegExp(`\\$${word}\\$`, 'gi'), 
-      word
-    );
+    // PHASE 4.5: Remove LaTeX de palavras comuns - VERSÃO FORTALECIDA
+    console.log('[LaTeX] Removing LaTeX from common words (comprehensive)...');
     
-    // Pattern 2: $palavra $$ (com espaço extra antes de $$)
-    processedMarkdown = processedMarkdown.replace(
-      new RegExp(`\\$${word}\\s+\\$\\$`, 'gi'), 
-      word
-    );
+    const commonWords = [
+      'para', 'de', 'da', 'do', 'em', 'com', 'por', 'ao', 'um', 'uma', 
+      'o', 'a', 'e', 'os', 'as', 'no', 'na', 'nos', 'nas', 'se', 'ou',
+      'mais', 'mas', 'que', 'como', 'quando', 'onde', 'qual', 'quais'
+    ];
     
-    // Pattern 3: $$palavra$$ (duplo em ambos os lados)
-    processedMarkdown = processedMarkdown.replace(
-      new RegExp(`\\$\\$${word}\\$\\$`, 'gi'), 
-      word
-    );
+    commonWords.forEach(word => {
+      // Pattern 1: $palavra$ (normal)
+      processedMarkdown = processedMarkdown.replace(
+        new RegExp(`\\$${word}\\$`, 'gi'), 
+        word
+      );
+      
+      // Pattern 2: $palavra $$ (com espaço extra antes de $$)
+      processedMarkdown = processedMarkdown.replace(
+        new RegExp(`\\$${word}\\s+\\$\\$`, 'gi'), 
+        word
+      );
+      
+      // Pattern 3: $$palavra$$ (duplo em ambos os lados)
+      processedMarkdown = processedMarkdown.replace(
+        new RegExp(`\\$\\$${word}\\$\\$`, 'gi'), 
+        word
+      );
+      
+      // Pattern 4: $ palavra$ (com espaço no início)
+      processedMarkdown = processedMarkdown.replace(
+        new RegExp(`\\$\\s+${word}\\$`, 'gi'), 
+        word
+      );
+    });
     
-    // Pattern 4: $ palavra$ (com espaço no início)
-    processedMarkdown = processedMarkdown.replace(
-      new RegExp(`\\$\\s+${word}\\$`, 'gi'), 
-      word
-    );
-  });
-  
-  console.log('[LaTeX] ✅ Common words cleaned (all patterns)');
-  
-  // 4. Limpar APENAS texto fora das fórmulas
-  // Remover apenas: emojis órfãos, tabs excessivos, quebras > 3 linhas
-  processedMarkdown = processedMarkdown
-    .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emojis
-    .replace(/\t+/g, ' ')                    // Tabs
-    .replace(/\n{4,}/g, '\n\n\n');          // Max 3 quebras
-  
-  // FASE 1: Adicionar correção de espaços em delimitadores LaTeX ✅
-  console.log('[LaTeX] Fixing spacing around delimiters...');
-  
-  // Fix: $$ texto → $$texto (remover espaço após $$)
-  processedMarkdown = processedMarkdown.replace(/\$\$\s+/g, '$$');
-  processedMarkdown = processedMarkdown.replace(/\s+\$\$/g, '$$');
-  
-  // Fix: $ texto$ → $texto$ (inline)
-  processedMarkdown = processedMarkdown.replace(/\$\s+([^$\n]+)/g, '$$$1');
-  processedMarkdown = processedMarkdown.replace(/([^$\n]+)\s+\$/g, '$1$$');
-  
-  console.log('[LaTeX] ✅ Delimiter spacing corrected');
+    console.log('[LaTeX] ✅ Common words cleaned (all patterns)');
+    
+  // PHASE 4.6: Advanced LaTeX Syntax Correction
+  console.log('[LaTeX] Applying advanced syntax corrections...');
 
-  // 5. FASE 1: Verificar se número de placeholders = número de fórmulas protegidas
-  const expectedBlocks = (processedMarkdown.match(/___LATEX_BLOCK_\d+___/g) || []).length;
-  const expectedInline = (processedMarkdown.match(/___LATEX_INLINE_\d+___/g) || []).length;
-  
-  if (expectedBlocks !== latexBlocks.length) {
-    console.error(`[LaTeX] ⚠️ Block mismatch: ${expectedBlocks} placeholders, ${latexBlocks.length} formulas`);
-  }
-  if (expectedInline !== latexInline.length) {
-    console.error(`[LaTeX] ⚠️ Inline mismatch: ${expectedInline} placeholders, ${latexInline.length} formulas`);
-  }
+  // Fix 1: Escape backslashes in LaTeX commands (CRITICAL)
+  // \dot{m} → \\dot{m}, \frac{a}{b} → \\frac{a}{b}
+  processedMarkdown = processedMarkdown.replace(
+    /\$([^$]*\\[a-zA-Z]+[^$]*)\$/g,
+    (match, content) => {
+      // Only double escape if not already escaped
+      const fixed = content.replace(/\\(?!\\)/g, '\\\\');
+      return `$${fixed}$`;
+    }
+  );
 
-  // 6. Restaurar fórmulas LaTeX intactas
-  latexBlocks.forEach((block, i) => {
-    processedMarkdown = processedMarkdown.replace(`___LATEX_BLOCK_${i}___`, block);
-  });
-  latexInline.forEach((formula, i) => {
-    processedMarkdown = processedMarkdown.replace(`___LATEX_INLINE_${i}___`, formula);
-  });
+  // Fix 2: Remove \text{} from units inside math mode
+  // $\text{kg/s}$ → $\mathrm{kg/s}$ (proper for units)
+  processedMarkdown = processedMarkdown.replace(
+    /\\text\{([^}]+)\}/g,
+    '\\mathrm{$1}'
+  );
 
-  console.log('[LaTeX] ✅ Protection complete - LaTeX preserved');
+  // Fix 3: Split compound expressions with $ in the middle
+  // $\dot{m} = 5 \text{ kg/s} $+$ h_{entrada}$ → separate equations
+  processedMarkdown = processedMarkdown.replace(
+    /\$([^$]+)\s*\$\+\$\s*([^$]+)\$/g,
+    '$$1$$ e $$2$$'
+  );
+
+  // Fix 4: Fix subscripts outside math mode
+  processedMarkdown = processedMarkdown.replace(
+    /([a-zA-Z])_\{([^}]+)\}(?![^$]*\$)/g,
+    '$$$1_{$2}$$'
+  );
+
+  console.log('[LaTeX] ✅ Advanced syntax corrections applied');
+
+  // PHASE 4.8: Ultra-aggressive LaTeX malformed expression cleanup
+  console.log('[LaTeX] Cleaning malformed expressions (ultra-aggressive)...');
+
+  // Fix 1: Remove operadores órfãos entre $...$
+  // $*+$ → " e ", $-$ → "-"
+  processedMarkdown = processedMarkdown.replace(/\$\s*[\*\+]\s*\$/g, ' e ');
+  processedMarkdown = processedMarkdown.replace(/\$\s*[\-÷×]\s*\$/g, ' ');
+
+  // Fix 2: Remove $palavra$ DENTRO de expressões LaTeX maiores
+  // "20^\circ\text{C} $para$ 80^\circ\text{C}" → "20^\circ\mathrm{C} para 80^\circ\mathrm{C}"
+  processedMarkdown = processedMarkdown.replace(
+    /(\$[^$]+\$)\s+\$([a-z]{2,8})\$\s+(\$[^$]+\$)/gi,
+    '$1 $2 $3'
+  );
+
+  // Fix 3: Expressões quebradas com $*+$ no meio
+  // "$\dot{m} = 5 \text{ kg/s} $*+$ h_{entrada}$"
+  // → "$\dot{m} = 5 \mathrm{ kg/s}$ e $h_{entrada}$"
+  processedMarkdown = processedMarkdown.replace(
+    /(\$[^$]+)\s*\$[\*\+\-]\$\s*([^$]+\$)/g,
+    '$1$ e $$2'
+  );
+
+  // Fix 4: Grau Celsius com \text → \mathrm
+  // "20^\circ\text{C}" → "20^\circ\mathrm{C}"
+  processedMarkdown = processedMarkdown.replace(
+    /(\d+)\^\\circ\\text\{([A-Z])\}/g,
+    '$1^\\circ\\mathrm{$2}'
+  );
+
+  // Fix 5: Subscripts com underscores quebrados fora de math mode
+  // "h_{entrada}" → "$h_{\text{entrada}}$"
+  processedMarkdown = processedMarkdown.replace(
+    /(?<!\$)([a-zA-Z])_\{([a-z]+)\}(?!\$)/g,
+    '$$1_{\\text{$2}}$$'
+  );
+
+  // Fix 6: Remove espaços extras ao redor de $ (causa render errors)
+  // "$ x = 5 $" → "$x = 5$"
+  processedMarkdown = processedMarkdown.replace(/\$\s+/g, '$');
+  processedMarkdown = processedMarkdown.replace(/\s+\$/g, '$');
+
+  console.log('[LaTeX] ✅ Ultra-aggressive cleanup complete');
 
   // PHASE 4.7: Final validation - detect remaining LaTeX errors
   console.log('[LaTeX] Final validation check...');
@@ -1097,167 +1096,6 @@ INCORRETO (NÃO FAÇA):
   }
 
   console.log('[LaTeX] ✅ Validation complete');
-
-  // ✅ FASE 4: Minimal Mermaid diagram normalization
-  console.log('[Mermaid] Applying minimal normalization...');
-  
-  processedMarkdown = processedMarkdown.replace(
-    /```mermaid\s*\n([\s\S]*?)\n```/g,
-    (match, diagramCode) => {
-      let cleaned = diagramCode.trim();
-      
-      // Apenas normalizar espaçamento básico
-      cleaned = cleaned.replace(/\s{2,}/g, ' ');
-      cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
-      
-      return `\`\`\`mermaid\n${cleaned}\n\`\`\``;
-    }
-  );
-  
-  console.log('[Mermaid] ✅ Minimal normalization complete');
-
-  // FASE 5: AI-Powered Final LaTeX Correction ✅ FASE 6 - DESABILITADO
-  // NOTA: Fase desabilitada para evitar correções excessivas que podem introduzir novos erros
-  console.log('[AI] ⏭️ AI correction DISABLED (Phase 6 - preventing over-correction)');
-  
-  /*
-  // Código original comentado - pode ser reativado após validação das Fases 1-4
-  console.log('[AI] Initiating Gemini-powered LaTeX correction...');
-
-  try {
-    const aiCorrectionPrompt = `Você é um especialista em LaTeX e markdown científico. Corrija APENAS os erros de sintaxe LaTeX no markdown abaixo, seguindo estas regras:
-
-REGRAS CRÍTICAS:
-1. Remova TODOS os padrões $$$$, $$$, deixando apenas $$ para display ou $ para inline
-2. Corrija \\ldot para \\dot
-3. Substitua TODOS os \\text{} por \\mathrm{} em unidades (kg, m/s, kJ, etc)
-4. Remova "(verificar sintaxe)" se aparecer
-5. Corrija subscripts quebrados: Q_{vapor} → Q_{\\text{vapor}}
-6. NÃO altere o conteúdo, estrutura ou significado
-7. NÃO adicione explicações, retorne APENAS o markdown corrigido
-
-Markdown:
-${processedMarkdown}`;
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'Você é um corretor de sintaxe LaTeX. Corrija erros sem alterar conteúdo.' 
-          },
-          { role: 'user', content: aiCorrectionPrompt }
-        ],
-        temperature: 0.1,
-        max_tokens: 16000,
-      }),
-    });
-
-    if (aiResponse.ok) {
-      const aiData = await aiResponse.json();
-      const correctedMarkdown = aiData.choices[0].message.content;
-      
-      // Validação de segurança (80%-120% do tamanho original)
-      const lengthRatio = correctedMarkdown.length / processedMarkdown.length;
-      
-      if (lengthRatio >= 0.8 && lengthRatio <= 1.2) {
-        // Contar erros antes e depois
-        const errorsBefore = (processedMarkdown.match(/\$\$\$/g) || []).length;
-        const errorsAfter = (correctedMarkdown.match(/\$\$\$/g) || []).length;
-        
-        processedMarkdown = correctedMarkdown;
-        console.log(`[AI] ✅ Correction applied - Errors reduced: ${errorsBefore} → ${errorsAfter}`);
-      } else {
-        console.warn(`[AI] ⚠️ Correction rejected (length ${lengthRatio.toFixed(2)}x)`);
-      }
-    } else {
-      const errorText = await aiResponse.text();
-      console.warn('[AI] ⚠️ API error:', aiResponse.status, errorText);
-    }
-  } catch (error) {
-    console.error('[AI] ❌ Correction failed:', error);
-  }
-  */
-
-  // FASE 6 (renumerada): Final LaTeX Quality Check ✅ FASE 8
-  console.log('[LaTeX] Running COMPREHENSIVE final quality check...');
-
-  const criticalErrors = [
-    { pattern: /\$\$\$\$+/g, name: 'Quadruple dollar signs', severity: 'CRITICAL' },
-    { pattern: /\$\$\$/g, name: 'Triple dollar signs', severity: 'CRITICAL' },
-    { pattern: /\\ldot\{/g, name: 'Invalid \\ldot command', severity: 'HIGH' },
-    { pattern: /\(verificar sintaxe\)/gi, name: 'Error message in text', severity: 'HIGH' },
-    { pattern: /\$[a-z]{2,8}\$/g, name: 'Orphaned common words in math', severity: 'MEDIUM' },
-  ];
-
-  let totalErrors = 0;
-  const errorReport: string[] = [];
-
-  criticalErrors.forEach(({ pattern, name, severity }) => {
-    const matches = processedMarkdown.match(pattern);
-    if (matches && matches.length > 0) {
-      totalErrors += matches.length;
-      errorReport.push(`[${severity}] ${name}: ${matches.length} occurrences`);
-      console.warn(`[LaTeX] ⚠️ ${name}: ${matches.length} found`);
-    }
-  });
-
-  // FASE 8: Validações adicionais de qualidade
-  // Check 1: LaTeX incompleto
-  const openDollars = (processedMarkdown.match(/\$/g) || []).length;
-  if (openDollars % 2 !== 0) {
-    totalErrors++;
-    errorReport.push('[CRITICAL] Unmatched LaTeX delimiters (odd number of $)');
-    console.error('[LaTeX] ❌ CRITICAL: Unmatched LaTeX delimiters');
-  }
-
-  // Check 2: Diagramas sem tipo
-  const emptyMermaidBlocks = (processedMarkdown.match(/```mermaid\s*\n\s*\n/g) || []).length;
-  if (emptyMermaidBlocks > 0) {
-    errorReport.push(`[WARNING] ${emptyMermaidBlocks} Mermaid diagrams without type`);
-    console.warn(`[Mermaid] ⚠️ ${emptyMermaidBlocks} diagrams without type declaration`);
-  }
-  
-  // Check 3 (NEW): Placeholders não restaurados ✅ FASE 8
-  const orphanedPlaceholders = (processedMarkdown.match(/___LATEX_(BLOCK|INLINE)_\d+___/g) || []).length;
-  if (orphanedPlaceholders > 0) {
-    totalErrors += orphanedPlaceholders;
-    errorReport.push(`[CRITICAL] ${orphanedPlaceholders} orphaned LaTeX placeholders`);
-    console.error(`[LaTeX] ❌ CRITICAL: ${orphanedPlaceholders} unrestored placeholders`);
-  }
-  
-  // Check 4 (NEW): Espaços extras em delimitadores ✅ FASE 8
-  const spacedDelimiters = (processedMarkdown.match(/\$\$\s+|\s+\$\$/g) || []).length;
-  if (spacedDelimiters > 0) {
-    errorReport.push(`[WARNING] ${spacedDelimiters} spacing issues in LaTeX delimiters`);
-    console.warn(`[LaTeX] ⚠️ ${spacedDelimiters} spacing issues around $$`);
-  }
-
-  // Check 5: Diversidade de diagramas (meta de qualidade)
-  const flowchartCount = (processedMarkdown.match(/```mermaid\s*\n\s*flowchart/gi) || []).length;
-  const totalMermaidCount = (processedMarkdown.match(/```mermaid/gi) || []).length;
-  const diagramDiversityRatio = totalMermaidCount > 0 ? (totalMermaidCount - flowchartCount) / totalMermaidCount : 0;
-  
-  if (totalMermaidCount > 3 && diagramDiversityRatio < 0.3) {
-    console.warn(`[Mermaid] ⚠️ Low diagram diversity: ${Math.round(diagramDiversityRatio * 100)}% non-flowchart (target: 30%+)`);
-    errorReport.push(`[INFO] Low diagram diversity: Consider using sequenceDiagram, classDiagram, or erDiagram`);
-  }
-
-  if (totalErrors > 0) {
-    console.error(`[QA] ❌ QUALITY CHECK FAILED: ${totalErrors} critical errors remain`);
-    console.error('[QA] Error Report:\n' + errorReport.join('\n'));
-  } else {
-    console.log('[QA] ✅ Quality check passed - no critical errors');
-    if (errorReport.length > 0) {
-      console.log('[QA] ℹ️ Recommendations:\n' + errorReport.join('\n'));
-    }
-  }
     
     processedMarkdown = processedMarkdown.replace(/\n{3,}/g, '\n\n'); // Remove excess blank lines
     
