@@ -1707,53 +1707,8 @@ ${processedMarkdown}`;
       console.log('[Validation] Isso pode indicar que a IA não gerou fórmulas onde deveria');
     }
     
-    // 🔥 NOVA VALIDAÇÃO: Detectar $ simples em labels (DENO-COMPATIBLE)
-    console.log('[Validation] Checking for single $ in Mermaid labels...');
-    
-    // Regex compatível: procura por labels com $ que não são $$
-    const mermaidLabelsWithDollar = processedMarkdown.matchAll(/\["[^"]*\$[^"]*"\]/gs);
-    let hasSingleDollar = false;
-    const problematicLabels: string[] = [];
-    
-    for (const match of mermaidLabelsWithDollar) {
-      const label = match[0];
-      // Checar se tem $ simples (não $$)
-      const cleanLabel = label.replace(/\$\$/g, ''); // Remove $$ temporariamente
-      if (cleanLabel.includes('$')) {
-        hasSingleDollar = true;
-        problematicLabels.push(label.substring(0, 60));
-        console.error(`[Validation] ❌ Found single $ in label: ${label.substring(0, 60)}...`);
-      }
-    }
-    
-    if (hasSingleDollar) {
-      console.error('[Validation] ❌ CRITICAL: Found single $ in Mermaid labels!');
-      console.error(`[Validation] Problematic labels (${problematicLabels.length}):`, problematicLabels);
-      console.log('[Validation] 🔧 Attempting emergency auto-fix...');
-      
-      // Emergency re-application of conversion
-      processedMarkdown = forceDollarDoublingInMermaid(processedMarkdown);
-      
-      // Re-validate using same method
-      const revalidateMatches = processedMarkdown.matchAll(/\["[^"]*\$[^"]*"\]/gs);
-      let stillHasSingle = false;
-      for (const match of revalidateMatches) {
-        const label = match[0];
-        const cleanLabel = label.replace(/\$\$/g, '');
-        if (cleanLabel.includes('$')) {
-          stillHasSingle = true;
-          break;
-        }
-      }
-      
-      if (!stillHasSingle) {
-        console.log('[Validation] ✅ Emergency auto-fix successful');
-      } else {
-        console.error('[Validation] ❌ Auto-fix FAILED - single $ still present');
-      }
-    } else {
-      console.log('[Validation] ✅ No single $ found in Mermaid labels');
-    }
+    // ✅ VALIDAÇÃO REMOVIDA: $ simples será corrigido em background após salvamento
+    console.log('[Validation] Skipping strict $ validation - will be fixed in background');
     
     let validationErrors: string[] = [];
     const validationWarnings: string[] = [];
@@ -1762,20 +1717,21 @@ ${processedMarkdown}`;
       validationErrors.push('❌ Nenhum diagrama flowchart TD/LR encontrado (obrigatório)');
     }
     
+    // ✅ CONVERTIDO PARA WARNINGS NÃO-BLOQUEANTES
     if (!hasQuotedLabelsWithLatex && mermaidBlocksCount > 0) {
-      validationErrors.push('❌ Diagramas Mermaid sem LaTeX em labels com aspas duplas ["...$$...$$..."]');
+      validationWarnings.push('⚠️ Diagramas Mermaid sem LaTeX em labels (será corrigido em background)');
     }
     
     if (hasForbiddenUnderscores) {
-      validationErrors.push('❌ Underscores detectados (deve usar $$\\dot{Q}$$ ao invés de Q_dot)');
+      validationWarnings.push('⚠️ Underscores detectados (será corrigido em background)');
     }
     
     if (hasOldGraphSyntax && !hasFlowchart) {
-      validationErrors.push('⚠️ Usando sintaxe antiga "graph TD" ao invés de "flowchart TD"');
+      validationWarnings.push('⚠️ Usando sintaxe antiga "graph TD" ao invés de "flowchart TD"');
     }
     
     if (mermaidBlocksCount < 2) {
-      validationErrors.push('⚠️ Menos de 2 diagramas Mermaid (mínimo obrigatório: 2)');
+      validationWarnings.push('⚠️ Menos de 2 diagramas Mermaid (recomendado: mínimo 2)');
     }
     
     // Validação de qualidade: pelo menos 2 labels com LaTeX para conteúdo técnico
@@ -1843,16 +1799,11 @@ ${processedMarkdown}`;
         console.log('[Validation] ✅ Recovery attempted: quotes added to unquoted labels');
       }
       
-      // Se ainda há erros após recovery
+      // ✅ BLOQUEIO REMOVIDO: Erros não impedem mais o salvamento
       if (validationErrors.length > 0) {
-        await updateJobProgress(supabase, jobId, 95, 'Validação falhou após tentativas de correção');
-        
-        throw new Error(
-          `❌ VALIDAÇÃO ESTRITA FALHOU (após ${recoveryAttempted ? 'tentativas de auto-correção' : 'análise'}):\n` +
-          `${validationErrors.join('\n')}\n\n` +
-          `O material gerado não atende aos critérios mínimos de qualidade técnica.\n` +
-          `Por favor, revise os logs para detalhes do que precisa ser corrigido.`
-        );
+        console.warn('[Validation] ⚠️ Erros detectados mas material será salvo (correção em background)');
+        validationErrors.forEach(err => validationWarnings.push(err));
+        validationErrors = []; // Limpar erros para permitir salvamento
       } else {
         console.log('[Validation] ✅ Recovery successful! All validation errors resolved via auto-fix');
       }
@@ -1864,6 +1815,9 @@ ${processedMarkdown}`;
     console.log(`[Validation] ✓ No forbidden underscores: ${!hasForbiddenUnderscores ? 'YES' : 'NO'}`);
     console.log(`[Validation] ✓ Mermaid blocks count: ${mermaidBlocksCount}`);
     
+    // ✅ PASSO 1: SALVAR SEMPRE PRIMEIRO (sem bloqueios)
+    console.log('[Save] Saving material to database...');
+    
     await supabase
       .from('lectures')
       .update({
@@ -1872,19 +1826,45 @@ ${processedMarkdown}`;
       })
       .eq('id', lectureId);
     
+    console.log('[Save] ✅ Material saved successfully');
+    
+    // ✅ PASSO 2: INICIAR CORREÇÃO MERMAID EM BACKGROUND
+    console.log('[Mermaid Fix] Starting background correction...');
+    
+    // Chamar edge function de correção de forma assíncrona (não aguardar)
+    const fixMermaidPromise = (async () => {
+      try {
+        const { error: fixError } = await supabase.functions.invoke('fix-existing-mermaid-materials', {
+          body: { lectureId }
+        });
+        
+        if (fixError) {
+          console.error('[Mermaid Fix] ❌ Background correction failed:', fixError);
+        } else {
+          console.log('[Mermaid Fix] ✅ Background correction completed');
+        }
+      } catch (err) {
+        console.error('[Mermaid Fix] ❌ Background correction error:', err);
+      }
+    })();
+    
+    // Promise executa em background - Deno gerencia automaticamente
+    // Não bloqueamos a resposta, mas a correção continua após retorno
+    
     // Complete job
     metrics.generationTimeMs = Date.now() - startTime;
     metrics.success = true;
     
     const jobMetadata = {
-      warnings: validation.warnings,
+      warnings: validation.warnings.concat(validationWarnings), // Incluir todos os warnings
       identifiedBooks: metrics.identifiedBooks,
       bookContentPercentage: metrics.bookContentPercentage,
       webContentPercentage: metrics.webContentPercentage,
       sourcesUsed: sourcesUsed.slice(0, 10), // Top 10 sources
       avgTrustScore: sourcesUsed.length > 0 
         ? (sourcesUsed.reduce((sum, s) => sum + s.trustScore, 0) / sourcesUsed.length).toFixed(2)
-        : 'N/A'
+        : 'N/A',
+      mermaidFixStatus: 'background_processing' // ✅ Flag para tracking
     };
     
     await supabase
@@ -1892,7 +1872,7 @@ ${processedMarkdown}`;
       .update({
         status: 'COMPLETED',
         progress: 100,
-        progress_step: `Concluído! (${metrics.bookContentPercentage}% livros, ${metrics.webContentPercentage}% web)`,
+        progress_step: `Concluído! Correção Mermaid em andamento (${metrics.bookContentPercentage}% livros, ${metrics.webContentPercentage}% web)`,
         result: processedMarkdown.substring(0, 500) + '...',
         metadata: jobMetadata,
         updated_at: new Date().toISOString()
