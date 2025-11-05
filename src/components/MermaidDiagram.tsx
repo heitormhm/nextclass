@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { MermaidErrorBoundary } from './MermaidErrorBoundary';
-import { initializeMermaid, sanitizeMermaidCode, injectMermaidErrorSuppression } from '@/lib/mermaidConfig';
+import { initializeMermaid, sanitizeMermaidCode } from '@/lib/mermaidRenderingEngine';
 
 interface MermaidDiagramProps {
   code: string;
@@ -17,7 +17,6 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
   // Use global Mermaid configuration
   useEffect(() => {
     initializeMermaid();
-    injectMermaidErrorSuppression();
   }, []);
 
   // ✅ FASE 4: Simplificar validação - confiar no backend

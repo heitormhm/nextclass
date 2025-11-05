@@ -1,274 +1,179 @@
+/**
+ * 📊 MATERIAL MERMAID DIAGRAM COMPONENT
+ * Production-grade Mermaid renderer with native LaTeX support
+ * 
+ * PDF-Guided Implementation (Pages 5-14)
+ * Independent module for diagram rendering
+ */
+
 import { useEffect, useRef, useState } from 'react';
-import mermaid from 'mermaid';
-import { initializeMermaid, sanitizeMermaidCode, injectMermaidErrorSuppression, autoFixMermaidCode } from '@/lib/mermaidConfig';
+import { 
+  initializeMermaid, 
+  sanitizeMermaidCode, 
+  renderMermaidWithTimeout,
+  getMermaidLiveEditorLink
+} from '@/lib/mermaidRenderingEngine';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Copy, Info } from 'lucide-react';
 
 interface MaterialMermaidDiagramProps {
   code: string;
 }
 
-/**
- * Standalone Mermaid renderer for Material Didático system
- * Replicates all robust features from MermaidDiagram.tsx but as an independent component
- * NOT to be used outside of MaterialDidaticoRenderer
- */
-
-// Create safe base64 encoder for Unicode
-const safeBase64Encode = (str: string): string => {
-  try {
-    // Convert to UTF-8 bytes then base64
-    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => {
-      return String.fromCharCode(parseInt(p1, 16));
-    }));
-  } catch {
-    // Fallback: strip non-ASCII and encode
-    return btoa(str.replace(/[^\x00-\x7F]/g, ''));
-  }
-};
+type RenderStatus = 'initializing' | 'rendering' | 'success' | 'error';
 
 export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState<RenderStatus>('initializing');
+  const [errorType, setErrorType] = useState<string | null>(null);
+  const [renderTime, setRenderTime] = useState<number | null>(null);
 
-  // Use global Mermaid configuration
+  // Initialize once per component mount
   useEffect(() => {
-    initializeMermaid();
-    injectMermaidErrorSuppression();
+    const success = initializeMermaid();
+    if (!success) {
+      setStatus('error');
+      setErrorType('initialization_failed');
+    }
   }, []);
 
-  // FASE 5: Detector de Suporte LaTeX ✅
+  // Render diagram whenever code changes
   useEffect(() => {
-    // Verificar se KaTeX CSS está carregado
-    const katexCSSLoaded = Array.from(document.styleSheets).some(sheet => 
-      sheet.href && sheet.href.includes('katex')
-    );
-    
-    const hasLatexInCode = code.includes('$$');
-    
-    if (hasLatexInCode && !katexCSSLoaded) {
-      console.warn('[Mermaid] ⚠️ LaTeX detected in diagram but KaTeX CSS not loaded!');
-      console.warn('[Mermaid] Formulas may not render correctly. Please ensure KaTeX CSS is included.');
-    }
-  }, [code]);
-
-  useEffect(() => {
-    const renderDiagram = async () => {
-      if (!ref.current || !code) return;
-
-      try {
-        let sanitizedCode = sanitizeMermaidCode(code);
-        
-        if (!sanitizedCode || sanitizedCode.length < 10) {
-          console.warn('[MaterialMermaid] Empty code, showing placeholder');
-          setError('invalid');
-          return;
-        }
-
-        // Apply automatic fixes for common syntax issues
-        sanitizedCode = autoFixMermaidCode(sanitizedCode);
-
-        // Mermaid already initialized globally - no need to reinitialize
-
-        const uniqueId = `material-mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        // 10-second timeout protection
-        const renderTimeout = setTimeout(() => {
-          console.error('[MaterialMermaid] Render timeout');
-          setError('timeout');
-        }, 10000);
-
-        // Protect LaTeX formulas BEFORE sanitization
-        const protectLatexFormulas = (code: string): { code: string; formulas: string[] } => {
-          const formulas: string[] = [];
-          let protectedCode = code;
-          
-          // Protect display formulas $$...$$
-          protectedCode = protectedCode.replace(/\$\$[\s\S]*?\$\$/g, (match) => {
-            const placeholder = `___LATEX_DISPLAY_${formulas.length}___`;
-            formulas.push(match);
-            return placeholder;
-          });
-          
-          // Protect inline formulas $...$
-          protectedCode = protectedCode.replace(/\$[^$\n]+?\$/g, (match) => {
-            const placeholder = `___LATEX_INLINE_${formulas.length}___`;
-            formulas.push(match);
-            return placeholder;
-          });
-          
-          return { code: protectedCode, formulas };
-        };
-
-        const restoreLatexFormulas = (code: string, formulas: string[]): string => {
-          let restored = code;
-          formulas.forEach((formula, index) => {
-            restored = restored.replace(`___LATEX_DISPLAY_${index}___`, formula);
-            restored = restored.replace(`___LATEX_INLINE_${index}___`, formula);
-          });
-          return restored;
-        };
-
-        const { code: protectedCode, formulas } = protectLatexFormulas(sanitizedCode);
-
-        // Multiple rendering strategies with LaTeX protection
-        const renderStrategies = [
-          { 
-            name: 'Original with LaTeX', 
-            code: restoreLatexFormulas(protectedCode, formulas)
-          },
-          { 
-            name: 'Auto-fixed', 
-            code: restoreLatexFormulas(autoFixMermaidCode(protectedCode), formulas)
-          },
-          {
-            name: 'Fallback without formulas',
-            code: protectedCode.replace(/___LATEX_(DISPLAY|INLINE)_\d+___/g, '')
-          }
-        ];
-
-        let renderSuccess = false;
-        
-        for (const strategy of renderStrategies) {
-          if (renderSuccess) break;
-          
-          try {
-            console.log(`[MaterialMermaid] Trying strategy: ${strategy.name}`);
-            const { svg } = await mermaid.render(`${uniqueId}-${strategy.name}`, strategy.code);
-            
-            clearTimeout(renderTimeout);
-            
-            if (ref.current) {
-              ref.current.innerHTML = svg;
-            }
-            
-            setError(null);
-            renderSuccess = true;
-            console.log(`[MaterialMermaid] ✅ Rendered successfully with strategy: ${strategy.name}`);
-          } catch (strategyErr) {
-            console.warn(`[MaterialMermaid] Strategy "${strategy.name}" failed:`, strategyErr);
-            continue;
-          }
-        }
-        
-      if (!renderSuccess) {
-        clearTimeout(renderTimeout);
-        console.error('[MaterialMermaid] All render strategies failed');
-        console.error('[MaterialMermaid] Original code:', sanitizedCode);
-        
-        // Identificar caracteres problemáticos
-        const problematicChars = sanitizedCode.match(/[^\x00-\x7F]/g);
-        if (problematicChars && problematicChars.length > 0) {
-          console.error('[MaterialMermaid] Non-ASCII characters detected:', 
-            [...new Set(problematicChars)].join(', ')
-          );
-        }
-        
-        // Contar labels longos
-        const longLabels = (sanitizedCode.match(/\[[^\]]{50,}\]/g) || []).length;
-        if (longLabels > 0) {
-          console.error(`[MaterialMermaid] ${longLabels} labels exceed 50 characters`);
-        }
-        
-        setError('hidden');
+    const render = async () => {
+      if (!containerRef.current || !code) {
+        setStatus('error');
+        setErrorType('empty_code');
+        return;
       }
-      } catch (err) {
-        console.error('[MaterialMermaid] General error:', err);
-        setError('hidden');
+
+      setStatus('rendering');
+      setErrorType(null);
+
+      const sanitized = sanitizeMermaidCode(code);
+
+      const { svg, error, metadata } = await renderMermaidWithTimeout(sanitized, 10000);
+
+      if (error) {
+        console.error('[MaterialMermaid] Render failed:', error);
+        console.error('[MaterialMermaid] Code length:', metadata.codeLength);
+        setStatus('error');
+        setErrorType(error);
+        setRenderTime(metadata.renderTimeMs);
+      } else if (svg && containerRef.current) {
+        containerRef.current.innerHTML = svg;
+        setStatus('success');
+        setRenderTime(metadata.renderTimeMs);
+        console.log(`[MaterialMermaid] ✅ Rendered in ${metadata.renderTimeMs.toFixed(0)}ms`);
+        if (metadata.hasLatex) {
+          console.log('[MaterialMermaid] 📐 LaTeX formulas detected and rendered');
+        }
       }
     };
-    
-    renderDiagram();
+
+    render();
   }, [code]);
 
-  // FASE 5: Detector de Suporte LaTeX em Diagramas ✅
-  useEffect(() => {
-    // Verificar se KaTeX CSS está carregado
-    const katexCSSLoaded = Array.from(document.styleSheets).some(sheet => 
-      sheet.href && sheet.href.includes('katex')
-    );
-    
-    const hasLatexInCode = code.includes('$$');
-    
-    if (hasLatexInCode && !katexCSSLoaded) {
-      console.error('[Mermaid] ⚠️ LaTeX detected but KaTeX CSS not loaded!');
-      console.warn('[Mermaid] Add: <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">');
-    }
-  }, [code]);
-
-  return (
-    <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-lg border-2 border-slate-200 dark:border-slate-800 my-6 w-full overflow-x-auto min-h-[300px]">
-      {error ? (
-        <div>
-          {/* Error message based on type */}
-          {error === 'timeout' && (
-            <div className="text-center mb-4">
-              <div className="text-5xl mb-3">⏱️</div>
-              <p className="text-slate-700 dark:text-slate-300 font-semibold mb-2">Tempo esgotado ao renderizar diagrama</p>
-              <p className="text-xs text-muted-foreground">O diagrama é muito complexo. Exibindo código-fonte:</p>
-            </div>
+  // ERROR STATE
+  if (status === 'error') {
+    return (
+      <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 p-8 rounded-xl border-2 border-red-300 dark:border-red-800 my-6 shadow-md">
+        <div className="text-center">
+          <div className="text-5xl mb-3">
+            {errorType === 'timeout' ? '⏱️' : 
+             errorType === 'empty_code' ? '📊' : 
+             errorType === 'initialization_failed' ? '🔧' : '⚠️'}
+          </div>
+          
+          <p className="font-semibold text-slate-800 dark:text-slate-200 mb-2">
+            {errorType === 'timeout' && 'Tempo esgotado ao renderizar diagrama'}
+            {errorType === 'empty_code' && 'Código Mermaid vazio'}
+            {errorType === 'syntax_error' && 'Erro de sintaxe no diagrama'}
+            {errorType === 'initialization_failed' && 'Falha ao inicializar renderizador'}
+            {!errorType && 'Erro desconhecido'}
+          </p>
+          
+          {renderTime && (
+            <p className="text-xs text-muted-foreground mb-4">
+              Tentativa de renderização: {renderTime.toFixed(0)}ms
+            </p>
           )}
           
-          {error === 'invalid' && (
-            <div className="text-center mb-4">
-              <div className="text-5xl mb-3">📊</div>
-              <p className="text-slate-700 dark:text-slate-300 font-semibold mb-2">Diagrama não disponível</p>
-              <p className="text-xs text-muted-foreground">Código Mermaid vazio ou inválido</p>
-            </div>
-          )}
-          
-          {error === 'hidden' && (
-            <div className="text-center mb-4">
-              <div className="text-5xl mb-3">🔧</div>
-              <p className="text-slate-700 dark:text-slate-300 font-semibold mb-2">Erro ao renderizar diagrama</p>
-              <p className="text-xs text-muted-foreground mb-4">Todas as estratégias de renderização falharam</p>
-              
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => {
-                  navigator.clipboard.writeText(code);
-                  toast({ title: "Código copiado!", description: "Cole em mermaid.live para debug" });
-                }}
+          <div className="flex gap-2 justify-center flex-wrap mt-4">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => {
+                navigator.clipboard.writeText(code);
+                toast({ title: "📋 Código copiado para área de transferência" });
+              }}
+            >
+              <Copy className="h-4 w-4 mr-1" /> Copiar código
+            </Button>
+            
+            <Button 
+              size="sm" 
+              variant="outline"
+              asChild
+            >
+              <a 
+                href={getMermaidLiveEditorLink(code)}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                📋 Copiar código para debug
-              </Button>
-            </div>
-          )}
+                <ExternalLink className="h-4 w-4 mr-1" /> Abrir em Mermaid Live
+              </a>
+            </Button>
+          </div>
           
-          {/* Always show source code in case of error */}
-          <details className="mt-4">
-            <summary className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer hover:text-foreground font-medium">
-              🔍 Ver código-fonte Mermaid
+          <details className="mt-6 text-left bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+            <summary className="text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer hover:text-primary flex items-center gap-2">
+              <Info className="h-4 w-4" /> Ver código-fonte completo
             </summary>
-            <pre className="mt-3 text-xs bg-slate-100 dark:bg-slate-800 p-3 rounded border border-slate-300 dark:border-slate-700 overflow-x-auto max-h-64 font-mono">
+            <pre className="mt-3 text-xs bg-slate-100 dark:bg-slate-800 p-3 rounded overflow-x-auto max-h-64 font-mono border border-slate-300 dark:border-slate-600">
               <code>{code}</code>
             </pre>
           </details>
-          
-          {/* Link to external debug tool */}
-          <div className="mt-4 text-center">
-            <a 
-              href={`https://mermaid.live/edit#pako:${safeBase64Encode(code)}`}
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-            >
-              🔗 Abrir em Mermaid Live Editor <ExternalLink className="h-3 w-3" />
-            </a>
-          </div>
         </div>
-      ) : (
-        <div
-          ref={ref}
-          className="mermaid-diagram-container flex justify-center items-center min-h-[400px] min-w-full"
-          style={{ 
-            transform: 'scale(1.2)',
-            transformOrigin: 'top center',
-          }}
-        />
+      </div>
+    );
+  }
+
+  // LOADING STATE
+  if (status === 'rendering' || status === 'initializing') {
+    return (
+      <div className="bg-gradient-to-br from-slate-50 to-purple-50 dark:from-slate-900 dark:to-purple-950 p-8 rounded-xl border-2 border-purple-200 dark:border-purple-800 my-6 min-h-[320px] flex items-center justify-center shadow-sm">
+        <div className="text-center">
+          <div className="animate-spin text-5xl mb-3">⏳</div>
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            {status === 'initializing' ? 'Inicializando renderizador...' : 'Renderizando diagrama...'}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Aguarde até 10 segundos
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // SUCCESS STATE (Purple gradient background as requested)
+  return (
+    <div className="relative bg-gradient-to-br from-purple-50 via-slate-50 to-purple-100 dark:from-purple-950 dark:via-slate-900 dark:to-purple-950 p-8 rounded-xl border-2 border-purple-300 dark:border-purple-700 my-6 shadow-lg">
+      {/* Performance badge */}
+      {renderTime && renderTime < 1000 && (
+        <div className="absolute top-2 right-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs px-2 py-1 rounded-full font-semibold">
+          ⚡ {renderTime.toFixed(0)}ms
+        </div>
       )}
+      
+      <div
+        ref={containerRef}
+        className="flex justify-center items-center min-h-[300px] mermaid-container"
+        style={{
+          transform: 'scale(1.05)',
+          transformOrigin: 'top center',
+        }}
+      />
     </div>
   );
 };

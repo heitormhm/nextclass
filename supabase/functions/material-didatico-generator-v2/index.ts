@@ -1064,15 +1064,30 @@ INCORRETO (NÃO FAÇA):
     console.error(`[LaTeX] ⚠️ Inline mismatch: ${expectedInline} placeholders, ${latexInline.length} formulas`);
   }
 
-  // 6. Restaurar fórmulas LaTeX intactas
+  // 6. Restaurar fórmulas LaTeX intactas (PHASE 6: Global regex fix)
+  console.log('[LaTeX] Restoring placeholders (global replacement)...');
+  
   latexBlocks.forEach((block, i) => {
-    processedMarkdown = processedMarkdown.replace(`___LATEX_BLOCK_${i}___`, block);
+    const regex = new RegExp(`___LATEX_BLOCK_${i}___`, 'g'); // 'g' = global flag
+    processedMarkdown = processedMarkdown.replace(regex, block);
   });
+  
   latexInline.forEach((formula, i) => {
-    processedMarkdown = processedMarkdown.replace(`___LATEX_INLINE_${i}___`, formula);
+    const regex = new RegExp(`___LATEX_INLINE_${i}___`, 'g');
+    processedMarkdown = processedMarkdown.replace(regex, formula);
   });
+  
+  // Verify ALL placeholders were replaced
+  const remainingPlaceholders = processedMarkdown.match(/___LATEX_(BLOCK|INLINE)_\d+___/g);
+  if (remainingPlaceholders && remainingPlaceholders.length > 0) {
+    console.error(`[LaTeX] ❌ CRITICAL: ${remainingPlaceholders.length} placeholders NOT restored!`);
+    console.error('[LaTeX] Unreplaced:', remainingPlaceholders.slice(0, 10));
+    
+    // Emergency fallback: Remove orphaned placeholders
+    processedMarkdown = processedMarkdown.replace(/___LATEX_(BLOCK|INLINE)_\d+___/g, '[FORMULA ERROR]');
+  }
 
-  console.log('[LaTeX] ✅ Protection complete - LaTeX preserved');
+  console.log('[LaTeX] ✅ Placeholder restoration complete');
 
   // PHASE 4.7: Final validation - detect remaining LaTeX errors
   console.log('[LaTeX] Final validation check...');
@@ -1098,23 +1113,24 @@ INCORRETO (NÃO FAÇA):
 
   console.log('[LaTeX] ✅ Validation complete');
 
-  // ✅ FASE 4: Minimal Mermaid diagram normalization
-  console.log('[Mermaid] Applying minimal normalization...');
+  // ✅ PHASE 5: MINIMAL Mermaid normalization (following PDF recommendations)
+  console.log('[Mermaid] Applying defensive normalization (PDF-guided)...');
   
   processedMarkdown = processedMarkdown.replace(
-    /```mermaid\s*\n([\s\S]*?)\n```/g,
+    /```mermaid\s*\n?([\s\S]*?)\n?```/g,
     (match, diagramCode) => {
       let cleaned = diagramCode.trim();
       
-      // Apenas normalizar espaçamento básico
-      cleaned = cleaned.replace(/\s{2,}/g, ' ');
-      cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+      // Only fix: excessive whitespace (preserve structure)
+      cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');    // Max 1 space
+      cleaned = cleaned.replace(/\n{3,}/g, '\n\n');    // Max 2 line breaks
       
+      // Ensure diagram has proper fencing
       return `\`\`\`mermaid\n${cleaned}\n\`\`\``;
     }
   );
   
-  console.log('[Mermaid] ✅ Minimal normalization complete');
+  console.log('[Mermaid] ✅ Defensive normalization complete (no aggressive syntax changes)');
 
   // FASE 5: AI-Powered Final LaTeX Correction ✅ FASE 6 - DESABILITADO
   // NOTA: Fase desabilitada para evitar correções excessivas que podem introduzir novos erros

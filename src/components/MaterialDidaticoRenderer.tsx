@@ -2,8 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import 'katex/dist/katex.min.css';
+import { getRehypeKatexPlugin } from '@/lib/textRenderingEngine';
 import { MaterialMermaidDiagram } from './MaterialMermaidDiagram';
 import { MermaidErrorBoundary } from './MermaidErrorBoundary';
 
@@ -49,13 +48,34 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           border-radius: 0.2em;
         }
         
-        /* Better spacing for formulas */
+        /* Pink/Purple gradient boxes for display formulas (user request) */
         .material-didatico-content .katex-display {
-          background: hsl(var(--muted));
-          padding: 1.5rem;
-          border-radius: 0.5rem;
-          border-left: 4px solid hsl(var(--primary));
-          margin: 2rem 0;
+          background: linear-gradient(135deg, #fce7f3 0%, #fae8ff 50%, #f3e5f5 100%);
+          padding: 1.75rem 2rem;
+          border-radius: 0.75rem;
+          border: 2px solid #ec4899;
+          box-shadow: 0 4px 12px rgba(236, 72, 153, 0.15);
+          margin: 2rem auto;
+          max-width: 90%;
+          text-align: center;
+          position: relative;
+        }
+        
+        /* Dark mode variant */
+        .dark .material-didatico-content .katex-display {
+          background: linear-gradient(135deg, #831843 0%, #581c87 50%, #6b21a8 100%);
+          border-color: #db2777;
+          box-shadow: 0 4px 12px rgba(219, 39, 119, 0.3);
+        }
+        
+        /* Decorative corner accent */
+        .material-didatico-content .katex-display::before {
+          content: "📐";
+          position: absolute;
+          top: 8px;
+          right: 12px;
+          font-size: 1.25rem;
+          opacity: 0.6;
         }
         
         /* Better heading hierarchy */
@@ -93,22 +113,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
       `}</style>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[
-          [rehypeKatex, {
-            throwOnError: false,        // NÃO crashar em erros ✅ FASE 2
-            errorColor: '#dc2626',      // Cor de erro visível
-            strict: false,              // Aceitar LaTeX relaxado
-            trust: true,                // Permitir comandos avançados
-            fleqn: false,               // Centralizar equações
-            displayMode: false,         // Auto-detectar modo
-            output: 'html',             // HTML (não MathML)
-            macros: {
-              '\\RR': '\\mathbb{R}',    // Macros comuns
-              '\\CC': '\\mathbb{C}',
-              '\\vect': '\\mathbf{#1}'
-            }
-          }]
-        ]}
+        rehypePlugins={[getRehypeKatexPlugin()]}
         components={{
           // Handle code blocks (including Mermaid)
           code: ({ node, className, children, ...props }: any) => {
