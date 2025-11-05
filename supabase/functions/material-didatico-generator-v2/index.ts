@@ -330,33 +330,28 @@ async function updateJobProgress(
 // ==========================================
 
 function fixLaTeXFormulas(markdown: string): string {
-  console.log('[LaTeX] Fixing formulas with improved regex...');
+  console.log('[LaTeX] Applying MINIMAL sanitization (following PDF guidelines)...');
   
   let cleaned = markdown;
 
-  // Remove corrupted placeholders
+  // 1. ✅ KEEP: Remove corrupted placeholders
   cleaned = cleaned.replace(/___LATEX_\w+_\d+___/g, '');
   cleaned = cleaned.replace(/\*\*\s*\d+\$\s*\*\*/g, '');
 
-  // ✅ IMPROVED: Only convert mathematical expressions
-  // Matches patterns like: $x^2$, $\Delta T$, $E = mc^2$, $T_1 > T_2$
-  // Ignores: "$50", "$100K"
-  cleaned = cleaned.replace(
-    /(?<!\$)\$(?!\$)([^\$\n]*?[\+\-\*\/\^\=\\{}_\(\)<>≤≥∆∫∂∇][^\$\n]*?)(?<!\$)\$(?!\$)/g,
-    '$$$$$1$$$$'
-  );
+  // 2. ❌ REMOVED: Do NOT convert $ → $$ (AI already generates correctly!)
+  // The destructive conversion has been removed
 
-  // Also handle Greek letters and subscripts without operators
-  cleaned = cleaned.replace(
-    /(?<!\$)\$(?!\$)(\\[a-zA-Z]+|[a-zA-Z]+_\{?[a-zA-Z0-9]+\}?)(?<!\$)\$(?!\$)/g,
-    '$$$$$1$$$$'
-  );
+  // 3. ✅ NEW: Fix spacing FOLLOWING PDF RULES
+  // Rule: Opening $ WITHOUT space after, closing $ WITHOUT space before
+  
+  // Inline: Remove spaces INSIDE delimiters
+  cleaned = cleaned.replace(/\$\s+([^\$]+?)\s+\$/g, '$$$1$');
+  
+  // Block: Ensure own line and no adjacent spaces
+  cleaned = cleaned.replace(/([^\s])\$\$/g, '$1 $$'); // space before $$
+  cleaned = cleaned.replace(/\$\$([^\s])/g, '$$ $1'); // space after $$
 
-  // Ensure spacing
-  cleaned = cleaned.replace(/([^\s])(\$\$)/g, '$1 $2');
-  cleaned = cleaned.replace(/(\$\$)([^\s])/g, '$1 $2');
-
-  console.log('[LaTeX] ✅ Formulas fixed with improved validation');
+  console.log('[LaTeX] ✅ Minimal sanitization complete');
   return cleaned;
 }
 
@@ -753,22 +748,22 @@ ESTRUTURA DO MATERIAL:
 
 REGRAS CRÍTICAS PARA LATEX (LEIA COM ATENÇÃO):
 
-❌ **ERROS MAIS COMUNS QUE VOCÊ DEVE EVITAR:**
-1. NUNCA: "libera calor ( $$ Q $$ ) que é transferido..."
-2. NUNCA: "realiza trabalho ( $$ W $$ ), que é convertido..."
-3. NUNCA: "A energia interna ( $$ U $$ ) é uma função..."
-4. NUNCA: "calor específico ( $$ c_p $$ ) em processos..."
-5. NUNCA: "onde ( $$ \\Delta U $$ ) representa a variação..."
+**EXEMPLO VISUAL DE LATEX CORRETO vs ERRADO**:
 
-✅ **FORMA CORRETA:**
-1. SIM: "libera calor ($Q$) que é transferido..."
-2. SIM: "realiza trabalho ($W$), que é convertido..."
-3. SIM: "A energia interna ($U$) é uma função..."
-4. SIM: "calor específico ($c_p$) em processos..."
-5. SIM: "onde ($\\Delta U$) representa a variação..."
+✅ CORRETO:
+"A energia interna ($U$) é conservada."
+"Onde ($\Delta H$) representa a variação."
+
+$$
+\Delta U = Q - W
+$$
+
+❌ ERRADO (NÃO FAÇA):
+"A energia interna ( $$ U $$ ) é conservada."  ← spaces + $$ inline
+"Onde ( $$ \Delta H $$ ) representa..."         ← spaces + $$ inline
 
 **REGRA ABSOLUTA**: 
-- NO MEIO DE UMA FRASE → use SEMPRE $variavel$ (um $ de cada lado)
+- NO MEIO DE UMA FRASE → use SEMPRE $variavel$ (um $ de cada lado, SEM espaços)
 - EQUAÇÃO ISOLADA EM LINHA PRÓPRIA → use $$
 $$
 \\Delta U = Q - W
@@ -1001,39 +996,24 @@ INCORRETO (NÃO FAÇA):
   });
 
   // 3. AGORA processar texto fora das fórmulas (após proteção) ✅ FASE 1
-  // PHASE 4.5: Remove LaTeX de palavras comuns - VERSÃO FORTALECIDA
+  // FASE 3: Remove LaTeX from common Portuguese words (REFINED)
   console.log('[LaTeX] Removing LaTeX from common words (comprehensive)...');
   
   const commonWords = [
     'para', 'de', 'da', 'do', 'em', 'com', 'por', 'ao', 'um', 'uma', 
     'o', 'a', 'e', 'os', 'as', 'no', 'na', 'nos', 'nas', 'se', 'ou',
-    'mais', 'mas', 'que', 'como', 'quando', 'onde', 'qual', 'quais'
+    'mais', 'mas', 'que', 'como', 'quando', 'onde', 'qual', 'quais',
+    'sistema', 'processo', 'energia', 'calor', 'trabalho' // ← technical words
   ];
   
-  commonWords.forEach(word => {
-    // Pattern 1: $palavra$ (normal)
-    processedMarkdown = processedMarkdown.replace(
-      new RegExp(`\\$${word}\\$`, 'gi'), 
-      word
-    );
-    
-    // Pattern 2: $palavra $$ (com espaço extra antes de $$)
-    processedMarkdown = processedMarkdown.replace(
-      new RegExp(`\\$${word}\\s+\\$\\$`, 'gi'), 
-      word
-    );
-    
-    // Pattern 3: $$palavra$$ (duplo em ambos os lados)
-    processedMarkdown = processedMarkdown.replace(
-      new RegExp(`\\$\\$${word}\\$\\$`, 'gi'), 
-      word
-    );
-    
-    // Pattern 4: $ palavra$ (com espaço no início)
-    processedMarkdown = processedMarkdown.replace(
-      new RegExp(`\\$\\s+${word}\\$`, 'gi'), 
-      word
-    );
+  const wordPattern = new RegExp(
+    `\\$\\s*(${commonWords.join('|')})\\s*\\$`, 
+    'gi'
+  );
+
+  processedMarkdown = processedMarkdown.replace(wordPattern, (match, word) => {
+    console.log(`[LaTeX] 🔧 Removed LaTeX from common word: ${match}`);
+    return word; // Remove the $ from common words
   });
   
   console.log('[LaTeX] ✅ Common words cleaned (all patterns)');
@@ -1045,18 +1025,14 @@ INCORRETO (NÃO FAÇA):
     .replace(/\t+/g, ' ')                    // Tabs
     .replace(/\n{4,}/g, '\n\n\n');          // Max 3 quebras
   
-  // FASE 1: Adicionar correção de espaços em delimitadores LaTeX ✅
+  // FASE 5: Conservative spacing normalization (ONLY for block LaTeX)
   console.log('[LaTeX] Fixing spacing around delimiters...');
   
-  // Fix: $$ texto → $$texto (remover espaço após $$)
-  processedMarkdown = processedMarkdown.replace(/\$\$\s+/g, '$$');
-  processedMarkdown = processedMarkdown.replace(/\s+\$\$/g, '$$');
+  // Only ensure proper line breaks for blocks $$
+  processedMarkdown = processedMarkdown.replace(/([^\n])\n\$\$/g, '$1\n\n$$');
+  processedMarkdown = processedMarkdown.replace(/\$\$\n([^\n])/g, '$$\n\n$1');
   
-  // Fix: $ texto$ → $texto$ (inline)
-  processedMarkdown = processedMarkdown.replace(/\$\s+([^$\n]+)/g, '$$$1');
-  processedMarkdown = processedMarkdown.replace(/([^$\n]+)\s+\$/g, '$1$$');
-  
-  console.log('[LaTeX] ✅ Delimiter spacing corrected');
+  console.log('[LaTeX] ✅ Block spacing normalized (preserving inline)');
 
   // 5. FASE 1: Verificar se número de placeholders = número de fórmulas protegidas
   const expectedBlocks = (processedMarkdown.match(/___LATEX_BLOCK_\d+___/g) || []).length;
@@ -1097,17 +1073,32 @@ INCORRETO (NÃO FAÇA):
   // PHASE 4.7: Final validation - detect remaining LaTeX errors
   console.log('[LaTeX] Final validation check...');
 
+  // FASE 2: Simplified LaTeX Validation (DETECT, don't auto-correct)
   const suspiciousPatterns = [
-    /\$[a-z]{2,10}\$/gi,  // $palavra$ (lowercase only = likely common word)
-    /\$\s+[^$]+\s+\$/g,   // $ texto $ (spaces around = likely error)
-    /\$\$\s{2,}/g,        // $$  (double spaces after $$)
+    { 
+      pattern: /\$\s+[^\$]+\s+\$/g, 
+      name: 'Inline LaTeX with internal spaces',
+      example: '$ x $ (should be $x$)'
+    },
+    { 
+      pattern: /\(\s*\$\$\s+[^\$]+\s+\$\$\s*\)/g,
+      name: 'Block LaTeX inside parentheses',
+      example: '( $$ H $$ ) (should be ($H$))'
+    },
+    { 
+      pattern: /\$\$\$+/g,
+      name: 'Triple or quadruple delimiters',
+      example: '$$$ (should be $ or $$)'
+    }
   ];
 
   let foundIssues = 0;
-  suspiciousPatterns.forEach((pattern, idx) => {
+  suspiciousPatterns.forEach(({ pattern, name, example }) => {
     const matches = processedMarkdown.match(pattern);
     if (matches && matches.length > 0) {
-      console.warn(`[LaTeX] ⚠️ Pattern ${idx + 1} found ${matches.length} suspicious matches:`, matches.slice(0, 5));
+      console.warn(`[LaTeX] ⚠️ ${name}: ${matches.length} found`);
+      console.warn(`[LaTeX]   Example: ${example}`);
+      console.warn(`[LaTeX]   Sample: ${matches[0]}`);
       foundIssues += matches.length;
     }
   });
