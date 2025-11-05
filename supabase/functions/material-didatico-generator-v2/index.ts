@@ -148,8 +148,18 @@ async function retryWithBackoff<T>(
     } catch (error: any) {
       lastError = error;
       
-      // Don't retry on auth errors or validation errors
-      if (error.status === 401 || error.status === 403 || error.status === 400) {
+      // ✅ FASE 3: Don't retry on configuration/validation errors
+      // 400 = Bad Request (invalid parameters)
+      // 401 = Unauthorized
+      // 403 = Forbidden
+      // 500 internal_server_error = Configuration error (e.g., unsupported parameter like 'temperature')
+      if (
+        error.status === 401 || 
+        error.status === 403 || 
+        error.status === 400 ||
+        (error.status === 500 && error.message?.includes('internal_server_error'))
+      ) {
+        console.error(`[Retry] ⚠️ Configuration/Validation error detected, not retrying:`, error.message);
         throw error;
       }
       
@@ -274,32 +284,44 @@ async function callLovableAI(
   operation: string
 ): Promise<string> {
   return retryWithBackoff(async () => {
+    // ✅ FASE 2: Log payload ANTES da chamada para debugging
+    const payload = {
+      model: 'google/gemini-2.5-pro',
+      messages,
+      // ✅ FASE 1: Gemini 2.5 usa temperatura padrão de 1.0 (não configurável)
+      // Parâmetro 'temperature' removido para evitar erro 500 internal_server_error
+    };
+    
+    console.log(`[AI] Calling Lovable AI for ${operation}`);
+    console.log(`[AI] Payload:`, JSON.stringify(payload, null, 2).substring(0, 500) + '...');
+    
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
-        messages,
-        temperature: 0.3,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
+      // ✅ FASE 2: Log detalhado do erro ANTES de lançar exceção
+      const errorText = await response.text();
+      console.error(`[AI] ❌ Error Response (${response.status}) for ${operation}:`, errorText);
+      
       if (response.status === 429) {
         throw new Error('RATE_LIMITED: Excesso de requisições. Aguarde alguns minutos.');
       }
       if (response.status === 402) {
         throw new Error('NO_CREDITS: Créditos insuficientes. Adicione créditos ao seu workspace Lovable.');
       }
-      const errorText = await response.text();
       throw new Error(`AI Error (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
+    const content = data.choices?.[0]?.message?.content || '';
+    console.log(`[AI] ✅ ${operation} completed successfully (${content.length} chars)`);
+    return content;
   }, operation, 2, 10000); // Only 2 retries for AI calls, 10s delay
 }
 
