@@ -24,7 +24,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save } from 'lucide-react';
+import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,6 +94,28 @@ const LectureTranscriptionPage = () => {
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [teacherName, setTeacherName] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [hasLatexErrors, setHasLatexErrors] = useState(false);
+
+  // FASE 9: Detector automático de erros LaTeX
+  React.useEffect(() => {
+    if (materialDidaticoV2) {
+      const criticalPatterns = [
+        /\$\$\$\$/g,
+        /\$\$\$/g,
+        /\(verificar sintaxe\)/gi,
+      ];
+      
+      const hasErrors = criticalPatterns.some(pattern => 
+        pattern.test(materialDidaticoV2)
+      );
+      
+      setHasLatexErrors(hasErrors);
+      
+      if (hasErrors) {
+        console.warn('[LaTeX] ⚠️ Errors detected in material, regeneration recommended');
+      }
+    }
+  }, [materialDidaticoV2]);
 
   React.useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -1850,19 +1872,7 @@ const LectureTranscriptionPage = () => {
                       Conteúdo Gerado
                     </CardTitle>
                     <div className="flex gap-2">
-                      <GenerateLectureDeepSearchSummary
-                        lectureId={id || ''}
-                        lectureTitle={lectureTitle}
-                        tags={lecture?.tags || []}
-                        currentMaterial={structuredContent.material_didatico}
-                        fullTranscript={lecture?.raw_transcript || ''}
-                        onUpdate={loadLectureData}
-                        onProgressUpdate={(progress, message) => {
-                          setMaterialGenerationProgress(progress);
-                          setGenerationMessage(message);
-                        }}
-                        onGeneratingChange={setIsGeneratingMaterial}
-                      />
+                      {/* FASE 8: GenerateLectureDeepSearchSummary component hidden - only using V2 button */}
                       <Button
                         onClick={handleGenerateMaterialV2}
                         disabled={isGeneratingMaterialV2}
@@ -1877,7 +1887,7 @@ const LectureTranscriptionPage = () => {
                         ) : (
                           <>
                             <Sparkles className="h-4 w-4 mr-2" />
-                            Gerar Material Modular
+                            Gerar Material Didático
                           </>
                         )}
                       </Button>
@@ -1913,8 +1923,8 @@ const LectureTranscriptionPage = () => {
                           className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center gap-2"
                         >
                           <Sparkles className="h-4 w-4" />
-                          <span className="hidden sm:inline">Material Modular</span>
-                          <span className="sm:hidden">Modular</span>
+                          <span className="hidden sm:inline">Material Didático</span>
+                          <span className="sm:hidden">Didático</span>
                           {materialDidaticoV2 ? (
                             <Badge variant="default" className="ml-1 text-xs bg-green-600">
                               ✓ Pronto
@@ -1927,9 +1937,9 @@ const LectureTranscriptionPage = () => {
                         </TabsTrigger>
                       </TabsList>
 
-                      {/* Fixed Reading Progress Bar - Below Tabs */}
+                      {/* FASE 1: Fixed Reading Progress Bar - Below Tabs with Rounded Corners */}
                       {materialDidaticoV2 && (
-                        <div className="sticky top-0 left-0 right-0 bg-primary/10 backdrop-blur-lg z-[90] border-b-2 border-primary/30 py-2 px-6 shadow-lg mt-2">
+                        <div className="sticky top-0 left-0 right-0 bg-primary/10 backdrop-blur-lg z-[90] border-b-2 border-primary/30 py-2 px-6 shadow-lg mt-2 rounded-lg">
                           <div className="flex items-center justify-between text-sm font-medium text-foreground mb-1">
                             <span className="flex items-center gap-2">
                               <span className="text-lg">📖</span>
@@ -1945,7 +1955,7 @@ const LectureTranscriptionPage = () => {
                           </div>
                           <div className="w-full h-1.5 bg-muted/70 rounded-full overflow-hidden">
                             <div 
-                              className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 transition-all duration-300 shadow-sm"
+                              className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 transition-all duration-300 shadow-sm rounded-full"
                               style={{ width: `${scrollProgress}%` }}
                             />
                           </div>
@@ -1968,7 +1978,43 @@ const LectureTranscriptionPage = () => {
                             )}
                             
                             <div className="min-w-0 bg-white p-6 rounded-lg mt-2">
-                              <MaterialDidaticoRenderer 
+                              {/* FASE 9: Banner de Aviso de Erros LaTeX */}
+                              {hasLatexErrors && (
+                                <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+                                  <div className="flex items-start gap-3">
+                                    <span className="text-2xl">⚠️</span>
+                                    <div className="flex-1">
+                                      <p className="font-semibold text-yellow-900 mb-1">
+                                        Erros de Renderização Detectados
+                                      </p>
+                                      <p className="text-sm text-yellow-800 mb-3">
+                                        Detectamos problemas na renderização de fórmulas LaTeX. Recomendamos gerar o material novamente para corrigir automaticamente.
+                                      </p>
+                                      <Button
+                                        onClick={handleGenerateMaterialV2}
+                                        disabled={isGeneratingMaterialV2}
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-yellow-600 text-yellow-700 hover:bg-yellow-100"
+                                      >
+                                        {isGeneratingMaterialV2 ? (
+                                          <>
+                                            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                                            Regenerando...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <RefreshCw className="h-3 w-3 mr-2" />
+                                            Regenerar Material
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <MaterialDidaticoRenderer
                                 markdown={materialDidaticoV2} 
                               />
                               

@@ -38,6 +38,21 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
     injectMermaidErrorSuppression();
   }, []);
 
+  // FASE 5: Detector de Suporte LaTeX ✅
+  useEffect(() => {
+    // Verificar se KaTeX CSS está carregado
+    const katexCSSLoaded = Array.from(document.styleSheets).some(sheet => 
+      sheet.href && sheet.href.includes('katex')
+    );
+    
+    const hasLatexInCode = code.includes('$$');
+    
+    if (hasLatexInCode && !katexCSSLoaded) {
+      console.warn('[Mermaid] ⚠️ LaTeX detected in diagram but KaTeX CSS not loaded!');
+      console.warn('[Mermaid] Formulas may not render correctly. Please ensure KaTeX CSS is included.');
+    }
+  }, [code]);
+
   useEffect(() => {
     const renderDiagram = async () => {
       if (!ref.current || !code) return;
@@ -64,44 +79,53 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
           setError('timeout');
         }, 10000);
 
-        // 5 fallback strategies (com sanitização de matemática)
+        // Protect LaTeX formulas BEFORE sanitization
+        const protectLatexFormulas = (code: string): { code: string; formulas: string[] } => {
+          const formulas: string[] = [];
+          let protectedCode = code;
+          
+          // Protect display formulas $$...$$
+          protectedCode = protectedCode.replace(/\$\$[\s\S]*?\$\$/g, (match) => {
+            const placeholder = `___LATEX_DISPLAY_${formulas.length}___`;
+            formulas.push(match);
+            return placeholder;
+          });
+          
+          // Protect inline formulas $...$
+          protectedCode = protectedCode.replace(/\$[^$\n]+?\$/g, (match) => {
+            const placeholder = `___LATEX_INLINE_${formulas.length}___`;
+            formulas.push(match);
+            return placeholder;
+          });
+          
+          return { code: protectedCode, formulas };
+        };
+
+        const restoreLatexFormulas = (code: string, formulas: string[]): string => {
+          let restored = code;
+          formulas.forEach((formula, index) => {
+            restored = restored.replace(`___LATEX_DISPLAY_${index}___`, formula);
+            restored = restored.replace(`___LATEX_INLINE_${index}___`, formula);
+          });
+          return restored;
+        };
+
+        const { code: protectedCode, formulas } = protectLatexFormulas(sanitizedCode);
+
+        // Multiple rendering strategies with LaTeX protection
         const renderStrategies = [
-          { name: 'Original', code: sanitizedCode },
           { 
-            name: 'Math Sanitization', 
-            code: sanitizedCode.replace(/\[([^\]]+)\]/g, (match, content) => {
-              // Remover TODOS os caracteres não-ASCII
-              const asciiOnly = content.replace(/[^\x00-\x7F]/g, '');
-              // Truncar se muito longo
-              return `[${asciiOnly.substring(0, 40)}]`;
-            })
+            name: 'Original with LaTeX', 
+            code: restoreLatexFormulas(protectedCode, formulas)
           },
           { 
-            name: 'Add space after graph type', 
-            code: sanitizedCode.replace(/^graph([A-Z]{2,})/m, 'graph $1 ') 
+            name: 'Auto-fixed', 
+            code: restoreLatexFormulas(autoFixMermaidCode(protectedCode), formulas)
           },
-          { 
-            name: 'Remove quotes from labels', 
-            code: sanitizedCode.replace(/\["([^"]+)"\]/g, '[$1]') 
-          },
-          { 
-            name: 'Simplify text in labels', 
-            code: sanitizedCode.replace(/\[([^\]]{50,})\]/g, (match, content) => {
-              return `[${content.substring(0, 40)}...]`;
-            })
-          },
-          { 
-            name: 'Ultra-Simple Fallback', 
-            code: sanitizedCode
-              .replace(/\[([^\]]+)\]/g, (match, content) => {
-                // Keep only first 20 chars, remove ALL special chars
-                const simple = content.substring(0, 20).replace(/[^a-zA-Z0-9\s]/g, '');
-                return `[${simple}]`;
-              })
-              .split('\n')
-              .filter(line => !line.includes('style')) // Remove style directives
-              .join('\n')
-          },
+          {
+            name: 'Fallback without formulas',
+            code: protectedCode.replace(/___LATEX_(DISPLAY|INLINE)_\d+___/g, '')
+          }
         ];
 
         let renderSuccess = false;
@@ -156,6 +180,21 @@ export const MaterialMermaidDiagram = ({ code }: MaterialMermaidDiagramProps) =>
     };
     
     renderDiagram();
+  }, [code]);
+
+  // FASE 5: Detector de Suporte LaTeX em Diagramas ✅
+  useEffect(() => {
+    // Verificar se KaTeX CSS está carregado
+    const katexCSSLoaded = Array.from(document.styleSheets).some(sheet => 
+      sheet.href && sheet.href.includes('katex')
+    );
+    
+    const hasLatexInCode = code.includes('$$');
+    
+    if (hasLatexInCode && !katexCSSLoaded) {
+      console.error('[Mermaid] ⚠️ LaTeX detected but KaTeX CSS not loaded!');
+      console.warn('[Mermaid] Add: <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">');
+    }
   }, [code]);
 
   return (
