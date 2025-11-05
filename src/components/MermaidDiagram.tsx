@@ -59,32 +59,47 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
 
       const sanitized = sanitizeMermaidCode(code);
       
-      // ✅ Log código sanitizado para debug
-      console.log('[MermaidDiagram] Código original (primeiros 200 chars):', code.substring(0, 200));
-      console.log('[MermaidDiagram] Código sanitizado (primeiros 200 chars):', sanitized.substring(0, 200));
+      // ✅ FASE 4: Log código COMPLETO para debug (não apenas primeiros 200 chars)
+      console.log('[MermaidDiagram] 📊 Código Mermaid COMPLETO:');
+      console.log('='.repeat(80));
+      console.log(sanitized);
+      console.log('='.repeat(80));
+      console.log('[MermaidDiagram] Tamanho:', sanitized.length, 'caracteres');
       
       // ✅ Validar antes de renderizar
       const validation = validateMermaidSyntax(sanitized);
+      
+      // ✅ FASE 4: Log validation issues ANTES de decidir se bloqueia
       if (!validation.isValid) {
-        console.error('[MermaidDiagram] ❌ Validação falhou:', validation.issues);
-        setStatus('error');
-        setErrorType('validation_failed');
-        setRenderTime(0);
-        setValidationIssues(validation.issues);
-        return;
+        console.error('[MermaidDiagram] ❌ Validation issues:', validation.issues);
       }
       
       if (validation.warnings.length > 0) {
-        console.warn('[MermaidDiagram] ⚠️ Avisos:', validation.warnings);
+        console.warn('[MermaidDiagram] ⚠️ Validation warnings:', validation.warnings);
+      }
+      
+      // ✅ FASE 3: MODO PERMISSIVO - Sempre tentar renderizar, mesmo com validation issues
+      // Salvar issues para mostrar depois, mas NÃO bloquear rendering
+      if (!validation.isValid) {
+        console.warn('[MermaidDiagram] ⚠️ MODO PERMISSIVO: Tentando renderizar mesmo com validation issues...');
+        setValidationIssues(validation.issues);
       }
 
       const { svg, error, metadata } = await renderMermaidWithTimeout(sanitized, 10000);
 
       if (error) {
-        console.error('[MermaidDiagram] Render failed:', error);
+        // ✅ FASE 4: Logs DETALHADOS quando falhar
+        console.error('[MermaidDiagram] ❌ RENDER FAILED');
+        console.error('='.repeat(80));
+        console.error('[MermaidDiagram] Error type:', error);
         console.error('[MermaidDiagram] Code length:', metadata.codeLength);
-        console.error('[MermaidDiagram] Código completo que falhou:');
+        console.error('[MermaidDiagram] Render time:', metadata.renderTimeMs.toFixed(0), 'ms');
+        console.error('[MermaidDiagram] Diagram type:', metadata.diagramType);
+        console.error('[MermaidDiagram] Validation issues:', validationIssues);
+        console.error('[MermaidDiagram] CÓDIGO COMPLETO QUE FALHOU:');
+        console.error('='.repeat(80));
         console.error(sanitized);
+        console.error('='.repeat(80));
         setStatus('error');
         setErrorType(error);
         setRenderTime(metadata.renderTimeMs);
@@ -95,6 +110,10 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
         console.log(`[MermaidDiagram] ✅ Rendered in ${metadata.renderTimeMs.toFixed(0)}ms`);
         if (metadata.hasLatex) {
           console.log('[MermaidDiagram] 📐 LaTeX formulas detected and rendered');
+        }
+        // ✅ FASE 3: Se tinha validation issues mas renderizou com sucesso, avisar
+        if (validationIssues.length > 0) {
+          console.warn('[MermaidDiagram] ⚠️ Renderizado com sucesso APESAR de validation issues:', validationIssues);
         }
       }
     };

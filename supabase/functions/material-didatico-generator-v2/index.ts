@@ -860,6 +860,11 @@ classDiagram
 - **Labels curtos**: Máximo 40 caracteres por label
 - **Sem parênteses em labels**: Prefira hífens ou underscores
 - **Fórmulas matemáticas**: Coloque em seção LaTeX separada, NUNCA em diagramas
+- **⚠️ FASE 5: IMPORTANTE - classDiagram NÃO SUPORTA UNDERSCORES em atributos!**
+  - ❌ ERRADO: \`+Nao_Cruza : bool\` ou \`+Rigida_e_Adiabatica : bool\`
+  - ✅ CORRETO: \`+Nao Cruza : bool\` ou \`+Rigida e Adiabatica : bool\` (use espaços)
+  - ✅ ALTERNATIVA: \`+NaoCruza : bool\` ou \`+RigidaEAdiabatica : bool\` (camelCase)
+  - Esta regra se aplica APENAS a classDiagram. Flowcharts podem usar underscores em labels normalmente.
 
 EXEMPLO CORRETO DE DIAGRAMA:
 \`\`\`mermaid

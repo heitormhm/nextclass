@@ -186,8 +186,46 @@ export const normalizeMermaidEncoding = (code: string): string => {
 };
 
 /**
+ * FASE 2: Sanitizar underscores em classDiagram
+ * ClassDiagram do Mermaid v10.9.4 NÃO suporta underscores em atributos
+ */
+const sanitizeClassDiagramUnderscores = (code: string): string => {
+  // Detectar se é classDiagram
+  if (!/^classDiagram/m.test(code)) {
+    return code; // Não é classDiagram, não precisa sanitizar
+  }
+  
+  console.log('[MermaidEngine] 🔧 Sanitizando underscores em classDiagram...');
+  
+  // Substituir underscores em valores de atributos e métodos
+  // Pattern: +Atributo_Com_Underscore : tipo
+  let sanitized = code.replace(/([+\-#~]\s*)([A-Za-z_]+)(\s*:\s*[A-Za-z]+)/g, (match, prefix, attrName, suffix) => {
+    if (attrName.includes('_')) {
+      const cleaned = attrName.replace(/_/g, ' ');
+      console.log(`[MermaidEngine]   "${attrName}" → "${cleaned}"`);
+      return `${prefix}${cleaned}${suffix}`;
+    }
+    return match;
+  });
+  
+  // Também substituir em labels de classes [Nome_Com_Underscore]
+  sanitized = sanitized.replace(/class\s+([A-Za-z_]+)\s*{/g, (match, className) => {
+    if (className.includes('_')) {
+      const cleaned = className.replace(/_/g, '');
+      console.log(`[MermaidEngine]   Class "${className}" → "${cleaned}"`);
+      return `class ${cleaned} {`;
+    }
+    return match;
+  });
+  
+  console.log('[MermaidEngine] ✅ ClassDiagram sanitization complete');
+  return sanitized;
+};
+
+/**
  * Simple sanitization - remove markdown fences only
  * NO automatic fixes (causes more problems than it solves - PDF pg 13)
+ * FASE 2: Integrar sanitização de underscores em classDiagram
  */
 export const sanitizeMermaidCode = (code: string): string => {
   if (!code || code.trim().length < 5) {
@@ -203,11 +241,15 @@ export const sanitizeMermaidCode = (code: string): string => {
   // ✅ Normalizar encoding
   sanitized = normalizeMermaidEncoding(sanitized);
   
+  // ✅ FASE 2: Sanitizar underscores em classDiagram
+  sanitized = sanitizeClassDiagramUnderscores(sanitized);
+  
   return sanitized;
 };
 
 /**
  * Validate Mermaid syntax (basic structural checks)
+ * FASE 1: Corrigir validação para não aplicar regras de subgraph em classDiagram
  */
 export const validateMermaidSyntax = (code: string): {
   isValid: boolean;
@@ -229,19 +271,26 @@ export const validateMermaidSyntax = (code: string): {
     issues.push('Missing or invalid diagram type declaration');
   }
 
+  // ✅ FASE 1: Detectar tipo de diagrama ANTES de validar
+  const diagramTypeMatch = code.match(/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|C4Context)/m);
+  const diagramType = diagramTypeMatch ? diagramTypeMatch[1] : 'unknown';
+
   // ✅ NEW Check 2: Verificar encoding UTF-8
   const hasInvalidChars = /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(code);
   if (hasInvalidChars) {
     issues.push('Invalid control characters detected (encoding issue)');
   }
 
-  // ✅ NEW Check 3: Subgraphs balanceados
-  const subgraphStarts = (code.match(/^\s*subgraph\s+/gm) || []).length;
-  const subgraphEnds = (code.match(/^\s*end\s*$/gm) || []).length;
-  if (subgraphStarts > subgraphEnds) {
-    issues.push(`${subgraphStarts - subgraphEnds} subgraph(s) sem 'end'`);
-  } else if (subgraphEnds > subgraphStarts) {
-    issues.push(`${subgraphEnds - subgraphStarts} 'end' sem subgraph correspondente`);
+  // ✅ FASE 1 FIX: Só validar subgraph/end para flowchart e graph
+  // ClassDiagram NÃO usa subgraphs!
+  if (diagramType === 'flowchart' || diagramType === 'graph') {
+    const subgraphStarts = (code.match(/^\s*subgraph\s+/gm) || []).length;
+    const subgraphEnds = (code.match(/^\s*end\s*$/gm) || []).length;
+    if (subgraphStarts > subgraphEnds) {
+      issues.push(`${subgraphStarts - subgraphEnds} subgraph(s) sem 'end'`);
+    } else if (subgraphEnds > subgraphStarts) {
+      issues.push(`${subgraphEnds - subgraphStarts} 'end' sem subgraph correspondente`);
+    }
   }
 
   // ✅ NEW Check 4: Labels com caracteres especiais não escapados
