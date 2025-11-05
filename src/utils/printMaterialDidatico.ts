@@ -93,13 +93,49 @@ const captureSectionAsImage = async (
   // Clonar e aplicar estilos
   const clonedSection = section.cloneNode(true) as HTMLElement;
   
-  // Garantir que callouts mantêm cores
+  // 🎨 FASE 3: Forçar renderização de callouts com estilos inline
   if (clonedSection.hasAttribute('data-callout-type')) {
+    const calloutType = clonedSection.getAttribute('data-callout-type');
+    
+    // Garantir que a classe esteja aplicada
+    clonedSection.classList.add(`callout-${calloutType}`);
+    
+    // Forçar cores inline para garantir impressão correta
+    const computedStyle = window.getComputedStyle(clonedSection);
+    clonedSection.style.background = computedStyle.background;
+    clonedSection.style.borderLeft = computedStyle.borderLeft;
+    clonedSection.style.borderRadius = computedStyle.borderRadius;
+    clonedSection.style.padding = computedStyle.padding;
+    clonedSection.style.margin = computedStyle.margin;
+    clonedSection.style.boxShadow = computedStyle.boxShadow;
+    
+    // Evitar quebra no meio do callout
     clonedSection.style.breakInside = 'avoid';
     clonedSection.style.pageBreakInside = 'avoid';
     (clonedSection.style as any).webkitPrintColorAdjust = 'exact';
     clonedSection.style.printColorAdjust = 'exact';
+    
+    console.log(`[PDF] Callout "${calloutType}" processado com estilos inline`);
   }
+  
+  // Processar callouts dentro de outros elementos
+  clonedSection.querySelectorAll('[data-callout-type]').forEach(el => {
+    const calloutEl = el as HTMLElement;
+    const calloutType = calloutEl.getAttribute('data-callout-type');
+    
+    calloutEl.classList.add(`callout-${calloutType}`);
+    const computedStyle = window.getComputedStyle(calloutEl);
+    calloutEl.style.background = computedStyle.background;
+    calloutEl.style.borderLeft = computedStyle.borderLeft;
+    calloutEl.style.borderRadius = computedStyle.borderRadius;
+    calloutEl.style.padding = computedStyle.padding;
+    calloutEl.style.margin = computedStyle.margin;
+    calloutEl.style.boxShadow = computedStyle.boxShadow;
+    calloutEl.style.breakInside = 'avoid';
+    calloutEl.style.pageBreakInside = 'avoid';
+    (calloutEl.style as any).webkitPrintColorAdjust = 'exact';
+    calloutEl.style.printColorAdjust = 'exact';
+  });
   
   container.appendChild(clonedSection);
   document.body.appendChild(container);
