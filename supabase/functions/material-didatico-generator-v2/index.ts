@@ -1342,6 +1342,51 @@ ${processedMarkdown}`;
     console.log('\n=== PHASE 5: SAVE TO DATABASE ===');
     await updateJobProgress(supabase, jobId, 93, 'Salvando material...');
     
+    // 🔒 VALIDAÇÃO STRICT ANTES DE SALVAR (previne material malformado)
+    console.log('[Validation] Running STRICT validation before save...');
+    
+    const hasFlowchart = /```mermaid\s+flowchart\s+(TD|LR)/i.test(processedMarkdown);
+    const hasQuotedLabelsWithLatex = /\["[^"]*\$\$[^"]*\$\$[^"]*"\]/g.test(processedMarkdown);
+    const hasForbiddenUnderscores = /_dot|_entrada|_saida/i.test(processedMarkdown);
+    const hasOldGraphSyntax = /```mermaid\s+graph\s+(TD|LR)/i.test(processedMarkdown);
+    const mermaidBlocksCount = (processedMarkdown.match(/```mermaid/g) || []).length;
+    
+    const validationErrors: string[] = [];
+    
+    if (!hasFlowchart) {
+      validationErrors.push('❌ Nenhum diagrama flowchart TD/LR encontrado (obrigatório)');
+    }
+    
+    if (!hasQuotedLabelsWithLatex && mermaidBlocksCount > 0) {
+      validationErrors.push('❌ Diagramas Mermaid sem LaTeX em labels com aspas duplas ["...$$...$$..."]');
+    }
+    
+    if (hasForbiddenUnderscores) {
+      validationErrors.push('❌ Underscores detectados (deve usar $$\\dot{Q}$$ ao invés de Q_dot)');
+    }
+    
+    if (hasOldGraphSyntax && !hasFlowchart) {
+      validationErrors.push('⚠️ Usando sintaxe antiga "graph TD" ao invés de "flowchart TD"');
+    }
+    
+    if (mermaidBlocksCount < 2) {
+      validationErrors.push('⚠️ Menos de 2 diagramas Mermaid (mínimo obrigatório: 2)');
+    }
+    
+    if (validationErrors.length > 0) {
+      console.error('[Validation] ❌ STRICT VALIDATION FAILED:');
+      validationErrors.forEach(err => console.error(`  ${err}`));
+      
+      // NÃO salvar material malformado - marcar job como falho
+      throw new Error(`VALIDAÇÃO FALHOU: ${validationErrors.join('; ')}`);
+    }
+    
+    console.log('[Validation] ✅ STRICT validation passed - material is well-formed');
+    console.log(`[Validation] ✓ flowchart diagrams: ${hasFlowchart ? 'YES' : 'NO'}`);
+    console.log(`[Validation] ✓ LaTeX in quoted labels: ${hasQuotedLabelsWithLatex ? 'YES' : 'NO'}`);
+    console.log(`[Validation] ✓ No forbidden underscores: ${!hasForbiddenUnderscores ? 'YES' : 'NO'}`);
+    console.log(`[Validation] ✓ Mermaid blocks count: ${mermaidBlocksCount}`);
+    
     await supabase
       .from('lectures')
       .update({
