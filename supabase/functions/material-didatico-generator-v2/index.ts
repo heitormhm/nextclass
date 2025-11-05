@@ -924,91 +924,23 @@ para tornar o conteúdo dinâmico, visual e fácil de escanear.
 4. **Varie** os tipos (não use só Conceito-Chave)
 5. **Seja específico** no conteúdo de cada callout (evite generalidades)
 
+🚫 **IMPORTANTE - DIAGRAMAS REMOVIDOS**:
+- NÃO gere referências a "diagramas", "gráficos" ou "fluxogramas"
+- NÃO use blocos \`\`\`mermaid (sistema não renderiza mais)
+- Em vez disso, USE CALLOUTS INTENSIVAMENTE (12 tipos, mínimo 10-15 por material)
+- Descreva processos e fluxos usando TEXTO estruturado com callouts coloridos
+
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ 📋 CHECKLIST FINAL (VERIFICAR ANTES DE ENVIAR):                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-□ Todos os labels Mermaid usam aspas duplas: ["..."]
-□ Todas as fórmulas dentro de labels usam $$...$$ (DUPLO, não simples!)
-□ Nenhum underscore direto (Q_dot) - usar $$\\dot{Q}$$ ou $$Q_{dot}$$
-□ Pelo menos 1 diagrama flowchart TD ou flowchart LR
-□ Mínimo 2 diagramas Mermaid no total
-□ Mínimo 2 TIPOS diferentes de diagramas (flowchart + graph/stateDiagram)
+□ Mínimo 10-15 callouts no material completo
+□ Pelo menos 3 tipos diferentes de callouts usados
+□ Todos os conceitos principais têm callout ✏️ Conceito-Chave
+□ Exemplos numéricos têm callout 🔬 Exemplo Prático
+□ Erros comuns identificados com callout ❌ Erro Comum
+□ Todas as fórmulas LaTeX inline usam $ (simples), display usam $$ (duplo)
 
-╔═══════════════════════════════════════════════════════════════════════════════╗
-║  📐 EXEMPLO COMPLETO PERFEITO - COPIE ESTA ESTRUTURA EXATA:                  ║
-╚═══════════════════════════════════════════════════════════════════════════════╝
-
-\`\`\`mermaid
-flowchart TD
-    Sistema["<b>Sistema Termodinâmico</b><br/>Fechado: $$m = \\text{constante}$$"]
-    
-    Sistema --> Entrada["Entradas de Energia"]
-    Sistema --> Saida["Saídas de Energia"]
-    
-    Entrada --> Calor["<b>Calor Transferido</b><br/>$$Q = \\int \\delta Q$$"]
-    Entrada --> Trabalho["<b>Trabalho Realizado</b><br/>$$W = \\int P dV$$"]
-    
-    Calor --> Lei["<b>Primeira Lei</b><br/>$$\\Delta E = Q - W$$"]
-    Trabalho --> Lei
-    
-    Lei --> Resultado["<b>Variação de Energia</b><br/>$$\\Delta E = \\Delta U + \\Delta EC + \\Delta EP$$"]
-    
-    Saida --> Calor
-    Saida --> Trabalho
-    
-    style Sistema fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
-    style Lei fill:#fff3e0,stroke:#f57c00,stroke-width:3px
-    style Resultado fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-\`\`\`
-
-**REGRA DE OURO ABSOLUTA**: 
-- DENTRO de labels Mermaid → SEMPRE $$ (duplo)
-- FORA de blocos Mermaid (texto normal) → pode usar $ (simples)
-
-🚨 **ÚLTIMO AVISO**: Se você gerar material com $ simples em labels Mermaid, ele será AUTOMATICAMENTE REJEITADO e você terá que regenerar TUDO!
-🎯 **DIAGRAMAS MERMAID: OBRIGATÓRIO (MÍNIMO 2 POR MATERIAL)**
-
-**REGRA CRÍTICA**: Você DEVE gerar pelo menos 2 diagramas Mermaid flowchart por material.
-
-**TIPOS PERMITIDOS** (em ordem de prioridade):
-1. **flowchart TD / LR** - OBRIGATÓRIO usar pelo menos 2x (processos, fluxos)
-2. **graph TD / LR** - PERMITIDO para hierarquias (opcional)
-3. **stateDiagram-v2** - PERMITIDO para estados (opcional)
-
-**TIPOS PROIBIDOS** (sistema rejeitará automaticamente):
-❌ Diagramas sem tipo definido
-❌ Tipos não suportados (classDiagram, entityRelationship, etc.)
-
-**INTEGRAÇÃO DE LATEX EM DIAGRAMAS** (REGRA ABSOLUTA):
-✅ CORRETO: ["<b>Título</b><br/>$$\\Delta H = Q_p$$"]
-✅ CORRETO: ["Sistema: $$m \\cdot c \\cdot \\Delta T$$"]
-❌ ERRADO: [Texto Q_dot = 500] (sem aspas, sem $$)
-❌ ERRADO: ["Texto $formula$"] ($ único é proibido em Mermaid, use $$)
-
-**REGRAS MERMAID ABSOLUTAS** (não negociável):
-1. Labels com LaTeX SEMPRE entre aspas duplas: ["...$$...$$..."]
-2. Subscripts: use $$Q_{out}$$ NUNCA Q_out ou Qout
-3. Pontos sobre variáveis: use $$\\dot{Q}$$ NUNCA Q_dot
-4. Primeira linha DEVE ser: flowchart TD ou flowchart LR
-5. Labels < 60 caracteres (use <br/> para quebrar linhas longas)
-6. Use <b>texto</b> para títulos em negrito
-7. Use <br/> para quebras de linha dentro de labels
-
-**TESTE MENTAL FINAL**: Antes de enviar, conte:
-- ✅ Quantos "flowchart TD" ou "flowchart LR"? (deve ser ≥ 2)
-- ✅ Quantos labels com $$? (deve ser ≥ 5 no total)
-- ✅ Todos os labels têm aspas duplas ["..."]? (deve ser 100%)
-
-**AUTO-VALIDAÇÃO PRÉ-ENVIO**: Verifique mentalmente:
-□ NÃO usei "graph TD" em nenhum lugar
-□ TODOS os nodes têm formato: ID["texto com $$formula$$"]
-□ Tenho pelo menos 2 diagramas flowchart completos
-□ Cada diagrama tem no mínimo 3 nodes com LaTeX
-
-⚠️ **IMPORTANTE**: Se você falhar em qualquer regra acima, o sistema automaticamente rejeitará o material e você terá que regenerar!
-
----
 
 ESTRUTURA DO MATERIAL:
 
@@ -1109,69 +1041,6 @@ Use callouts Markdown para destacar informações importantes:
 > ⚠️ Atenção: [Cuidado com erros comuns ou limitações]
 > 🔬 Exemplo Prático: [Caso real de aplicação]
 
-**DIAGRAMAS: USE VARIEDADE DE TIPOS**
-
-Crie 3-4 diagramas usando TIPOS DIFERENTES (escolha o mais apropriado para cada conceito):
-
-1. **flowchart LR** - Para processos sequenciais e fluxos
-\`\`\`mermaid
-flowchart LR
-    A[Entrada] --> B[Processo] --> C[Saida]
-\`\`\`
-
-2. **graph TD** - Para hierarquias e relações entre conceitos
-\`\`\`mermaid
-graph TD
-    Conceito1[Principal] --> Conceito2[Derivado]
-    Conceito1 --> Conceito3[Relacionado]
-\`\`\`
-
-3. **stateDiagram-v2** - Para estados, transições e ciclos
-\`\`\`mermaid
-stateDiagram-v2
-    [*] --> Estado1
-    Estado1 --> Estado2: Transicao
-    Estado2 --> [*]
-\`\`\`
-
-4. **classDiagram** - Para classificações e taxonomias (opcional)
-\`\`\`mermaid
-classDiagram
-    Categoria <|-- Tipo1
-    Categoria <|-- Tipo2
-\`\`\`
-
-**IMPORTANTE**: Use pelo menos 2 tipos diferentes. NUNCA use apenas graph TD para todos os diagramas.
-
-**REGRAS CRÍTICAS PARA DIAGRAMAS**:
-- **NUNCA use caracteres especiais em labels**: Δ, Σ, ṁ, Q̇, Ẇ, α, β, γ, θ
-- **Use notação ASCII**: "Delta", "Sigma", "Q_dot", "m_dot", "alpha"
-- **Labels curtos**: Máximo 40 caracteres por label
-- **Sem parênteses em labels**: Prefira hífens ou underscores
-- **Fórmulas matemáticas**: Coloque em seção LaTeX separada, NUNCA em diagramas
-- **⚠️ FASE 5: IMPORTANTE - classDiagram NÃO SUPORTA UNDERSCORES em atributos!**
-  - ❌ ERRADO: \`+Nao_Cruza : bool\` ou \`+Rigida_e_Adiabatica : bool\`
-  - ✅ CORRETO: \`+Nao Cruza : bool\` ou \`+Rigida e Adiabatica : bool\` (use espaços)
-  - ✅ ALTERNATIVA: \`+NaoCruza : bool\` ou \`+RigidaEAdiabatica : bool\` (camelCase)
-  - Esta regra se aplica APENAS a classDiagram. Flowcharts podem usar underscores em labels normalmente.
-
-EXEMPLO CORRETO DE DIAGRAMA:
-\`\`\`mermaid
-flowchart TD
-    A[Primeira Lei] --> B[Conservacao de Energia]
-    B --> C[DeltaE = Q - W]
-    C --> D[Sistema Fechado]
-\`\`\`
-
-EXEMPLO INCORRETO (NÃO FAÇA):
-\`\`\`mermaid
-flowchart TD
-    A[Primeira Lei] --> B[ΔE = Q - W]  ❌ Caracteres especiais
-    B --> C[Q̇ - Ẇ = dE/dt + Σṁ...]  ❌ Fórmula muito longa
-\`\`\`
-
-EXEMPLO DE CALLOUT:
-> ✏️ Conceito-Chave: A Primeira Lei da Termodinâmica estabelece que a energia total de um sistema isolado permanece constante, podendo apenas mudar de forma entre energia interna, calor e trabalho.
 
 EXEMPLO CORRETO DE LATEX:
 No texto: "A entalpia ($H$) é uma propriedade termodinâmica..."

@@ -11,11 +11,32 @@ interface MaterialDidaticoRendererProps {
 
 
 export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> = ({ markdown }) => {
+  // Pre-processar markdown para remover referências a diagramas obsoletos
+  let processedMarkdown = markdown;
+  
+  // Substituir frases comuns que referenciam diagramas
+  const diagramReferences = [
+    { pattern: /O diagrama (a seguir|abaixo) (mostra|organiza|ilustra|apresenta)/gi, 
+      replacement: 'A estrutura a seguir organiza' },
+    { pattern: /```mermaid[\s\S]*?```/g, 
+      replacement: '_[Diagrama visual removido - consulte a descrição textual]_' },
+    { pattern: /Conforme (mostrado|ilustrado) no diagrama/gi, 
+      replacement: 'Conforme descrito' },
+    { pattern: /O fluxograma (mostra|ilustra)/gi, 
+      replacement: 'O processo descrito' },
+    { pattern: /no diagrama (acima|abaixo)/gi,
+      replacement: 'conforme descrito' },
+  ];
+  
+  diagramReferences.forEach(({ pattern, replacement }) => {
+    processedMarkdown = processedMarkdown.replace(pattern, replacement);
+  });
+  
   // Calculate reading time
-  const words = markdown.split(/\s+/).length;
+  const words = processedMarkdown.split(/\s+/).length;
   const readingTimeMin = Math.ceil(words / 200); // Average reading speed
 
-  if (!markdown || markdown.trim().length === 0) {
+  if (!processedMarkdown || processedMarkdown.trim().length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <p>Nenhum material didático gerado ainda.</p>
@@ -198,8 +219,26 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           ),
           // Style blockquotes with intelligent callout detection
           blockquote: ({ node, children, ...props }) => {
-            const firstChild = node?.children?.[0] as any;
-            const textContent = firstChild?.children?.[0]?.value || '';
+            // Extrair todo o conteúdo textual do blockquote de forma robusta
+            const extractText = (node: any): string => {
+              if (typeof node === 'string') return node;
+              if (node?.props?.children) {
+                if (Array.isArray(node.props.children)) {
+                  return node.props.children.map(extractText).join('');
+                }
+                return extractText(node.props.children);
+              }
+              if (node?.children) {
+                if (Array.isArray(node.children)) {
+                  return node.children.map((child: any) => extractText(child)).join('');
+                }
+                return extractText(node.children);
+              }
+              if (node?.value) return node.value;
+              return '';
+            };
+            
+            const fullText = extractText(children);
             
             const calloutTypes: Record<string, { bgColor: string; borderColor: string; textColor: string; titleColor: string; icon: string }> = {
               '✏️ Conceito-Chave': {
@@ -288,9 +327,10 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               },
             };
 
+            // Buscar match no texto completo (mais robusto)
             let matchedCallout = null;
             for (const [title, style] of Object.entries(calloutTypes)) {
-              if (textContent.startsWith(title)) {
+              if (fullText.includes(title) || fullText.startsWith(title)) {
                 matchedCallout = { title, ...style };
                 break;
               }
@@ -334,7 +374,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           ),
         }}
       >
-        {markdown}
+        {processedMarkdown}
       </ReactMarkdown>
       </div>
     </div>

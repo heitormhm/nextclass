@@ -2048,23 +2048,23 @@ const LectureTranscriptionPage = () => {
                                     </span>
                                   </div>
                                   
-                                  {/* Pill 2: Conceitos-Chave */}
+                                  {/* Pill 2: Conceitos-Chave - REGEX MELHORADA */}
                                   <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-full">
                                     <span className="text-sm">✏️</span>
                                     <span className="text-xs font-medium">
                                       {(() => {
-                                        const conceitosCount = (materialDidaticoV2.match(/✏️ Conceito-Chave/g) || []).length;
+                                        const conceitosCount = (materialDidaticoV2.match(/✏️\s*Conceito-Chave/gi) || []).length;
                                         return `${conceitosCount} conceito${conceitosCount !== 1 ? 's' : ''}`;
                                       })()}
                                     </span>
                                   </div>
                                   
-                                  {/* Pill 3: Exemplos Práticos */}
+                                  {/* Pill 3: Exemplos Práticos - REGEX MELHORADA */}
                                   <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-full">
                                     <span className="text-sm">🔬</span>
                                     <span className="text-xs font-medium">
                                       {(() => {
-                                        const exemplosCount = (materialDidaticoV2.match(/🔬 Exemplo Prático/g) || []).length;
+                                        const exemplosCount = (materialDidaticoV2.match(/🔬\s*Exemplo\s*Prático/gi) || []).length;
                                         return `${exemplosCount} exemplo${exemplosCount !== 1 ? 's' : ''}`;
                                       })()}
                                     </span>
