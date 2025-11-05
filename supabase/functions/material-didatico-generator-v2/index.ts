@@ -1004,16 +1004,31 @@ flowchart TD
 
 ESTRUTURA DO MATERIAL:
 
+**IMPORTANTE - EXTENSÃO OBRIGATÓRIA**:
+- Mínimo de 8.000 palavras (aproximadamente 40.000-50.000 caracteres)
+- Distribuição: 60-70% teoria (5.000-6.000 palavras) + 30-40% prática (2.500-3.000 palavras)
+- Cada seção principal deve ter 2.000-3.000 palavras
+- Cada subseção deve ter no mínimo 500 palavras
+- O material deve ser equivalente a 3-5 páginas impressas de conteúdo denso
+
 # ${lectureTitle}
 
-## 1. Fundamentos Teóricos
+## 1. Fundamentos Teóricos (5.000-6.000 palavras)
+### 1.1. Definição Formal (800-1.000 palavras)
 [Use 60-70% do material dos livros - mantenha citações de autores]
+### 1.2. Equações Fundamentais (1.000-1.500 palavras)
+[Desenvolva cada equação com derivação completa]
+### 1.3. Premissas e Limitações (800-1.000 palavras)
+[Explique contexto de aplicação e restrições]
 
-## 2. Aplicações Práticas
+## 2. Aplicações Práticas (2.500-3.000 palavras)
+### 2.1. Casos da Indústria (1.500 palavras)
 [Use 30-40% dos casos práticos da web - foque em indústria brasileira e normas]
+### 2.2. Exemplos Numéricos (1.000 palavras)
+[Resolva problemas completos passo-a-passo]
 
-## 3. Exercícios e Exemplos
-[Misture exemplos dos livros + casos práticos]
+## 3. Exercícios e Exemplos (1.500-2.000 palavras)
+[Misture exemplos dos livros + casos práticos com soluções detalhadas]
 
 **REGRA ABSOLUTA:** CADA diagrama deve ser de um TIPO diferente. Se você criar 3 diagramas, use 3 TIPOS diferentes (flowchart + graph + stateDiagram).
 
@@ -1266,88 +1281,24 @@ Regenere TODO o material seguindo esta regra à risca. Não esqueça: $$ DUPLO e
     console.log('\n=== PHASE 4: PROCESSING & VALIDATION ===');
     await updateJobProgress(supabase, jobId, 85, 'Processando e validando conteúdo...');
     
-    let processedMarkdown = fixLaTeXFormulas(autoFixedMarkdown);
+    let processedMarkdown = autoFixedMarkdown;
     
-    // 🔥 CRITICAL: Force $ → $$ conversion in Mermaid labels BEFORE validation
-    console.log('[Processing] Applying $ → $$ conversion to Mermaid labels...');
-    processedMarkdown = forceDollarDoublingInMermaid(processedMarkdown);
-    console.log('[Processing] ✅ Mermaid LaTeX conversion complete');
+    // 1️⃣ PRIMEIRO: Proteger blocos Mermaid com placeholders
+    console.log('[Processing] Step 1/5: Protecting Mermaid blocks...');
+    const mermaidBlocks: string[] = [];
+    processedMarkdown = processedMarkdown.replace(/```mermaid\n([\s\S]*?)```/g, (match) => {
+      const placeholder = `___MERMAID_BLOCK_${mermaidBlocks.length}___`;
+      mermaidBlocks.push(match);
+      return placeholder;
+    });
+    console.log(`[Processing] Protected ${mermaidBlocks.length} Mermaid blocks`);
     
-    // Post-generation validation and auto-fix
-    const validateContent = (markdown: string): { valid: boolean; errors: string[] } => {
-      const errors: string[] = [];
-      
-      // Check for inline $$ usage (should be single $)
-      const inlineDoubleDollar = markdown.match(/\w+\s*\$\$\s*[A-Za-z_\\]+\s*\$\$/g);
-      if (inlineDoubleDollar) {
-        errors.push(`Found ${inlineDoubleDollar.length} inline $$ formulas (should use single $)`);
-      }
-      
-      // ✅ FASE 4: Detectar blocos Mermaid REAIS (não texto aleatório)
-      const mermaidBlocksRegex = /```mermaid\s+([\s\S]*?)```/g;
-      const mermaidBlocks: string[] = [];
-      let match;
-      while ((match = mermaidBlocksRegex.exec(markdown)) !== null) {
-        mermaidBlocks.push(match[0]);
-      }
-      
-      console.log(`[Mermaid] ✅ Found ${mermaidBlocks.length} REAL Mermaid blocks`);
-      
-      // Validar APENAS se há blocos reais
-      if (mermaidBlocks.length > 0) {
-        mermaidBlocks.forEach((block, i) => {
-          const code = block.replace(/```mermaid\s+/g, '').replace(/```$/g, '').trim();
-          
-          // Validar tipo de diagrama
-          const hasValidType = /^(flowchart|graph|stateDiagram|classDiagram|sequenceDiagram|pie)/m.test(code);
-          if (!hasValidType) {
-            errors.push(`Mermaid diagram ${i+1} has INVALID or MISSING type`);
-          }
-          
-          // Validar labels (comprimento e caracteres especiais)
-          const labels = block.match(/\[([^\]]+)\]/g) || [];
-          labels.forEach(label => {
-            if (/[ΔΣṁQ̇Ẇαβγθμπω]/.test(label)) {
-              errors.push(`Mermaid diagram ${i+1} has special characters in label: ${label}`);
-            }
-            if (label.length > 60) {
-              errors.push(`Mermaid diagram ${i+1} has long label (${label.length} chars): ${label.substring(0, 30)}...`);
-            }
-          });
-        });
-      } else {
-        // ⚠️ CRITICAL: Nenhum diagrama Mermaid encontrado
-        errors.push('⚠️ CRITICAL: NO Mermaid diagrams found in generated material!');
-      }
-      
-      // Check diagram type diversity
-      const diagramTypes = new Set<string>();
-      mermaidBlocks.forEach(block => {
-        const typeMatch = block.match(/```mermaid\s+(flowchart|graph|stateDiagram|classDiagram|pie|sequenceDiagram)/);
-        if (typeMatch) {
-          diagramTypes.add(typeMatch[1]);
-        }
-      });
-      
-      if (mermaidBlocks.length >= 3 && diagramTypes.size < 3) {
-        errors.push(`REJECTED: Only ${diagramTypes.size} diagram types used (${Array.from(diagramTypes).join(', ')}). REQUIRED: 3 different types (flowchart + graph + stateDiagram/classDiagram).`);
-      }
-      
-      // Also check for minimum variety (at least 2 types even with 2 diagrams)
-      if (mermaidBlocks.length >= 2 && diagramTypes.size < 2) {
-        errors.push(`REJECTED: All diagrams are the same type. REQUIRED: Use different types.`);
-      }
-      
-      return { valid: errors.length === 0, errors };
-    };
+    // 2️⃣ SEGUNDO: Corrigir LaTeX geral (SEM afetar Mermaid protegido)
+    console.log('[Processing] Step 2/5: Fixing general LaTeX...');
+    processedMarkdown = fixLaTeXFormulas(processedMarkdown);
     
-    const contentValidation = validateContent(processedMarkdown);
-    if (!contentValidation.valid) {
-      console.warn('⚠️ Content validation warnings:', contentValidation.errors);
-    }
-    
-    // PHASE 4: Aggressive LaTeX inline fix (catches ALL inline $$ patterns)
-    console.log('[LaTeX] Applying comprehensive inline formula fixes...');
+    // 3️⃣ TERCEIRO: Aplicar correções LaTeX inline (SEM afetar Mermaid)
+    console.log('[Processing] Step 3/5: Fixing inline LaTeX formulas...');
     
     // Fix 1: ( $$ variable $$ ) → ($variable$)
     processedMarkdown = processedMarkdown.replace(/\(\s*\$\$\s*([^$]+?)\s*\$\$\s*\)/g, '($$$1$)');
@@ -1358,16 +1309,35 @@ Regenere TODO o material seguindo esta regra à risca. Não esqueça: $$ DUPLO e
     // Fix 3: word $$ variable $$ word → word $variable$ word
     processedMarkdown = processedMarkdown.replace(/(\w+)\s+\$\$\s*([A-Za-z_\\]+)\s*\$\$\s+(\w+)/g, '$1 $$$2$ $3');
     
-    // Fix 3: Start of line with inline $$
+    // Fix 4: Start of line with inline $$
     processedMarkdown = processedMarkdown.replace(/^(\*\s+|\d+\.\s+|>\s+)(.+?)\$\$\s*([^$\n]+?)\s*\$\$/gm, '$1$2$$$3$');
     
-    // Fix 4: Single variable between $$  $$ → $ $
+    // Fix 5: Single variable between $$  $$ → $ $
     processedMarkdown = processedMarkdown.replace(/\$\$\s*([A-Za-z_\\]{1,10})\s*\$\$/g, '$$$1$');
     
-    // Fix 5: In parentheses or after comma
+    // Fix 6: In parentheses or after comma
     processedMarkdown = processedMarkdown.replace(/([,(])\s*\$\$\s*([^$\n]+?)\s*\$\$\s*([,)])/g, '$1$$$2$$3');
     
-    console.log('[LaTeX] ✅ Comprehensive inline fixes applied');
+    console.log('[Processing] ✅ Inline LaTeX fixes applied');
+    
+    // 4️⃣ QUARTO: Processar blocos Mermaid individualmente ($ → $$)
+    console.log('[Processing] Step 4/5: Converting $ → $$ in Mermaid labels...');
+    const processedMermaidBlocks = mermaidBlocks.map((block, idx) => {
+      console.log(`[Mermaid ${idx + 1}/${mermaidBlocks.length}] Processing...`);
+      const converted = forceDollarDoublingInMermaid(block);
+      return converted;
+    });
+    console.log('[Processing] ✅ Mermaid LaTeX conversion complete');
+    
+    // 5️⃣ QUINTO: Restaurar blocos Mermaid processados
+    console.log('[Processing] Step 5/5: Restoring Mermaid blocks...');
+    processedMermaidBlocks.forEach((block, idx) => {
+      processedMarkdown = processedMarkdown.replace(
+        `___MERMAID_BLOCK_${idx}___`,
+        block
+      );
+    });
+    console.log('[Processing] ✅ All Mermaid blocks restored');
     
   // NOVA PHASE 4: Minimal LaTeX Protection (NÃO-destrutiva) ✅ FASE 1
   console.log('[LaTeX] Applying MINIMAL protection (whitelist approach)...');
@@ -1737,24 +1707,52 @@ ${processedMarkdown}`;
       console.log('[Validation] Isso pode indicar que a IA não gerou fórmulas onde deveria');
     }
     
-    // 🔥 NOVA VALIDAÇÃO: Detectar $ simples em labels (ERRO CRÍTICO)
-    const hasSingleDollarInLabels = /\["[^"]*(?<!\$)\$(?!\$)[^"]*"\]/gs.test(processedMarkdown);
+    // 🔥 NOVA VALIDAÇÃO: Detectar $ simples em labels (DENO-COMPATIBLE)
+    console.log('[Validation] Checking for single $ in Mermaid labels...');
     
-    if (hasSingleDollarInLabels) {
+    // Regex compatível: procura por labels com $ que não são $$
+    const mermaidLabelsWithDollar = processedMarkdown.matchAll(/\["[^"]*\$[^"]*"\]/gs);
+    let hasSingleDollar = false;
+    const problematicLabels: string[] = [];
+    
+    for (const match of mermaidLabelsWithDollar) {
+      const label = match[0];
+      // Checar se tem $ simples (não $$)
+      const cleanLabel = label.replace(/\$\$/g, ''); // Remove $$ temporariamente
+      if (cleanLabel.includes('$')) {
+        hasSingleDollar = true;
+        problematicLabels.push(label.substring(0, 60));
+        console.error(`[Validation] ❌ Found single $ in label: ${label.substring(0, 60)}...`);
+      }
+    }
+    
+    if (hasSingleDollar) {
       console.error('[Validation] ❌ CRITICAL: Found single $ in Mermaid labels!');
-      console.error('[Validation] Mermaid requires $$ for LaTeX in labels.');
+      console.error(`[Validation] Problematic labels (${problematicLabels.length}):`, problematicLabels);
       console.log('[Validation] 🔧 Attempting emergency auto-fix...');
       
       // Emergency re-application of conversion
       processedMarkdown = forceDollarDoublingInMermaid(processedMarkdown);
       
-      // Re-validate
-      const stillHasSingle = /\["[^"]*(?<!\$)\$(?!\$)[^"]*"\]/gs.test(processedMarkdown);
+      // Re-validate using same method
+      const revalidateMatches = processedMarkdown.matchAll(/\["[^"]*\$[^"]*"\]/gs);
+      let stillHasSingle = false;
+      for (const match of revalidateMatches) {
+        const label = match[0];
+        const cleanLabel = label.replace(/\$\$/g, '');
+        if (cleanLabel.includes('$')) {
+          stillHasSingle = true;
+          break;
+        }
+      }
+      
       if (!stillHasSingle) {
         console.log('[Validation] ✅ Emergency auto-fix successful');
       } else {
         console.error('[Validation] ❌ Auto-fix FAILED - single $ still present');
       }
+    } else {
+      console.log('[Validation] ✅ No single $ found in Mermaid labels');
     }
     
     let validationErrors: string[] = [];
