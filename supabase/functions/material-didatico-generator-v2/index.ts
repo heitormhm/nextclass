@@ -1548,12 +1548,31 @@ ${processedMarkdown}`;
     console.log('[Validation] Running STRICT validation before save...');
     
     const hasFlowchart = /```mermaid\s+flowchart\s+(TD|LR)/i.test(processedMarkdown);
-    const hasQuotedLabelsWithLatex = /\["[^"]*\$\$[^"]*\$\$[^"]*"\]/g.test(processedMarkdown);
+    // ✅ Regex mais permissivo: detecta LaTeX em labels mesmo com HTML tags, espaços, quebras de linha
+    const hasQuotedLabelsWithLatex = /\[".*?\$\$.*?\$\$.*?"\]/s.test(processedMarkdown);
     const hasForbiddenUnderscores = /_dot|_entrada|_saida/i.test(processedMarkdown);
     const hasOldGraphSyntax = /```mermaid\s+graph\s+(TD|LR)/i.test(processedMarkdown);
     const mermaidBlocksCount = (processedMarkdown.match(/```mermaid/g) || []).length;
     
+    // Log detalhado para debug - mostra labels com LaTeX encontrados
+    const latexLabels = processedMarkdown.match(/\[".*?\$\$.*?\$\$.*?"\]/gs) || [];
+    console.log(`[Validation] Labels com LaTeX encontrados: ${latexLabels.length}`);
+    
+    if (latexLabels.length > 0) {
+      console.log('[Validation] ✅ Exemplos de labels válidos:');
+      latexLabels.slice(0, 3).forEach((label, idx) => {
+        const preview = label.length > 80 ? label.substring(0, 80) + '...' : label;
+        console.log(`  [${idx + 1}] ${preview}`);
+      });
+    }
+    
+    if (!hasQuotedLabelsWithLatex && mermaidBlocksCount > 0) {
+      console.log('[Validation] ⚠️ WARNING: Diagramas Mermaid encontrados mas SEM labels com LaTeX');
+      console.log('[Validation] Isso pode indicar que a IA não gerou fórmulas onde deveria');
+    }
+    
     const validationErrors: string[] = [];
+    const validationWarnings: string[] = [];
     
     if (!hasFlowchart) {
       validationErrors.push('❌ Nenhum diagrama flowchart TD/LR encontrado (obrigatório)');
@@ -1573,6 +1592,26 @@ ${processedMarkdown}`;
     
     if (mermaidBlocksCount < 2) {
       validationErrors.push('⚠️ Menos de 2 diagramas Mermaid (mínimo obrigatório: 2)');
+    }
+    
+    // Validação de qualidade: pelo menos 2 labels com LaTeX para conteúdo técnico
+    if (hasQuotedLabelsWithLatex) {
+      const latexLabelsCount = latexLabels.length;
+      
+      if (latexLabelsCount < 2 && mermaidBlocksCount > 0) {
+        validationWarnings.push(
+          `⚠️ Apenas ${latexLabelsCount} label(s) com LaTeX encontrado(s). ` +
+          `Esperado: pelo menos 2 para conteúdo técnico de engenharia.`
+        );
+      } else {
+        console.log(`[Validation] ✅ ${latexLabelsCount} labels com LaTeX detectados (bom!)`);
+      }
+    }
+    
+    // Mostrar warnings (não bloqueiam geração)
+    if (validationWarnings.length > 0) {
+      console.warn('[Validation] ⚠️ WARNINGS (não bloqueiam geração):');
+      validationWarnings.forEach(warn => console.warn(`  ${warn}`));
     }
     
     if (validationErrors.length > 0) {
