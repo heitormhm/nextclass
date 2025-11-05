@@ -11,7 +11,8 @@ import {
   initializeMermaid, 
   sanitizeMermaidCode, 
   renderMermaidWithTimeout,
-  getMermaidLiveEditorLink
+  getMermaidLiveEditorLink,
+  validateMermaidSyntax
 } from '@/lib/mermaidRenderingEngine';
 import { MermaidErrorBoundary } from './MermaidErrorBoundary';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
   const [status, setStatus] = useState<RenderStatus>('initializing');
   const [errorType, setErrorType] = useState<string | null>(null);
   const [renderTime, setRenderTime] = useState<number | null>(null);
+  const [validationIssues, setValidationIssues] = useState<string[]>([]);
 
   // Initialize once per component mount
   useEffect(() => {
@@ -53,14 +55,36 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
 
       setStatus('rendering');
       setErrorType(null);
+      setValidationIssues([]);
 
       const sanitized = sanitizeMermaidCode(code);
+      
+      // ✅ Log código sanitizado para debug
+      console.log('[MermaidDiagram] Código original (primeiros 200 chars):', code.substring(0, 200));
+      console.log('[MermaidDiagram] Código sanitizado (primeiros 200 chars):', sanitized.substring(0, 200));
+      
+      // ✅ Validar antes de renderizar
+      const validation = validateMermaidSyntax(sanitized);
+      if (!validation.isValid) {
+        console.error('[MermaidDiagram] ❌ Validação falhou:', validation.issues);
+        setStatus('error');
+        setErrorType('validation_failed');
+        setRenderTime(0);
+        setValidationIssues(validation.issues);
+        return;
+      }
+      
+      if (validation.warnings.length > 0) {
+        console.warn('[MermaidDiagram] ⚠️ Avisos:', validation.warnings);
+      }
 
       const { svg, error, metadata } = await renderMermaidWithTimeout(sanitized, 10000);
 
       if (error) {
         console.error('[MermaidDiagram] Render failed:', error);
         console.error('[MermaidDiagram] Code length:', metadata.codeLength);
+        console.error('[MermaidDiagram] Código completo que falhou:');
+        console.error(sanitized);
         setStatus('error');
         setErrorType(error);
         setRenderTime(metadata.renderTimeMs);
@@ -94,11 +118,23 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
               {errorType === 'timeout' && 'Tempo esgotado ao renderizar diagrama'}
               {errorType === 'empty_code' && 'Código Mermaid vazio'}
               {errorType === 'syntax_error' && 'Erro de sintaxe no diagrama'}
+              {errorType === 'validation_failed' && 'Erro de validação do diagrama'}
               {errorType === 'initialization_failed' && 'Falha ao inicializar renderizador'}
               {!errorType && 'Erro desconhecido'}
             </p>
             
-            {renderTime && (
+            {errorType === 'validation_failed' && validationIssues.length > 0 && (
+              <div className="mt-4 mb-4 text-left bg-white dark:bg-slate-900 p-3 rounded-lg border border-red-300 dark:border-red-700">
+                <p className="text-sm font-semibold mb-2 text-red-800 dark:text-red-200">🔍 Problemas detectados:</p>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                  {validationIssues.map((issue, i) => (
+                    <li key={i} className="text-red-700 dark:text-red-300">{issue}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {renderTime !== null && renderTime > 0 && (
               <p className="text-xs text-muted-foreground mb-4">
                 Tentativa de renderização: {renderTime.toFixed(0)}ms
               </p>

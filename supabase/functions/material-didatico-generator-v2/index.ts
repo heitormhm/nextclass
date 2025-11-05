@@ -1121,16 +1121,31 @@ INCORRETO (NÃO FAÇA):
     (match, diagramCode) => {
       let cleaned = diagramCode.trim();
       
-      // Only fix: excessive whitespace (preserve structure)
-      cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');    // Max 1 space
-      cleaned = cleaned.replace(/\n{3,}/g, '\n\n');    // Max 2 line breaks
+      // ✅ PRESERVAR indentação de subgraphs (critical for Mermaid syntax)
+      // Apenas normalizar espaços DENTRO de labels/texto, não no início de linhas
+      cleaned = cleaned.split('\n').map((line: string) => {
+        // Preservar espaços no início (indentação)
+        const leadingSpaces = line.match(/^(\s*)/)?.[0] || '';
+        const content = line.trim();
+        
+        // Se linha vazia ou apenas espaços, remover
+        if (!content) return '';
+        
+        // Normalizar espaços APENAS no conteúdo, preservando indentação
+        const normalizedContent = content.replace(/[ \t]{2,}/g, ' ');
+        
+        return leadingSpaces + normalizedContent;
+      }).filter((line: string) => line.length > 0).join('\n');
+      
+      // Limitar quebras de linha consecutivas
+      cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
       
       // Ensure diagram has proper fencing
       return `\`\`\`mermaid\n${cleaned}\n\`\`\``;
     }
   );
   
-  console.log('[Mermaid] ✅ Defensive normalization complete (no aggressive syntax changes)');
+  console.log('[Mermaid] ✅ Defensive normalization complete (indentation preserved)');
 
   // FASE 5: AI-Powered Final LaTeX Correction ✅ FASE 6 - DESABILITADO
   // NOTA: Fase desabilitada para evitar correções excessivas que podem introduzir novos erros

@@ -171,6 +171,21 @@ const verifyKatexCSSDependency = (): boolean => {
 };
 
 /**
+ * Normaliza encoding UTF-8 e remove caracteres problemáticos
+ * Fallback para quando Mermaid falha com caracteres especiais
+ */
+export const normalizeMermaidEncoding = (code: string): string => {
+  // Opção 1: Manter acentos (recomendado)
+  // Apenas garantir que está em UTF-8 válido
+  let normalized = code.normalize('NFC');  // Canonical decomposition
+  
+  // Remover caracteres de controle inválidos
+  normalized = normalized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  
+  return normalized;
+};
+
+/**
  * Simple sanitization - remove markdown fences only
  * NO automatic fixes (causes more problems than it solves - PDF pg 13)
  */
@@ -180,10 +195,15 @@ export const sanitizeMermaidCode = (code: string): string => {
     return '';
   }
 
-  return code.trim()
+  let sanitized = code.trim()
     .replace(/^```mermaid\s*/i, '')
     .replace(/```$/gm, '')
     .trim();
+  
+  // ✅ Normalizar encoding
+  sanitized = normalizeMermaidEncoding(sanitized);
+  
+  return sanitized;
 };
 
 /**
@@ -197,24 +217,52 @@ export const validateMermaidSyntax = (code: string): {
   const issues: string[] = [];
   const warnings: string[] = [];
   
+  // Basic checks
+  if (!code || code.trim().length < 10) {
+    issues.push('Code too short (minimum 10 characters)');
+    return { isValid: false, issues, warnings };
+  }
+  
   // Check 1: Has diagram type declaration
-  const diagramTypes = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph)/m;
+  const diagramTypes = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|C4Context)/m;
   if (!diagramTypes.test(code)) {
-    issues.push('Missing diagram type (graph/flowchart/etc)');
+    issues.push('Missing or invalid diagram type declaration');
+  }
+
+  // ✅ NEW Check 2: Verificar encoding UTF-8
+  const hasInvalidChars = /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(code);
+  if (hasInvalidChars) {
+    issues.push('Invalid control characters detected (encoding issue)');
+  }
+
+  // ✅ NEW Check 3: Subgraphs balanceados
+  const subgraphStarts = (code.match(/^\s*subgraph\s+/gm) || []).length;
+  const subgraphEnds = (code.match(/^\s*end\s*$/gm) || []).length;
+  if (subgraphStarts > subgraphEnds) {
+    issues.push(`${subgraphStarts - subgraphEnds} subgraph(s) sem 'end'`);
+  } else if (subgraphEnds > subgraphStarts) {
+    issues.push(`${subgraphEnds - subgraphStarts} 'end' sem subgraph correspondente`);
+  }
+
+  // ✅ NEW Check 4: Labels com caracteres especiais não escapados
+  const problematicLabels = code.match(/\[[^\]]*[áéíóúâêîôûãõç][^\]]*\]/gi);
+  if (problematicLabels && problematicLabels.length > 0) {
+    warnings.push(`${problematicLabels.length} labels com acentos (podem causar problemas)`);
+  }
+
+  // ✅ NEW Check 5: Linhas muito longas (podem causar timeout)
+  const longLines = code.split('\n').filter(line => line.length > 200);
+  if (longLines.length > 0) {
+    warnings.push(`${longLines.length} linhas muito longas (>200 chars)`);
   }
   
-  // Check 2: Minimum content
-  if (code.length < 20) {
-    issues.push('Diagram too short (< 20 characters)');
-  }
-  
-  // Check 3: Detect LaTeX in diagram
+  // Check 6: Detect LaTeX in diagram
   const hasLatex = /\$\$.*?\$\$|\$.*?\$/g.test(code);
   if (hasLatex) {
     warnings.push('LaTeX detected - ensure KaTeX CSS is loaded');
   }
   
-  // Check 4: Check for underscores (common issue - user's Q_combustao example)
+  // Check 7: Check for underscores (common issue - user's Q_combustao example)
   const hasUnderscores = /_/.test(code);
   if (hasUnderscores) {
     warnings.push('Underscores detected - valid in labels but may need quotes in some contexts');
