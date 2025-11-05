@@ -35,28 +35,6 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
   const [renderTime, setRenderTime] = useState<number | null>(null);
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
 
-  // ✅ FASE 2: Função de último recurso - tenta corrigir $ → $$ agressivamente
-  const aggressiveFixDollars = (code: string): string => {
-    console.log('[MermaidDiagram] 🔧 Applying AGGRESSIVE dollar fixing...');
-    
-    let fixed = code;
-    
-    // Estratégia 1: Proteger $$ existentes
-    fixed = fixed.replace(/\$\$/g, '___KEEP_DOUBLE___');
-    
-    // Estratégia 2: Converter TODOS os $ simples → $$
-    fixed = fixed.replace(/\$/g, '$$');
-    
-    // Estratégia 3: Restaurar $$ originais
-    fixed = fixed.replace(/___KEEP_DOUBLE___/g, '$$');
-    
-    // Estratégia 4: Limpar quádruplos $$$$  → $$
-    fixed = fixed.replace(/\$\$\$\$/g, '$$');
-    
-    console.log('[MermaidDiagram] ✅ Aggressive fixing complete');
-    return fixed;
-  };
-
   // Initialize once per component mount
   useEffect(() => {
     const success = initializeMermaid();
@@ -110,44 +88,18 @@ export const MermaidDiagram = ({ code, title, description, icon }: MermaidDiagra
       const { svg, error, metadata } = await renderMermaidWithTimeout(sanitized, 10000);
 
       if (error) {
-        // ✅ FASE 1: Logs SUPER DETALHADOS quando falhar
-        console.error('[MermaidDiagram] ❌ RENDER FAILED - DETAILED ANALYSIS');
+        // ✅ FASE 4: Logs DETALHADOS quando falhar
+        console.error('[MermaidDiagram] ❌ RENDER FAILED');
         console.error('='.repeat(80));
         console.error('[MermaidDiagram] Error type:', error);
-        console.error('[MermaidDiagram] Error message:', (error as any)?.message || 'No message');
         console.error('[MermaidDiagram] Code length:', metadata.codeLength);
         console.error('[MermaidDiagram] Render time:', metadata.renderTimeMs.toFixed(0), 'ms');
         console.error('[MermaidDiagram] Diagram type:', metadata.diagramType);
         console.error('[MermaidDiagram] Validation issues:', validationIssues);
-        
-        // ✅ FASE 1: Análise específica de $ vs $$
-        const singleDollarMatches = sanitized.match(/\["[^"]*\$(?!\$)[^"]*"\]/g);
-        if (singleDollarMatches) {
-          console.error('[MermaidDiagram] ⚠️ FOUND SINGLE $ IN LABELS:');
-          singleDollarMatches.forEach(match => console.error('  -', match));
-        }
-        
-        console.error('[MermaidDiagram] FULL CODE:');
+        console.error('[MermaidDiagram] CÓDIGO COMPLETO QUE FALHOU:');
         console.error('='.repeat(80));
         console.error(sanitized);
         console.error('='.repeat(80));
-        
-        // ✅ FASE 2: Tentar recovery com correção agressiva
-        console.warn('[MermaidDiagram] ⚠️ First render failed, trying RECOVERY mode...');
-        
-        const recovered = aggressiveFixDollars(sanitized);
-        const { svg: svgRecovered, error: errorRecovered } = await renderMermaidWithTimeout(recovered, 10000);
-        
-        if (!errorRecovered && svgRecovered && containerRef.current) {
-          console.log('[MermaidDiagram] ✅ RECOVERY SUCCESSFUL!');
-          containerRef.current.innerHTML = svgRecovered;
-          setStatus('success');
-          setRenderTime(metadata.renderTimeMs);
-          return;
-        }
-        
-        // Se recovery também falhar, mostrar erro original
-        console.error('[MermaidDiagram] ❌ RECOVERY ALSO FAILED');
         setStatus('error');
         setErrorType(error);
         setRenderTime(metadata.renderTimeMs);

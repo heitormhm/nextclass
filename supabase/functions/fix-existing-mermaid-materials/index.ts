@@ -22,78 +22,41 @@ const corsHeaders = {
  * Uses placeholder approach to avoid lookbehind regex
  */
 function fixMermaidLatexInMarkdown(markdown: string): string {
-  console.log('[Fix] Starting AGGRESSIVE $ → $$ conversion...');
+  console.log('[Fix] Starting $ → $$ conversion (Deno-compatible)...');
   
-  const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
-  let totalConversions = 0;
-  let totalBlocks = 0;
+  let conversions = 0;
   
-  const fixed = markdown.replace(mermaidRegex, (fullMatch, diagramContent) => {
-    totalBlocks++;
-    console.log(`\n[Fix] Processing Mermaid block ${totalBlocks}...`);
-    
-    let processed = diagramContent;
-    let blockConversions = 0;
-    
-    // ✅ FASE 3: Múltiplas passagens até não haver mais mudanças
-    let previousIteration = '';
-    let iterationCount = 0;
-    const MAX_ITERATIONS = 5;
-    
-    while (previousIteration !== processed && iterationCount < MAX_ITERATIONS) {
-      previousIteration = processed;
-      iterationCount++;
+  const fixed = markdown.replace(/```mermaid\n([\s\S]*?)```/g, (fullMatch, diagramContent) => {
+    const processedContent = diagramContent.replace(/\[(".*?")\]/gs, (labelMatch: string, quotedContent: string) => {
+      let inner = quotedContent.slice(1, -1);
       
-      console.log(`[Fix]   Iteration ${iterationCount}...`);
+      // ✅ DENO-COMPATIBLE: Placeholder approach
+      // 1. Protect existing $$
+      inner = inner.replace(/\$\$/g, '___PROTECTED___');
       
-      // Passagem 1: Labels quoted ["..."]
-      processed = processed.replace(/\[(".*?")\]/gs, (labelMatch: string, quotedContent: string) => {
-        let inner = quotedContent.slice(1, -1);
-        const originalInner = inner;
-        
-        // Proteger $$ existentes
-        inner = inner.replace(/\$\$/g, '___DOUBLE___');
-        
-        // Converter $ → $$
-        inner = inner.replace(/\$/g, '$$');
-        
-        // Restaurar $$
-        inner = inner.replace(/___DOUBLE___/g, '$$');
-        
-        // Limpar quádruplos
-        inner = inner.replace(/\$\$\$\$/g, '$$');
-        
-        if (inner !== originalInner) {
-          blockConversions++;
-          console.log(`[Fix]     ✅ Label converted: "${originalInner.substring(0, 50)}..."`);
-        }
-        
-        return `["${inner}"]`;
+      // 2. Convert $ simples → $$
+      const before = inner;
+      inner = inner.replace(/\$([^\$]+?)\$/g, (match, formula) => {
+        conversions++;
+        console.log(`  💱 $${formula}$ → $$${formula}$$`);
+        return `$$${formula}$$`;
       });
       
-      // Passagem 2: Labels não-quoted (adicionar quotes)
-      processed = processed.replace(/\[([^\]"]+)\]/g, (match: string, content: string) => {
-        if (content.includes('$') && !content.includes('$$')) {
-          const fixed = content.replace(/\$/g, '$$');
-          blockConversions++;
-          console.log(`[Fix]     ✅ Unquoted label fixed and quoted: "${content.substring(0, 30)}..."`);
-          return `["${fixed}"]`;
-        }
-        return match;
-      });
-    }
+      // 3. Restore $$
+      inner = inner.replace(/___PROTECTED___/g, '$$');
+      
+      if (inner !== before) {
+        console.log(`  ✅ Label converted: "${before.substring(0, 40)}..."`);
+      }
+      
+      return `["${inner}"]`;
+    });
     
-    if (blockConversions > 0) {
-      console.log(`[Fix]   ✅ Block conversions: ${blockConversions} (${iterationCount} iterations)`);
-      totalConversions += blockConversions;
-    } else {
-      console.log(`[Fix]   ℹ️ No conversions needed`);
-    }
-    
-    return `\`\`\`mermaid\n${processed}\`\`\``;
+    return `\`\`\`mermaid\n${processedContent}\`\`\``;
   });
   
-  console.log(`\n[Fix] ✅ TOTAL: ${totalConversions} conversions across ${totalBlocks} blocks`);
+  console.log(`[Fix] ✅ Total conversions: ${conversions}`);
+  
   return fixed;
 }
 
