@@ -447,7 +447,7 @@ function fixLaTeXFormulas(markdown: string): string {
 
 /**
  * Force conversion of single dollars to double dollars in Mermaid labels
- * Compatible with Deno (no lookbehind support) - uses placeholder approach
+ * This ensures STRICT validation passes by converting $x$ → $$x$$ in quoted labels
  */
 function forceDollarDoublingInMermaid(markdown: string): string {
   console.log('[Mermaid] 🔄 Starting AGGRESSIVE $ → $$ conversion...');
@@ -460,23 +460,20 @@ function forceDollarDoublingInMermaid(markdown: string): string {
     blocksProcessed++;
     
     // Process ALL quoted labels in the diagram
+    // Use dotAll flag (/s) to match newlines within labels
     const processedContent = diagramContent.replace(/\[(".*?")\]/gs, (labelMatch: string, quotedContent: string) => {
-      let innerContent = quotedContent.slice(1, -1); // Remove quotes
+      // quotedContent already includes the quotes
+      let innerContent = quotedContent.slice(1, -1); // Remove quotes to process
       
-      // Step 1: Protect existing $$ with placeholders
-      innerContent = innerContent.replace(/\$\$/g, '___PROTECTED_DOUBLE___');
-      
-      // Step 2: Convert single $ → $$
-      innerContent = innerContent.replace(/\$([^\$]+?)\$/g, (match: string, formula: string) => {
+      // Convert single $ to $$ but PRESERVE existing $$
+      // Pattern: $ (not preceded by $) + content + $ (not followed by $)
+      const converted = innerContent.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, (match: string, formula: string) => {
         conversionsCount++;
         console.log(`[Mermaid] 💱 Converting: $${formula}$ → $$${formula}$$`);
         return `$$${formula}$$`;
       });
       
-      // Step 3: Restore protected $$
-      innerContent = innerContent.replace(/___PROTECTED_DOUBLE___/g, '$$');
-      
-      return `["${innerContent}"]`;
+      return `["${converted}"]`;
     });
     
     return `\`\`\`mermaid\n${processedContent}\`\`\``;
@@ -1690,18 +1687,7 @@ ${processedMarkdown}`;
     }
     
     // 🔥 NOVA VALIDAÇÃO: Detectar $ simples em labels (ERRO CRÍTICO)
-    // Check for single $ in labels (without using lookbehind - check for $ not part of $$)
-    const labelMatches = processedMarkdown.match(/\["[^"]*"\]/gs) || [];
-    let hasSingleDollarInLabels = false;
-    
-    for (const label of labelMatches) {
-      const inner = label.slice(2, -2); // Remove [" and "]
-      const withoutDouble = inner.replace(/\$\$/g, ''); // Remove all $$
-      if (withoutDouble.includes('$')) {
-        hasSingleDollarInLabels = true;
-        break;
-      }
-    }
+    const hasSingleDollarInLabels = /\["[^"]*(?<!\$)\$(?!\$)[^"]*"\]/gs.test(processedMarkdown);
     
     if (hasSingleDollarInLabels) {
       console.error('[Validation] ❌ CRITICAL: Found single $ in Mermaid labels!');
@@ -1711,19 +1697,8 @@ ${processedMarkdown}`;
       // Emergency re-application of conversion
       processedMarkdown = forceDollarDoublingInMermaid(processedMarkdown);
       
-      // Re-validate without lookbehind
-      const newLabelMatches = processedMarkdown.match(/\["[^"]*"\]/gs) || [];
-      let stillHasSingle = false;
-      
-      for (const label of newLabelMatches) {
-        const inner = label.slice(2, -2);
-        const withoutDouble = inner.replace(/\$\$/g, '');
-        if (withoutDouble.includes('$')) {
-          stillHasSingle = true;
-          break;
-        }
-      }
-      
+      // Re-validate
+      const stillHasSingle = /\["[^"]*(?<!\$)\$(?!\$)[^"]*"\]/gs.test(processedMarkdown);
       if (!stillHasSingle) {
         console.log('[Validation] ✅ Emergency auto-fix successful');
       } else {
