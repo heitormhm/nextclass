@@ -97,6 +97,187 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           color: #fce7f3;
         }
         
+        /* ===== 🎨 CALLOUT SYSTEM (12 TIPOS COM CORES FIXAS) ===== */
+        .material-didatico-content .callout-conceito-chave {
+          background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%) !important;
+          border-left: 4px solid #9333ea !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(147, 51, 234, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-conceito-chave {
+          background: linear-gradient(135deg, #581c87 0%, #6b21a8 100%) !important;
+          border-left-color: #a855f7 !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-pergunta-para-reflexao {
+          background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%) !important;
+          border-left: 4px solid #7c3aed !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-pergunta-para-reflexao {
+          background: linear-gradient(135deg, #581c87 0%, #6b21a8 100%) !important;
+          border-left-color: #a855f7 !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-dica-importante {
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+          border-left: 4px solid #ca8a04 !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(202, 138, 4, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-dica-importante {
+          background: linear-gradient(135deg, #713f12 0%, #854d0e 100%) !important;
+          border-left-color: #fbbf24 !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-atencao {
+          background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%) !important;
+          border-left: 4px solid #ea580c !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(234, 88, 12, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-atencao {
+          background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%) !important;
+          border-left-color: #fb923c !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-exemplo-pratico {
+          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+          border-left: 4px solid #2563eb !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-exemplo-pratico {
+          background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
+          border-left-color: #60a5fa !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-resumo-executivo {
+          background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
+          border-left: 4px solid #059669 !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-resumo-executivo {
+          background: linear-gradient(135deg, #14532d 0%, #166534 100%) !important;
+          border-left-color: #34d399 !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-aplicacao-profissional {
+          background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%) !important;
+          border-left: 4px solid #4f46e5 !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-aplicacao-profissional {
+          background: linear-gradient(135deg, #312e81 0%, #3730a3 100%) !important;
+          border-left-color: #818cf8 !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-exercicio-rapido {
+          background: linear-gradient(135deg, #ecfccb 0%, #d9f99d 100%) !important;
+          border-left: 4px solid #65a30d !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(101, 163, 13, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-exercicio-rapido {
+          background: linear-gradient(135deg, #365314 0%, #3f6212 100%) !important;
+          border-left-color: #a3e635 !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-erro-comum {
+          background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%) !important;
+          border-left: 4px solid #dc2626 !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-erro-comum {
+          background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%) !important;
+          border-left-color: #f87171 !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-aprofundamento {
+          background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%) !important;
+          border-left: 4px solid #7c3aed !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-aprofundamento {
+          background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%) !important;
+          border-left-color: #a78bfa !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-citacao-do-especialista {
+          background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
+          border-left: 4px solid #4b5563 !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(75, 85, 99, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-citacao-do-especialista {
+          background: linear-gradient(135deg, #111827 0%, #1f2937 100%) !important;
+          border-left-color: #9ca3af !important;
+          opacity: 0.95;
+        }
+        
+        .material-didatico-content .callout-conexao-com-outros-conceitos {
+          background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%) !important;
+          border-left: 4px solid #0891b2 !important;
+          border-radius: 0.75rem;
+          padding: 1.5rem;
+          margin: 1.5rem 0;
+          box-shadow: 0 4px 12px rgba(8, 145, 178, 0.15);
+        }
+        
+        .dark .material-didatico-content .callout-conexao-com-outros-conceitos {
+          background: linear-gradient(135deg, #164e63 0%, #155e75 100%) !important;
+          border-left-color: #22d3ee !important;
+          opacity: 0.95;
+        }
+        
         /* ===== 📚 DESIGN SYSTEM - TYPOGRAPHY HIERARCHY ===== */
         .material-didatico-content h2 {
           margin-top: 3rem !important;
@@ -524,20 +705,12 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               return (
                 <div 
                   data-callout-type={calloutType}
-                  className="rounded-lg p-6 my-6 shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
-                  style={{
-                    backgroundColor: matchedCallout.bgColor,
-                    borderLeftWidth: '4px',
-                    borderLeftStyle: 'solid',
-                    borderLeftColor: matchedCallout.borderColorHex,
-                    ['--callout-bg-light' as any]: matchedCallout.bgColor,
-                    ['--callout-bg-dark' as any]: matchedCallout.bgColorDark,
-                  }}
+                  className={`callout-${calloutType} rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5`}
                 >
                   <div className="flex items-start gap-4">
                     <span className="text-3xl flex-shrink-0 mt-1">{matchedCallout.icon}</span>
                     <div className="flex-1">
-                      <p className={`font-bold text-lg ${matchedCallout.titleColor} mb-3 tracking-tight`}>
+                      <p className="font-bold text-lg mb-3 tracking-tight" style={{ color: matchedCallout.titleColor.includes('dark:') ? undefined : matchedCallout.titleColor }}>
                         {matchedCallout.title.replace(matchedCallout.icon, '').trim()}
                       </p>
                       <div className={`${matchedCallout.textColor} leading-relaxed callout-content`}>
