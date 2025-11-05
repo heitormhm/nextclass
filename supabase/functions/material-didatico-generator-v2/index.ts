@@ -450,32 +450,78 @@ function fixLaTeXFormulas(markdown: string): string {
  * This ensures STRICT validation passes by converting $x$ → $$x$$ in quoted labels
  */
 function forceDollarDoublingInMermaid(markdown: string): string {
-  console.log('[Mermaid] Starting forced $ → $$ conversion in labels...');
+  console.log('[Mermaid] Starting intelligent LaTeX injection and conversion...');
   
   const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
   let mermaidBlocksFound = 0;
   let conversionsCount = 0;
+  let injectionsCount = 0;
   
   const processed = markdown.replace(mermaidRegex, (fullMatch, diagramContent) => {
     mermaidBlocksFound++;
     
     // Process all quoted labels in the diagram
     const processedContent = diagramContent.replace(/"([^"]+)"/g, (labelMatch: string, labelContent: string) => {
-      // Convert single dollars to double dollars
-      // Regex: match $...$ but NOT $$...$$
-      const converted = labelContent.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, (match: string, formula: string) => {
+      let result = labelContent;
+      
+      // 1. Converter $ → $$ (lógica existente)
+      result = result.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, (match: string, formula: string) => {
         conversionsCount++;
         console.log(`[Mermaid] Converting: $${formula}$ → $$${formula}$$`);
         return `$$${formula}$$`;
       });
       
-      return `"${converted}"`;
+      // 2. NOVO: Detectar fórmulas sem $$ e injetar automaticamente
+      // Padrões comuns: "Q - W = Delta E", "integral P dV", "m * c * Delta T"
+      const formulaPatterns = [
+        /\b([A-Z])\s*[-+*/=]\s*([A-Z])/gi,  // Q - W, E = U
+        /\b(Delta|delta|Δ)\s+([A-Z])/gi,      // Delta E, delta H
+        /\bintegral\b/gi,                    // integral
+        /\b([a-z]_[a-z]+)/gi,                // c_p, Q_dot (underscores)
+      ];
+      
+      let hasFormula = false;
+      for (const pattern of formulaPatterns) {
+        if (pattern.test(result)) {
+          hasFormula = true;
+          break;
+        }
+      }
+      
+      // Se detectou padrão de fórmula mas não tem $$, injetar
+      if (hasFormula && !result.includes('$$')) {
+        console.log(`[Mermaid] 🔧 Injecting LaTeX: "${result}"`);
+        
+        // Preservar HTML tags como <br/>
+        const parts = result.split('<br/>');
+        result = parts.map((part, idx) => {
+          // Aplicar $$ apenas na última parte (geralmente a fórmula)
+          let shouldWrap = false;
+          for (const pattern of formulaPatterns) {
+            if (pattern.test(part)) {
+              shouldWrap = true;
+              break;
+            }
+          }
+          
+          if (shouldWrap && idx === parts.length - 1) {
+            injectionsCount++;
+            return `$$${part.trim()}$$`;
+          }
+          return part;
+        }).join('<br/>');
+      }
+      
+      return `"${result}"`;
     });
     
     return `\`\`\`mermaid\n${processedContent}\`\`\``;
   });
   
-  console.log(`[Mermaid] ✅ Processed ${mermaidBlocksFound} blocks, made ${conversionsCount} conversions ($→$$)`);
+  console.log(`[Mermaid] ✅ Processed ${mermaidBlocksFound} blocks`);
+  console.log(`[Mermaid] ✅ $ → $$ conversions: ${conversionsCount}`);
+  console.log(`[Mermaid] ✅ Auto LaTeX injections: ${injectionsCount}`);
+  
   return processed;
 }
 
@@ -881,24 +927,58 @@ flowchart TD
 □ Mínimo 2 diagramas Mermaid no total
 □ Mínimo 2 TIPOS diferentes de diagramas (flowchart + graph/stateDiagram)
 
+🔴 **ATENÇÃO CRÍTICA - VALIDAÇÃO AUTOMÁTICA ATIVADA**:
+
+Se você NÃO seguir TODAS as regras abaixo, o material será REJEITADO automaticamente pelo sistema:
+1. ✅ OBRIGATÓRIO: usar flowchart TD ou flowchart LR (NUNCA graph TD)
+2. ✅ OBRIGATÓRIO: labels com aspas duplas ["texto com $$formula$$"]
+3. ✅ OBRIGATÓRIO: LaTeX em labels deve usar $$ (não $)
+4. ✅ OBRIGATÓRIO: MÍNIMO 2 diagramas Mermaid flowchart
+
+❌ **MATERIAL SERÁ AUTOMATICAMENTE REJEITADO SE**:
+- Usar "graph TD" ao invés de "flowchart TD"
+- Labels sem aspas duplas: A[texto] ← BLOQUEADO
+- Fórmulas sem $$: ["Q - W = Delta E"] ← BLOQUEADO (deve ser ["$$Q - W = \\Delta E$$"])
+- Menos de 2 diagramas flowchart ← BLOQUEADO
+
+✅ **TEMPLATE OBRIGATÓRIO - COPIE ESTE FORMATO EXATO**:
+
+\`\`\`mermaid
+flowchart TD
+    A["<b>Primeira Lei da Termodinâmica</b><br/>$$Q - W = \\Delta E$$"]
+    B["Sistema Fechado<br/>$$\\Delta U + \\Delta EC + \\Delta EP$$"]
+    C["Transferência de Calor<br/>$$Q = \\int \\delta Q$$"]
+    A --> B
+    A --> C
+\`\`\`
+
+**CHECKLIST PRÉ-GERAÇÃO** (Você DEVE verificar mentalmente ANTES de gerar):
+□ Linha 1 do diagrama: "flowchart TD" ou "flowchart LR"? (SIM/NÃO)
+□ TODOS os labels têm aspas duplas ["..."]? (SIM/NÃO)
+□ Pelo menos 3 labels diferentes têm LaTeX $$...$$? (SIM/NÃO)
+□ Vou gerar mínimo 2 diagramas flowchart? (SIM/NÃO)
+□ Usei <b> para títulos e <br/> para quebras de linha? (SIM/NÃO)
+
+⚠️ Se você respondeu NÃO a qualquer pergunta acima, PARE e CORRIJA antes de gerar!
+
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║  📐 EXEMPLO COMPLETO PERFEITO - COPIE ESTA ESTRUTURA:                        ║
+║  📐 EXEMPLO COMPLETO PERFEITO - COPIE ESTA ESTRUTURA EXATA:                  ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
 \`\`\`mermaid
 flowchart TD
-    Sistema["Sistema Termodinâmico<br/>Fechado: $$m = \\text{constante}$$"]
+    Sistema["<b>Sistema Termodinâmico</b><br/>Fechado: $$m = \\text{constante}$$"]
     
     Sistema --> Entrada["Entradas de Energia"]
     Sistema --> Saida["Saídas de Energia"]
     
-    Entrada --> Calor["Calor Transferido<br/>$$Q = \\int \\delta Q$$"]
-    Entrada --> Trabalho["Trabalho Realizado<br/>$$W = \\int P dV$$"]
+    Entrada --> Calor["<b>Calor Transferido</b><br/>$$Q = \\int \\delta Q$$"]
+    Entrada --> Trabalho["<b>Trabalho Realizado</b><br/>$$W = \\int P dV$$"]
     
-    Calor --> Lei["Primeira Lei<br/>$$\\Delta E = Q - W$$"]
+    Calor --> Lei["<b>Primeira Lei</b><br/>$$\\Delta E = Q - W$$"]
     Trabalho --> Lei
     
-    Lei --> Resultado["Variação de Energia<br/>$$\\Delta E = \\Delta U + \\Delta EC + \\Delta EP$$"]
+    Lei --> Resultado["<b>Variação de Energia</b><br/>$$\\Delta E = \\Delta U + \\Delta EC + \\Delta EP$$"]
     
     Saida --> Calor
     Saida --> Trabalho
@@ -908,29 +988,46 @@ flowchart TD
     style Resultado fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
 \`\`\`
 
-🎯 DIAGRAMAS MERMAID: OBRIGATÓRIO (MÍNIMO 2 POR MATERIAL)
+🎯 **DIAGRAMAS MERMAID: OBRIGATÓRIO (MÍNIMO 2 POR MATERIAL)**
 
-**REGRA CRÍTICA**: Você DEVE gerar pelo menos 2 diagramas Mermaid por material didático.
+**REGRA CRÍTICA**: Você DEVE gerar pelo menos 2 diagramas Mermaid flowchart por material.
 
-**TIPOS RECOMENDADOS** (use flowchart TD ou flowchart LR como padrão):
-1. **flowchart TD / LR** - Para processos, fluxos, algoritmos (OBRIGATÓRIO pelo menos 1)
-2. **graph TD / LR** - Para hierarquias e relações entre conceitos
-3. **stateDiagram-v2** - Para estados, transições, ciclos (opcional)
+**TIPOS PERMITIDOS** (em ordem de prioridade):
+1. **flowchart TD / LR** - OBRIGATÓRIO usar pelo menos 2x (processos, fluxos)
+2. **graph TD / LR** - PERMITIDO para hierarquias (opcional)
+3. **stateDiagram-v2** - PERMITIDO para estados (opcional)
+
+**TIPOS PROIBIDOS** (sistema rejeitará automaticamente):
+❌ Diagramas sem tipo definido
+❌ Tipos não suportados (classDiagram, entityRelationship, etc.)
 
 **INTEGRAÇÃO DE LATEX EM DIAGRAMAS** (REGRA ABSOLUTA):
-✅ SEMPRE: ["Texto descritivo<br/>$$\\formula$$"]
-❌ NUNCA: [Texto Q_dot = 500]
-❌ NUNCA: ["Texto $$formula$$"] (sem aspas duplas externas)
+✅ CORRETO: ["<b>Título</b><br/>$$\\Delta H = Q_p$$"]
+✅ CORRETO: ["Sistema: $$m \\cdot c \\cdot \\Delta T$$"]
+❌ ERRADO: [Texto Q_dot = 500] (sem aspas, sem $$)
+❌ ERRADO: ["Texto $formula$"] ($ único é proibido em Mermaid, use $$)
 
-**REGRAS MERMAID ABSOLUTAS:**
+**REGRAS MERMAID ABSOLUTAS** (não negociável):
 1. Labels com LaTeX SEMPRE entre aspas duplas: ["...$$...$$..."]
-2. Subscripts: use $$Q_{out}$$ NUNCA Q_out
+2. Subscripts: use $$Q_{out}$$ NUNCA Q_out ou Qout
 3. Pontos sobre variáveis: use $$\\dot{Q}$$ NUNCA Q_dot
-4. Flowchart TD ou LR como tipo principal
-5. Mantenha labels < 60 caracteres
-6. Use <br/> para quebras de linha dentro de labels
+4. Primeira linha DEVE ser: flowchart TD ou flowchart LR
+5. Labels < 60 caracteres (use <br/> para quebrar linhas longas)
+6. Use <b>texto</b> para títulos em negrito
+7. Use <br/> para quebras de linha dentro de labels
 
-**IMPORTANTE**: Se você não gerar Mermaid corretamente, o material será REJEITADO!
+**TESTE MENTAL FINAL**: Antes de enviar, conte:
+- ✅ Quantos "flowchart TD" ou "flowchart LR"? (deve ser ≥ 2)
+- ✅ Quantos labels com $$? (deve ser ≥ 5 no total)
+- ✅ Todos os labels têm aspas duplas ["..."]? (deve ser 100%)
+
+**AUTO-VALIDAÇÃO PRÉ-ENVIO**: Verifique mentalmente:
+□ NÃO usei "graph TD" em nenhum lugar
+□ TODOS os nodes têm formato: ID["texto com $$formula$$"]
+□ Tenho pelo menos 2 diagramas flowchart completos
+□ Cada diagrama tem no mínimo 3 nodes com LaTeX
+
+⚠️ **IMPORTANTE**: Se você falhar em qualquer regra acima, o sistema automaticamente rejeitará o material e você terá que regenerar!
 
 ---
 
@@ -1098,11 +1195,67 @@ INCORRETO (NÃO FAÇA):
       { role: 'user', content: `Integre o conteúdo completo para: ${lectureTitle}` }
     ], lovableApiKey, 'Content Integration');
     
+    // === FASE 2: VALIDAÇÃO PROGRESSIVA (PRÉ-PROCESSAMENTO) ===
+    console.log('\n=== PRE-VALIDATION: Checking AI output quality ===');
+    
+    const hasOldGraphSyntaxPre = /```mermaid\s+graph\s+(TD|LR)/i.test(finalMarkdown);
+    const hasFlowchartSyntax = /```mermaid\s+flowchart\s+(TD|LR)/i.test(finalMarkdown);
+    const hasQuotedLabels = /\w+\["[^"]+"\]/.test(finalMarkdown);
+    const mermaidCountRaw = (finalMarkdown.match(/```mermaid/g) || []).length;
+    
+    console.log('[Pre-Validation] Raw AI output analysis:');
+    console.log(`  - Mermaid blocks found: ${mermaidCountRaw}`);
+    console.log(`  - Has flowchart syntax: ${hasFlowchartSyntax}`);
+    console.log(`  - Has old graph syntax: ${hasOldGraphSyntaxPre}`);
+    console.log(`  - Has quoted labels: ${hasQuotedLabels}`);
+    
+    let autoFixedMarkdown = finalMarkdown;
+    
+    // Auto-fix 1: Converter graph TD → flowchart TD
+    if (hasOldGraphSyntaxPre && !hasFlowchartSyntax) {
+      console.warn('[Pre-Validation] ⚠️ CRITICAL: AI generated old "graph" syntax instead of "flowchart"');
+      console.log('[Pre-Validation] 🔧 Attempting auto-fix: graph → flowchart');
+      
+      autoFixedMarkdown = autoFixedMarkdown.replace(/```mermaid\s+graph\s+(TD|LR)/gi, (match, direction) => {
+        console.log(`  ✅ Fixed: "graph ${direction}" → "flowchart ${direction}"`);
+        return `\`\`\`mermaid\nflowchart ${direction.toUpperCase()}`;
+      });
+      
+      const recheckFlowchart = /```mermaid\s+flowchart\s+(TD|LR)/i.test(autoFixedMarkdown);
+      if (recheckFlowchart) {
+        console.log('[Pre-Validation] ✅ Auto-fix successful: all diagrams now use flowchart syntax');
+      }
+    }
+    
+    // Auto-fix 2: Adicionar aspas duplas em labels sem aspas
+    if (!hasQuotedLabels && mermaidCountRaw > 0) {
+      console.warn('[Pre-Validation] ⚠️ WARNING: No quoted labels detected - attempting auto-fix');
+      
+      autoFixedMarkdown = autoFixedMarkdown.replace(/```mermaid\n([\s\S]*?)```/g, (fullMatch: string, diagramContent: string) => {
+        const fixedContent = diagramContent.replace(/(\w+)\[([^\]"]+)\]/g, (match: string, id: string, content: string) => {
+          // Se não tem aspas duplas, adicionar
+          if (!content.startsWith('"') && !content.endsWith('"')) {
+            console.log(`[Pre-Validation] 🔧 Auto-fixing label: ${id}[${content}] → ${id}["${content}"]`);
+            return `${id}["${content}"]`;
+          }
+          return match;
+        });
+        return `\`\`\`mermaid\n${fixedContent}\`\`\``;
+      });
+      
+      console.log('[Pre-Validation] ✅ Auto-fixed unquoted labels');
+    }
+    
+    // Log de sample do Mermaid após auto-fix
+    const sampleMermaid = autoFixedMarkdown.match(/```mermaid[\s\S]{0,400}/)?.[0] || 'None found';
+    console.log('[Pre-Validation] Sample Mermaid (post auto-fix):');
+    console.log(sampleMermaid.substring(0, 300));
+    
     // === PHASE 4: PROCESSING & VALIDATION ===
     console.log('\n=== PHASE 4: PROCESSING & VALIDATION ===');
     await updateJobProgress(supabase, jobId, 85, 'Processando e validando conteúdo...');
     
-    let processedMarkdown = fixLaTeXFormulas(finalMarkdown);
+    let processedMarkdown = fixLaTeXFormulas(autoFixedMarkdown);
     
     // Force single dollar conversion to double dollars in Mermaid labels BEFORE validation
     processedMarkdown = forceDollarDoublingInMermaid(processedMarkdown);
@@ -1571,7 +1724,7 @@ ${processedMarkdown}`;
       console.log('[Validation] Isso pode indicar que a IA não gerou fórmulas onde deveria');
     }
     
-    const validationErrors: string[] = [];
+    let validationErrors: string[] = [];
     const validationWarnings: string[] = [];
     
     if (!hasFlowchart) {
@@ -1614,12 +1767,64 @@ ${processedMarkdown}`;
       validationWarnings.forEach(warn => console.warn(`  ${warn}`));
     }
     
+    // === FASE 4: AUTO-CORREÇÃO ANTES DE REJEITAR ===
     if (validationErrors.length > 0) {
-      console.error('[Validation] ❌ STRICT VALIDATION FAILED:');
+      console.error('[Validation] ❌ STRICT VALIDATION FAILED (attempting auto-recovery):');
       validationErrors.forEach(err => console.error(`  ${err}`));
       
-      // NÃO salvar material malformado - marcar job como falho
-      throw new Error(`VALIDAÇÃO FALHOU: ${validationErrors.join('; ')}`);
+      let recoveryAttempted = false;
+      
+      // Tentativa 1: Auto-fix graph → flowchart (se não foi feito antes)
+      if (validationErrors.some(e => e.includes('graph TD') || e.includes('sintaxe antiga'))) {
+        console.log('[Validation] 🔧 Recovery attempt: converting graph → flowchart');
+        
+        processedMarkdown = processedMarkdown.replace(/```mermaid\s+graph\s+(TD|LR)/gi, (match: string, direction: string) => {
+          console.log(`  ✅ Recovery fix: "graph ${direction}" → "flowchart ${direction}"`);
+          return `\`\`\`mermaid\nflowchart ${direction.toUpperCase()}`;
+        });
+        
+        // Re-validar após fix
+        const recheckFlowchart = /```mermaid\s+flowchart\s+(TD|LR)/i.test(processedMarkdown);
+        const recheckOldGraph = /```mermaid\s+graph\s+(TD|LR)/i.test(processedMarkdown);
+        
+        if (recheckFlowchart && !recheckOldGraph) {
+          console.log('[Validation] ✅ Recovery successful: graph syntax fixed');
+          validationErrors = validationErrors.filter(e => !e.includes('graph TD') && !e.includes('sintaxe antiga'));
+          recoveryAttempted = true;
+        }
+      }
+      
+      // Tentativa 2: Adicionar aspas em labels (última tentativa)
+      if (validationErrors.some(e => e.includes('aspas duplas') || e.includes('quoted labels'))) {
+        console.log('[Validation] 🔧 Recovery attempt: adding quotes to labels');
+        
+        processedMarkdown = processedMarkdown.replace(/```mermaid\n([\s\S]*?)```/g, (fullMatch: string, diagramContent: string) => {
+          const fixedContent = diagramContent.replace(/(\w+)\[([^\]"]+)\]/g, (match: string, id: string, content: string) => {
+            if (!content.startsWith('"') && !content.endsWith('"')) {
+              return `${id}["${content}"]`;
+            }
+            return match;
+          });
+          return `\`\`\`mermaid\n${fixedContent}\`\`\``;
+        });
+        
+        recoveryAttempted = true;
+        console.log('[Validation] ✅ Recovery attempted: quotes added to unquoted labels');
+      }
+      
+      // Se ainda há erros após recovery
+      if (validationErrors.length > 0) {
+        await updateJobProgress(supabase, jobId, 95, 'Validação falhou após tentativas de correção');
+        
+        throw new Error(
+          `❌ VALIDAÇÃO ESTRITA FALHOU (após ${recoveryAttempted ? 'tentativas de auto-correção' : 'análise'}):\n` +
+          `${validationErrors.join('\n')}\n\n` +
+          `O material gerado não atende aos critérios mínimos de qualidade técnica.\n` +
+          `Por favor, revise os logs para detalhes do que precisa ser corrigido.`
+        );
+      } else {
+        console.log('[Validation] ✅ Recovery successful! All validation errors resolved via auto-fix');
+      }
     }
     
     console.log('[Validation] ✅ STRICT validation passed - material is well-formed');
