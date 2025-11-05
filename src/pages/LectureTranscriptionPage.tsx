@@ -2369,59 +2369,55 @@ const LectureTranscriptionPage = () => {
                         <Sparkles className="h-3 w-3 mr-1" />
                         Gerar Outra
                       </Button>
-                      <label htmlFor="thumbnail-upload" className="flex-1">
-                        <Input
-                          id="thumbnail-upload"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
+                      <Input
+                        id="thumbnail-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          
+                          try {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (!user) throw new Error('Not authenticated');
                             
-                            try {
-                              const { data: { user } } = await supabase.auth.getUser();
-                              if (!user) throw new Error('Not authenticated');
-                              
-                              const fileName = `${Date.now()}_${file.name}`;
-                              const { data: uploadData, error: uploadError } = await supabase.storage
-                                .from('lecture-audio')
-                                .upload(`thumbnails/${user.id}/${fileName}`, file);
-                              
-                              if (uploadError) throw uploadError;
-                              
-                              const { data: urlData } = supabase.storage
-                                .from('lecture-audio')
-                                .getPublicUrl(uploadData.path);
-                              
-                              setThumbnailUrl(urlData.publicUrl);
-                              
-                              toast({
-                                title: 'Thumbnail enviada',
-                                description: 'A imagem foi carregada com sucesso',
-                              });
-                            } catch (error) {
-                              console.error('Error uploading thumbnail:', error);
-                              toast({
-                                variant: 'destructive',
-                                title: 'Erro no upload',
-                                description: 'Não foi possível carregar a imagem',
-                              });
-                            }
-                          }}
-                        />
-                        <Button
-                          variant="outline"
-                          className="w-full bg-white border-slate-300 text-slate-900 hover:bg-white/80"
-                          size="sm"
-                          asChild
-                        >
-                          <span>
-                            <Upload className="h-3 w-3 mr-1" />
-                            Upload
-                          </span>
-                        </Button>
-                      </label>
+                            const fileName = `${Date.now()}_${file.name}`;
+                            const { data: uploadData, error: uploadError } = await supabase.storage
+                              .from('lecture-audio')
+                              .upload(`thumbnails/${user.id}/${fileName}`, file);
+                            
+                            if (uploadError) throw uploadError;
+                            
+                            const { data: urlData } = supabase.storage
+                              .from('lecture-audio')
+                              .getPublicUrl(uploadData.path);
+                            
+                            setThumbnailUrl(urlData.publicUrl);
+                            
+                            toast({
+                              title: 'Thumbnail enviada',
+                              description: 'A imagem foi carregada com sucesso',
+                            });
+                          } catch (error) {
+                            console.error('Error uploading thumbnail:', error);
+                            toast({
+                              variant: 'destructive',
+                              title: 'Erro no upload',
+                              description: 'Não foi possível carregar a imagem',
+                            });
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        className="flex-1 bg-white border-slate-300 text-slate-900 hover:bg-white/80"
+                        size="sm"
+                        onClick={() => document.getElementById('thumbnail-upload')?.click()}
+                      >
+                        <Upload className="h-3 w-3 mr-1" />
+                        Upload
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

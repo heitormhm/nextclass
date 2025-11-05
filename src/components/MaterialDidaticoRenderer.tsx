@@ -97,37 +97,72 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           color: #fce7f3;
         }
         
-        /* Better heading hierarchy */
+        /* ===== 📚 DESIGN SYSTEM - TYPOGRAPHY HIERARCHY ===== */
         .material-didatico-content h2 {
           margin-top: 3rem !important;
           margin-bottom: 1.5rem !important;
-          padding-bottom: 0.5rem;
-          border-bottom: 2px solid hsl(var(--primary) / 0.2);
-          font-size: 1.75rem !important;
+          padding-bottom: 0.75rem;
+          border-bottom: 3px solid hsl(var(--primary) / 0.3);
+          font-size: 2rem !important;
           font-weight: 700 !important;
+          line-height: 2.5rem !important;
           color: hsl(var(--foreground));
-          scroll-margin-top: 60px;
+          scroll-margin-top: 80px;
+          transition: padding-left 0.2s ease;
+        }
+        
+        .material-didatico-content h2:hover {
+          padding-left: 0.5rem;
         }
         
         .material-didatico-content h3 {
-          margin-top: 2rem !important;
-          margin-bottom: 1rem !important;
-          font-size: 1.35rem !important;
+          margin-top: 2.5rem !important;
+          margin-bottom: 1.25rem !important;
+          font-size: 1.5rem !important;
           font-weight: 600 !important;
+          line-height: 2rem !important;
           color: hsl(var(--foreground));
-          background: linear-gradient(120deg, hsl(var(--primary) / 0.05) 0%, transparent 100%);
-          padding: 0.5rem 1rem;
-          border-left: 3px solid hsl(var(--primary) / 0.5);
-          border-radius: 0.25rem;
-          scroll-margin-top: 60px;
+          background: linear-gradient(120deg, hsl(var(--primary) / 0.08) 0%, transparent 100%);
+          padding: 0.75rem 1.25rem;
+          border-left: 4px solid hsl(var(--primary) / 0.6);
+          border-radius: 0.375rem;
+          scroll-margin-top: 80px;
+          transition: padding-left 0.2s ease;
+        }
+        
+        .material-didatico-content h3:hover {
+          padding-left: 1.5rem;
         }
         
         .material-didatico-content h4 {
-          margin-top: 1.5rem !important;
-          margin-bottom: 0.75rem !important;
-          font-size: 1.15rem !important;
+          margin-top: 2rem !important;
+          margin-bottom: 1rem !important;
+          font-size: 1.25rem !important;
           font-weight: 600 !important;
+          line-height: 1.75rem !important;
           color: hsl(var(--foreground));
+        }
+        
+        /* ===== 📝 DESIGN SYSTEM - TEXT ELEMENTS ===== */
+        .material-didatico-content p {
+          font-size: 1.125rem !important;
+          line-height: 1.875rem !important;
+          margin-bottom: 1.25rem !important;
+        }
+        
+        .material-didatico-content ul,
+        .material-didatico-content ol {
+          margin: 1.5rem 0 !important;
+        }
+        
+        .material-didatico-content ul li::marker {
+          color: hsl(var(--primary));
+          font-size: 1.2em;
+        }
+        
+        .material-didatico-content ol li::marker {
+          color: hsl(var(--primary));
+          font-weight: 700;
         }
         
         /* ===== 🎨 CALLOUT SYSTEM STYLING ===== */
@@ -279,7 +314,12 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             };
             
             const fullText = extractText(children);
-            const normalizedText = fullText.trim().replace(/\s+/g, ' ');
+            // Normalizar: remover markdown bold (**), dois pontos, espaços extras
+            const normalizedText = fullText
+              .trim()
+              .replace(/\*\*/g, '')
+              .replace(/:/g, '')
+              .replace(/\s+/g, ' ');
             
             const calloutTypes: Record<string, { bgColor: string; borderColor: string; textColor: string; titleColor: string; icon: string }> = {
               '✏️ Conceito-Chave': {
@@ -368,10 +408,10 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               },
             };
 
-            // ESTRATÉGIA 1: Buscar match exato no texto normalizado
+            // ESTRATÉGIA 1: Buscar match exato no texto normalizado (sem pontuação)
             let matchedCallout = null;
             for (const [title, style] of Object.entries(calloutTypes)) {
-              const normalizedTitle = title.replace(/\s+/g, ' ');
+              const normalizedTitle = title.replace(/\s+/g, ' ').replace(/:/g, '');
               if (normalizedText.includes(normalizedTitle) || normalizedText.startsWith(normalizedTitle)) {
                 matchedCallout = { title, ...style };
                 break;
@@ -405,11 +445,17 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
             if (matchedCallout) {
               return (
-                <div className={`${matchedCallout.bgColor} ${matchedCallout.borderColor} rounded-r-lg p-5 my-6 shadow-md`}>
+                <div 
+                  className={`${matchedCallout.bgColor} ${matchedCallout.borderColor} rounded-lg p-6 my-6 shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5`}
+                  style={{
+                    borderLeftWidth: '4px',
+                    borderLeftStyle: 'solid'
+                  }}
+                >
                   <div className="flex items-start gap-4">
-                    <span className="text-3xl flex-shrink-0 mt-0.5">{matchedCallout.icon}</span>
+                    <span className="text-3xl flex-shrink-0 mt-1">{matchedCallout.icon}</span>
                     <div className="flex-1">
-                      <p className={`font-extrabold text-lg ${matchedCallout.titleColor} mb-3`}>
+                      <p className={`font-bold text-lg ${matchedCallout.titleColor} mb-3 tracking-tight`}>
                         {matchedCallout.title.replace(matchedCallout.icon, '').trim()}
                       </p>
                       <div className={`${matchedCallout.textColor} leading-relaxed callout-content`}>
