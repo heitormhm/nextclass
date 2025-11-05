@@ -22,6 +22,8 @@ function cleanHTMLResponse(text: string): string {
 }
 
 serve(async (req) => {
+  console.log('[ai-text-formatting] Request received');
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
