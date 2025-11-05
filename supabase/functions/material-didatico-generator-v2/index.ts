@@ -281,7 +281,7 @@ async function callLovableAI(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro',
         messages,
         temperature: 0.3,
       }),
@@ -678,60 +678,114 @@ ${practicalContext}
 
 TAREFA: Integre esses dois conteúdos em um material didático coeso e bem estruturado.
 
-🎯 DIAGRAMAS MERMAID: OBRIGATÓRIO (MÍNIMO 2 POR MATERIAL) ✅ FASE 2 & 3
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  🚨 VALIDAÇÃO STRICT ATIVADA - LEIA COM ATENÇÃO EXTREMA 🚨                   ║
+║  O material será REJEITADO se não seguir 100% estas regras                   ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ❌ EXEMPLOS PROIBIDOS - NUNCA FAÇA ISSO:                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PROIBIDO #1 - Labels sem aspas duplas ou sem LaTeX:
+\`\`\`mermaid
+flowchart TD
+    A[Q - W = Delta E]         ❌ SEM aspas duplas, SEM $$
+    B[Calor Q]                 ❌ SEM aspas duplas, SEM $$
+    C[Q_out = 300 J]           ❌ Underscore direto
+\`\`\`
+
+PROIBIDO #2 - Underscores diretos (deve usar LaTeX):
+\`\`\`mermaid
+flowchart TD
+    A["Q_dot"]                 ❌ Underscore direto
+    B["m_dot"]                 ❌ Underscore direto
+\`\`\`
+
+PROIBIDO #3 - Sintaxe antiga "graph" predominante:
+\`\`\`mermaid
+graph TD                       ❌ Use flowchart TD
+    A --> B
+\`\`\`
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ✅ TEMPLATE OBRIGATÓRIO - COPIE ESTE FORMATO EXATO:                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+\`\`\`mermaid
+flowchart TD
+    Node1["Descrição Textual<br/>$$Q = mc\\Delta T$$"]
+    Node2["Outro Conceito<br/>$$\\dot{Q} = \\frac{dQ}{dt}$$"]
+    Node3["Resultado<br/>$$W_{net} = Q_{in} - Q_{out}$$"]
+    
+    Node1 --> Node2
+    Node2 --> Node3
+    
+    style Node1 fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    style Node3 fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+\`\`\`
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 📋 CHECKLIST DE VALIDAÇÃO (VERIFICAR ANTES DE GERAR):                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+□ Todos os labels Mermaid usam aspas duplas: ["..."]
+□ Todas as variáveis/fórmulas dentro de labels usam $$...$$
+□ Nenhum underscore direto (Q_dot) - usar $$\\dot{Q}$$ ou $$Q_{dot}$$
+□ Pelo menos 1 diagrama flowchart TD ou flowchart LR
+□ Mínimo 2 diagramas Mermaid no total
+□ Mínimo 2 TIPOS diferentes de diagramas (flowchart + graph/stateDiagram)
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║  📐 EXEMPLO COMPLETO PERFEITO - COPIE ESTA ESTRUTURA:                        ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+\`\`\`mermaid
+flowchart TD
+    Sistema["Sistema Termodinâmico<br/>Fechado: $$m = \\text{constante}$$"]
+    
+    Sistema --> Entrada["Entradas de Energia"]
+    Sistema --> Saida["Saídas de Energia"]
+    
+    Entrada --> Calor["Calor Transferido<br/>$$Q = \\int \\delta Q$$"]
+    Entrada --> Trabalho["Trabalho Realizado<br/>$$W = \\int P dV$$"]
+    
+    Calor --> Lei["Primeira Lei<br/>$$\\Delta E = Q - W$$"]
+    Trabalho --> Lei
+    
+    Lei --> Resultado["Variação de Energia<br/>$$\\Delta E = \\Delta U + \\Delta EC + \\Delta EP$$"]
+    
+    Saida --> Calor
+    Saida --> Trabalho
+    
+    style Sistema fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
+    style Lei fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    style Resultado fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+\`\`\`
+
+🎯 DIAGRAMAS MERMAID: OBRIGATÓRIO (MÍNIMO 2 POR MATERIAL)
 
 **REGRA CRÍTICA**: Você DEVE gerar pelo menos 2 diagramas Mermaid por material didático.
 
 **TIPOS RECOMENDADOS** (use flowchart TD ou flowchart LR como padrão):
-1. **flowchart TD / LR** - Para processos, fluxos, algoritmos
+1. **flowchart TD / LR** - Para processos, fluxos, algoritmos (OBRIGATÓRIO pelo menos 1)
 2. **graph TD / LR** - Para hierarquias e relações entre conceitos
 3. **stateDiagram-v2** - Para estados, transições, ciclos (opcional)
 
-**INTEGRAÇÃO DE LATEX EM DIAGRAMAS** (OBRIGATÓRIO):
-- Use $$formula$$ dentro de labels entre aspas duplas
-- Exemplo: ["Calcula $$Q = mc\\Delta T$$"]
-- Mantenha fórmulas simples dentro de diagramas
-- Se precisar de equações complexas, coloque em seção LaTeX separada
+**INTEGRAÇÃO DE LATEX EM DIAGRAMAS** (REGRA ABSOLUTA):
+✅ SEMPRE: ["Texto descritivo<br/>$$\\formula$$"]
+❌ NUNCA: [Texto Q_dot = 500]
+❌ NUNCA: ["Texto $$formula$$"] (sem aspas duplas externas)
 
-**EXEMPLOS DE DIAGRAMAS MERMAID + LATEX:**
+**REGRAS MERMAID ABSOLUTAS:**
+1. Labels com LaTeX SEMPRE entre aspas duplas: ["...$$...$$..."]
+2. Subscripts: use $$Q_{out}$$ NUNCA Q_out
+3. Pontos sobre variáveis: use $$\\dot{Q}$$ NUNCA Q_dot
+4. Flowchart TD ou LR como tipo principal
+5. Mantenha labels < 60 caracteres
+6. Use <br/> para quebras de linha dentro de labels
 
-**Exemplo 1 - Primeira Lei (Sistema Fechado):**
-\`\`\`mermaid
-flowchart TD
-    Sistema["Sistema Fechado<br/>$$m = constante$$"]
-    Sistema --> Calor["Calor $$Q$$<br/>Entrada/Saída"]
-    Sistema --> Trabalho["Trabalho $$W$$<br/>Entrada/Saída"]
-    Calor --> Equacao["$$Q - W = \\Delta E$$"]
-    Trabalho --> Equacao
-    Equacao --> Resultado["$$\\Delta E = \\Delta U + \\Delta EC + \\Delta EP$$"]
-\`\`\`
-
-**Exemplo 2 - Ciclo Termodinâmico:**
-\`\`\`mermaid
-flowchart LR
-    Estado1["Estado 1<br/>$$P_1, V_1, T_1$$"] -->|Processo Isobárico| Estado2["Estado 2<br/>$$P_2, V_2, T_2$$"]
-    Estado2 -->|Processo Isocórico| Estado3["Estado 3"]
-    Estado3 -->|Processo Adiabático| Estado4["Estado 4"]
-    Estado4 -->|Retorno| Estado1
-\`\`\`
-
-**Exemplo 3 - Análise de Componentes:**
-\`\`\`mermaid
-flowchart TD
-    Caldeira["Caldeira<br/>$$Q_{entrada}$$"] --> Turbina["Turbina<br/>$$W_{saida}$$"]
-    Turbina --> Condensador["Condensador<br/>$$Q_{saida}$$"]
-    Condensador --> Bomba["Bomba<br/>$$W_{entrada}$$"]
-    Bomba --> Caldeira
-\`\`\`
-
-**REGRAS MERMAID:**
-- Sempre use flowchart TD ou flowchart LR (top-down ou left-right)
-- Labels com fórmulas: use aspas duplas e $$...$$
-- Evite caracteres especiais em node IDs (use CamelCase)
-- Mantenha labels < 60 caracteres
-- Use <br/> para quebras de linha dentro de labels
-
-**IMPORTANTE**: Se você não gerar Mermaid, o material será considerado incompleto!
+**IMPORTANTE**: Se você não gerar Mermaid corretamente, o material será REJEITADO!
 
 ---
 
