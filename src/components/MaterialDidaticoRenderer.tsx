@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import { getRehypeKatexPlugin } from '@/lib/textRenderingEngine';
-import { MaterialMermaidDiagram } from './MaterialMermaidDiagram';
+import { MermaidDiagram } from './MermaidDiagram';
 import { MermaidErrorBoundary } from './MermaidErrorBoundary';
 
 interface MaterialDidaticoRendererProps {
@@ -48,34 +48,33 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           border-radius: 0.2em;
         }
         
-        /* Pink/Purple gradient boxes for display formulas (user request) */
+        /* ===== 📐 ENHANCED DISPLAY FORMULAS (Pink boxes matching callouts) ===== */
         .material-didatico-content .katex-display {
-          background: linear-gradient(135deg, #fce7f3 0%, #fae8ff 50%, #f3e5f5 100%);
-          padding: 1.75rem 2rem;
+          background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+          padding: 1.5rem 2rem;
           border-radius: 0.75rem;
-          border: 2px solid #ec4899;
-          box-shadow: 0 4px 12px rgba(236, 72, 153, 0.15);
+          border-left: 4px solid #db2777;
+          box-shadow: 0 4px 12px rgba(219, 39, 119, 0.15);
           margin: 2rem auto;
           max-width: 90%;
           text-align: center;
-          position: relative;
+          opacity: 0.8;
         }
         
-        /* Dark mode variant */
         .dark .material-didatico-content .katex-display {
-          background: linear-gradient(135deg, #831843 0%, #581c87 50%, #6b21a8 100%);
-          border-color: #db2777;
-          box-shadow: 0 4px 12px rgba(219, 39, 119, 0.3);
+          background: linear-gradient(135deg, #831843 0%, #9f1239 100%);
+          border-left-color: #f472b6;
+          box-shadow: 0 4px 12px rgba(244, 114, 182, 0.2);
+          opacity: 0.3;
         }
         
-        /* Decorative corner accent */
-        .material-didatico-content .katex-display::before {
-          content: "📐";
-          position: absolute;
-          top: 8px;
-          right: 12px;
-          font-size: 1.25rem;
-          opacity: 0.6;
+        .material-didatico-content .katex-display .katex {
+          font-size: 1.2em;
+          color: #831843;
+        }
+        
+        .dark .material-didatico-content .katex-display .katex {
+          color: #fce7f3;
         }
         
         /* Better heading hierarchy */
@@ -124,7 +123,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             if (language === 'mermaid' && !inline) {
               return (
                 <MermaidErrorBoundary key={`mermaid-${node?.position?.start?.line || Math.random()}`}>
-                  <MaterialMermaidDiagram code={String(children).trim()} />
+                  <MermaidDiagram code={String(children).trim()} />
                 </MermaidErrorBoundary>
               );
             }

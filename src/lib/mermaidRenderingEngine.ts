@@ -130,7 +130,12 @@ export const initializeMermaid = (): boolean => {
     }
     
     // Verify KaTeX CSS is loaded (PDF pg 5 - CRITICAL)
-    verifyKatexCSSDependency();
+    const katexCSSLoaded = verifyKatexCSSDependency();
+    if (!katexCSSLoaded) {
+      console.error('[MermaidEngine] ❌ CRITICAL: KaTeX CSS não carregado!');
+      console.error('[MermaidEngine] Adicione ao index.html: <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">');
+      // Continue initialization but warn user
+    }
     
     mermaid.initialize(MERMAID_PRODUCTION_CONFIG);
     
@@ -149,7 +154,7 @@ export const initializeMermaid = (): boolean => {
  * CRITICAL DEPENDENCY CHECK (PDF pg 5)
  * "O Mermaid.js inclui o motor JavaScript do KaTeX, mas não a sua folha de estilos (CSS)"
  */
-const verifyKatexCSSDependency = (): void => {
+const verifyKatexCSSDependency = (): boolean => {
   const katexCSSLoaded = Array.from(document.styleSheets).some(sheet => 
     sheet.href && sheet.href.includes('katex')
   );
@@ -161,6 +166,8 @@ const verifyKatexCSSDependency = (): void => {
   } else {
     console.log('[MermaidEngine] ✅ KaTeX CSS detected');
   }
+  
+  return katexCSSLoaded;
 };
 
 /**
