@@ -204,6 +204,55 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           margin: 0.75rem 0 !important;
           padding: 0.75rem 1rem !important;
         }
+        
+        /* ===== 🖨️ PRINT OPTIMIZATION ===== */
+        @media print {
+          .material-didatico-content {
+            font-size: 11pt;
+            line-height: 1.5;
+          }
+          
+          .material-didatico-content h2 {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          
+          .material-didatico-content h3,
+          .material-didatico-content h4 {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          
+          /* Evitar quebra de página dentro de callouts */
+          .material-didatico-content [data-callout-type],
+          .material-didatico-content blockquote {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          
+          /* Garantir que cores sejam impressas */
+          .material-didatico-content [data-callout-type] {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+          }
+          
+          /* Ajustar fórmulas LaTeX para impressão */
+          .material-didatico-content .katex-display {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          
+          /* Ocultar elementos interativos */
+          button, input, textarea, .no-print {
+            display: none !important;
+          }
+        }
+        
+        /* Dark mode support for callouts */
+        .dark .material-didatico-content [data-callout-type] {
+          background-color: var(--callout-bg-dark);
+        }
       `}</style>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
@@ -321,87 +370,106 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               .replace(/:/g, '')
               .replace(/\s+/g, ' ');
             
-            const calloutTypes: Record<string, { bgColor: string; borderColor: string; textColor: string; titleColor: string; icon: string }> = {
+            const calloutTypes: Record<string, { 
+              bgColor: string; 
+              bgColorDark: string;
+              borderColorHex: string; 
+              textColor: string; 
+              titleColor: string; 
+              icon: string;
+            }> = {
               '✏️ Conceito-Chave': {
-                bgColor: 'bg-purple-200/90 dark:bg-purple-900/50',
-                borderColor: 'border-purple-600 border-l-4',
+                bgColor: 'rgba(243, 232, 255, 0.9)', // purple-200/90
+                bgColorDark: 'rgba(88, 28, 135, 0.5)', // purple-900/50
+                borderColorHex: '#9333ea', // purple-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-purple-800 dark:text-purple-200',
                 icon: '✏️',
               },
               '🤔 Pergunta para Reflexão': {
-                bgColor: 'bg-purple-200/90 dark:bg-purple-900/50',
-                borderColor: 'border-purple-700 border-l-4',
+                bgColor: 'rgba(243, 232, 255, 0.9)', // purple-200/90
+                bgColorDark: 'rgba(88, 28, 135, 0.5)', // purple-900/50
+                borderColorHex: '#7c3aed', // purple-700
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-purple-800 dark:text-purple-200',
                 icon: '🤔',
               },
               '💡 Dica Importante': {
-                bgColor: 'bg-yellow-200/90 dark:bg-yellow-900/50',
-                borderColor: 'border-yellow-600 border-l-4',
+                bgColor: 'rgba(254, 243, 199, 0.9)', // yellow-200/90
+                bgColorDark: 'rgba(113, 63, 18, 0.5)', // yellow-900/50
+                borderColorHex: '#ca8a04', // yellow-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-yellow-800 dark:text-yellow-200',
                 icon: '💡',
               },
               '⚠️ Atenção': {
-                bgColor: 'bg-orange-200/90 dark:bg-orange-900/50',
-                borderColor: 'border-orange-600 border-l-4',
+                bgColor: 'rgba(254, 215, 170, 0.9)', // orange-200/90
+                bgColorDark: 'rgba(124, 45, 18, 0.5)', // orange-900/50
+                borderColorHex: '#ea580c', // orange-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-orange-800 dark:text-orange-200',
                 icon: '⚠️',
               },
               '🔬 Exemplo Prático': {
-                bgColor: 'bg-blue-200/90 dark:bg-blue-900/50',
-                borderColor: 'border-blue-600 border-l-4',
+                bgColor: 'rgba(219, 234, 254, 0.9)', // blue-200/90
+                bgColorDark: 'rgba(30, 58, 138, 0.5)', // blue-900/50
+                borderColorHex: '#2563eb', // blue-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-blue-800 dark:text-blue-200',
                 icon: '🔬',
               },
               '📊 Resumo Executivo': {
-                bgColor: 'bg-green-200/90 dark:bg-green-900/50',
-                borderColor: 'border-green-600 border-l-4',
+                bgColor: 'rgba(209, 250, 229, 0.9)', // green-200/90
+                bgColorDark: 'rgba(20, 83, 45, 0.5)', // green-900/50
+                borderColorHex: '#059669', // green-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-green-800 dark:text-green-200',
                 icon: '📊',
               },
               '🏭 Aplicação Profissional': {
-                bgColor: 'bg-indigo-200/90 dark:bg-indigo-900/50',
-                borderColor: 'border-indigo-600 border-l-4',
+                bgColor: 'rgba(224, 231, 255, 0.9)', // indigo-200/90
+                bgColorDark: 'rgba(49, 46, 129, 0.5)', // indigo-900/50
+                borderColorHex: '#4f46e5', // indigo-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-indigo-800 dark:text-indigo-200',
                 icon: '🏭',
               },
               '✍️ Exercício Rápido': {
-                bgColor: 'bg-lime-200/90 dark:bg-lime-900/50',
-                borderColor: 'border-lime-600 border-l-4',
+                bgColor: 'rgba(236, 252, 203, 0.9)', // lime-200/90
+                bgColorDark: 'rgba(54, 83, 20, 0.5)', // lime-900/50
+                borderColorHex: '#65a30d', // lime-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-lime-800 dark:text-lime-200',
                 icon: '✍️',
               },
               '❌ Erro Comum': {
-                bgColor: 'bg-red-200/90 dark:bg-red-900/50',
-                borderColor: 'border-red-600 border-l-4',
+                bgColor: 'rgba(254, 202, 202, 0.9)', // red-200/90
+                bgColorDark: 'rgba(127, 29, 29, 0.5)', // red-900/50
+                borderColorHex: '#dc2626', // red-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-red-800 dark:text-red-200',
                 icon: '❌',
               },
               '🔍 Aprofundamento': {
-                bgColor: 'bg-violet-200/90 dark:bg-violet-900/50',
-                borderColor: 'border-violet-600 border-l-4',
+                bgColor: 'rgba(237, 233, 254, 0.9)', // violet-200/90
+                bgColorDark: 'rgba(76, 29, 149, 0.5)', // violet-900/50
+                borderColorHex: '#7c3aed', // violet-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-violet-800 dark:text-violet-200',
                 icon: '🔍',
               },
               '🎓 Citação do Especialista': {
-                bgColor: 'bg-gray-200/90 dark:bg-gray-900/50',
-                borderColor: 'border-gray-600 border-l-4',
+                bgColor: 'rgba(229, 231, 235, 0.9)', // gray-200/90
+                bgColorDark: 'rgba(17, 24, 39, 0.5)', // gray-900/50
+                borderColorHex: '#4b5563', // gray-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-gray-800 dark:text-gray-200',
                 icon: '🎓',
               },
               '🔗 Conexão com Outros Conceitos': {
-                bgColor: 'bg-cyan-200/90 dark:bg-cyan-900/50',
-                borderColor: 'border-cyan-600 border-l-4',
+                bgColor: 'rgba(207, 250, 254, 0.9)', // cyan-200/90
+                bgColorDark: 'rgba(22, 78, 99, 0.5)', // cyan-900/50
+                borderColorHex: '#0891b2', // cyan-600
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-cyan-800 dark:text-cyan-200',
                 icon: '🔗',
@@ -444,12 +512,26 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             }
 
             if (matchedCallout) {
+              // Extrair tipo do callout para data-attribute
+              const calloutType = matchedCallout.title
+                .replace(matchedCallout.icon, '')
+                .trim()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+                .replace(/\s+/g, '-');
+              
               return (
                 <div 
-                  className={`${matchedCallout.bgColor} ${matchedCallout.borderColor} rounded-lg p-6 my-6 shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5`}
+                  data-callout-type={calloutType}
+                  className="rounded-lg p-6 my-6 shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
                   style={{
+                    backgroundColor: matchedCallout.bgColor,
                     borderLeftWidth: '4px',
-                    borderLeftStyle: 'solid'
+                    borderLeftStyle: 'solid',
+                    borderLeftColor: matchedCallout.borderColorHex,
+                    ['--callout-bg-light' as any]: matchedCallout.bgColor,
+                    ['--callout-bg-dark' as any]: matchedCallout.bgColorDark,
                   }}
                 >
                   <div className="flex items-start gap-4">

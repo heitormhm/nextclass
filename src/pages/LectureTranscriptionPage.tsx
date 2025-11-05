@@ -24,8 +24,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw } from 'lucide-react';
+import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
+import { printMaterialDidatico } from '@/utils/printMaterialDidatico';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -198,6 +199,9 @@ const LectureTranscriptionPage = () => {
   const [lessonPlanText, setLessonPlanText] = useState('');
   const [isComparingPlan, setIsComparingPlan] = useState(false);
   const [comparisonResult, setComparisonResult] = useState<any>(null);
+
+  // PDF printing state
+  const [isPrintingPDF, setIsPrintingPDF] = useState(false);
   const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
 
   // Student access state
@@ -1886,6 +1890,66 @@ const LectureTranscriptionPage = () => {
                       Conteúdo Gerado
                     </CardTitle>
                     <div className="flex gap-2">
+                      {/* Botão de Impressão - só aparece quando material v2 existe */}
+                      {materialDidaticoV2 && (
+                        <Button
+                          onClick={async () => {
+                            if (!materialDidaticoV2) {
+                              toast({
+                                title: "Erro",
+                                description: "Material didático não disponível para impressão",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            setIsPrintingPDF(true);
+                            
+                            try {
+                              await printMaterialDidatico('material-didatico-content', {
+                                lectureTitle: lectureTitle || 'Material Didático',
+                                teacherName: teacherName || undefined,
+                                date: new Date().toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: 'long',
+                                  year: 'numeric',
+                                }),
+                              });
+                              
+                              toast({
+                                title: "✅ PDF gerado com sucesso!",
+                                description: "O arquivo foi baixado para seu dispositivo",
+                              });
+                            } catch (error) {
+                              console.error('Erro ao gerar PDF:', error);
+                              toast({
+                                title: "Erro ao gerar PDF",
+                                description: "Ocorreu um erro ao processar o material para impressão",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsPrintingPDF(false);
+                            }
+                          }}
+                          disabled={isPrintingPDF}
+                          size="sm"
+                          variant="outline"
+                          className="border-purple-600 text-purple-700 hover:bg-purple-50"
+                        >
+                          {isPrintingPDF ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Gerando PDF...
+                            </>
+                          ) : (
+                            <>
+                              <Printer className="h-4 w-4 mr-2" />
+                              Imprimir PDF
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      
                       {/* FASE 8: GenerateLectureDeepSearchSummary component hidden - only using V2 button */}
                       <Button
                         onClick={handleGenerateMaterialV2}
@@ -1991,7 +2055,7 @@ const LectureTranscriptionPage = () => {
                               </div>
                             )}
                             
-                            <div className="min-w-0 bg-white p-6 rounded-lg mt-2">
+                            <div id="material-didatico-content" className="min-w-0 bg-white p-6 rounded-lg mt-2">
                               {/* FASE 9: Banner de Aviso de Erros LaTeX */}
                               {hasLatexErrors && (
                                 <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
