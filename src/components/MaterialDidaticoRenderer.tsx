@@ -123,16 +123,27 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             if (language === 'mermaid' && !inline) {
               let code = String(children).trim();
               
-              // ✅ FASE 5: CLIENT-SIDE FALLBACK - Convert $ → $$ in labels
+              // ✅ SOLUÇÃO 3: CLIENT-SIDE FALLBACK - Convert $ → $$ in labels (Deno-compatible)
               console.log('[MaterialDidaticoRenderer] 🔧 Pre-processing Mermaid for LaTeX compatibility...');
               
-              // Convert single $ to $$ in quoted labels to ensure Mermaid renders LaTeX correctly
+              // Convert single $ to $$ in quoted labels using placeholder approach
               code = code.replace(/\[(".*?")\]/gs, (match, quotedLabel) => {
-                const inner = quotedLabel.slice(1, -1);
-                // Convert $ → $$ but preserve existing $$
-                const fixed = inner.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, '$$$$1$$');
-                return `["${fixed}"]`;
+                let inner = quotedLabel.slice(1, -1);
+                
+                // ✅ DENO-COMPATIBLE: Placeholder approach (no lookbehind)
+                // 1. Protect existing $$
+                inner = inner.replace(/\$\$/g, '___KEEP___');
+                
+                // 2. Convert $ simples → $$
+                inner = inner.replace(/\$([^\$]+?)\$/g, '$$$$1$$');
+                
+                // 3. Restore $$
+                inner = inner.replace(/___KEEP___/g, '$$');
+                
+                return `["${inner}"]`;
               });
+              
+              console.log('[MaterialDidaticoRenderer] ✅ Pre-processing complete');
               
               // Validate if code is really valid Mermaid
               if (!code || code.length < 10) {

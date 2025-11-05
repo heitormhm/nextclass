@@ -446,11 +446,12 @@ function fixLaTeXFormulas(markdown: string): string {
 // ==========================================
 
 /**
- * Force conversion of single dollars to double dollars in Mermaid labels
- * This ensures STRICT validation passes by converting $x$ → $$x$$ in quoted labels
+ * ✅ SOLUÇÃO 2: Force conversion $ → $$ in Mermaid labels (Deno-compatible)
+ * Uses placeholder approach to avoid lookbehind regex (not supported in Deno/V8)
+ * SCOPE: Only affects code inside ```mermaid blocks, within quoted labels ["..."]
  */
 function forceDollarDoublingInMermaid(markdown: string): string {
-  console.log('[Mermaid] 🔄 Starting AGGRESSIVE $ → $$ conversion...');
+  console.log('[Mermaid] 🔄 Starting $ → $$ conversion (Deno-compatible)...');
   
   const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
   let conversionsCount = 0;
@@ -460,27 +461,41 @@ function forceDollarDoublingInMermaid(markdown: string): string {
     blocksProcessed++;
     
     // Process ALL quoted labels in the diagram
-    // Use dotAll flag (/s) to match newlines within labels
     const processedContent = diagramContent.replace(/\[(".*?")\]/gs, (labelMatch: string, quotedContent: string) => {
-      // quotedContent already includes the quotes
-      let innerContent = quotedContent.slice(1, -1); // Remove quotes to process
+      let inner = quotedContent.slice(1, -1); // Remove quotes
       
-      // Convert single $ to $$ but PRESERVE existing $$
-      // Pattern: $ (not preceded by $) + content + $ (not followed by $)
-      const converted = innerContent.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, (match: string, formula: string) => {
+      // ✅ DENO-COMPATIBLE APPROACH: Use placeholder strategy
+      // 1. Protect existing $$
+      inner = inner.replace(/\$\$/g, '___PROTECTED_DOUBLE___');
+      
+      // 2. Convert single $ → $$
+      const beforeConversion = inner;
+      inner = inner.replace(/\$([^\$]+?)\$/g, (match, formula) => {
         conversionsCount++;
-        console.log(`[Mermaid] 💱 Converting: $${formula}$ → $$${formula}$$`);
+        console.log(`  💱 $${formula}$ → $$${formula}$$`);
         return `$$${formula}$$`;
       });
       
-      return `["${converted}"]`;
+      // 3. Restore protected $$
+      inner = inner.replace(/___PROTECTED_DOUBLE___/g, '$$');
+      
+      // Log if conversion happened
+      if (inner !== beforeConversion) {
+        console.log(`  ✅ Label converted: "${beforeConversion.substring(0, 40)}..."`);
+      }
+      
+      return `["${inner}"]`;
     });
     
     return `\`\`\`mermaid\n${processedContent}\`\`\``;
   });
   
-  console.log(`[Mermaid] ✅ Processed ${blocksProcessed} blocks`);
+  console.log(`[Mermaid] ✅ Processed ${blocksProcessed} Mermaid blocks`);
   console.log(`[Mermaid] ✅ Total conversions: ${conversionsCount}`);
+  
+  if (conversionsCount === 0) {
+    console.warn('[Mermaid] ⚠️ No conversions made - labels may already use $$');
+  }
   
   return processed;
 }
@@ -830,37 +845,47 @@ ${practicalContext}
 TAREFA: Integre esses dois conteúdos em um material didático coeso e bem estruturado.
 
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║  🚨 VALIDAÇÃO STRICT ATIVADA - LEIA COM ATENÇÃO EXTREMA 🚨                   ║
+║  🚨 SOLUÇÃO 1: VALIDAÇÃO STRICT ATIVADA - LEIA COM ATENÇÃO EXTREMA 🚨        ║
 ║  O material será REJEITADO se não seguir 100% estas regras                   ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
+🔴 **REGRA ABSOLUTA PARA MERMAID.JS - NÃO NEGOCIÁVEL**:
+
+Em labels de diagramas Mermaid, LaTeX SEMPRE usa $$ (DUPLO), NUNCA $ (SIMPLES)!
+
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ ❌ EXEMPLOS PROIBIDOS - NUNCA FAÇA ISSO:                                     │
+│ ❌ EXEMPLOS ABSOLUTAMENTE PROIBIDOS - REJEITADOS AUTOMATICAMENTE:           │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-PROIBIDO #1 - Labels sem aspas duplas ou sem LaTeX:
+PROIBIDO #1 - $ simples em labels (USA $$ DUPLO!):
 \`\`\`mermaid
 flowchart TD
-    A[Q - W = Delta E]         ❌ SEM aspas duplas, SEM $$
-    B[Calor Q]                 ❌ SEM aspas duplas, SEM $$
-    C[Q_out = 300 J]           ❌ Underscore direto
+    A["Energia: $E = U + Q$"]      ❌ $ simples NÃO funciona!
+    B["Trabalho: $W = PdV$"]       ❌ Mermaid.js rejeita $ simples!
 \`\`\`
 
-PROIBIDO #2 - Underscores diretos (deve usar LaTeX):
+PROIBIDO #2 - Labels sem aspas duplas:
 \`\`\`mermaid
 flowchart TD
-    A["Q_dot"]                 ❌ Underscore direto
-    B["m_dot"]                 ❌ Underscore direto
+    A[Q - W = Delta E]             ❌ SEM aspas, SEM $$
+    B[Calor Q]                     ❌ SEM formatação LaTeX
 \`\`\`
 
-PROIBIDO #3 - Sintaxe antiga "graph" predominante:
+PROIBIDO #3 - Underscores diretos (deve usar LaTeX):
 \`\`\`mermaid
-graph TD                       ❌ Use flowchart TD
+flowchart TD
+    A["Q_dot"]                     ❌ Underscore direto
+    B["m_dot"]                     ❌ Use $$\\dot{Q}$$ ou $$Q_{dot}$$
+\`\`\`
+
+PROIBIDO #4 - Sintaxe antiga "graph" predominante:
+\`\`\`mermaid
+graph TD                           ❌ Use flowchart TD
     A --> B
 \`\`\`
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ ✅ TEMPLATE OBRIGATÓRIO - COPIE ESTE FORMATO EXATO:                         │
+│ ✅ FORMATO OBRIGATÓRIO ÚNICO - COPIE ESTE FORMATO EXATAMENTE:               │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 \`\`\`mermaid
@@ -876,50 +901,31 @@ flowchart TD
     style Node3 fill:#fff3e0,stroke:#f57c00,stroke-width:2px
 \`\`\`
 
+🔴 **VALIDAÇÃO AUTOMÁTICA RIGOROSA**:
+
+O sistema vai REJEITAR seu material automaticamente SE:
+- Você usar $ ao invés de $$ em labels → MATERIAL REJEITADO
+- Não usar aspas duplas ["..."] → MATERIAL REJEITADO
+- Usar graph TD ao invés de flowchart TD → MATERIAL REJEITADO
+
+**ANTES DE GERAR, RESPONDA MENTALMENTE ESTAS PERGUNTAS**:
+1. ✅ Vou usar $$ (DUPLO) em TODOS os labels com LaTeX? (SIM/NÃO)
+2. ✅ NUNCA vou usar $ (SIMPLES) dentro de labels Mermaid? (SIM/NÃO)
+3. ✅ Todos os labels têm aspas duplas ["..."]? (SIM/NÃO)
+4. ✅ Vou usar flowchart TD/LR (não graph TD)? (SIM/NÃO)
+
+❌ Se você respondeu NÃO a qualquer pergunta, PARE E CORRIJA!
+
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ 📋 CHECKLIST DE VALIDAÇÃO (VERIFICAR ANTES DE GERAR):                       │
+│ 📋 CHECKLIST FINAL (VERIFICAR ANTES DE ENVIAR):                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 □ Todos os labels Mermaid usam aspas duplas: ["..."]
-□ Todas as variáveis/fórmulas dentro de labels usam $$...$$
+□ Todas as fórmulas dentro de labels usam $$...$$ (DUPLO, não simples!)
 □ Nenhum underscore direto (Q_dot) - usar $$\\dot{Q}$$ ou $$Q_{dot}$$
 □ Pelo menos 1 diagrama flowchart TD ou flowchart LR
 □ Mínimo 2 diagramas Mermaid no total
 □ Mínimo 2 TIPOS diferentes de diagramas (flowchart + graph/stateDiagram)
-
-🔴 **ATENÇÃO CRÍTICA - VALIDAÇÃO AUTOMÁTICA ATIVADA**:
-
-Se você NÃO seguir TODAS as regras abaixo, o material será REJEITADO automaticamente pelo sistema:
-1. ✅ OBRIGATÓRIO: usar flowchart TD ou flowchart LR (NUNCA graph TD)
-2. ✅ OBRIGATÓRIO: labels com aspas duplas ["texto com $$formula$$"]
-3. ✅ OBRIGATÓRIO: LaTeX em labels deve usar $$ (não $)
-4. ✅ OBRIGATÓRIO: MÍNIMO 2 diagramas Mermaid flowchart
-
-❌ **MATERIAL SERÁ AUTOMATICAMENTE REJEITADO SE**:
-- Usar "graph TD" ao invés de "flowchart TD"
-- Labels sem aspas duplas: A[texto] ← BLOQUEADO
-- Fórmulas sem $$: ["Q - W = Delta E"] ← BLOQUEADO (deve ser ["$$Q - W = \\Delta E$$"])
-- Menos de 2 diagramas flowchart ← BLOQUEADO
-
-✅ **TEMPLATE OBRIGATÓRIO - COPIE ESTE FORMATO EXATO**:
-
-\`\`\`mermaid
-flowchart TD
-    A["<b>Primeira Lei da Termodinâmica</b><br/>$$Q - W = \\Delta E$$"]
-    B["Sistema Fechado<br/>$$\\Delta U + \\Delta EC + \\Delta EP$$"]
-    C["Transferência de Calor<br/>$$Q = \\int \\delta Q$$"]
-    A --> B
-    A --> C
-\`\`\`
-
-**CHECKLIST PRÉ-GERAÇÃO** (Você DEVE verificar mentalmente ANTES de gerar):
-□ Linha 1 do diagrama: "flowchart TD" ou "flowchart LR"? (SIM/NÃO)
-□ TODOS os labels têm aspas duplas ["..."]? (SIM/NÃO)
-□ Pelo menos 3 labels diferentes têm LaTeX $$...$$? (SIM/NÃO)
-□ Vou gerar mínimo 2 diagramas flowchart? (SIM/NÃO)
-□ Usei <b> para títulos e <br/> para quebras de linha? (SIM/NÃO)
-
-⚠️ Se você respondeu NÃO a qualquer pergunta acima, PARE e CORRIJA antes de gerar!
 
 ╔═══════════════════════════════════════════════════════════════════════════════╗
 ║  📐 EXEMPLO COMPLETO PERFEITO - COPIE ESTA ESTRUTURA EXATA:                  ║
@@ -948,6 +954,11 @@ flowchart TD
     style Resultado fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
 \`\`\`
 
+**REGRA DE OURO ABSOLUTA**: 
+- DENTRO de labels Mermaid → SEMPRE $$ (duplo)
+- FORA de blocos Mermaid (texto normal) → pode usar $ (simples)
+
+🚨 **ÚLTIMO AVISO**: Se você gerar material com $ simples em labels Mermaid, ele será AUTOMATICAMENTE REJEITADO e você terá que regenerar TUDO!
 🎯 **DIAGRAMAS MERMAID: OBRIGATÓRIO (MÍNIMO 2 POR MATERIAL)**
 
 **REGRA CRÍTICA**: Você DEVE gerar pelo menos 2 diagramas Mermaid flowchart por material.
@@ -1150,10 +1161,50 @@ $$
 INCORRETO (NÃO FAÇA):
 "A entalpia $$ H $$ é uma propriedade..." ❌`;
 
-    const finalMarkdown = await callLovableAI([
+    let finalMarkdown = await callLovableAI([
       { role: 'system', content: integrationPrompt },
       { role: 'user', content: `Integre o conteúdo completo para: ${lectureTitle}` }
     ], lovableApiKey, 'Content Integration');
+    
+    // ✅ SOLUÇÃO 1B: VALIDAÇÃO IMEDIATA PÓS-IA (detectar $ simples em labels)
+    console.log('\n=== IMMEDIATE POST-AI VALIDATION: Checking for single $ in Mermaid labels ===');
+    
+    // Detectar $ simples dentro de labels Mermaid (muito específico)
+    const hasSingleDollarInMermaidLabels = /```mermaid[\s\S]*?\["[^"]*\$(?!\$)[^"]*"\][\s\S]*?```/g.test(finalMarkdown);
+    
+    if (hasSingleDollarInMermaidLabels) {
+      console.error('❌ CRITICAL: IA gerou $ simples em labels Mermaid!');
+      console.error('Rejeitando resposta e solicitando regeneração com prompt AGRESSIVO...');
+      
+      const retryPrompt = `
+🚨 ATENÇÃO: Sua resposta anterior foi REJEITADA porque você usou $ ao invés de $$.
+
+REGRA ABSOLUTA: Em labels de diagramas Mermaid, SEMPRE use $$ (duplo) para LaTeX!
+
+❌ ERRADO (você fez isso): ["Energia: $E = mc^2$"]
+✅ CORRETO (faça assim):  ["Energia: $$E = mc^2$$"]
+
+Regenere TODO o material seguindo esta regra à risca. Não esqueça: $$ DUPLO em labels!
+      `;
+      
+      // Tentar novamente (máximo 1 retry)
+      finalMarkdown = await callLovableAI([
+        { role: 'system', content: integrationPrompt },
+        { role: 'user', content: retryPrompt }
+      ], lovableApiKey, 'Retry after $ validation failure');
+      
+      // Re-validar após retry
+      const stillHasSingleDollar = /```mermaid[\s\S]*?\["[^"]*\$(?!\$)[^"]*"\][\s\S]*?```/g.test(finalMarkdown);
+      
+      if (stillHasSingleDollar) {
+        console.error('❌ RETRY FAILED: IA ainda gerou $ simples após tentativa de correção!');
+        console.error('Continuando com processamento mas sinalizando problema...');
+      } else {
+        console.log('✅ RETRY SUCCESS: IA corrigiu e agora usa $$ em labels!');
+      }
+    } else {
+      console.log('✅ POST-AI VALIDATION PASSED: Nenhum $ simples detectado em labels Mermaid');
+    }
     
     // === FASE 2: VALIDAÇÃO PROGRESSIVA (PRÉ-PROCESSAMENTO) ===
     console.log('\n=== PRE-VALIDATION: Checking AI output quality ===');

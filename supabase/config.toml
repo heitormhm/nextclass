@@ -168,6 +168,9 @@ verify_jwt = false
 [functions.ai-health-check]
 verify_jwt = false
 
+[functions.fix-existing-mermaid-materials]
+verify_jwt = true
+
 [api]
 enabled = true
 port = 54321
