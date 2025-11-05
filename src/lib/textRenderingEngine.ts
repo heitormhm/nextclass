@@ -30,6 +30,7 @@ export const KATEX_TEXT_CONFIG = {
     '\\grad': '\\nabla',
     '\\curl': '\\nabla \\times',
     '\\div': '\\nabla \\cdot',
+    '\\cdotp': '\\cdot',  // Fix for materials using \cdotp (compatibility)
   }
 } as const;
 

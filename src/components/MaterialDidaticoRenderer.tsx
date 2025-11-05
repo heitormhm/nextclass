@@ -14,7 +14,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
   // Pre-processar markdown para remover referências a diagramas obsoletos
   let processedMarkdown = markdown;
   
-  // Substituir frases comuns que referenciam diagramas
+  // Substituir frases comuns que referenciam diagramas e comandos problemáticos
   const diagramReferences = [
     { pattern: /O diagrama (a seguir|abaixo) (mostra|organiza|ilustra|apresenta)/gi, 
       replacement: 'A estrutura a seguir organiza' },
@@ -129,6 +129,46 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           font-weight: 600 !important;
           color: hsl(var(--foreground));
         }
+        
+        /* ===== 🎨 CALLOUT SYSTEM STYLING ===== */
+        .material-didatico-content blockquote {
+          margin: 0 !important;
+          padding: 0 !important;
+          border: none !important;
+        }
+        
+        /* Prevent list items inside callouts from having wrong indentation */
+        .material-didatico-content .callout-content ul,
+        .material-didatico-content .callout-content ol {
+          margin-left: 1.5rem !important;
+          margin-top: 0.75rem !important;
+          margin-bottom: 0.5rem !important;
+        }
+        
+        .material-didatico-content .callout-content li {
+          padding-left: 0.25rem !important;
+          margin-bottom: 0.5rem !important;
+        }
+        
+        /* Fix paragraph spacing inside callouts */
+        .material-didatico-content .callout-content p {
+          margin-bottom: 0.75rem !important;
+        }
+        
+        .material-didatico-content .callout-content p:last-child {
+          margin-bottom: 0 !important;
+        }
+        
+        /* Ensure code blocks inside callouts are properly formatted */
+        .material-didatico-content .callout-content code {
+          font-size: 0.9em !important;
+          padding: 0.15em 0.4em !important;
+        }
+        
+        .material-didatico-content .callout-content pre {
+          margin: 0.75rem 0 !important;
+          padding: 0.75rem 1rem !important;
+        }
       `}</style>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
@@ -239,6 +279,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             };
             
             const fullText = extractText(children);
+            const normalizedText = fullText.trim().replace(/\s+/g, ' ');
             
             const calloutTypes: Record<string, { bgColor: string; borderColor: string; textColor: string; titleColor: string; icon: string }> = {
               '✏️ Conceito-Chave': {
@@ -327,25 +368,51 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               },
             };
 
-            // Buscar match no texto completo (mais robusto)
+            // ESTRATÉGIA 1: Buscar match exato no texto normalizado
             let matchedCallout = null;
             for (const [title, style] of Object.entries(calloutTypes)) {
-              if (fullText.includes(title) || fullText.startsWith(title)) {
+              const normalizedTitle = title.replace(/\s+/g, ' ');
+              if (normalizedText.includes(normalizedTitle) || normalizedText.startsWith(normalizedTitle)) {
                 matchedCallout = { title, ...style };
                 break;
+              }
+            }
+            
+            // ESTRATÉGIA 2: Fallback - buscar apenas pelo emoji no início
+            if (!matchedCallout) {
+              const emojiMap: Record<string, string> = {
+                '✏️': '✏️ Conceito-Chave',
+                '🤔': '🤔 Pergunta para Reflexão',
+                '💡': '💡 Dica Importante',
+                '⚠️': '⚠️ Atenção',
+                '🔬': '🔬 Exemplo Prático',
+                '📊': '📊 Resumo Executivo',
+                '🏭': '🏭 Aplicação Profissional',
+                '✍️': '✍️ Exercício Rápido',
+                '❌': '❌ Erro Comum',
+                '🔍': '🔍 Aprofundamento',
+                '🎓': '🎓 Citação do Especialista',
+                '🔗': '🔗 Conexão com Outros Conceitos',
+              };
+              
+              for (const [emoji, title] of Object.entries(emojiMap)) {
+                if (normalizedText.startsWith(emoji)) {
+                  matchedCallout = { title, ...calloutTypes[title] };
+                  break;
+                }
               }
             }
 
             if (matchedCallout) {
               return (
-                <div className={`${matchedCallout.bgColor} ${matchedCallout.borderColor} rounded-r-lg p-4 my-6 shadow-sm`}>
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl flex-shrink-0">{matchedCallout.icon}</span>
+                <div className={`${matchedCallout.bgColor} ${matchedCallout.borderColor} rounded-r-lg p-5 my-6 shadow-md`}>
+                  <div className="flex items-start gap-4">
+                    <span className="text-3xl flex-shrink-0 mt-0.5">{matchedCallout.icon}</span>
                     <div className="flex-1">
-                      <p className={`font-extrabold text-lg ${matchedCallout.titleColor} mb-2`}>
+                      <p className={`font-extrabold text-lg ${matchedCallout.titleColor} mb-3`}>
                         {matchedCallout.title.replace(matchedCallout.icon, '').trim()}
                       </p>
-                      <div className={matchedCallout.textColor}>
+                      <div className={`${matchedCallout.textColor} leading-relaxed callout-content`}>
                         {children}
                       </div>
                     </div>
