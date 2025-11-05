@@ -121,9 +121,11 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             const inline = !className;
 
             if (language === 'mermaid' && !inline) {
+              const code = String(children).trim();
+              console.log('[MaterialDidaticoRenderer] ✅ Rendering Mermaid block (length:', code.length, ')');
               return (
                 <MermaidErrorBoundary key={`mermaid-${node?.position?.start?.line || Math.random()}`}>
-                  <MermaidDiagram code={String(children).trim()} />
+                  <MermaidDiagram code={code} />
                 </MermaidErrorBoundary>
               );
             }
