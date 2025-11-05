@@ -255,6 +255,9 @@ const LectureTranscriptionPage = () => {
   const [isGeneratingMaterialV2, setIsGeneratingMaterialV2] = useState(false);
   const [materialV2Progress, setMaterialV2Progress] = useState<string>('');
   const [currentMaterialV2Job, setCurrentMaterialV2Job] = useState<string | null>(null);
+  
+  // ✅ FASE 4: Estado para botão de correção de diagramas Mermaid
+  const [isFixingMermaid, setIsFixingMermaid] = useState(false);
 
   // URL validation helper
   const isValidUrl = (url: string) => {
@@ -1626,6 +1629,41 @@ const LectureTranscriptionPage = () => {
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+  
+  // ✅ FASE 4: Handler para forçar correção de diagramas Mermaid
+  const handleFixMermaidDiagrams = async () => {
+    if (!lecture?.id) return;
+    
+    setIsFixingMermaid(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'fix-existing-mermaid-materials',
+        {
+          body: { lectureId: lecture.id }
+        }
+      );
+      
+      if (error) throw error;
+      
+      // Recarregar lecture
+      await loadLectureData();
+      
+      toast({
+        title: 'Diagramas corrigidos!',
+        description: 'Os diagramas Mermaid foram reprocessados com sucesso.',
+      });
+    } catch (error) {
+      console.error('Error fixing Mermaid:', error);
+      toast({
+        title: 'Erro ao corrigir diagramas',
+        description: 'Tente novamente em alguns instantes.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFixingMermaid(false);
+    }
+  };
 
   const handlePublishConfirmed = async () => {
     if (!selectedClassId) {
@@ -2028,6 +2066,29 @@ const LectureTranscriptionPage = () => {
                                   </div>
                                 </div>
                               )}
+                              
+                              {/* ✅ FASE 4: Botão de Correção Manual de Diagramas Mermaid */}
+                              <div className="mb-4 flex justify-end">
+                                <Button
+                                  onClick={handleFixMermaidDiagrams}
+                                  disabled={isFixingMermaid}
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-2"
+                                >
+                                  {isFixingMermaid ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      Corrigindo diagramas...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <RefreshCw className="h-4 w-4" />
+                                      Corrigir Diagramas Mermaid
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
                               
                               <MaterialDidaticoRenderer
                                 markdown={materialDidaticoV2} 
