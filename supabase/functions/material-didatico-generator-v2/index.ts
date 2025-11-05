@@ -412,6 +412,31 @@ async function updateJobProgress(
 }
 
 // ==========================================
+// PHASE 3: Checkpoint Telemetry
+// ==========================================
+
+async function updateJobCheckpoint(
+  supabase: any, 
+  jobId: string, 
+  checkpoint: string
+) {
+  console.log(`[Checkpoint] ${checkpoint}`);
+  const { error } = await supabase
+    .from('material_v2_jobs')
+    .update({
+      metadata: { 
+        last_checkpoint: checkpoint, 
+        checkpoint_time: new Date().toISOString() 
+      }
+    })
+    .eq('id', jobId);
+  
+  if (error) {
+    console.warn(`[Checkpoint] Failed to update checkpoint ${checkpoint}:`, error);
+  }
+}
+
+// ==========================================
 // PHASE 3: Improved LaTeX Regex
 // ==========================================
 
@@ -745,14 +770,27 @@ async function processGenerationJob(jobId: string, lectureId: string, lectureTit
     identifiedBooks: [] as string[],
   };
 
-  try {
-    // Update job to PROCESSING
-    await supabase
-      .from('material_v2_jobs')
-      .update({ status: 'PROCESSING', updated_at: new Date().toISOString() })
-      .eq('id', jobId);
+  // ==========================================
+  // FASE 2: TIMEOUT DE SEGURANÇA (10 minutos)
+  // ==========================================
+  const TIMEOUT_MS = 10 * 60 * 1000; // 10 minutos
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error('TIMEOUT: Geração excedeu 10 minutos'));
+    }, TIMEOUT_MS);
+  });
 
-    await updateJobProgress(supabase, jobId, 5, 'Iniciando geração (Book-First Approach)...');
+  try {
+    await Promise.race([
+      (async () => {
+        // Update job to PROCESSING
+        await supabase
+          .from('material_v2_jobs')
+          .update({ status: 'PROCESSING', updated_at: new Date().toISOString() })
+          .eq('id', jobId);
+
+        await updateJobProgress(supabase, jobId, 5, 'Iniciando geração (Book-First Approach)...');
+        await updateJobCheckpoint(supabase, jobId, 'job_started');
 
     // Get API keys
     const braveApiKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
@@ -1181,45 +1219,10 @@ INCORRETO (NÃO FAÇA):
       { role: 'user', content: `Integre o conteúdo completo para: ${lectureTitle}` }
     ], lovableApiKey, 'Content Integration');
     
-    // ✅ SOLUÇÃO 1B: VALIDAÇÃO IMEDIATA PÓS-IA (detectar $ simples em labels)
-    console.log('\n=== IMMEDIATE POST-AI VALIDATION: Checking for single $ in Mermaid labels ===');
-    
-    // Detectar $ simples dentro de labels Mermaid (muito específico)
-    const hasSingleDollarInMermaidLabels = /```mermaid[\s\S]*?\["[^"]*\$(?!\$)[^"]*"\][\s\S]*?```/g.test(finalMarkdown);
-    
-    if (hasSingleDollarInMermaidLabels) {
-      console.error('❌ CRITICAL: IA gerou $ simples em labels Mermaid!');
-      console.error('Rejeitando resposta e solicitando regeneração com prompt AGRESSIVO...');
-      
-      const retryPrompt = `
-🚨 ATENÇÃO: Sua resposta anterior foi REJEITADA porque você usou $ ao invés de $$.
-
-REGRA ABSOLUTA: Em labels de diagramas Mermaid, SEMPRE use $$ (duplo) para LaTeX!
-
-❌ ERRADO (você fez isso): ["Energia: $E = mc^2$"]
-✅ CORRETO (faça assim):  ["Energia: $$E = mc^2$$"]
-
-Regenere TODO o material seguindo esta regra à risca. Não esqueça: $$ DUPLO em labels!
-      `;
-      
-      // Tentar novamente (máximo 1 retry)
-      finalMarkdown = await callLovableAI([
-        { role: 'system', content: integrationPrompt },
-        { role: 'user', content: retryPrompt }
-      ], lovableApiKey, 'Retry after $ validation failure');
-      
-      // Re-validar após retry
-      const stillHasSingleDollar = /```mermaid[\s\S]*?\["[^"]*\$(?!\$)[^"]*"\][\s\S]*?```/g.test(finalMarkdown);
-      
-      if (stillHasSingleDollar) {
-        console.error('❌ RETRY FAILED: IA ainda gerou $ simples após tentativa de correção!');
-        console.error('Continuando com processamento mas sinalizando problema...');
-      } else {
-        console.log('✅ RETRY SUCCESS: IA corrigiu e agora usa $$ em labels!');
-      }
-    } else {
-      console.log('✅ POST-AI VALIDATION PASSED: Nenhum $ simples detectado em labels Mermaid');
-    }
+    // ✅ FASE 1: VALIDAÇÃO BLOQUEANTE REMOVIDA
+    // A correção de $ → $$ será feita em background via edge function
+    console.log('[Integration] ✅ Content integration complete - proceeding to processing');
+    await updateJobCheckpoint(supabase, jobId, 'content_integration_complete');
     
     // === FASE 2: VALIDAÇÃO PROGRESSIVA (PRÉ-PROCESSAMENTO) ===
     console.log('\n=== PRE-VALIDATION: Checking AI output quality ===');
@@ -1815,6 +1818,8 @@ ${processedMarkdown}`;
     console.log(`[Validation] ✓ No forbidden underscores: ${!hasForbiddenUnderscores ? 'YES' : 'NO'}`);
     console.log(`[Validation] ✓ Mermaid blocks count: ${mermaidBlocksCount}`);
     
+    await updateJobCheckpoint(supabase, jobId, 'processing_complete');
+    
     // ✅ PASSO 1: SALVAR SEMPRE PRIMEIRO (sem bloqueios)
     console.log('[Save] Saving material to database...');
     
@@ -1827,6 +1832,7 @@ ${processedMarkdown}`;
       .eq('id', lectureId);
     
     console.log('[Save] ✅ Material saved successfully');
+    await updateJobCheckpoint(supabase, jobId, 'database_save_complete');
     
     // ✅ PASSO 2: INICIAR CORREÇÃO MERMAID EM BACKGROUND
     console.log('[Mermaid Fix] Starting background correction...');
@@ -1854,6 +1860,8 @@ ${processedMarkdown}`;
     // Complete job
     metrics.generationTimeMs = Date.now() - startTime;
     metrics.success = true;
+    
+    await updateJobCheckpoint(supabase, jobId, 'ready_to_complete');
     
     const jobMetadata = {
       warnings: validation.warnings.concat(validationWarnings), // Incluir todos os warnings
@@ -1885,8 +1893,15 @@ ${processedMarkdown}`;
     console.log(`📚 Final stats: ${metrics.booksIdentified} books, ${sourcesUsed.length} web sources`);
     console.log(`📊 Distribution: ${metrics.bookContentPercentage}% books / ${metrics.webContentPercentage}% web\n`);
     
+      })(), // Fim do async IIFE
+      timeoutPromise // Promise de timeout
+    ]); // Fim do Promise.race
+    
   } catch (error: any) {
     console.error(`❌ Job ${jobId} failed:`, error);
+    
+    // Log checkpoint de erro
+    await updateJobCheckpoint(supabase, jobId, `error_at_${new Date().toISOString()}`);
     
     // Enhanced error metadata with detailed telemetry
     const errorMetadata: any = {
