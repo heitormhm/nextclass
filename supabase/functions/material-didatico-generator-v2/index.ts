@@ -1656,7 +1656,7 @@ ${processedMarkdown}`;
     await updateJobCheckpoint(supabase, jobId, 'ready_to_complete');
     
     const jobMetadata = {
-      warnings: validation.warnings.concat(validationWarnings), // Incluir todos os warnings
+      warnings: validation.warnings,
       identifiedBooks: metrics.identifiedBooks,
       bookContentPercentage: metrics.bookContentPercentage,
       webContentPercentage: metrics.webContentPercentage,
