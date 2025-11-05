@@ -186,15 +186,15 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           p: ({ node, ...props }) => (
             <p className="mb-4 leading-relaxed text-foreground/90" {...props} />
           ),
-          // Style lists
+          // Style lists - FIXED: list-outside para melhor alinhamento visual
           ul: ({ node, ...props }) => (
-            <ul className="list-disc list-inside mb-4 space-y-2" {...props} />
+            <ul className="list-disc list-outside ml-6 mb-4 space-y-2" {...props} />
           ),
           ol: ({ node, ...props }) => (
-            <ol className="list-decimal list-inside mb-4 space-y-2" {...props} />
+            <ol className="list-decimal list-outside ml-6 mb-4 space-y-2" {...props} />
           ),
           li: ({ node, ...props }) => (
-            <li className="text-foreground/90" {...props} />
+            <li className="text-foreground/90 pl-2" {...props} />
           ),
           // Style blockquotes with intelligent callout detection
           blockquote: ({ node, children, ...props }) => {

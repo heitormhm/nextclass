@@ -162,10 +162,10 @@ export const PublishLectureModal = ({
         thumbnailUrl = await handleThumbnailUpload(thumbnailFile) || '';
       }
 
-      // Fetch current structured_content
+      // Fetch current lecture data (structured_content + material_didatico_v2)
       const { data: currentLecture } = await supabase
         .from('lectures')
-        .select('structured_content')
+        .select('structured_content, material_didatico_v2')
         .eq('id', lectureId)
         .single();
 
@@ -176,17 +176,25 @@ export const PublishLectureModal = ({
         thumbnail: thumbnailUrl || currentContent.thumbnail || ''
       };
 
+      // CRITICAL: Preserve material_didatico_v2 during publication
+      const updateData: any = {
+        title: title.trim(),
+        turma_id: selectedTurma,
+        disciplina_id: selectedDisciplina || null,
+        structured_content: updatedContent,
+        status: 'published',
+        updated_at: new Date().toISOString()
+      };
+
+      // Garantir que material_didatico_v2 seja mantido se existir
+      if (currentLecture?.material_didatico_v2) {
+        updateData.material_didatico_v2 = currentLecture.material_didatico_v2;
+      }
+
       // Update lecture - class_id removed to fix FK constraint error
       const { error } = await supabase
         .from('lectures')
-        .update({
-          title: title.trim(),
-          turma_id: selectedTurma,
-          disciplina_id: selectedDisciplina || null,
-          structured_content: updatedContent,
-          status: 'published',
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', lectureId);
 
       if (error) {

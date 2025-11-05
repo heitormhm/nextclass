@@ -2032,39 +2032,45 @@ const LectureTranscriptionPage = () => {
                                 markdown={materialDidaticoV2} 
                               />
                               
-                              {/* Compact Study Metrics Pills - MOVED TO BOTTOM */}
+                              {/* Compact Study Metrics Pills - MOVED TO BOTTOM - UPDATED: Funcional com 12 tipos de callouts */}
                               <div className="mt-8 pt-6 border-t-2 border-border/50">
                                 <p className="text-sm font-semibold text-muted-foreground mb-3">📊 Resumo do Material:</p>
                                 <div className="flex flex-wrap items-center gap-2">
-                                  {/* Pill 1: Conceitos */}
+                                  {/* Pill 1: Callouts Totais (12 tipos) */}
                                   <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-full">
+                                    <span className="text-sm">💡</span>
+                                    <span className="text-xs font-medium">
+                                      {(() => {
+                                        // Contar TODOS os callouts (linhas começando com >)
+                                        const totalCallouts = (materialDidaticoV2.match(/^>\s*[✏️🤔💡⚠️🔬📊🏭✍️❌🔍🎓🔗]/gm) || []).length;
+                                        return `${totalCallouts} callout${totalCallouts !== 1 ? 's' : ''}`;
+                                      })()}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Pill 2: Conceitos-Chave */}
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-full">
                                     <span className="text-sm">✏️</span>
                                     <span className="text-xs font-medium">
                                       {(() => {
-                                        const count = (materialDidaticoV2.match(/✏️ Conceito-Chave/g) || []).length;
-                                        return `${count} conceito${count !== 1 ? 's' : ''}`;
+                                        const conceitosCount = (materialDidaticoV2.match(/✏️ Conceito-Chave/g) || []).length;
+                                        return `${conceitosCount} conceito${conceitosCount !== 1 ? 's' : ''}`;
                                       })()}
                                     </span>
                                   </div>
                                   
-                                  {/* Pill 2: Diagramas */}
-                                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-full">
-                                    <span className="text-sm">📊</span>
+                                  {/* Pill 3: Exemplos Práticos */}
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-full">
+                                    <span className="text-sm">🔬</span>
                                     <span className="text-xs font-medium">
                                       {(() => {
-                                        const diagramCount = (materialDidaticoV2.match(/```mermaid/g) || []).length;
-                                        const types = new Set<string>();
-                                        if (materialDidaticoV2.match(/flowchart (TD|LR)/g)) types.add('f');
-                                        if (materialDidaticoV2.match(/graph TD/g)) types.add('g');
-                                        if (materialDidaticoV2.match(/stateDiagram-v2/g)) types.add('s');
-                                        if (materialDidaticoV2.match(/classDiagram/g)) types.add('c');
-                                        
-                                        return `${diagramCount} diagrama${diagramCount !== 1 ? 's' : ''} (${types.size} tipos)`;
+                                        const exemplosCount = (materialDidaticoV2.match(/🔬 Exemplo Prático/g) || []).length;
+                                        return `${exemplosCount} exemplo${exemplosCount !== 1 ? 's' : ''}`;
                                       })()}
                                     </span>
                                   </div>
                                   
-                                  {/* Pill 3: Complexidade */}
+                                  {/* Pill 4: Complexidade */}
                                   <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-full">
                                     <span className="text-sm">🎯</span>
                                     <span className="text-xs font-medium">
