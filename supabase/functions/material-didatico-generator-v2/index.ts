@@ -26,6 +26,22 @@ const corsHeaders = {
 };
 
 // ==========================================
+// Custom AI Error Class for Better Error Handling
+// ==========================================
+
+class AIError extends Error {
+  status: number;
+  responseText: string;
+
+  constructor(status: number, responseText: string, message?: string) {
+    super(message || `AI Error (${status}): ${responseText}`);
+    this.status = status;
+    this.responseText = responseText;
+    this.name = 'AIError';
+  }
+}
+
+// ==========================================
 // BOOK-FIRST HYBRID APPROACH: Known Engineering Books
 // ==========================================
 
@@ -148,18 +164,16 @@ async function retryWithBackoff<T>(
     } catch (error: any) {
       lastError = error;
       
-      // ✅ FASE 3: Don't retry on configuration/validation errors
-      // 400 = Bad Request (invalid parameters)
-      // 401 = Unauthorized
-      // 403 = Forbidden
-      // 500 internal_server_error = Configuration error (e.g., unsupported parameter like 'temperature')
+      // ✅ Don't retry on configuration/validation errors using AIError
       if (
-        error.status === 401 || 
-        error.status === 403 || 
-        error.status === 400 ||
-        (error.status === 500 && error.message?.includes('internal_server_error'))
+        error instanceof AIError && (
+          error.status === 401 || 
+          error.status === 403 || 
+          error.status === 400 ||
+          (error.status === 500 && error.responseText.includes('internal_server_error'))
+        )
       ) {
-        console.error(`[Retry] ⚠️ Configuration/Validation error detected, not retrying:`, error.message);
+        console.error(`[Retry] ⚠️ Configuration/Validation error (${error.status}), not retrying:`, error.message);
         throw error;
       }
       
@@ -305,17 +319,19 @@ async function callLovableAI(
     });
 
     if (!response.ok) {
-      // ✅ FASE 2: Log detalhado do erro ANTES de lançar exceção
+      // ✅ Log detalhado do erro ANTES de lançar exceção
       const errorText = await response.text();
       console.error(`[AI] ❌ Error Response (${response.status}) for ${operation}:`, errorText);
       
       if (response.status === 429) {
-        throw new Error('RATE_LIMITED: Excesso de requisições. Aguarde alguns minutos.');
+        throw new AIError(429, errorText, 'RATE_LIMITED: Excesso de requisições. Aguarde alguns minutos.');
       }
       if (response.status === 402) {
-        throw new Error('NO_CREDITS: Créditos insuficientes. Adicione créditos ao seu workspace Lovable.');
+        throw new AIError(402, errorText, 'NO_CREDITS: Créditos insuficientes. Adicione créditos ao seu workspace Lovable.');
       }
-      throw new Error(`AI Error (${response.status}): ${errorText}`);
+      
+      // Throw AIError with status for proper retry logic
+      throw new AIError(response.status, errorText);
     }
 
     const data = await response.json();
@@ -621,6 +637,27 @@ async function processGenerationJob(jobId: string, lectureId: string, lectureTit
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  
+  // ✅ CRITICAL VERIFICATION: LOVABLE_API_KEY
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableApiKey) {
+    console.error('[CRITICAL] ❌ LOVABLE_API_KEY not configured');
+    await supabase
+      .from('material_v2_jobs')
+      .update({
+        status: 'FAILED',
+        error_message: 'Configuração pendente. Contate o administrador.',
+        metadata: { 
+          technical_error: 'MISSING_KEY: LOVABLE_API_KEY not configured in environment',
+          timestamp: new Date().toISOString() 
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', jobId);
+    return;
+  }
+  
+  console.log(`[Job ${jobId}] Starting generation for lecture: ${lectureTitle}`);
   
   const startTime = Date.now();
   const metrics = {
@@ -1548,10 +1585,30 @@ ${processedMarkdown}`;
   } catch (error: any) {
     console.error(`❌ Job ${jobId} failed:`, error);
     
+    // Enhanced error metadata with detailed telemetry
+    const errorMetadata: any = {
+      technical_error: error.message,
+      error_type: error.name || 'UnknownError',
+      timestamp: new Date().toISOString(),
+    };
+    
+    // Capture AI-specific error details if it's an AIError
+    if (error instanceof AIError) {
+      errorMetadata.ai_status = error.status;
+      errorMetadata.ai_response = error.responseText.substring(0, 500);
+      console.error(`[AI Error Details] Status: ${error.status}, Response: ${error.responseText.substring(0, 200)}`);
+    }
+    
+    // Capture stack trace (first 500 chars for debugging)
+    if (error.stack) {
+      errorMetadata.stack_trace = error.stack.substring(0, 500);
+    }
+    
     metrics.generationTimeMs = Date.now() - startTime;
     metrics.success = false;
-    metrics.errorType = error.message.split(':')[0]; // Extract error type
+    metrics.errorType = error.message.split(':')[0];
     
+    // User-friendly error messages
     let userMessage = 'Erro ao gerar material. Tente novamente.';
     
     if (error.message.includes('RATE_LIMITED')) {
@@ -1562,6 +1619,9 @@ ${processedMarkdown}`;
       userMessage = 'Configuração pendente. Contate o administrador.';
     } else if (error.message.includes('timeout')) {
       userMessage = 'Tempo esgotado. Verifique sua conexão e tente novamente.';
+    } else if (error instanceof AIError && error.status === 500) {
+      userMessage = 'Erro na IA. Tente novamente em alguns minutos.';
+      errorMetadata.suggestion = 'AI provider may be experiencing issues. Check AI Gateway status.';
     }
     
     await supabase
@@ -1569,7 +1629,7 @@ ${processedMarkdown}`;
       .update({
         status: 'FAILED',
         error_message: userMessage,
-        metadata: { technical_error: error.message },
+        metadata: errorMetadata,
         updated_at: new Date().toISOString()
       })
       .eq('id', jobId);
