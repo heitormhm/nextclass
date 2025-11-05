@@ -450,77 +450,37 @@ function fixLaTeXFormulas(markdown: string): string {
  * This ensures STRICT validation passes by converting $x$ → $$x$$ in quoted labels
  */
 function forceDollarDoublingInMermaid(markdown: string): string {
-  console.log('[Mermaid] Starting intelligent LaTeX injection and conversion...');
+  console.log('[Mermaid] 🔄 Starting AGGRESSIVE $ → $$ conversion...');
   
   const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
-  let mermaidBlocksFound = 0;
   let conversionsCount = 0;
-  let injectionsCount = 0;
+  let blocksProcessed = 0;
   
   const processed = markdown.replace(mermaidRegex, (fullMatch, diagramContent) => {
-    mermaidBlocksFound++;
+    blocksProcessed++;
     
-    // Process all quoted labels in the diagram
-    const processedContent = diagramContent.replace(/"([^"]+)"/g, (labelMatch: string, labelContent: string) => {
-      let result = labelContent;
+    // Process ALL quoted labels in the diagram
+    // Use dotAll flag (/s) to match newlines within labels
+    const processedContent = diagramContent.replace(/\[(".*?")\]/gs, (labelMatch: string, quotedContent: string) => {
+      // quotedContent already includes the quotes
+      let innerContent = quotedContent.slice(1, -1); // Remove quotes to process
       
-      // 1. Converter $ → $$ (lógica existente)
-      result = result.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, (match: string, formula: string) => {
+      // Convert single $ to $$ but PRESERVE existing $$
+      // Pattern: $ (not preceded by $) + content + $ (not followed by $)
+      const converted = innerContent.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, (match: string, formula: string) => {
         conversionsCount++;
-        console.log(`[Mermaid] Converting: $${formula}$ → $$${formula}$$`);
+        console.log(`[Mermaid] 💱 Converting: $${formula}$ → $$${formula}$$`);
         return `$$${formula}$$`;
       });
       
-      // 2. NOVO: Detectar fórmulas sem $$ e injetar automaticamente
-      // Padrões comuns: "Q - W = Delta E", "integral P dV", "m * c * Delta T"
-      const formulaPatterns = [
-        /\b([A-Z])\s*[-+*/=]\s*([A-Z])/gi,  // Q - W, E = U
-        /\b(Delta|delta|Δ)\s+([A-Z])/gi,      // Delta E, delta H
-        /\bintegral\b/gi,                    // integral
-        /\b([a-z]_[a-z]+)/gi,                // c_p, Q_dot (underscores)
-      ];
-      
-      let hasFormula = false;
-      for (const pattern of formulaPatterns) {
-        if (pattern.test(result)) {
-          hasFormula = true;
-          break;
-        }
-      }
-      
-      // Se detectou padrão de fórmula mas não tem $$, injetar
-      if (hasFormula && !result.includes('$$')) {
-        console.log(`[Mermaid] 🔧 Injecting LaTeX: "${result}"`);
-        
-        // Preservar HTML tags como <br/>
-        const parts = result.split('<br/>');
-        result = parts.map((part, idx) => {
-          // Aplicar $$ apenas na última parte (geralmente a fórmula)
-          let shouldWrap = false;
-          for (const pattern of formulaPatterns) {
-            if (pattern.test(part)) {
-              shouldWrap = true;
-              break;
-            }
-          }
-          
-          if (shouldWrap && idx === parts.length - 1) {
-            injectionsCount++;
-            return `$$${part.trim()}$$`;
-          }
-          return part;
-        }).join('<br/>');
-      }
-      
-      return `"${result}"`;
+      return `["${converted}"]`;
     });
     
     return `\`\`\`mermaid\n${processedContent}\`\`\``;
   });
   
-  console.log(`[Mermaid] ✅ Processed ${mermaidBlocksFound} blocks`);
-  console.log(`[Mermaid] ✅ $ → $$ conversions: ${conversionsCount}`);
-  console.log(`[Mermaid] ✅ Auto LaTeX injections: ${injectionsCount}`);
+  console.log(`[Mermaid] ✅ Processed ${blocksProcessed} blocks`);
+  console.log(`[Mermaid] ✅ Total conversions: ${conversionsCount}`);
   
   return processed;
 }
@@ -1257,8 +1217,10 @@ INCORRETO (NÃO FAÇA):
     
     let processedMarkdown = fixLaTeXFormulas(autoFixedMarkdown);
     
-    // Force single dollar conversion to double dollars in Mermaid labels BEFORE validation
+    // 🔥 CRITICAL: Force $ → $$ conversion in Mermaid labels BEFORE validation
+    console.log('[Processing] Applying $ → $$ conversion to Mermaid labels...');
     processedMarkdown = forceDollarDoublingInMermaid(processedMarkdown);
+    console.log('[Processing] ✅ Mermaid LaTeX conversion complete');
     
     // Post-generation validation and auto-fix
     const validateContent = (markdown: string): { valid: boolean; errors: string[] } => {
@@ -1722,6 +1684,26 @@ ${processedMarkdown}`;
     if (!hasQuotedLabelsWithLatex && mermaidBlocksCount > 0) {
       console.log('[Validation] ⚠️ WARNING: Diagramas Mermaid encontrados mas SEM labels com LaTeX');
       console.log('[Validation] Isso pode indicar que a IA não gerou fórmulas onde deveria');
+    }
+    
+    // 🔥 NOVA VALIDAÇÃO: Detectar $ simples em labels (ERRO CRÍTICO)
+    const hasSingleDollarInLabels = /\["[^"]*(?<!\$)\$(?!\$)[^"]*"\]/gs.test(processedMarkdown);
+    
+    if (hasSingleDollarInLabels) {
+      console.error('[Validation] ❌ CRITICAL: Found single $ in Mermaid labels!');
+      console.error('[Validation] Mermaid requires $$ for LaTeX in labels.');
+      console.log('[Validation] 🔧 Attempting emergency auto-fix...');
+      
+      // Emergency re-application of conversion
+      processedMarkdown = forceDollarDoublingInMermaid(processedMarkdown);
+      
+      // Re-validate
+      const stillHasSingle = /\["[^"]*(?<!\$)\$(?!\$)[^"]*"\]/gs.test(processedMarkdown);
+      if (!stillHasSingle) {
+        console.log('[Validation] ✅ Emergency auto-fix successful');
+      } else {
+        console.error('[Validation] ❌ Auto-fix FAILED - single $ still present');
+      }
     }
     
     let validationErrors: string[] = [];

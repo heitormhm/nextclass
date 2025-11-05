@@ -121,15 +121,26 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             const inline = !className;
 
             if (language === 'mermaid' && !inline) {
-              const code = String(children).trim();
+              let code = String(children).trim();
               
-              // ✅ FASE 5: Validar se código realmente é Mermaid válido
+              // ✅ FASE 5: CLIENT-SIDE FALLBACK - Convert $ → $$ in labels
+              console.log('[MaterialDidaticoRenderer] 🔧 Pre-processing Mermaid for LaTeX compatibility...');
+              
+              // Convert single $ to $$ in quoted labels to ensure Mermaid renders LaTeX correctly
+              code = code.replace(/\[(".*?")\]/gs, (match, quotedLabel) => {
+                const inner = quotedLabel.slice(1, -1);
+                // Convert $ → $$ but preserve existing $$
+                const fixed = inner.replace(/(?<!\$)\$(?!\$)([^\$]+?)(?<!\$)\$(?!\$)/g, '$$$$1$$');
+                return `["${fixed}"]`;
+              });
+              
+              // Validate if code is really valid Mermaid
               if (!code || code.length < 10) {
                 console.error('[MaterialDidaticoRenderer] ❌ Mermaid block is EMPTY or too short:', code);
                 return <div className="text-red-500">⚠️ Diagrama Mermaid vazio</div>;
               }
               
-              // Verificar se tem declaração de diagrama válida
+              // Verify it has a valid diagram declaration
               const hasValidType = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|pie|erDiagram)/m.test(code);
               if (!hasValidType) {
                 console.error('[MaterialDidaticoRenderer] ❌ Invalid Mermaid type:', code.substring(0, 50));
