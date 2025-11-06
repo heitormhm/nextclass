@@ -102,6 +102,7 @@ const LectureTranscriptionPage = () => {
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [teacherName, setTeacherName] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const materialScrollRef = React.useRef<HTMLDivElement>(null);
   const [hasLatexErrors, setHasLatexErrors] = useState(false);
 
   // FASE 9: Detector automático de erros LaTeX
@@ -147,20 +148,26 @@ const LectureTranscriptionPage = () => {
       clearTimeout(timeoutId);
       
       timeoutId = setTimeout(() => {
-        const windowHeight = window.innerHeight;
-        const docHeight = document.documentElement.scrollHeight;
-        const scrollTop = window.scrollY;
-        const progress = (scrollTop / (docHeight - windowHeight)) * 100;
-        setScrollProgress(Math.min(progress, 100));
+        const container = materialScrollRef.current;
+        if (!container) return;
+        
+        const scrollTop = container.scrollTop;
+        const scrollHeight = container.scrollHeight;
+        const clientHeight = container.clientHeight;
+        const progress = (scrollTop / (scrollHeight - clientHeight)) * 100;
+        setScrollProgress(Math.min(Math.max(progress, 0), 100));
       }, 50);
     };
     
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
+    const container = materialScrollRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => {
+        clearTimeout(timeoutId);
+        container.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [materialDidaticoV2]);
   
   // Helper function to generate references section
   const generateReferencesMarkdown = (refs: Array<{ titulo: string; url: string; tipo: string }> = []) => {
@@ -2164,31 +2171,6 @@ const LectureTranscriptionPage = () => {
                           )}
                         </TabsTrigger>
                       </TabsList>
-
-                      {/* FASE 1: Fixed Reading Progress Bar - Below Tabs with Rounded Corners */}
-                      {materialDidaticoV2 && (
-                        <div className="sticky top-0 left-0 right-0 bg-primary/10 backdrop-blur-lg z-[90] border-b-2 border-primary/30 py-2 px-6 shadow-lg mt-2 rounded-lg">
-                          <div className="flex items-center justify-between text-sm font-medium text-foreground mb-1">
-                            <span className="flex items-center gap-2">
-                              <span className="text-lg">📖</span>
-                              <span>Leitura: ~{(() => {
-                                const words = materialDidaticoV2.split(/\s+/).length;
-                                return Math.ceil(words / 200);
-                              })()} min</span>
-                            </span>
-                            <span className="flex items-center gap-2">
-                              <span className="text-lg">📊</span>
-                              <span>Progresso: {Math.round(scrollProgress)}%</span>
-                            </span>
-                          </div>
-                          <div className="w-full h-1.5 bg-muted/70 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 transition-all duration-300 shadow-sm rounded-full"
-                              style={{ width: `${scrollProgress}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
                       
                       <TabsContent value="resumo" className="overflow-x-auto mt-4">
                         <FormattedTranscriptViewer transcript={lecture?.raw_transcript || ''} />
@@ -2197,15 +2179,44 @@ const LectureTranscriptionPage = () => {
                       <TabsContent value="material-v2" className="overflow-x-auto mt-4">
                         {materialDidaticoV2 ? (
                           <>
-                            {/* Teacher Badge - MOVED OUTSIDE CARD */}
-                            {teacherName && (
-                              <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-md w-fit">
-                                <Users className="h-4 w-4 text-primary" />
-                                <span className="text-xs font-medium">Professor: <strong className="text-foreground">{teacherName}</strong></span>
+                            {/* PROGRESS BAR - FIXED AT TOP OF VIEWPORT */}
+                            <div className="fixed top-16 left-0 right-0 bg-primary/10 backdrop-blur-lg z-[100] border-b-2 border-primary/30 py-2 px-6 shadow-lg">
+                              <div className="container mx-auto max-w-[1400px]">
+                                <div className="flex items-center justify-between text-sm font-medium text-foreground mb-1">
+                                  <span className="flex items-center gap-2">
+                                    <span className="text-lg">📖</span>
+                                    <span>Leitura: ~{(() => {
+                                      const words = materialDidaticoV2.split(/\s+/).length;
+                                      return Math.ceil(words / 200);
+                                    })()} min</span>
+                                  </span>
+                                  <span className="flex items-center gap-2">
+                                    <span className="text-lg">📊</span>
+                                    <span>Progresso: {Math.round(scrollProgress)}%</span>
+                                  </span>
+                                </div>
+                                <div className="w-full h-1.5 bg-muted/70 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 transition-all duration-300 shadow-sm rounded-full"
+                                    style={{ width: `${scrollProgress}%` }}
+                                  />
+                                </div>
                               </div>
-                            )}
+                            </div>
                             
-                            <div id="material-didatico-content" className="min-w-0 bg-white p-6 rounded-lg mt-2">
+                            {/* ADD TOP PADDING TO PREVENT CONTENT OVERLAP */}
+                            <div className="pt-20">
+                              {/* Teacher Badge */}
+                              {teacherName && (
+                                <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-md w-fit">
+                                  <Users className="h-4 w-4 text-primary" />
+                                  <span className="text-xs font-medium">Professor: <strong className="text-foreground">{teacherName}</strong></span>
+                                </div>
+                              )}
+                              
+                              {/* WRAP CONTENT IN SCROLLABLE CONTAINER */}
+                              <ScrollArea className="h-[calc(100vh-200px)]" ref={materialScrollRef}>
+                                <div id="material-didatico-content" className="min-w-0 bg-white p-6 rounded-lg">
                               {/* FASE 9: Banner de Aviso de Erros LaTeX */}
                               {hasLatexErrors && (
                                 <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
@@ -2250,79 +2261,13 @@ const LectureTranscriptionPage = () => {
                             {/* 📸 SCREENSHOT GALLERY */}
                             {capturedScreenshots.length > 0 && (
                               <Card className="p-6 mt-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
-                                <div className="flex items-center justify-between mb-4">
-                                  <div>
-                                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                                      <Camera className="h-5 w-5 text-blue-600" />
-                                      📸 Screenshots Capturados
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      {capturedScreenshots.length} callouts documentados
-                                    </p>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => downloadCalloutScreenshots(capturedScreenshots)}
-                                      className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                                    >
-                                      <Download className="w-4 h-4 mr-2" />
-                                      Baixar Todos
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={async () => {
-                                        try {
-                                          await copyDocumentationToClipboard(capturedScreenshots);
-                                          toast({ title: '✅ Documentação copiada para clipboard' });
-                                        } catch (error) {
-                                          toast({ 
-                                            variant: 'destructive',
-                                            title: 'Erro ao copiar',
-                                            description: 'Não foi possível copiar a documentação'
-                                          });
-                                        }
-                                      }}
-                                      className="border-green-300 text-green-700 hover:bg-green-100"
-                                    >
-                                      <Copy className="w-4 h-4 mr-2" />
-                                      Copiar Docs
-                                    </Button>
-                                  </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                  {capturedScreenshots.map((screenshot, idx) => (
-                                    <div key={idx} className="border-2 border-blue-200 rounded-lg p-3 space-y-2 bg-white hover:shadow-md transition-shadow">
-                                      <img 
-                                        src={screenshot.dataUrl || URL.createObjectURL(screenshot.blob)} 
-                                        alt={screenshot.type}
-                                        className="w-full h-auto rounded border border-slate-200"
-                                      />
-                                      <div className="text-xs space-y-1">
-                                        <p className="font-semibold truncate text-slate-700">{screenshot.type}</p>
-                                        <p className="text-muted-foreground">
-                                          {screenshot.dimensions.width}x{screenshot.dimensions.height}px
-                                        </p>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          className="w-full text-blue-600 hover:bg-blue-100"
-                                          onClick={() => downloadSingleScreenshot(screenshot)}
-                                        >
-                                          <Download className="w-3 h-3 mr-1" />
-                                          Download
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
+...
                               </Card>
                             )}
-                          </>
-                        ) : (
+                          </ScrollArea>
+                        </div>
+                      </>
+                    ) : (
                           <div className="text-center py-8 bg-slate-50 rounded-lg">
                             <Sparkles className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                             <p className="text-slate-600 mb-4 font-medium">Material modular ainda não gerado</p>
