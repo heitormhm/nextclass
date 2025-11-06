@@ -434,6 +434,19 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
         .dark .material-didatico-content [data-callout-type] {
           background-color: var(--callout-bg-dark);
         }
+        
+        /* Scoped hover styles for callouts */
+        .callout-container:hover .callout-emoji {
+          transform: scale(1.1) rotate(6deg);
+        }
+        
+        .callout-container:hover .callout-copy-btn {
+          opacity: 1;
+        }
+        
+        .callout-container {
+          isolation: isolate;
+        }
       `}</style>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
@@ -551,32 +564,52 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             };
             
             // Helper function to remove callout title from children
-            const removeCalloutTitleFromChildren = (children: ReactNode, titleToRemove: string): ReactNode => {
-              if (typeof children === 'string') {
-                return children.replace(new RegExp(`^\\s*${titleToRemove.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:?\\s*`, 'i'), '');
-              }
-              
-              if (Array.isArray(children)) {
-                return children.map((child, index) => {
-                  if (index === 0) {
-                    return removeCalloutTitleFromChildren(child, titleToRemove);
-                  }
-                  return child;
-                });
-              }
-              
-              if (isValidElement(children)) {
-                const childProps = children.props as any;
-                if (childProps?.children) {
-                  return React.cloneElement(children, {
-                    ...childProps,
-                    children: removeCalloutTitleFromChildren(childProps.children, titleToRemove)
-                  });
-                }
-              }
-              
-              return children;
-            };
+  const removeCalloutTitleFromChildren = (children: ReactNode, titleToRemove: string, iconToRemove: string): ReactNode => {
+    const cleanTitle = titleToRemove.replace(iconToRemove, '').trim().toLowerCase();
+    
+    if (Array.isArray(children)) {
+      const [firstChild, ...restChildren] = children;
+      
+      const firstChildText = extractText(firstChild).toLowerCase().trim();
+      
+      const normalizedFirstChild = firstChildText
+        .replace(/[^\w\s]/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      const normalizedTitle = cleanTitle
+        .replace(/[^\w\s]/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      if (normalizedFirstChild === normalizedTitle || normalizedFirstChild.startsWith(normalizedTitle)) {
+        return restChildren.length === 1 ? restChildren[0] : restChildren;
+      }
+      
+      return [removeCalloutTitleFromChildren(firstChild, titleToRemove, iconToRemove), ...restChildren];
+    }
+    
+    if (isValidElement(children)) {
+      const childProps = children.props as any;
+      if (childProps?.children) {
+        return React.cloneElement(children, {
+          ...childProps,
+          children: removeCalloutTitleFromChildren(childProps.children, titleToRemove, iconToRemove)
+        });
+      }
+    }
+    
+    if (typeof children === 'string') {
+      const normalizedString = children.toLowerCase().trim();
+      const normalizedTitle = cleanTitle.toLowerCase().trim();
+      
+      if (normalizedString.startsWith(normalizedTitle)) {
+        return children.substring(cleanTitle.length).replace(/^[:\s]+/, '');
+      }
+    }
+    
+    return children;
+  };
             
             const fullText = extractText(children);
             
@@ -755,65 +788,66 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
                 boxShadow: `0 4px 12px ${matchedCallout.borderColorHex}40`,
               };
 
-              const cleanedChildren = removeCalloutTitleFromChildren(children, matchedCallout.title);
+              const cleanedChildren = removeCalloutTitleFromChildren(children, matchedCallout.title, matchedCallout.icon);
               
-              return (
-                <div 
-                  data-callout-type={calloutType}
-                  className={`
-                    callout-${calloutType} 
-                    rounded-lg shadow-lg 
-                    transition-all duration-300 ease-out
-                    hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01]
-                    animate-fade-in
-                    cursor-default
-                    group
-                  `}
-                  style={inlineStyles}
-                  role="complementary"
-                  aria-label={`Callout: ${matchedCallout.title.replace(matchedCallout.icon, '').trim()}`}
-                >
-                  <div className="flex items-start gap-3 md:gap-4 relative">
-                    <span className="text-2xl md:text-3xl flex-shrink-0 mt-0.5 md:mt-1 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
-                      {matchedCallout.icon}
-                    </span>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="border-b border-opacity-20 pb-2 mb-2 md:mb-3" style={{ borderColor: matchedCallout.borderColorHex }}>
-                        <p className="font-bold text-base md:text-lg tracking-tight break-words">
-                          {matchedCallout.title.replace(matchedCallout.icon, '').trim()}
-                        </p>
-                      </div>
-                      
-                      <div className={`${matchedCallout.textColor} leading-relaxed text-sm md:text-base callout-content`}>
-                        {cleanedChildren}
-                      </div>
-                    </div>
-                    
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const textContent = extractText(cleanedChildren);
-                        navigator.clipboard.writeText(`${matchedCallout.title}\n\n${textContent}`);
-                      }}
-                      className="
-                        absolute top-2 right-2 
-                        opacity-0 group-hover:opacity-100
-                        transition-opacity duration-200
-                        p-2 rounded-md
-                        hover:bg-black/10 dark:hover:bg-white/10
-                        text-gray-600 dark:text-gray-400
-                      "
-                      aria-label="Copiar callout"
-                      title="Copiar conteúdo"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              );
+      return (
+        <div 
+          data-callout-type={calloutType}
+          className={`
+            callout-${calloutType} 
+            rounded-lg shadow-lg 
+            transition-all duration-300 ease-out
+            hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01]
+            animate-fade-in
+            cursor-default
+            callout-container
+          `}
+          style={inlineStyles}
+          role="complementary"
+          aria-label={`Callout: ${matchedCallout.title.replace(matchedCallout.icon, '').trim()}`}
+        >
+          <div className="flex items-start gap-3 md:gap-4 relative">
+            <span className="text-2xl md:text-3xl flex-shrink-0 mt-0.5 md:mt-1 transition-transform duration-300 callout-emoji">
+              {matchedCallout.icon}
+            </span>
+            
+            <div className="flex-1 min-w-0">
+              <div className="border-b border-opacity-20 pb-2 mb-2 md:mb-3" style={{ borderColor: matchedCallout.borderColorHex }}>
+                <p className="font-bold text-base md:text-lg tracking-tight break-words">
+                  {matchedCallout.title.replace(matchedCallout.icon, '').trim()}
+                </p>
+              </div>
+              
+              <div className={`${matchedCallout.textColor} leading-relaxed text-sm md:text-base callout-content`}>
+                {cleanedChildren}
+              </div>
+            </div>
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const textContent = extractText(cleanedChildren);
+                navigator.clipboard.writeText(`${matchedCallout.title}\n\n${textContent}`);
+              }}
+              className="
+                absolute top-2 right-2 
+                opacity-0
+                transition-opacity duration-200
+                p-2 rounded-md
+                hover:bg-black/10 dark:hover:bg-white/10
+                text-gray-600 dark:text-gray-400
+                callout-copy-btn
+              "
+              aria-label="Copiar callout"
+              title="Copiar conteúdo"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      );
             }
 
             return (
