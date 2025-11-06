@@ -24,7 +24,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer, Camera, Copy, ChevronUp, X as CloseIcon, Monitor, Smartphone } from 'lucide-react';
+import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer, Camera, Copy, ChevronUp, X as CloseIcon, Monitor, Smartphone, MoreVertical } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { printMaterialDidatico } from '@/utils/printMaterialDidatico';
@@ -47,6 +47,8 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from '@/components/ui/drawer';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -199,6 +201,19 @@ const LectureTranscriptionPage = () => {
   // Student access state
   const [students, setStudents] = useState<Student[]>([]);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  
+  // Utility function to remove AI conversational intro text
+  const removeAIIntroText = (content: string): string => {
+    if (!content) return content;
+    let cleaned = content
+      .replace(/^Com certeza\.\s+Como (?:um |)professor[^.]+\.\s*/i, '')
+      .replace(/^Certamente!\s+Como professor[^.]+\.\s*/i, '')
+      .replace(/^Claro!\s+Vou preparar[^.]+\.\s*/i, '')
+      .replace(/^(?:Vou apresentar|Preparei|Segue)\s+(?:um material|uma aula)[^.]+\.\s*/i, '')
+      .replace(/^Aqui está[^.]+\.\s*/i, '')
+      .replace(/^Olá![^.]+\.\s*/i, '');
+    return cleaned.trim();
+  };
   
   // Publish modal state
   const [openPublishModal, setOpenPublishModal] = useState(false);
@@ -2087,6 +2102,7 @@ const LectureTranscriptionPage = () => {
                         onChange={(e) => setLectureTitle(e.target.value)}
                         className="bg-white border-slate-300 text-slate-900 min-h-[80px] resize-none"
                         placeholder="Digite o título da aula"
+                        spellCheck={false}
                       />
                     ) : (
                       <Input
@@ -2094,6 +2110,7 @@ const LectureTranscriptionPage = () => {
                         onChange={(e) => setLectureTitle(e.target.value)}
                         className="bg-white border-slate-300 text-slate-900"
                         placeholder="Digite o título da aula"
+                        spellCheck={false}
                       />
                     )}
                   </CardContent>
@@ -2104,10 +2121,7 @@ const LectureTranscriptionPage = () => {
                   "bg-white/75 backdrop-blur-xl border-white/40 shadow-xl",
                   isMobile && "mx-0 shadow-md"
                 )}>
-                  <CardHeader className={cn(
-                    "flex flex-row items-center justify-between",
-                    isMobile && "px-4 py-3"
-                  )}>
+                  <CardHeader className={cn(isMobile && "px-4 py-3")}>
                     <CardTitle className={cn(
                       "text-xl text-slate-900 font-bold flex items-center gap-2",
                       isMobile && "text-lg"
@@ -2115,7 +2129,91 @@ const LectureTranscriptionPage = () => {
                       <FileText className="h-5 w-5 text-purple-600" />
                       Conteúdo Gerado
                     </CardTitle>
-                    <div className="flex gap-2">
+                  </CardHeader>
+
+                  {/* Mobile Action Toolbar */}
+                  {isMobile && materialDidaticoV2 && (
+                    <div className="px-4 pb-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          onClick={async () => {
+                            if (!materialDidaticoV2) {
+                              toast({
+                                title: "Erro",
+                                description: "Material didático não disponível para impressão",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            setIsPrintingPDF(true);
+                            
+                            try {
+                              await printMaterialDidatico('material-didatico-content', {
+                                lectureTitle: lectureTitle || 'Material Didático',
+                                teacherName: teacherName || undefined,
+                                date: new Date().toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: 'long',
+                                  year: 'numeric',
+                                }),
+                              });
+                              
+                              toast({
+                                title: "✅ PDF gerado com sucesso!",
+                                description: "O arquivo foi baixado para seu dispositivo",
+                              });
+                            } catch (error) {
+                              console.error('Erro ao gerar PDF:', error);
+                              toast({
+                                title: "Erro ao gerar PDF",
+                                description: error instanceof Error ? error.message : "Erro desconhecido ao gerar PDF",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsPrintingPDF(false);
+                            }
+                          }}
+                          disabled={isPrintingPDF}
+                          variant="outline"
+                          className="w-full min-h-[44px]"
+                        >
+                          {isPrintingPDF ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Gerando...
+                            </>
+                          ) : (
+                            <>
+                              <Printer className="h-4 w-4 mr-2" />
+                              PDF
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          onClick={handleGenerateMaterialV2}
+                          disabled={isGeneratingMaterialV2}
+                          className="w-full min-h-[44px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                        >
+                          {isGeneratingMaterialV2 ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Gerando...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Gerar
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Desktop Action Buttons - Keep original button group */}
+                  {!isMobile && (
+                    <div className="absolute top-6 right-6 flex gap-2">
                       {/* Botão de Impressão - só aparece quando material v2 existe */}
                       {materialDidaticoV2 && (
                         <Button
@@ -2204,8 +2302,8 @@ const LectureTranscriptionPage = () => {
                         </Button>
                       </div>
                     </div>
-                  </CardHeader>
-                  
+                  )}
+
                   {isGeneratingMaterialV2 && (
                     <div className={cn(
                       "px-6 pb-4",
@@ -2232,6 +2330,7 @@ const LectureTranscriptionPage = () => {
                       </div>
                     </div>
                   )}
+
                   <CardContent className={cn(isMobile && "px-4 py-3")}>
                     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'resumo' | 'material-v2')} className="w-full">
                       <TabsList className={cn(
@@ -2353,7 +2452,7 @@ const LectureTranscriptionPage = () => {
                               )}
                               
                               <MaterialDidaticoRenderer
-                                markdown={materialDidaticoV2} 
+                                markdown={removeAIIntroText(materialDidaticoV2)}
                               />
                             </div>
 
@@ -3507,6 +3606,97 @@ const LectureTranscriptionPage = () => {
           />
         )}
       </div>
+
+      {/* Floating Action Button - Mobile Only */}
+      {isMobile && structuredContent && (
+        <div className="fixed bottom-20 right-4 z-50">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-2xl bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 hover:scale-110 transition-transform"
+              >
+                <MoreVertical className="h-6 w-6 text-white" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem 
+                onClick={async () => {
+                  if (!selectedClassId) {
+                    toast({
+                      title: "Erro",
+                      description: "Selecione uma turma antes de salvar",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) {
+                      toast({
+                        title: "Erro de autenticação",
+                        description: "Você precisa estar logado para salvar.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    const { data: lecture, error } = await supabase
+                      .from('lectures')
+                      .update({
+                        title: lectureTitle,
+                        structured_content: structuredContent as any,
+                        material_didatico_v2: materialDidaticoV2,
+                        turma_id: selectedClassId,
+                      })
+                      .eq('id', id)
+                      .select()
+                      .single();
+
+                    if (error) throw error;
+
+                    toast({
+                      title: "✅ Progresso salvo!",
+                      description: "Todas as alterações foram salvas com sucesso.",
+                    });
+                  } catch (error) {
+                    console.error('Erro ao salvar:', error);
+                    toast({
+                      title: "Erro ao salvar",
+                      description: "Não foi possível salvar as alterações. Tente novamente.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Progresso
+              </DropdownMenuItem>
+              
+              {lecture?.status !== 'published' && (
+                <DropdownMenuItem 
+                  onClick={handlePublish} 
+                  disabled={!selectedClassId}
+                >
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Publicar Aula
+                </DropdownMenuItem>
+              )}
+              
+              {materialDidaticoV2 && (
+                <DropdownMenuItem onClick={handleGenerateMaterialV2}>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Gerar Material
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
+      {/* Sticky bottom bar padding on mobile */}
+      {isMobile && <div className="pb-20" />}
     </MainLayout>
   );
 };
