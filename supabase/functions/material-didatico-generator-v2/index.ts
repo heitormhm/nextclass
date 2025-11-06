@@ -821,7 +821,28 @@ async function processGenerationJob(jobId: string, lectureId: string, lectureTit
     console.log('\n=== PHASE 3: CONTENT INTEGRATION ===');
     await updateJobProgress(supabase, jobId, 70, 'Integrando conteúdo teórico + prático...');
     
-    const integrationPrompt = `Você é um professor experiente de Engenharia criando material didático completo EM PORTUGUÊS.
+  const integrationPrompt = `Você é um sistema de geração de material didático para Engenharia.
+
+⚠️ **REGRA CRÍTICA - FORMATO DE SAÍDA**:
+- Gere APENAS o conteúdo estruturado do material didático
+- NÃO inclua introduções conversacionais do tipo "Com certeza...", "Como professor...", etc.
+- NÃO se dirija ao leitor em primeira pessoa como se fosse um professor falando
+- Comece DIRETAMENTE com o título principal usando # (Markdown)
+- O conteúdo deve ser um documento técnico impessoal e direto
+
+❌ **EXEMPLOS DE TEXTO PROIBIDO** (NÃO GERE NADA PARECIDO COM ISSO):
+- "Com certeza. Como um professor de Engenharia dedicado à formação de excelência..."
+- "Preparei um material didático completo sobre..."
+- "Vou apresentar os conceitos fundamentais..."
+- "A seguir, apresento..."
+
+✅ **FORMATO CORRETO** (Comece diretamente assim):
+# [Título do Tópico]
+
+## 1. Fundamentos Teóricos
+[Conteúdo direto...]
+
+VOCÊ É UM SISTEMA DE GERAÇÃO DE MATERIAL DIDÁTICO para Engenharia criando conteúdo completo EM PORTUGUÊS.
 
 VOCÊ TEM DOIS TIPOS DE CONTEÚDO:
 
@@ -1057,6 +1078,28 @@ INCORRETO (NÃO FAÇA):
       { role: 'system', content: integrationPrompt },
       { role: 'user', content: `Integre o conteúdo completo para: ${lectureTitle}` }
     ], lovableApiKey, 'Content Integration');
+    
+    // Post-processing: Remove conversational introductions if AI ignored instructions
+    console.log('[Post-Processing] Removing conversational preamble...');
+    const conversationalPatterns = [
+      /^Com certeza\.[\s\S]{0,500}?(?=\n#)/i,
+      /^Como (?:um |)professor[\s\S]{0,500}?(?=\n#)/i,
+      /^Preparei um material[\s\S]{0,500}?(?=\n#)/i,
+      /^Vou apresentar[\s\S]{0,500}?(?=\n#)/i,
+      /^A seguir[\s\S]{0,200}?(?=\n#)/i,
+      /^Olá[,!][\s\S]{0,300}?(?=\n#)/i,
+    ];
+
+    let cleanedMarkdown = finalMarkdown;
+    for (const pattern of conversationalPatterns) {
+      if (pattern.test(cleanedMarkdown)) {
+        console.log('[Post-Processing] ⚠️ Detected conversational intro, removing...');
+        cleanedMarkdown = cleanedMarkdown.replace(pattern, '');
+      }
+    }
+
+    finalMarkdown = cleanedMarkdown.trim();
+    console.log('[Post-Processing] ✅ Conversational preamble removed');
     
     // ✅ FASE 1: VALIDAÇÃO BLOQUEANTE REMOVIDA
     // A correção de $ → $$ será feita em background via edge function

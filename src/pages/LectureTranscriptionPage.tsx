@@ -101,8 +101,7 @@ const LectureTranscriptionPage = () => {
   const [materialDidaticoV2, setMaterialDidaticoV2] = useState<string | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [teacherName, setTeacherName] = useState<string | null>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const materialScrollRef = React.useRef<HTMLDivElement>(null);
+  // Progress bar tracking removed per user request
   const [hasLatexErrors, setHasLatexErrors] = useState(false);
 
   // FASE 9: Detector automático de erros LaTeX
@@ -141,33 +140,7 @@ const LectureTranscriptionPage = () => {
     }
   }, [materialDidaticoV2]);
 
-  React.useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    const handleScroll = () => {
-      clearTimeout(timeoutId);
-      
-      timeoutId = setTimeout(() => {
-        const container = materialScrollRef.current;
-        if (!container) return;
-        
-        const scrollTop = container.scrollTop;
-        const scrollHeight = container.scrollHeight;
-        const clientHeight = container.clientHeight;
-        const progress = (scrollTop / (scrollHeight - clientHeight)) * 100;
-        setScrollProgress(Math.min(Math.max(progress, 0), 100));
-      }, 50);
-    };
-    
-    const container = materialScrollRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll);
-      return () => {
-        clearTimeout(timeoutId);
-        container.removeEventListener('scroll', handleScroll);
-      };
-    }
-  }, [materialDidaticoV2]);
+  // Scroll progress tracking removed per user request
   
   // Helper function to generate references section
   const generateReferencesMarkdown = (refs: Array<{ titulo: string; url: string; tipo: string }> = []) => {
@@ -2189,31 +2162,8 @@ const LectureTranscriptionPage = () => {
                               )}
                               
                               {/* WRAP CONTENT IN SCROLLABLE CONTAINER */}
-                              <ScrollArea className="h-[calc(100vh-200px)]" ref={materialScrollRef}>
+                              <ScrollArea className="h-[calc(100vh-200px)]">
                                 <div id="material-didatico-content" className="min-w-0 bg-white p-6 rounded-lg">
-                                  {/* 📊 PROGRESS BAR - SCROLLS WITH CONTENT */}
-                                  <div className="bg-primary/10 backdrop-blur-sm border-b-2 border-primary/30 py-3 px-4 -mx-6 -mt-6 mb-6 rounded-t-lg">
-                                    <div className="flex items-center justify-between text-sm font-medium text-foreground mb-2">
-                                      <span className="flex items-center gap-2">
-                                        <span className="text-lg">📖</span>
-                                        <span>Leitura: ~{(() => {
-                                          const words = materialDidaticoV2.split(/\s+/).length;
-                                          return Math.ceil(words / 200);
-                                        })()} min</span>
-                                      </span>
-                                      <span className="flex items-center gap-2">
-                                        <span className="text-lg">📊</span>
-                                        <span>Progresso: {Math.round(scrollProgress)}%</span>
-                                      </span>
-                                    </div>
-                                    <div className="w-full h-1.5 bg-muted/70 rounded-full overflow-hidden">
-                                      <div 
-                                        className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 transition-all duration-300 shadow-sm rounded-full"
-                                        style={{ width: `${scrollProgress}%` }}
-                                      />
-                                    </div>
-                                  </div>
-
                               {/* FASE 9: Banner de Aviso de Erros LaTeX */}
                               {hasLatexErrors && (
                                 <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
