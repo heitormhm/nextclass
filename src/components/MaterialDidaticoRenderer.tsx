@@ -435,26 +435,19 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           background-color: var(--callout-bg-dark);
         }
         
-        /* Base styles only - NO HOVER RULES */
+        /* Static styles only - ABSOLUTELY NO TRANSITIONS */
         .callout-container {
           isolation: isolate;
-          transition: all 0.3s ease-out;
         }
         
         .callout-emoji {
           display: inline-block;
-          transition: transform 0.3s ease-out;
-        }
-        
-        .callout-copy-btn {
-          transition: opacity 0.2s ease-out;
         }
         
         /* Accessibility: respect reduced motion preference */
         @media (prefers-reduced-motion: reduce) {
-          .callout-container,
-          .callout-emoji,
-          .callout-copy-btn {
+          * {
+            animation: none !important;
             transition: none !important;
           }
         }
