@@ -2179,33 +2179,7 @@ const LectureTranscriptionPage = () => {
                       <TabsContent value="material-v2" className="overflow-x-auto mt-4">
                         {materialDidaticoV2 ? (
                           <>
-                            {/* PROGRESS BAR - FIXED AT TOP OF VIEWPORT */}
-                            <div className="fixed top-16 left-0 right-0 bg-primary/10 backdrop-blur-lg z-[100] border-b-2 border-primary/30 py-2 px-6 shadow-lg">
-                              <div className="container mx-auto max-w-[1400px]">
-                                <div className="flex items-center justify-between text-sm font-medium text-foreground mb-1">
-                                  <span className="flex items-center gap-2">
-                                    <span className="text-lg">📖</span>
-                                    <span>Leitura: ~{(() => {
-                                      const words = materialDidaticoV2.split(/\s+/).length;
-                                      return Math.ceil(words / 200);
-                                    })()} min</span>
-                                  </span>
-                                  <span className="flex items-center gap-2">
-                                    <span className="text-lg">📊</span>
-                                    <span>Progresso: {Math.round(scrollProgress)}%</span>
-                                  </span>
-                                </div>
-                                <div className="w-full h-1.5 bg-muted/70 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 transition-all duration-300 shadow-sm rounded-full"
-                                    style={{ width: `${scrollProgress}%` }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* ADD TOP PADDING TO PREVENT CONTENT OVERLAP */}
-                            <div className="pt-20">
+                            <div>
                               {/* Teacher Badge */}
                               {teacherName && (
                                 <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-md w-fit">
@@ -2217,6 +2191,29 @@ const LectureTranscriptionPage = () => {
                               {/* WRAP CONTENT IN SCROLLABLE CONTAINER */}
                               <ScrollArea className="h-[calc(100vh-200px)]" ref={materialScrollRef}>
                                 <div id="material-didatico-content" className="min-w-0 bg-white p-6 rounded-lg">
+                                  {/* 📊 PROGRESS BAR - SCROLLS WITH CONTENT */}
+                                  <div className="bg-primary/10 backdrop-blur-sm border-b-2 border-primary/30 py-3 px-4 -mx-6 -mt-6 mb-6 rounded-t-lg">
+                                    <div className="flex items-center justify-between text-sm font-medium text-foreground mb-2">
+                                      <span className="flex items-center gap-2">
+                                        <span className="text-lg">📖</span>
+                                        <span>Leitura: ~{(() => {
+                                          const words = materialDidaticoV2.split(/\s+/).length;
+                                          return Math.ceil(words / 200);
+                                        })()} min</span>
+                                      </span>
+                                      <span className="flex items-center gap-2">
+                                        <span className="text-lg">📊</span>
+                                        <span>Progresso: {Math.round(scrollProgress)}%</span>
+                                      </span>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-muted/70 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 transition-all duration-300 shadow-sm rounded-full"
+                                        style={{ width: `${scrollProgress}%` }}
+                                      />
+                                    </div>
+                                  </div>
+
                               {/* FASE 9: Banner de Aviso de Erros LaTeX */}
                               {hasLatexErrors && (
                                 <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
