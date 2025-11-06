@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ViewModeProvider } from "@/contexts/ViewModeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import LecturePage from "./pages/LecturePage";
@@ -48,9 +47,8 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ViewModeProvider>
-      <AuthProvider>
-        <TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -108,9 +106,8 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ViewModeProvider>
+    </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

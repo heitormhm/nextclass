@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, ChevronDown, LayoutDashboard, Briefcase, BookOpen, StickyNote, Library, Calendar, Sparkles, Home, Mic, BarChart3, BookPlus, Smartphone, Monitor } from "lucide-react";
+import { Menu, X, ChevronDown, LayoutDashboard, Briefcase, BookOpen, StickyNote, Library, Calendar, Sparkles, Home, Mic, BarChart3, BookPlus } from "lucide-react";
 import { RecordLessonSetupModal } from "@/components/RecordLessonSetupModal";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,6 @@ import NotificationsPopup from "./NotificationsPopup";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useViewMode } from "@/contexts/ViewModeContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUnreadCalendarEvents } from "@/hooks/useUnreadCalendarEvents";
 
@@ -45,7 +44,6 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, firstName, user } = useAuth();
-  const { isMobilePreview, toggleMobilePreview } = useViewMode();
   const { toast } = useToast();
   const hasUnreadEvents = useUnreadCalendarEvents();
   
@@ -280,33 +278,6 @@ const Navbar = () => {
               <NavigationLinks />
             </nav>
 
-            {/* Desktop View Toggle */}
-            <div className="hidden md:flex">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleMobilePreview}
-                    className={cn(
-                      "transition-all",
-                      isMobilePreview && "bg-primary/10 text-primary hover:bg-primary/20"
-                    )}
-                    aria-label={isMobilePreview ? "Desativar Visualização Mobile" : "Ativar Visualização Mobile"}
-                  >
-                    {isMobilePreview ? (
-                      <Monitor className="h-5 w-5" />
-                    ) : (
-                      <Smartphone className="h-5 w-5" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  {isMobilePreview ? "Voltar ao modo normal" : "Visualizar como smartphone"}
-                </TooltipContent>
-              </Tooltip>
-            </div>
-
             {/* Desktop User Section */}
             <div className="hidden md:flex">
               <UserSection />
@@ -336,32 +307,6 @@ const Navbar = () => {
                   
                   <div className="flex-1 py-6 overflow-y-auto">
                     <NavigationLinks mobile />
-                    
-                    {/* Separator */}
-                    <div className="mx-0 my-4 border-t border-border"></div>
-                    
-                    {/* Mobile View Toggle */}
-                    <button
-                      onClick={() => {
-                        toggleMobilePreview();
-                        setIsOpen(false);
-                      }}
-                      className="flex items-center gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-lg p-3 rounded-lg hover:bg-accent min-h-[48px] w-full"
-                    >
-                      {isMobilePreview ? (
-                        <Monitor className="h-6 w-6 shrink-0" />
-                      ) : (
-                        <Smartphone className="h-6 w-6 shrink-0" />
-                      )}
-                      <span className="truncate">
-                        {isMobilePreview ? "Modo Desktop" : "Modo Mobile Preview"}
-                      </span>
-                      {isMobilePreview && (
-                        <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                          ATIVO
-                        </span>
-                      )}
-                    </button>
                     
                     {/* Separator */}
                     <div className="mx-0 my-4 border-t border-border"></div>
