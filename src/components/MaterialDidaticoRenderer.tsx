@@ -524,44 +524,17 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           ),
           // Style blockquotes with intelligent callout detection
           blockquote: ({ node, children, ...props }) => {
-            // 🔵 FASE 1: Log blockquote recebido
-            console.log('🔵 [Blockquote] Recebido:', { node, children, props });
-            
-            // 🔧 FASE 1: Extrair texto usando React API para lidar com ReactNode
+            // Extract text using React API to handle ReactNode
             const extractText = (node: ReactNode): string => {
-              console.log('🔎 [extractText] Processando:', {
-                type: typeof node,
-                isArray: Array.isArray(node),
-                isValidElement: isValidElement(node),
-                constructor: node?.constructor?.name
-              });
-
-              // Caso 1: String direta
-              if (typeof node === 'string') {
-                console.log('✅ [extractText] String encontrada:', node);
-                return node;
-              }
+              if (typeof node === 'string') return node;
+              if (typeof node === 'number') return String(node);
+              if (node == null || typeof node === 'boolean') return '';
               
-              // Caso 2: Número
-              if (typeof node === 'number') {
-                console.log('✅ [extractText] Número encontrado:', node);
-                return String(node);
-              }
-              
-              // Caso 3: null, undefined, boolean
-              if (node == null || typeof node === 'boolean') {
-                return '';
-              }
-              
-              // Caso 4: Array de React children
               if (Array.isArray(node)) {
-                console.log('📦 [extractText] Array com', node.length, 'elementos');
                 return node.map(extractText).join('');
               }
               
-              // Caso 5: React Element válido (componente, tag HTML, etc)
               if (isValidElement(node)) {
-                console.log('🔄 [extractText] React Element válido, acessando children');
                 const children = (node.props as any)?.children;
                 if (children != null) {
                   return extractText(children);
@@ -569,70 +542,59 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
                 return '';
               }
               
-              // Caso 6: Children API do React (usado por react-markdown)
               try {
                 const childrenArray = Children.toArray(node);
-                console.log('🔄 [extractText] Usando Children.toArray, encontrados', childrenArray.length, 'elementos');
                 return childrenArray.map(extractText).join('');
-              } catch (error) {
-                console.warn('⚠️ [extractText] Erro ao processar Children.toArray:', error);
+              } catch {
                 return '';
               }
             };
             
+            // Helper function to remove callout title from children
+            const removeCalloutTitleFromChildren = (children: ReactNode, titleToRemove: string): ReactNode => {
+              if (typeof children === 'string') {
+                return children.replace(new RegExp(`^\\s*${titleToRemove.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:?\\s*`, 'i'), '');
+              }
+              
+              if (Array.isArray(children)) {
+                return children.map((child, index) => {
+                  if (index === 0) {
+                    return removeCalloutTitleFromChildren(child, titleToRemove);
+                  }
+                  return child;
+                });
+              }
+              
+              if (isValidElement(children)) {
+                const childProps = children.props as any;
+                if (childProps?.children) {
+                  return React.cloneElement(children, {
+                    ...childProps,
+                    children: removeCalloutTitleFromChildren(childProps.children, titleToRemove)
+                  });
+                }
+              }
+              
+              return children;
+            };
+            
             const fullText = extractText(children);
             
-            // 🟢 FASE 3: Log texto extraído + validação crítica
-            console.log('🟢 [Blockquote] Texto extraído:', { 
-              fullText, 
-              length: fullText.length,
-              first100: fullText.substring(0, 100),
-              isEmpty: !fullText || fullText.trim().length === 0,
-              childrenType: typeof children,
-              childrenIsArray: Array.isArray(children),
-              childrenConstructor: children?.constructor?.name
-            });
-
-            // 🛡️ VALIDAÇÃO CRÍTICA: Se texto vazio, abortar e mostrar erro detalhado
             if (!fullText || fullText.trim().length === 0) {
-              console.error('🔴 [CRÍTICO] extractText() retornou vazio!');
-              console.error('🔴 Children raw:', children);
-              console.error('🔴 Children stringified:', JSON.stringify(children, null, 2));
-              
               return (
                 <blockquote className="border-l-4 border-red-600 bg-red-50 dark:bg-red-950 pl-4 pr-4 py-3 my-4">
                   <div className="text-xs font-bold text-red-600 mb-2">
-                    🔴 ERRO CRÍTICO: extractText() retornou vazio
+                    🔴 ERRO: Conteúdo vazio
                   </div>
-                  <div className="text-sm text-red-700 dark:text-red-300 space-y-2">
-                    <p><strong>Tipo de children:</strong> {typeof children}</p>
-                    <p><strong>É array:</strong> {Array.isArray(children) ? 'Sim' : 'Não'}</p>
-                    <p><strong>Constructor:</strong> {children?.constructor?.name || 'N/A'}</p>
-                  </div>
-                  <details className="mt-3">
-                    <summary className="cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
-                      Ver estrutura completa de children
-                    </summary>
-                    <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto">
-                      {JSON.stringify(children, null, 2)}
-                    </pre>
-                  </details>
                 </blockquote>
               );
             }
             
-            // Normalizar: remover markdown bold (**), dois pontos, espaços extras
             const normalizedText = fullText
               .trim()
               .replace(/\*\*/g, '')
               .replace(/:/g, '')
               .replace(/\s+/g, ' ');
-            
-            // 🟡 FASE 1: Log texto normalizado
-            console.log('🟡 [Blockquote] Texto normalizado:', {
-              normalizedText,
-              first100: normalizedText.substring(0, 100)
-            });
             
             const calloutTypes: Record<string, { 
               bgColor: string; 
@@ -643,123 +605,115 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               icon: string;
             }> = {
               '✏️ Conceito-Chave': {
-                bgColor: 'rgba(243, 232, 255, 0.9)', // purple-200/90
-                bgColorDark: 'rgba(88, 28, 135, 0.5)', // purple-900/50
-                borderColorHex: '#9333ea', // purple-600
+                bgColor: 'rgba(243, 232, 255, 0.9)',
+                bgColorDark: 'rgba(88, 28, 135, 0.5)',
+                borderColorHex: '#9333ea',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-purple-800 dark:text-purple-200',
                 icon: '✏️',
               },
               '🤔 Pergunta para Reflexão': {
-                bgColor: 'rgba(243, 232, 255, 0.9)', // purple-200/90
-                bgColorDark: 'rgba(88, 28, 135, 0.5)', // purple-900/50
-                borderColorHex: '#7c3aed', // purple-700
+                bgColor: 'rgba(243, 232, 255, 0.9)',
+                bgColorDark: 'rgba(88, 28, 135, 0.5)',
+                borderColorHex: '#7c3aed',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-purple-800 dark:text-purple-200',
                 icon: '🤔',
               },
               '💡 Dica Importante': {
-                bgColor: 'rgba(254, 243, 199, 0.9)', // yellow-200/90
-                bgColorDark: 'rgba(113, 63, 18, 0.5)', // yellow-900/50
-                borderColorHex: '#ca8a04', // yellow-600
+                bgColor: 'rgba(254, 243, 199, 0.9)',
+                bgColorDark: 'rgba(113, 63, 18, 0.5)',
+                borderColorHex: '#ca8a04',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-yellow-800 dark:text-yellow-200',
                 icon: '💡',
               },
               '⚠️ Atenção': {
-                bgColor: 'rgba(254, 215, 170, 0.9)', // orange-200/90
-                bgColorDark: 'rgba(124, 45, 18, 0.5)', // orange-900/50
-                borderColorHex: '#ea580c', // orange-600
+                bgColor: 'rgba(254, 215, 170, 0.9)',
+                bgColorDark: 'rgba(124, 45, 18, 0.5)',
+                borderColorHex: '#ea580c',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-orange-800 dark:text-orange-200',
                 icon: '⚠️',
               },
               '🔬 Exemplo Prático': {
-                bgColor: 'rgba(219, 234, 254, 0.9)', // blue-200/90
-                bgColorDark: 'rgba(30, 58, 138, 0.5)', // blue-900/50
-                borderColorHex: '#2563eb', // blue-600
+                bgColor: 'rgba(219, 234, 254, 0.9)',
+                bgColorDark: 'rgba(30, 58, 138, 0.5)',
+                borderColorHex: '#2563eb',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-blue-800 dark:text-blue-200',
                 icon: '🔬',
               },
               '📊 Resumo Executivo': {
-                bgColor: 'rgba(209, 250, 229, 0.9)', // green-200/90
-                bgColorDark: 'rgba(20, 83, 45, 0.5)', // green-900/50
-                borderColorHex: '#059669', // green-600
+                bgColor: 'rgba(209, 250, 229, 0.9)',
+                bgColorDark: 'rgba(20, 83, 45, 0.5)',
+                borderColorHex: '#059669',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-green-800 dark:text-green-200',
                 icon: '📊',
               },
               '🏭 Aplicação Profissional': {
-                bgColor: 'rgba(224, 231, 255, 0.9)', // indigo-200/90
-                bgColorDark: 'rgba(49, 46, 129, 0.5)', // indigo-900/50
-                borderColorHex: '#4f46e5', // indigo-600
+                bgColor: 'rgba(224, 231, 255, 0.9)',
+                bgColorDark: 'rgba(49, 46, 129, 0.5)',
+                borderColorHex: '#4f46e5',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-indigo-800 dark:text-indigo-200',
                 icon: '🏭',
               },
               '✍️ Exercício Rápido': {
-                bgColor: 'rgba(236, 252, 203, 0.9)', // lime-200/90
-                bgColorDark: 'rgba(54, 83, 20, 0.5)', // lime-900/50
-                borderColorHex: '#65a30d', // lime-600
+                bgColor: 'rgba(236, 252, 203, 0.9)',
+                bgColorDark: 'rgba(54, 83, 20, 0.5)',
+                borderColorHex: '#65a30d',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-lime-800 dark:text-lime-200',
                 icon: '✍️',
               },
               '❌ Erro Comum': {
-                bgColor: 'rgba(254, 202, 202, 0.9)', // red-200/90
-                bgColorDark: 'rgba(127, 29, 29, 0.5)', // red-900/50
-                borderColorHex: '#dc2626', // red-600
+                bgColor: 'rgba(254, 202, 202, 0.9)',
+                bgColorDark: 'rgba(127, 29, 29, 0.5)',
+                borderColorHex: '#dc2626',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-red-800 dark:text-red-200',
                 icon: '❌',
               },
               '🔍 Aprofundamento': {
-                bgColor: 'rgba(237, 233, 254, 0.9)', // violet-200/90
-                bgColorDark: 'rgba(76, 29, 149, 0.5)', // violet-900/50
-                borderColorHex: '#7c3aed', // violet-600
+                bgColor: 'rgba(237, 233, 254, 0.9)',
+                bgColorDark: 'rgba(76, 29, 149, 0.5)',
+                borderColorHex: '#7c3aed',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-violet-800 dark:text-violet-200',
                 icon: '🔍',
               },
               '🎓 Citação do Especialista': {
-                bgColor: 'rgba(229, 231, 235, 0.9)', // gray-200/90
-                bgColorDark: 'rgba(17, 24, 39, 0.5)', // gray-900/50
-                borderColorHex: '#4b5563', // gray-600
+                bgColor: 'rgba(229, 231, 235, 0.9)',
+                bgColorDark: 'rgba(17, 24, 39, 0.5)',
+                borderColorHex: '#4b5563',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-gray-800 dark:text-gray-200',
                 icon: '🎓',
               },
               '🔗 Conexão com Outros Conceitos': {
-                bgColor: 'rgba(207, 250, 254, 0.9)', // cyan-200/90
-                bgColorDark: 'rgba(22, 78, 99, 0.5)', // cyan-900/50
-                borderColorHex: '#0891b2', // cyan-600
+                bgColor: 'rgba(207, 250, 254, 0.9)',
+                bgColorDark: 'rgba(22, 78, 99, 0.5)',
+                borderColorHex: '#0891b2',
                 textColor: 'text-gray-800 dark:text-gray-200',
                 titleColor: 'text-cyan-800 dark:text-cyan-200',
                 icon: '🔗',
               },
             };
 
-            // ESTRATÉGIA 1: Buscar match exato no texto normalizado (sem pontuação)
+            // STRATEGY 1: Match by title
             let matchedCallout = null;
             for (const [title, style] of Object.entries(calloutTypes)) {
               const normalizedTitle = title.replace(/\s+/g, ' ').replace(/:/g, '');
-              // 🔍 FASE 1: Log tentativa de match
-              console.log('🔍 [Strategy 1] Testando:', { 
-                title, 
-                normalizedTitle, 
-                match: normalizedText.includes(normalizedTitle) || normalizedText.startsWith(normalizedTitle)
-              });
               if (normalizedText.includes(normalizedTitle) || normalizedText.startsWith(normalizedTitle)) {
-                console.log('✅ [Strategy 1] MATCH encontrado!', title);
                 matchedCallout = { title, ...style };
                 break;
               }
             }
             
-            // ESTRATÉGIA 2: Fallback - buscar apenas pelo emoji no início
+            // STRATEGY 2: Fallback - emoji detection
             if (!matchedCallout) {
-              console.log('⚠️ [Strategy 2] Fallback para emoji detection...');
               const emojiMap: Record<string, string> = {
                 '✏️': '✏️ Conceito-Chave',
                 '🤔': '🤔 Pergunta para Reflexão',
@@ -776,97 +730,97 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               };
               
               for (const [emoji, title] of Object.entries(emojiMap)) {
-                // 🔍 FASE 1: Log tentativa de match por emoji
-                console.log('🔍 [Strategy 2] Testando emoji:', { 
-                  emoji, 
-                  title, 
-                  startsWithEmoji: normalizedText.startsWith(emoji)
-                });
                 if (normalizedText.startsWith(emoji)) {
-                  console.log('✅ [Strategy 2] EMOJI MATCH!', emoji);
                   matchedCallout = { title, ...calloutTypes[title] };
                   break;
                 }
               }
             }
 
-            // 🎯 FASE 1: Log resultado da detecção
-            console.log('🎯 [Blockquote] Resultado da detecção:', {
-              matchedCallout: matchedCallout ? 'FOUND' : 'NOT FOUND',
-              title: matchedCallout?.title,
-              willRenderAsCallout: !!matchedCallout
-            });
-
             if (matchedCallout) {
-              // Extrair tipo do callout para data-attribute
               const calloutType = matchedCallout.title
                 .replace(matchedCallout.icon, '')
                 .trim()
                 .toLowerCase()
                 .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+                .replace(/[\u0300-\u036f]/g, '')
                 .replace(/\s+/g, '-');
               
-              // 🐛 DEBUG: Log detecção de callout
-              console.log('[Callout Debug] Detectado:', {
-                originalText: fullText.substring(0, 100),
-                normalizedText: normalizedText.substring(0, 100),
-                matchedTitle: matchedCallout.title,
-                calloutType,
-                className: `callout-${calloutType}`
-              });
-              
-              // 🆕 FASE 2: Forçar estilos inline como backup
               const inlineStyles: React.CSSProperties = {
                 background: matchedCallout.bgColor,
                 borderLeft: `4px solid ${matchedCallout.borderColorHex}`,
                 borderRadius: '0.75rem',
-                padding: '1.5rem',
+                padding: 'clamp(1rem, 3vw, 1.5rem)',
                 margin: '1.5rem 0',
-                boxShadow: `0 4px 12px ${matchedCallout.borderColorHex}40`, // 40 = 25% opacity in hex
+                boxShadow: `0 4px 12px ${matchedCallout.borderColorHex}40`,
               };
 
-              // 🎨 FASE 1: Log estilos aplicados
-              console.log('🎨 [Callout] Renderizando com:', {
-                calloutType,
-                className: `callout-${calloutType}`,
-                bgColor: matchedCallout.bgColor,
-                inlineStyles
-              });
+              const cleanedChildren = removeCalloutTitleFromChildren(children, matchedCallout.title);
               
               return (
                 <div 
                   data-callout-type={calloutType}
-                  className={`callout-${calloutType} rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5`}
-                  style={inlineStyles} // 🆕 FORÇAR estilos inline
+                  className={`
+                    callout-${calloutType} 
+                    rounded-lg shadow-lg 
+                    transition-all duration-300 ease-out
+                    hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01]
+                    animate-fade-in
+                    cursor-default
+                    group
+                  `}
+                  style={inlineStyles}
+                  role="complementary"
+                  aria-label={`Callout: ${matchedCallout.title.replace(matchedCallout.icon, '').trim()}`}
                 >
-                  <div className="flex items-start gap-4">
-                    <span className="text-3xl flex-shrink-0 mt-1">{matchedCallout.icon}</span>
-                    <div className="flex-1">
-                      <p className="font-bold text-lg mb-3 tracking-tight" style={{ color: matchedCallout.titleColor.includes('dark:') ? undefined : matchedCallout.titleColor }}>
-                        {matchedCallout.title.replace(matchedCallout.icon, '').trim()}
-                      </p>
-                      <div className={`${matchedCallout.textColor} leading-relaxed callout-content`}>
-                        {children}
+                  <div className="flex items-start gap-3 md:gap-4 relative">
+                    <span className="text-2xl md:text-3xl flex-shrink-0 mt-0.5 md:mt-1 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                      {matchedCallout.icon}
+                    </span>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="border-b border-opacity-20 pb-2 mb-2 md:mb-3" style={{ borderColor: matchedCallout.borderColorHex }}>
+                        <p className="font-bold text-base md:text-lg tracking-tight break-words">
+                          {matchedCallout.title.replace(matchedCallout.icon, '').trim()}
+                        </p>
+                      </div>
+                      
+                      <div className={`${matchedCallout.textColor} leading-relaxed text-sm md:text-base callout-content`}>
+                        {cleanedChildren}
                       </div>
                     </div>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const textContent = extractText(cleanedChildren);
+                        navigator.clipboard.writeText(`${matchedCallout.title}\n\n${textContent}`);
+                      }}
+                      className="
+                        absolute top-2 right-2 
+                        opacity-0 group-hover:opacity-100
+                        transition-opacity duration-200
+                        p-2 rounded-md
+                        hover:bg-black/10 dark:hover:bg-white/10
+                        text-gray-600 dark:text-gray-400
+                      "
+                      aria-label="Copiar callout"
+                      title="Copiar conteúdo"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               );
             }
 
-            // 🟥 FASE 3: Fallback com indicador visual de erro
-            console.warn('❌ [Blockquote] NÃO foi detectado como callout. Renderizando blockquote padrão.');
-            console.warn('❌ [Blockquote] Texto que falhou:', fullText?.substring(0, 200));
-
             return (
               <blockquote 
-                className="border-l-4 border-red-500 pl-4 italic my-4 text-muted-foreground bg-red-50 dark:bg-red-950" 
+                className="border-l-4 border-gray-400 pl-4 italic my-4 text-muted-foreground" 
                 {...props}
               >
-                <div className="text-xs text-red-600 dark:text-red-400 font-bold mb-2">
-                  ⚠️ CALLOUT NÃO DETECTADO (debug mode)
-                </div>
                 {children}
               </blockquote>
             );
