@@ -24,9 +24,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer } from 'lucide-react';
+import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer, Camera, Copy } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
 import { printMaterialDidatico } from '@/utils/printMaterialDidatico';
+import { 
+  captureAllCallouts, 
+  downloadCalloutScreenshots, 
+  downloadSingleScreenshot,
+  generateCalloutDocumentation,
+  copyDocumentationToClipboard,
+  type CalloutScreenshot 
+} from '@/utils/calloutScreenshotCapture';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -258,6 +266,10 @@ const LectureTranscriptionPage = () => {
   const [isGeneratingMaterialV2, setIsGeneratingMaterialV2] = useState(false);
   const [materialV2Progress, setMaterialV2Progress] = useState<string>('');
   const [currentMaterialV2Job, setCurrentMaterialV2Job] = useState<string | null>(null);
+
+  // Screenshot capture state
+  const [capturedScreenshots, setCapturedScreenshots] = useState<CalloutScreenshot[]>([]);
+  const [isCapturingScreenshots, setIsCapturingScreenshots] = useState(false);
 
   // URL validation helper
   const isValidUrl = (url: string) => {
@@ -1116,6 +1128,28 @@ const LectureTranscriptionPage = () => {
         title: '🧪 Material de teste gerado!',
         description: `Contém todos os ${data.stats.total_callouts} tipos de callouts para validação.`,
       });
+
+      // 📸 NOVO: Aguardar renderização e capturar screenshots automaticamente
+      console.log('[TestCallouts] Waiting for render before screenshot capture...');
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 2s para renderização completa
+      
+      setMaterialV2Progress('📸 Capturando screenshots...');
+      console.log('[TestCallouts] Starting automatic screenshot capture...');
+      
+      const screenshots = await captureAllCallouts('.material-didatico-content');
+      
+      if (screenshots.length > 0) {
+        setCapturedScreenshots(screenshots);
+        
+        toast({
+          title: `📸 ${screenshots.length} callouts capturados!`,
+          description: 'Screenshots salvos. Veja a galeria abaixo para download.',
+        });
+        
+        console.log(`[TestCallouts] ✅ ${screenshots.length} screenshots captured and stored`);
+      } else {
+        console.warn('[TestCallouts] ⚠️ No callouts were captured');
+      }
       
     } catch (error: any) {
       console.error('[TestCallouts] Error:', error);
@@ -1126,8 +1160,59 @@ const LectureTranscriptionPage = () => {
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar material de teste',
-        description: error.message || 'Tente novamente',
+        description: error.message || 'Erro desconhecido',
       });
+    }
+  };
+
+  // 📸 NEW FUNCTION: Manual screenshot capture of current callouts
+  const handleCaptureCurrentCallouts = async () => {
+    if (!materialDidaticoV2) {
+      toast({
+        variant: 'destructive',
+        title: 'Nenhum material disponível',
+        description: 'Gere material didático primeiro para capturar callouts',
+      });
+      return;
+    }
+
+    setIsCapturingScreenshots(true);
+    
+    try {
+      console.log('[Screenshot] Starting manual capture...');
+      
+      // Aguarda renderização estável
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const screenshots = await captureAllCallouts('.material-didatico-content');
+      
+      if (screenshots.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Nenhum callout encontrado',
+          description: 'O material não contém callouts para capturar',
+        });
+        return;
+      }
+      
+      setCapturedScreenshots(screenshots);
+      
+      toast({
+        title: `✅ ${screenshots.length} callouts capturados!`,
+        description: 'Visualize abaixo ou faça download individual/em lote',
+      });
+      
+      console.log(`[Screenshot] ✅ Manual capture completed: ${screenshots.length} callouts`);
+      
+    } catch (error: any) {
+      console.error('[Screenshot] Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro na captura',
+        description: error.message || 'Falha ao capturar screenshots',
+      });
+    } finally {
+      setIsCapturingScreenshots(false);
     }
   };
 
@@ -2054,6 +2139,27 @@ const LectureTranscriptionPage = () => {
                             </>
                           )}
                         </Button>
+
+                        {/* 📸 MANUAL CAPTURE BUTTON */}
+                        <Button
+                          onClick={handleCaptureCurrentCallouts}
+                          disabled={isCapturingScreenshots || !materialDidaticoV2}
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                        >
+                          {isCapturingScreenshots ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Capturando...
+                            </>
+                          ) : (
+                            <>
+                              <Camera className="h-4 w-4 mr-2" />
+                              📸 Capturar Screenshots
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
@@ -2182,6 +2288,81 @@ const LectureTranscriptionPage = () => {
                                 markdown={materialDidaticoV2} 
                               />
                             </div>
+
+                            {/* 📸 SCREENSHOT GALLERY */}
+                            {capturedScreenshots.length > 0 && (
+                              <Card className="p-6 mt-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
+                                <div className="flex items-center justify-between mb-4">
+                                  <div>
+                                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                                      <Camera className="h-5 w-5 text-blue-600" />
+                                      📸 Screenshots Capturados
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {capturedScreenshots.length} callouts documentados
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => downloadCalloutScreenshots(capturedScreenshots)}
+                                      className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                                    >
+                                      <Download className="w-4 h-4 mr-2" />
+                                      Baixar Todos
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={async () => {
+                                        try {
+                                          await copyDocumentationToClipboard(capturedScreenshots);
+                                          toast({ title: '✅ Documentação copiada para clipboard' });
+                                        } catch (error) {
+                                          toast({ 
+                                            variant: 'destructive',
+                                            title: 'Erro ao copiar',
+                                            description: 'Não foi possível copiar a documentação'
+                                          });
+                                        }
+                                      }}
+                                      className="border-green-300 text-green-700 hover:bg-green-100"
+                                    >
+                                      <Copy className="w-4 h-4 mr-2" />
+                                      Copiar Docs
+                                    </Button>
+                                  </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                  {capturedScreenshots.map((screenshot, idx) => (
+                                    <div key={idx} className="border-2 border-blue-200 rounded-lg p-3 space-y-2 bg-white hover:shadow-md transition-shadow">
+                                      <img 
+                                        src={screenshot.dataUrl || URL.createObjectURL(screenshot.blob)} 
+                                        alt={screenshot.type}
+                                        className="w-full h-auto rounded border border-slate-200"
+                                      />
+                                      <div className="text-xs space-y-1">
+                                        <p className="font-semibold truncate text-slate-700">{screenshot.type}</p>
+                                        <p className="text-muted-foreground">
+                                          {screenshot.dimensions.width}x{screenshot.dimensions.height}px
+                                        </p>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="w-full text-blue-600 hover:bg-blue-100"
+                                          onClick={() => downloadSingleScreenshot(screenshot)}
+                                        >
+                                          <Download className="w-3 h-3 mr-1" />
+                                          Download
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </Card>
+                            )}
                           </>
                         ) : (
                           <div className="text-center py-8 bg-slate-50 rounded-lg">
