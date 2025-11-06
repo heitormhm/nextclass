@@ -585,68 +585,30 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               }
             };
             
-            // Helper function to surgically remove callout title from children - DOM-first approach
+            // Helper function to remove callout title from text - String-based approach
   const removeCalloutTitleFromChildren = (children: ReactNode, titleToRemove: string, iconToRemove: string): ReactNode => {
-    // Clean title: remove emoji and extra characters
-    const cleanTitle = titleToRemove
-      .replace(iconToRemove, '')
-      .trim()
-      .toLowerCase()
-      .replace(/[:\s]+$/, ''); // Remove trailing colons and spaces
+    // Extract full text from children
+    const fullText = extractText(children);
     
-    // Convert children to array for processing
-    const childrenArray = Children.toArray(children);
+    // Clean the title (remove emoji)
+    const cleanTitle = titleToRemove.replace(iconToRemove, '').trim();
     
-    if (childrenArray.length === 0) return children;
+    // Create regex pattern to find title at the beginning (case-insensitive)
+    const titlePattern = new RegExp(
+      `^\\s*${iconToRemove.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}?\\s*${cleanTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:?\\s*`,
+      'i'
+    );
     
-    // Get the first element
-    const firstChild = childrenArray[0];
-    const firstChildText = extractText(firstChild).toLowerCase().trim();
+    // Remove the title from the beginning of the text
+    const textWithoutTitle = fullText.replace(titlePattern, '').trim();
     
-    // Simple check: does the first child START with the title?
-    // Remove extra characters for comparison
-    const simplifiedFirstChild = firstChildText
-      .replace(/[:\s]+/g, ' ')
-      .trim();
-    
-    const simplifiedTitle = cleanTitle
-      .replace(/[:\s]+/g, ' ')
-      .trim();
-    
-    // If first child starts with title, remove it entirely
-    if (simplifiedFirstChild.startsWith(simplifiedTitle)) {
-      // Return remaining children (skip first)
-      const remaining = childrenArray.slice(1);
-      
-      if (remaining.length === 0) return null;
-      if (remaining.length === 1) return remaining[0];
-      return remaining;
+    // If title wasn't found or text is empty, return original
+    if (textWithoutTitle === fullText || !textWithoutTitle) {
+      return children;
     }
     
-    // If first child contains the title but has more content, try to clean inside it
-    if (isValidElement(firstChild) && simplifiedFirstChild.includes(simplifiedTitle)) {
-      const props = firstChild.props as any;
-      if (props?.children) {
-        const cleanedInside = removeCalloutTitleFromChildren(props.children, titleToRemove, iconToRemove);
-        
-        // If cleaning resulted in nothing, remove the entire first child
-        if (!cleanedInside) {
-          const remaining = childrenArray.slice(1);
-          if (remaining.length === 0) return null;
-          if (remaining.length === 1) return remaining[0];
-          return remaining;
-        }
-        
-        // Otherwise, update the first child with cleaned content
-        return [
-          React.cloneElement(firstChild, { ...props, children: cleanedInside }),
-          ...childrenArray.slice(1)
-        ];
-      }
-    }
-    
-    // No match found, return original children
-    return children;
+    // Return cleaned text (React renders strings directly)
+    return textWithoutTitle;
   };
             
             const fullText = extractText(children);
@@ -828,13 +790,14 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
               const cleanedChildren = removeCalloutTitleFromChildren(children, matchedCallout.title, matchedCallout.icon);
               
-              // DEBUG: Log children before and after cleaning
+              // DEBUG: Verify title removal
               const cleanTitle = matchedCallout.title.replace(matchedCallout.icon, '').trim().toLowerCase();
-              console.group('🐛 Callout Debug');
-              console.log('Title to remove:', matchedCallout.title);
-              console.log('Original children text:', extractText(children));
-              console.log('Cleaned children text:', extractText(cleanedChildren));
-              console.log('Title present in cleaned?:', extractText(cleanedChildren).toLowerCase().includes(cleanTitle));
+              console.group('🔍 Callout Title Removal');
+              console.log('📌 Title:', matchedCallout.title);
+              console.log('📌 Icon:', matchedCallout.icon);
+              console.log('📄 Original text:', extractText(children).substring(0, 100) + '...');
+              console.log('✂️ Cleaned text:', extractText(cleanedChildren).substring(0, 100) + '...');
+              console.log('✅ Title removed?:', !extractText(cleanedChildren).toLowerCase().includes(cleanTitle));
               console.groupEnd();
               
               // Generate unique ID for this specific callout instance
@@ -846,6 +809,14 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           data-callout-id={calloutId}
           className="callout-container rounded-lg shadow-lg animate-fade-in cursor-default"
           style={inlineStyles}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+            e.currentTarget.style.transform = 'translateY(-2px) scale(1.005)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = inlineStyles.boxShadow || '';
+            e.currentTarget.style.transform = 'none';
+          }}
           role="complementary"
           aria-label={`Callout: ${matchedCallout.title.replace(matchedCallout.icon, '').trim()}`}
         >
@@ -853,6 +824,16 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             <span 
               className="text-2xl md:text-3xl flex-shrink-0 mt-0.5 md:mt-1 callout-emoji"
               data-callout-id={calloutId}
+              style={{
+                transition: 'transform 0.3s ease-out',
+                transform: 'scale(1) rotate(0deg)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1) rotate(6deg)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
+              }}
             >
               {matchedCallout.icon}
             </span>
@@ -876,7 +857,17 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
                 const textContent = extractText(cleanedChildren);
                 navigator.clipboard.writeText(`${matchedCallout.title}\n\n${textContent}`);
               }}
-              className="absolute top-2 right-2 opacity-0 p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 callout-copy-btn"
+              className="absolute top-2 right-2 p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 callout-copy-btn"
+              style={{
+                transition: 'opacity 0.2s ease-out',
+                opacity: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '0';
+              }}
               aria-label="Copiar callout"
               title="Copiar conteúdo"
             >
