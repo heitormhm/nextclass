@@ -435,39 +435,28 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           background-color: var(--callout-bg-dark);
         }
         
-        /* Isolated hover animations - use direct child selectors */
+        /* Base styles only - NO HOVER RULES */
         .callout-container {
           isolation: isolate;
-          will-change: transform, box-shadow;
           transition: all 0.3s ease-out;
         }
         
-        /* Hover effects only for the specific container */
-        .callout-container:hover {
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          transform: translateY(-2px) scale(1.005);
-        }
-        
-        /* Emoji animation - ONLY for direct descendant emoji */
         .callout-emoji {
-          will-change: transform;
+          display: inline-block;
           transition: transform 0.3s ease-out;
-          transform: scale(1) rotate(0deg);
         }
         
-        .callout-container:hover > div > .callout-emoji {
-          transform: scale(1.1) rotate(6deg);
-        }
-        
-        /* Copy button - ONLY for direct descendant button */
         .callout-copy-btn {
-          will-change: opacity;
           transition: opacity 0.2s ease-out;
-          opacity: 0;
         }
         
-        .callout-container:hover > div > .callout-copy-btn {
-          opacity: 1;
+        /* Accessibility: respect reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+          .callout-container,
+          .callout-emoji,
+          .callout-copy-btn {
+            transition: none !important;
+          }
         }
       `}</style>
       <ReactMarkdown
@@ -810,10 +799,12 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           className="callout-container rounded-lg shadow-lg animate-fade-in cursor-default"
           style={inlineStyles}
           onMouseEnter={(e) => {
+            e.stopPropagation();
             e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
             e.currentTarget.style.transform = 'translateY(-2px) scale(1.005)';
           }}
           onMouseLeave={(e) => {
+            e.stopPropagation();
             e.currentTarget.style.boxShadow = inlineStyles.boxShadow || '';
             e.currentTarget.style.transform = 'none';
           }}
@@ -829,9 +820,11 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
                 transform: 'scale(1) rotate(0deg)',
               }}
               onMouseEnter={(e) => {
+                e.stopPropagation();
                 e.currentTarget.style.transform = 'scale(1.1) rotate(6deg)';
               }}
               onMouseLeave={(e) => {
+                e.stopPropagation();
                 e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
               }}
             >
@@ -863,9 +856,11 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
                 opacity: 0,
               }}
               onMouseEnter={(e) => {
+                e.stopPropagation();
                 e.currentTarget.style.opacity = '1';
               }}
               onMouseLeave={(e) => {
+                e.stopPropagation();
                 e.currentTarget.style.opacity = '0';
               }}
               aria-label="Copiar callout"
