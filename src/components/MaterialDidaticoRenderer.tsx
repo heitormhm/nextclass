@@ -779,16 +779,6 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
               const cleanedChildren = removeCalloutTitleFromChildren(children, matchedCallout.title, matchedCallout.icon);
               
-              // DEBUG: Verify title removal
-              const cleanTitle = matchedCallout.title.replace(matchedCallout.icon, '').trim().toLowerCase();
-              console.group('🔍 Callout Title Removal');
-              console.log('📌 Title:', matchedCallout.title);
-              console.log('📌 Icon:', matchedCallout.icon);
-              console.log('📄 Original text:', extractText(children).substring(0, 100) + '...');
-              console.log('✂️ Cleaned text:', extractText(cleanedChildren).substring(0, 100) + '...');
-              console.log('✅ Title removed?:', !extractText(cleanedChildren).toLowerCase().includes(cleanTitle));
-              console.groupEnd();
-              
               // Generate unique ID for this specific callout instance
               const calloutId = `callout-${Math.random().toString(36).substring(2, 9)}`;
               
@@ -796,37 +786,15 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
         <div 
           data-callout-type={calloutType}
           data-callout-id={calloutId}
-          className="callout-container rounded-lg shadow-lg animate-fade-in cursor-default"
+          className="callout-container rounded-lg shadow-lg animate-fade-in"
           style={inlineStyles}
-          onMouseEnter={(e) => {
-            e.stopPropagation();
-            e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
-            e.currentTarget.style.transform = 'translateY(-2px) scale(1.005)';
-          }}
-          onMouseLeave={(e) => {
-            e.stopPropagation();
-            e.currentTarget.style.boxShadow = inlineStyles.boxShadow || '';
-            e.currentTarget.style.transform = 'none';
-          }}
           role="complementary"
           aria-label={`Callout: ${matchedCallout.title.replace(matchedCallout.icon, '').trim()}`}
         >
           <div className="flex items-start gap-3 md:gap-4 relative">
             <span 
-              className="text-2xl md:text-3xl flex-shrink-0 mt-0.5 md:mt-1 callout-emoji"
+              className="text-2xl md:text-3xl flex-shrink-0 mt-0.5 md:mt-1"
               data-callout-id={calloutId}
-              style={{
-                transition: 'transform 0.3s ease-out',
-                transform: 'scale(1) rotate(0deg)',
-              }}
-              onMouseEnter={(e) => {
-                e.stopPropagation();
-                e.currentTarget.style.transform = 'scale(1.1) rotate(6deg)';
-              }}
-              onMouseLeave={(e) => {
-                e.stopPropagation();
-                e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
-              }}
             >
               {matchedCallout.icon}
             </span>
@@ -842,34 +810,6 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
                 {cleanedChildren}
               </div>
             </div>
-            
-            <button
-              data-callout-id={calloutId}
-              onClick={(e) => {
-                e.stopPropagation();
-                const textContent = extractText(cleanedChildren);
-                navigator.clipboard.writeText(`${matchedCallout.title}\n\n${textContent}`);
-              }}
-              className="absolute top-2 right-2 p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 callout-copy-btn"
-              style={{
-                transition: 'opacity 0.2s ease-out',
-                opacity: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.stopPropagation();
-                e.currentTarget.style.opacity = '1';
-              }}
-              onMouseLeave={(e) => {
-                e.stopPropagation();
-                e.currentTarget.style.opacity = '0';
-              }}
-              aria-label="Copiar callout"
-              title="Copiar conteúdo"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </button>
           </div>
         </div>
       );

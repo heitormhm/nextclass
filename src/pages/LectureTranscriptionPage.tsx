@@ -2118,48 +2118,6 @@ const LectureTranscriptionPage = () => {
                             </>
                           )}
                         </Button>
-                        
-                        {/* 🧪 TEST BUTTON: Generate test material with all 12 callout types */}
-                        <Button
-                          onClick={handleGenerateTestCallouts}
-                          disabled={isGeneratingMaterialV2}
-                          size="sm"
-                          variant="outline"
-                          className="border-purple-300 text-purple-700 hover:bg-purple-50"
-                        >
-                          {isGeneratingMaterialV2 ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Teste...
-                            </>
-                          ) : (
-                            <>
-                              <Brain className="h-4 w-4 mr-2" />
-                              🧪 Testar Callouts
-                            </>
-                          )}
-                        </Button>
-
-                        {/* 📸 MANUAL CAPTURE BUTTON */}
-                        <Button
-                          onClick={handleCaptureCurrentCallouts}
-                          disabled={isCapturingScreenshots || !materialDidaticoV2}
-                          size="sm"
-                          variant="outline"
-                          className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                        >
-                          {isCapturingScreenshots ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Capturando...
-                            </>
-                          ) : (
-                            <>
-                              <Camera className="h-4 w-4 mr-2" />
-                              📸 Capturar Screenshots
-                            </>
-                          )}
-                        </Button>
                       </div>
                     </div>
                   </CardHeader>
