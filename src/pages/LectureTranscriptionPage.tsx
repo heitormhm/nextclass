@@ -1068,6 +1068,69 @@ const LectureTranscriptionPage = () => {
     }
   };
 
+  // 🧪 TEST FUNCTION: Generate test material with all 12 callout types
+  const handleGenerateTestCallouts = async () => {
+    if (!id) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'ID da aula não encontrado' });
+      return;
+    }
+    
+    setIsGeneratingMaterialV2(true);
+    setMaterialV2Progress('🧪 Gerando material de teste...');
+    
+    try {
+      console.log('[TestCallouts] Invoking generate-test-callouts-material...');
+      
+      const { data, error } = await supabase.functions.invoke('generate-test-callouts-material');
+      
+      if (error) {
+        console.error('[TestCallouts] Error:', error);
+        throw error;
+      }
+      
+      if (!data?.success || !data?.markdown_content) {
+        throw new Error('Falha ao gerar material de teste');
+      }
+      
+      console.log('[TestCallouts] ✅ Material generated, saving to database...');
+      
+      // Save test material directly to lecture
+      const { error: updateError } = await supabase
+        .from('lectures')
+        .update({ material_didatico_v2: data.markdown_content })
+        .eq('id', id);
+      
+      if (updateError) {
+        console.error('[TestCallouts] Database error:', updateError);
+        throw updateError;
+      }
+      
+      console.log('[TestCallouts] ✅ Test material saved successfully');
+      
+      // Update local state
+      setMaterialDidaticoV2(data.markdown_content);
+      setIsGeneratingMaterialV2(false);
+      setMaterialV2Progress('');
+      
+      toast({
+        title: '🧪 Material de teste gerado!',
+        description: `Contém todos os ${data.stats.total_callouts} tipos de callouts para validação.`,
+      });
+      
+    } catch (error: any) {
+      console.error('[TestCallouts] Error:', error);
+      
+      setIsGeneratingMaterialV2(false);
+      setMaterialV2Progress('');
+      
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar material de teste',
+        description: error.message || 'Tente novamente',
+      });
+    }
+  };
+
   const openEditModal = (sectionTitle: string, sectionContent: any) => {
     setEditingSectionTitle(sectionTitle);
     setEditingSectionContent(sectionContent);
@@ -1951,24 +2014,47 @@ const LectureTranscriptionPage = () => {
                       )}
                       
                       {/* FASE 8: GenerateLectureDeepSearchSummary component hidden - only using V2 button */}
-                      <Button
-                        onClick={handleGenerateMaterialV2}
-                        disabled={isGeneratingMaterialV2}
-                        size="sm"
-                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md"
-                      >
-                        {isGeneratingMaterialV2 ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Gerando...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Gerar Material Didático
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleGenerateMaterialV2}
+                          disabled={isGeneratingMaterialV2}
+                          size="sm"
+                          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md"
+                        >
+                          {isGeneratingMaterialV2 ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Gerando...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Gerar Material Didático
+                            </>
+                          )}
+                        </Button>
+                        
+                        {/* 🧪 TEST BUTTON: Generate test material with all 12 callout types */}
+                        <Button
+                          onClick={handleGenerateTestCallouts}
+                          disabled={isGeneratingMaterialV2}
+                          size="sm"
+                          variant="outline"
+                          className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                        >
+                          {isGeneratingMaterialV2 ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Teste...
+                            </>
+                          ) : (
+                            <>
+                              <Brain className="h-4 w-4 mr-2" />
+                              🧪 Testar Callouts
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   
