@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Children, isValidElement, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -527,32 +527,99 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             // 🔵 FASE 1: Log blockquote recebido
             console.log('🔵 [Blockquote] Recebido:', { node, children, props });
             
-            // Extrair todo o conteúdo textual do blockquote de forma robusta
-            const extractText = (node: any): string => {
-              if (typeof node === 'string') return node;
-              if (node?.props?.children) {
-                if (Array.isArray(node.props.children)) {
-                  return node.props.children.map(extractText).join('');
-                }
-                return extractText(node.props.children);
+            // 🔧 FASE 1: Extrair texto usando React API para lidar com ReactNode
+            const extractText = (node: ReactNode): string => {
+              console.log('🔎 [extractText] Processando:', {
+                type: typeof node,
+                isArray: Array.isArray(node),
+                isValidElement: isValidElement(node),
+                constructor: node?.constructor?.name
+              });
+
+              // Caso 1: String direta
+              if (typeof node === 'string') {
+                console.log('✅ [extractText] String encontrada:', node);
+                return node;
               }
-              if (node?.children) {
-                if (Array.isArray(node.children)) {
-                  return node.children.map((child: any) => extractText(child)).join('');
-                }
-                return extractText(node.children);
+              
+              // Caso 2: Número
+              if (typeof node === 'number') {
+                console.log('✅ [extractText] Número encontrado:', node);
+                return String(node);
               }
-              if (node?.value) return node.value;
-              return '';
+              
+              // Caso 3: null, undefined, boolean
+              if (node == null || typeof node === 'boolean') {
+                return '';
+              }
+              
+              // Caso 4: Array de React children
+              if (Array.isArray(node)) {
+                console.log('📦 [extractText] Array com', node.length, 'elementos');
+                return node.map(extractText).join('');
+              }
+              
+              // Caso 5: React Element válido (componente, tag HTML, etc)
+              if (isValidElement(node)) {
+                console.log('🔄 [extractText] React Element válido, acessando children');
+                const children = (node.props as any)?.children;
+                if (children != null) {
+                  return extractText(children);
+                }
+                return '';
+              }
+              
+              // Caso 6: Children API do React (usado por react-markdown)
+              try {
+                const childrenArray = Children.toArray(node);
+                console.log('🔄 [extractText] Usando Children.toArray, encontrados', childrenArray.length, 'elementos');
+                return childrenArray.map(extractText).join('');
+              } catch (error) {
+                console.warn('⚠️ [extractText] Erro ao processar Children.toArray:', error);
+                return '';
+              }
             };
             
             const fullText = extractText(children);
-            // 🟢 FASE 1: Log texto extraído
+            
+            // 🟢 FASE 3: Log texto extraído + validação crítica
             console.log('🟢 [Blockquote] Texto extraído:', { 
               fullText, 
               length: fullText.length,
-              first100: fullText.substring(0, 100)
+              first100: fullText.substring(0, 100),
+              isEmpty: !fullText || fullText.trim().length === 0,
+              childrenType: typeof children,
+              childrenIsArray: Array.isArray(children),
+              childrenConstructor: children?.constructor?.name
             });
+
+            // 🛡️ VALIDAÇÃO CRÍTICA: Se texto vazio, abortar e mostrar erro detalhado
+            if (!fullText || fullText.trim().length === 0) {
+              console.error('🔴 [CRÍTICO] extractText() retornou vazio!');
+              console.error('🔴 Children raw:', children);
+              console.error('🔴 Children stringified:', JSON.stringify(children, null, 2));
+              
+              return (
+                <blockquote className="border-l-4 border-red-600 bg-red-50 dark:bg-red-950 pl-4 pr-4 py-3 my-4">
+                  <div className="text-xs font-bold text-red-600 mb-2">
+                    🔴 ERRO CRÍTICO: extractText() retornou vazio
+                  </div>
+                  <div className="text-sm text-red-700 dark:text-red-300 space-y-2">
+                    <p><strong>Tipo de children:</strong> {typeof children}</p>
+                    <p><strong>É array:</strong> {Array.isArray(children) ? 'Sim' : 'Não'}</p>
+                    <p><strong>Constructor:</strong> {children?.constructor?.name || 'N/A'}</p>
+                  </div>
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                      Ver estrutura completa de children
+                    </summary>
+                    <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto">
+                      {JSON.stringify(children, null, 2)}
+                    </pre>
+                  </details>
+                </blockquote>
+              );
+            }
             
             // Normalizar: remover markdown bold (**), dois pontos, espaços extras
             const normalizedText = fullText
