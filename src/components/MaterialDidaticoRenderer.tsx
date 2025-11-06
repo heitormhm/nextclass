@@ -435,17 +435,38 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           background-color: var(--callout-bg-dark);
         }
         
-        /* Scoped hover styles for callouts */
-        .callout-container:hover .callout-emoji {
-          transform: scale(1.1) rotate(6deg);
-        }
-        
-        .callout-container:hover .callout-copy-btn {
-          opacity: 1;
-        }
-        
+        /* Isolated hover animations for individual callouts */
         .callout-container {
           isolation: isolate;
+          transition: all 0.3s ease-out;
+        }
+        
+        .callout-container:hover {
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          transform: translateY(-2px) scale(1.005);
+        }
+        
+        /* Emoji animates only when hovering its own container */
+        .callout-container:hover .callout-emoji {
+          transform: scale(1.1) rotate(6deg);
+          transition: transform 0.3s ease-out;
+        }
+        
+        /* Copy button appears only when hovering its own container */
+        .callout-container:hover .callout-copy-btn {
+          opacity: 1;
+          transition: opacity 0.2s ease-out;
+        }
+        
+        /* Prevent hover propagation - reset when not hovering */
+        .callout-container:not(:hover) .callout-emoji {
+          transform: scale(1) rotate(0deg);
+          transition: transform 0.3s ease-out;
+        }
+        
+        .callout-container:not(:hover) .callout-copy-btn {
+          opacity: 0;
+          transition: opacity 0.2s ease-out;
         }
       `}</style>
       <ReactMarkdown
@@ -563,51 +584,81 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               }
             };
             
-            // Helper function to remove callout title from children
+            // Helper function to surgically remove callout title from children
   const removeCalloutTitleFromChildren = (children: ReactNode, titleToRemove: string, iconToRemove: string): ReactNode => {
-    const cleanTitle = titleToRemove.replace(iconToRemove, '').trim().toLowerCase();
+    const cleanTitle = titleToRemove.replace(iconToRemove, '').trim();
     
+    // Helper to check if a node contains the title
+    const containsTitle = (node: ReactNode): boolean => {
+      const text = extractText(node);
+      const normalizedText = text.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const normalizedTitle = cleanTitle.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      
+      // Check if text starts with title and is not too long (likely just the title paragraph)
+      return normalizedText.startsWith(normalizedTitle) && normalizedText.length < (normalizedTitle.length + 50);
+    };
+    
+    // Case 1: Children is an array
     if (Array.isArray(children)) {
-      const [firstChild, ...restChildren] = children;
-      
-      const firstChildText = extractText(firstChild).toLowerCase().trim();
-      
-      const normalizedFirstChild = firstChildText
-        .replace(/[^\w\s]/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      const normalizedTitle = cleanTitle
-        .replace(/[^\w\s]/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      if (normalizedFirstChild === normalizedTitle || normalizedFirstChild.startsWith(normalizedTitle)) {
-        return restChildren.length === 1 ? restChildren[0] : restChildren;
+      // Check if first element is the title
+      if (children.length > 0 && containsTitle(children[0])) {
+        // Remove first element completely
+        const remaining = children.slice(1);
+        
+        // If only 1 element left, return directly (not in array)
+        if (remaining.length === 1) {
+          return remaining[0];
+        }
+        
+        // If more than 1 left, return the array
+        return remaining.length > 0 ? remaining : null;
       }
       
-      return [removeCalloutTitleFromChildren(firstChild, titleToRemove, iconToRemove), ...restChildren];
+      // If first element is not the title, try processing recursively
+      return children.map((child, idx) => {
+        if (idx === 0 && isValidElement(child)) {
+          // Process only the first element
+          const childProps = child.props as any;
+          if (childProps?.children) {
+            const cleaned = removeCalloutTitleFromChildren(childProps.children, titleToRemove, iconToRemove);
+            // If result is null/empty, skip this element
+            if (!cleaned) return null;
+            return React.cloneElement(child, { ...childProps, children: cleaned });
+          }
+        }
+        return child;
+      }).filter(Boolean); // Remove nulls
     }
     
+    // Case 2: Children is a single React element
     if (isValidElement(children)) {
       const childProps = children.props as any;
-      if (childProps?.children) {
-        return React.cloneElement(children, {
-          ...childProps,
-          children: removeCalloutTitleFromChildren(childProps.children, titleToRemove, iconToRemove)
-        });
-      }
-    }
-    
-    if (typeof children === 'string') {
-      const normalizedString = children.toLowerCase().trim();
-      const normalizedTitle = cleanTitle.toLowerCase().trim();
       
-      if (normalizedString.startsWith(normalizedTitle)) {
-        return children.substring(cleanTitle.length).replace(/^[:\s]+/, '');
+      // If this element contains the title, try removing it from inside
+      if (containsTitle(children) && childProps?.children) {
+        const cleaned = removeCalloutTitleFromChildren(childProps.children, titleToRemove, iconToRemove);
+        
+        // If nothing left, return null
+        if (!cleaned) return null;
+        
+        return React.cloneElement(children, { ...childProps, children: cleaned });
       }
     }
     
+    // Case 3: Children is a string
+    if (typeof children === 'string') {
+      const normalizedString = children.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const normalizedTitle = cleanTitle.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      
+      // If string is exactly the title (or starts with it), remove
+      if (normalizedString === normalizedTitle || normalizedString.startsWith(normalizedTitle + ' ')) {
+        const titleEndIndex = children.toLowerCase().indexOf(cleanTitle.toLowerCase()) + cleanTitle.length;
+        const remaining = children.substring(titleEndIndex).replace(/^[:\s]+/, '').trim();
+        return remaining || null;
+      }
+    }
+    
+    // Return unchanged
     return children;
   };
             
@@ -790,24 +841,23 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
               const cleanedChildren = removeCalloutTitleFromChildren(children, matchedCallout.title, matchedCallout.icon);
               
+              // Generate unique ID for this specific callout instance
+              const calloutId = `callout-${Math.random().toString(36).substring(2, 9)}`;
+              
       return (
         <div 
           data-callout-type={calloutType}
-          className={`
-            callout-${calloutType} 
-            rounded-lg shadow-lg 
-            transition-all duration-300 ease-out
-            hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01]
-            animate-fade-in
-            cursor-default
-            callout-container
-          `}
+          data-callout-id={calloutId}
+          className="callout-container rounded-lg shadow-lg animate-fade-in cursor-default"
           style={inlineStyles}
           role="complementary"
           aria-label={`Callout: ${matchedCallout.title.replace(matchedCallout.icon, '').trim()}`}
         >
           <div className="flex items-start gap-3 md:gap-4 relative">
-            <span className="text-2xl md:text-3xl flex-shrink-0 mt-0.5 md:mt-1 transition-transform duration-300 callout-emoji">
+            <span 
+              className="text-2xl md:text-3xl flex-shrink-0 mt-0.5 md:mt-1 callout-emoji"
+              data-callout-id={calloutId}
+            >
               {matchedCallout.icon}
             </span>
             
@@ -824,20 +874,13 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             </div>
             
             <button
+              data-callout-id={calloutId}
               onClick={(e) => {
                 e.stopPropagation();
                 const textContent = extractText(cleanedChildren);
                 navigator.clipboard.writeText(`${matchedCallout.title}\n\n${textContent}`);
               }}
-              className="
-                absolute top-2 right-2 
-                opacity-0
-                transition-opacity duration-200
-                p-2 rounded-md
-                hover:bg-black/10 dark:hover:bg-white/10
-                text-gray-600 dark:text-gray-400
-                callout-copy-btn
-              "
+              className="absolute top-2 right-2 opacity-0 p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 callout-copy-btn"
               aria-label="Copiar callout"
               title="Copiar conteúdo"
             >
