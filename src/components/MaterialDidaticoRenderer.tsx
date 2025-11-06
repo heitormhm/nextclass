@@ -524,6 +524,9 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           ),
           // Style blockquotes with intelligent callout detection
           blockquote: ({ node, children, ...props }) => {
+            // 🔵 FASE 1: Log blockquote recebido
+            console.log('🔵 [Blockquote] Recebido:', { node, children, props });
+            
             // Extrair todo o conteúdo textual do blockquote de forma robusta
             const extractText = (node: any): string => {
               if (typeof node === 'string') return node;
@@ -544,12 +547,25 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             };
             
             const fullText = extractText(children);
+            // 🟢 FASE 1: Log texto extraído
+            console.log('🟢 [Blockquote] Texto extraído:', { 
+              fullText, 
+              length: fullText.length,
+              first100: fullText.substring(0, 100)
+            });
+            
             // Normalizar: remover markdown bold (**), dois pontos, espaços extras
             const normalizedText = fullText
               .trim()
               .replace(/\*\*/g, '')
               .replace(/:/g, '')
               .replace(/\s+/g, ' ');
+            
+            // 🟡 FASE 1: Log texto normalizado
+            console.log('🟡 [Blockquote] Texto normalizado:', {
+              normalizedText,
+              first100: normalizedText.substring(0, 100)
+            });
             
             const calloutTypes: Record<string, { 
               bgColor: string; 
@@ -661,7 +677,14 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             let matchedCallout = null;
             for (const [title, style] of Object.entries(calloutTypes)) {
               const normalizedTitle = title.replace(/\s+/g, ' ').replace(/:/g, '');
+              // 🔍 FASE 1: Log tentativa de match
+              console.log('🔍 [Strategy 1] Testando:', { 
+                title, 
+                normalizedTitle, 
+                match: normalizedText.includes(normalizedTitle) || normalizedText.startsWith(normalizedTitle)
+              });
               if (normalizedText.includes(normalizedTitle) || normalizedText.startsWith(normalizedTitle)) {
+                console.log('✅ [Strategy 1] MATCH encontrado!', title);
                 matchedCallout = { title, ...style };
                 break;
               }
@@ -669,6 +692,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             
             // ESTRATÉGIA 2: Fallback - buscar apenas pelo emoji no início
             if (!matchedCallout) {
+              console.log('⚠️ [Strategy 2] Fallback para emoji detection...');
               const emojiMap: Record<string, string> = {
                 '✏️': '✏️ Conceito-Chave',
                 '🤔': '🤔 Pergunta para Reflexão',
@@ -685,12 +709,26 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               };
               
               for (const [emoji, title] of Object.entries(emojiMap)) {
+                // 🔍 FASE 1: Log tentativa de match por emoji
+                console.log('🔍 [Strategy 2] Testando emoji:', { 
+                  emoji, 
+                  title, 
+                  startsWithEmoji: normalizedText.startsWith(emoji)
+                });
                 if (normalizedText.startsWith(emoji)) {
+                  console.log('✅ [Strategy 2] EMOJI MATCH!', emoji);
                   matchedCallout = { title, ...calloutTypes[title] };
                   break;
                 }
               }
             }
+
+            // 🎯 FASE 1: Log resultado da detecção
+            console.log('🎯 [Blockquote] Resultado da detecção:', {
+              matchedCallout: matchedCallout ? 'FOUND' : 'NOT FOUND',
+              title: matchedCallout?.title,
+              willRenderAsCallout: !!matchedCallout
+            });
 
             if (matchedCallout) {
               // Extrair tipo do callout para data-attribute
@@ -711,10 +749,29 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
                 className: `callout-${calloutType}`
               });
               
+              // 🆕 FASE 2: Forçar estilos inline como backup
+              const inlineStyles: React.CSSProperties = {
+                background: matchedCallout.bgColor,
+                borderLeft: `4px solid ${matchedCallout.borderColorHex}`,
+                borderRadius: '0.75rem',
+                padding: '1.5rem',
+                margin: '1.5rem 0',
+                boxShadow: `0 4px 12px ${matchedCallout.borderColorHex}40`, // 40 = 25% opacity in hex
+              };
+
+              // 🎨 FASE 1: Log estilos aplicados
+              console.log('🎨 [Callout] Renderizando com:', {
+                calloutType,
+                className: `callout-${calloutType}`,
+                bgColor: matchedCallout.bgColor,
+                inlineStyles
+              });
+              
               return (
                 <div 
                   data-callout-type={calloutType}
                   className={`callout-${calloutType} rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5`}
+                  style={inlineStyles} // 🆕 FORÇAR estilos inline
                 >
                   <div className="flex items-start gap-4">
                     <span className="text-3xl flex-shrink-0 mt-1">{matchedCallout.icon}</span>
@@ -731,8 +788,18 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
               );
             }
 
+            // 🟥 FASE 3: Fallback com indicador visual de erro
+            console.warn('❌ [Blockquote] NÃO foi detectado como callout. Renderizando blockquote padrão.');
+            console.warn('❌ [Blockquote] Texto que falhou:', fullText?.substring(0, 200));
+
             return (
-              <blockquote className="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground" {...props}>
+              <blockquote 
+                className="border-l-4 border-red-500 pl-4 italic my-4 text-muted-foreground bg-red-50 dark:bg-red-950" 
+                {...props}
+              >
+                <div className="text-xs text-red-600 dark:text-red-400 font-bold mb-2">
+                  ⚠️ CALLOUT NÃO DETECTADO (debug mode)
+                </div>
                 {children}
               </blockquote>
             );
