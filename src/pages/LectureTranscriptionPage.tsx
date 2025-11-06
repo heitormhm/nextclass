@@ -24,8 +24,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer, Camera, Copy } from 'lucide-react';
+import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer, Camera, Copy, ChevronUp, X as CloseIcon, Monitor, Smartphone } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
+import { useIsMobile } from "@/hooks/use-mobile";
 import { printMaterialDidatico } from '@/utils/printMaterialDidatico';
 import { 
   captureAllCallouts, 
@@ -45,8 +46,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from '@/components/ui/drawer';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { EditWithAIModal } from '@/components/EditWithAIModal';
@@ -92,6 +95,7 @@ const LectureTranscriptionPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -250,6 +254,39 @@ const LectureTranscriptionPage = () => {
   // Screenshot capture state
   const [capturedScreenshots, setCapturedScreenshots] = useState<CalloutScreenshot[]>([]);
   const [isCapturingScreenshots, setIsCapturingScreenshots] = useState(false);
+
+  // Tab state for swipe gestures
+  const [activeTab, setActiveTab] = useState<'resumo' | 'material-v2'>('resumo');
+  
+  // Touch event handlers for swipe gestures
+  const touchStart = useRef<number | null>(null);
+  const touchEnd = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEnd.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart.current || !touchEnd.current || !isMobile) return;
+    
+    const distance = touchStart.current - touchEnd.current;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+    
+    if (isLeftSwipe && activeTab === 'resumo' && materialDidaticoV2) {
+      setActiveTab('material-v2');
+    }
+    if (isRightSwipe && activeTab === 'material-v2') {
+      setActiveTab('resumo');
+    }
+    
+    touchStart.current = null;
+    touchEnd.current = null;
+  };
 
   // URL validation helper
   const isValidUrl = (url: string) => {
@@ -1837,32 +1874,50 @@ const LectureTranscriptionPage = () => {
           <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
-        <div className="relative z-10 container mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8">
+        <div className={cn(
+          "relative z-10 container mx-auto py-8",
+          isMobile ? "px-2" : "px-4"
+        )}>
+          {/* Header - Mobile Optimized */}
+          <div className={cn(
+            "flex flex-col gap-4 mb-8",
+            isMobile ? "items-stretch" : "lg:flex-row items-start lg:items-center justify-between"
+          )}>
             <div>
               <div className="flex items-center gap-3">
-                <Sparkles className="h-8 w-8 text-purple-300 animate-pulse" />
+                <Sparkles className={cn(
+                  "text-purple-300 animate-pulse",
+                  isMobile ? "h-6 w-6" : "h-8 w-8"
+                )} />
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+                  <h1 className={cn(
+                    "font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]",
+                    isMobile ? "text-xl" : "text-3xl md:text-4xl"
+                  )}>
                     Centro de Publicação Inteligente
                   </h1>
-                  <p className="text-white/80 text-base drop-shadow-sm mt-1">
-                    Revise, edite e publique seu material didático gerado por IA
-                  </p>
+                  {!isMobile && (
+                    <p className="text-white/80 text-base drop-shadow-sm mt-1">
+                      Revise, edite e publique seu material didático gerado por IA
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className={cn(
+              "flex gap-3",
+              isMobile ? "flex-col w-full" : "items-center"
+            )}>
               <Badge 
                 variant="outline" 
-                className={`
-                  backdrop-blur-xl shadow-lg
-                  ${lecture?.status === 'processing' ? 'bg-yellow-500/30 text-yellow-100 border-yellow-300/40' : ''}
-                  ${lecture?.status === 'ready' ? 'bg-blue-500/30 text-blue-100 border-blue-300/40' : ''}
-                  ${lecture?.status === 'published' ? 'bg-green-500/30 text-green-100 border-green-300/40' : ''}
-                `}
+                className={cn(
+                  "backdrop-blur-xl shadow-lg",
+                  isMobile && "self-start",
+                  lecture?.status === 'processing' && "bg-yellow-500/30 text-yellow-100 border-yellow-300/40",
+                  lecture?.status === 'ready' && "bg-blue-500/30 text-blue-100 border-blue-300/40",
+                  lecture?.status === 'published' && "bg-green-500/30 text-green-100 border-green-300/40"
+                )}
               >
                 {lecture?.status === 'processing' && '⏳ Processando'}
                 {lecture?.status === 'ready' && '✏️ Rascunho'}
@@ -1870,12 +1925,14 @@ const LectureTranscriptionPage = () => {
               </Badge>
               <Button
                 variant="outline"
-                className="backdrop-blur-xl bg-white/20 hover:bg-white/30 border-white/40 text-white"
+                className={cn(
+                  "backdrop-blur-xl bg-white/20 hover:bg-white/30 border-white/40 text-white min-h-[44px]",
+                  isMobile && "w-full justify-center"
+                )}
                 onClick={async () => {
                   if (!id || !structuredContent) return;
                   
                   try {
-                    // 🔧 FASE 1: Preservar thumbnail ao salvar progresso
                     const currentContent = structuredContent as Record<string, any>;
                     const contentToSave = {
                       ...currentContent,
@@ -1912,33 +1969,27 @@ const LectureTranscriptionPage = () => {
                 }}
               >
                 <Save className="h-4 w-4 mr-2" />
-                Salvar Progresso
+                {isMobile ? "Salvar" : "Salvar Progresso"}
               </Button>
               
               {lecture?.status !== 'published' && (
                 <Button
                   onClick={handlePublish}
                   disabled={!selectedClassId || isPublishing || !structuredContent}
-                  className="
-                    bg-gradient-to-r from-green-600 to-green-700 
-                    hover:from-green-700 hover:to-green-800
-                    text-white font-bold
-                    shadow-2xl shadow-green-500/30
-                    hover:scale-105 hover:shadow-green-500/50
-                    transition-all duration-300
-                    border-2 border-green-400/20
-                    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
-                  "
+                  className={cn(
+                    "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold shadow-2xl shadow-green-500/30 hover:scale-105 hover:shadow-green-500/50 transition-all duration-300 border-2 border-green-400/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 min-h-[44px]",
+                    isMobile && "w-full justify-center"
+                  )}
                 >
                   {isPublishing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Publicando...
+                      {isMobile ? "Publicando..." : "Publicando..."}
                     </>
                   ) : (
                     <>
                       <CheckSquare className="mr-2 h-4 w-4" />
-                      Publicar Aula
+                      {isMobile ? "Publicar" : "Publicar Aula"}
                     </>
                   )}
                 </Button>
@@ -1946,17 +1997,35 @@ const LectureTranscriptionPage = () => {
             </div>
           </div>
 
-          {/* Processing state */}
+          {/* Processing state - Mobile Optimized */}
           {isProcessing && (
-            <Card className="bg-white/75 backdrop-blur-xl border-white/40 mb-8 shadow-2xl">
-              <CardContent className="flex items-center gap-4 py-6">
-                <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
+            <Card className={cn(
+              "bg-white/75 backdrop-blur-xl border-white/40 mb-8 shadow-2xl",
+              isMobile && "mx-0"
+            )}>
+              <CardContent className={cn(
+                "flex items-center gap-4 py-6",
+                isMobile && "flex-col text-center py-4"
+              )}>
+                <Loader2 className={cn(
+                  "text-purple-600 animate-spin",
+                  isMobile ? "h-6 w-6" : "h-8 w-8"
+                )} />
                 <div>
-                  <h3 className="text-slate-900 font-semibold mb-1 drop-shadow-sm">
+                  <h3 className={cn(
+                    "text-slate-900 font-semibold mb-1 drop-shadow-sm",
+                    isMobile && "text-sm"
+                  )}>
                     🤖 Processando com IA...
                   </h3>
-                  <p className="text-slate-700 text-sm drop-shadow-sm">
-                    A IA está analisando a transcrição e gerando material didático estruturado
+                  <p className={cn(
+                    "text-slate-700 drop-shadow-sm",
+                    isMobile ? "text-xs" : "text-sm"
+                  )}>
+                    {isMobile 
+                      ? "Analisando transcrição..." 
+                      : "A IA está analisando a transcrição e gerando material didático estruturado"
+                    }
                   </p>
                 </div>
               </CardContent>
@@ -1987,33 +2056,62 @@ const LectureTranscriptionPage = () => {
             </Card>
           )}
 
-          {/* Main content grid */}
+          {/* Main content grid - Mobile Optimized */}
           {structuredContent && (
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px] gap-4 md:gap-6">
+            <div className={cn(
+              "gap-4 md:gap-6",
+              isMobile 
+                ? "flex flex-col space-y-4" 
+                : "grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]"
+            )}>
               {/* Left column - Generated content */}
               <div className="space-y-6">
-                {/* Title */}
-                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
-                  <CardHeader>
-                    <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
+                {/* Title - Mobile Optimized */}
+                <Card className={cn(
+                  "bg-white/75 backdrop-blur-xl border-white/40 shadow-xl",
+                  isMobile && "mx-0"
+                )}>
+                  <CardHeader className={cn(isMobile && "px-4 py-3")}>
+                    <CardTitle className={cn(
+                      "text-xl text-slate-900 font-bold flex items-center gap-2",
+                      isMobile && "text-lg"
+                    )}>
                       <BookOpen className="h-5 w-5 text-purple-600" />
                       Título da Aula
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <Input
-                      value={lectureTitle}
-                      onChange={(e) => setLectureTitle(e.target.value)}
-                      className="bg-white border-slate-300 text-slate-900"
-                      placeholder="Digite o título da aula"
-                    />
+                  <CardContent className={cn(isMobile && "px-4 py-3")}>
+                    {isMobile ? (
+                      <Textarea
+                        value={lectureTitle}
+                        onChange={(e) => setLectureTitle(e.target.value)}
+                        className="bg-white border-slate-300 text-slate-900 min-h-[80px] resize-none"
+                        placeholder="Digite o título da aula"
+                      />
+                    ) : (
+                      <Input
+                        value={lectureTitle}
+                        onChange={(e) => setLectureTitle(e.target.value)}
+                        className="bg-white border-slate-300 text-slate-900"
+                        placeholder="Digite o título da aula"
+                      />
+                    )}
                   </CardContent>
                 </Card>
 
-                {/* Conteúdo Gerado com Tabs */}
-                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
+                {/* Conteúdo Gerado com Tabs - Mobile Optimized */}
+                <Card className={cn(
+                  "bg-white/75 backdrop-blur-xl border-white/40 shadow-xl",
+                  isMobile && "mx-0 shadow-md"
+                )}>
+                  <CardHeader className={cn(
+                    "flex flex-row items-center justify-between",
+                    isMobile && "px-4 py-3"
+                  )}>
+                    <CardTitle className={cn(
+                      "text-xl text-slate-900 font-bold flex items-center gap-2",
+                      isMobile && "text-lg"
+                    )}>
                       <FileText className="h-5 w-5 text-purple-600" />
                       Conteúdo Gerado
                     </CardTitle>
@@ -2062,17 +2160,20 @@ const LectureTranscriptionPage = () => {
                           disabled={isPrintingPDF}
                           size="sm"
                           variant="outline"
-                          className="border-purple-600 text-purple-700 hover:bg-purple-50"
+                          className={cn(
+                            "border-purple-600 text-purple-700 hover:bg-purple-50",
+                            isMobile && "min-h-[44px]"
+                          )}
                         >
                           {isPrintingPDF ? (
                             <>
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Gerando PDF...
+                              {isMobile ? "PDF..." : "Gerando PDF..."}
                             </>
                           ) : (
                             <>
                               <Printer className="h-4 w-4 mr-2" />
-                              Imprimir PDF
+                              {isMobile ? "PDF" : "Imprimir PDF"}
                             </>
                           )}
                         </Button>
@@ -2084,17 +2185,20 @@ const LectureTranscriptionPage = () => {
                           onClick={handleGenerateMaterialV2}
                           disabled={isGeneratingMaterialV2}
                           size="sm"
-                          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md"
+                          className={cn(
+                            "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md",
+                            isMobile && "min-h-[44px]"
+                          )}
                         >
                           {isGeneratingMaterialV2 ? (
                             <>
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Gerando...
+                              {isMobile ? "Gerando..." : "Gerando..."}
                             </>
                           ) : (
                             <>
                               <Sparkles className="h-4 w-4 mr-2" />
-                              Gerar Material Didático
+                              {isMobile ? "Gerar Material" : "Gerar Material Didático"}
                             </>
                           )}
                         </Button>
@@ -2103,67 +2207,115 @@ const LectureTranscriptionPage = () => {
                   </CardHeader>
                   
                   {isGeneratingMaterialV2 && (
-                    <div className="px-6 pb-4">
+                    <div className={cn(
+                      "px-6 pb-4",
+                      isMobile && "px-4 pb-3"
+                    )}>
                       <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 text-purple-700">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="text-sm font-medium">{materialV2Progress}</span>
+                          <Loader2 className={cn(
+                            "animate-spin",
+                            isMobile ? "h-3 w-3" : "h-4 w-4"
+                          )} />
+                          <span className={cn(
+                            "font-medium",
+                            isMobile ? "text-xs" : "text-sm"
+                          )}>
+                            {materialV2Progress}
+                          </span>
                         </div>
-                        <p className="text-xs text-purple-600 mt-1">
-                          Este processo pode levar 1-2 minutos (pesquisa acadêmica + geração de conteúdo)
-                        </p>
+                        {!isMobile && (
+                          <p className="text-xs text-purple-600 mt-1">
+                            Este processo pode levar 1-2 minutos (pesquisa acadêmica + geração de conteúdo)
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
-                  <CardContent>
-                    <Tabs defaultValue="resumo" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 gap-1 h-full min-h-[52px]">
+                  <CardContent className={cn(isMobile && "px-4 py-3")}>
+                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'resumo' | 'material-v2')} className="w-full">
+                      <TabsList className={cn(
+                        "grid w-full grid-cols-2 bg-muted/50 p-1 gap-1",
+                        isMobile ? "min-h-[48px]" : "min-h-[52px]"
+                      )}>
                         <TabsTrigger 
                           value="resumo" 
-                          className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center"
+                          className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center gap-2"
                         >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Transcrição da Aula
+                          <FileText className="h-4 w-4 flex-shrink-0" />
+                          <span className={cn(isMobile && "text-xs")}>
+                            {isMobile ? "Transcrição" : "Transcrição da Aula"}
+                          </span>
                         </TabsTrigger>
                         <TabsTrigger 
                           value="material-v2" 
                           disabled={!materialDidaticoV2}
                           className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center gap-2"
                         >
-                          <Sparkles className="h-4 w-4" />
-                          <span className="hidden sm:inline">Material Didático</span>
-                          <span className="sm:hidden">Didático</span>
-                          {materialDidaticoV2 ? (
-                            <Badge variant="default" className="ml-1 text-xs bg-green-600">
-                              ✓ Pronto
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="ml-1 text-xs">
-                              Gerar
+                          <Sparkles className="h-4 w-4 flex-shrink-0" />
+                          <span className={cn(isMobile && "text-xs")}>
+                            {isMobile ? "Material" : "Material Didático"}
+                          </span>
+                          {materialDidaticoV2 && (
+                            <Badge variant="default" className={cn(
+                              "ml-1 bg-green-600",
+                              isMobile ? "text-[10px] px-1" : "text-xs"
+                            )}>
+                              ✓
                             </Badge>
                           )}
                         </TabsTrigger>
                       </TabsList>
                       
-                      <TabsContent value="resumo" className="overflow-x-auto mt-4">
+                      <TabsContent 
+                        value="resumo" 
+                        className="overflow-x-auto mt-4"
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                      >
                         <FormattedTranscriptViewer transcript={lecture?.raw_transcript || ''} />
                       </TabsContent>
                       
-                      <TabsContent value="material-v2" className="overflow-x-auto mt-4">
+                      <TabsContent 
+                        value="material-v2" 
+                        className="overflow-x-auto mt-4"
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                      >
                         {materialDidaticoV2 ? (
                           <>
                             <div>
-                              {/* Teacher Badge */}
+                              {/* Teacher Badge - Mobile Optimized */}
                               {teacherName && (
-                                <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-md w-fit">
-                                  <Users className="h-4 w-4 text-primary" />
-                                  <span className="text-xs font-medium">Professor: <strong className="text-foreground">{teacherName}</strong></span>
+                                <div className={cn(
+                                  "flex items-center gap-2 mb-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-md w-fit",
+                                  isMobile && "px-2 py-1 mb-1"
+                                )}>
+                                  <Users className={cn(
+                                    "h-4 w-4 text-primary",
+                                    isMobile && "h-3 w-3"
+                                  )} />
+                                  <span className={cn(
+                                    "text-xs font-medium",
+                                    isMobile && "text-[10px]"
+                                  )}>
+                                    Prof: <strong className="text-foreground">{teacherName}</strong>
+                                  </span>
                                 </div>
                               )}
                               
                               {/* WRAP CONTENT IN SCROLLABLE CONTAINER */}
-                              <ScrollArea className="h-[calc(100vh-200px)]">
-                                <div id="material-didatico-content" className="min-w-0 bg-white p-6 rounded-lg">
+                              <ScrollArea className={cn(
+                                isMobile 
+                                  ? "h-[calc(100vh-420px)]" 
+                                  : "h-[calc(100vh-200px)]"
+                              )}>
+                                <div id="material-didatico-content" className={cn(
+                                  "min-w-0 bg-white rounded-lg",
+                                  isMobile ? "p-4" : "p-6"
+                                )}>
                               {/* FASE 9: Banner de Aviso de Erros LaTeX */}
                               {hasLatexErrors && (
                                 <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
@@ -3237,6 +3389,70 @@ const LectureTranscriptionPage = () => {
               </div>
             </div>
           )}
+
+          {/* Sticky Action Buttons - Mobile Only */}
+          {isMobile && structuredContent && (
+            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-4 py-3 shadow-2xl">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (!id || !structuredContent) return;
+                    
+                    try {
+                      const currentContent = structuredContent as Record<string, any>;
+                      const contentToSave = {
+                        ...currentContent,
+                        thumbnail: thumbnailUrl || currentContent.thumbnail || ''
+                      };
+
+                      const { error } = await supabase
+                        .from('lectures')
+                        .update({
+                          structured_content: contentToSave,
+                          title: lectureTitle,
+                          updated_at: new Date().toISOString()
+                        })
+                        .eq('id', id);
+
+                      if (error) throw error;
+
+                      toast({
+                        title: 'Salvo! 💾',
+                        description: 'Progresso salvo com sucesso',
+                      });
+                      
+                      setHasUnsavedChanges(false);
+                    } catch (err) {
+                      console.error('Save error:', err);
+                      toast({
+                        title: 'Erro ao salvar',
+                        description: 'Não foi possível salvar o progresso',
+                        variant: 'destructive',
+                      });
+                    }
+                  }}
+                  className="flex-1 min-h-[48px]"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar
+                </Button>
+                {lecture?.status !== 'published' && (
+                  <Button
+                    onClick={handlePublish}
+                    disabled={!selectedClassId || isPublishing}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white min-h-[48px]"
+                  >
+                    <CheckSquare className="mr-2 h-4 w-4" />
+                    Publicar
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Add padding to prevent content from being hidden behind sticky bar */}
+          <div className={cn(isMobile && "pb-20")} />
         </div>
 
         {/* Edit with AI Modal */}
