@@ -2593,18 +2593,18 @@ const LectureTranscriptionPage = () => {
 
                 {/* Quiz questions */}
                 <Card id="perguntas-revisao" className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
-                      <CheckSquare className="h-5 w-5 text-purple-600" />
+                  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:justify-between">
+                    <CardTitle className="text-lg sm:text-xl text-slate-900 font-bold flex items-center gap-2">
+                      <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
                       Perguntas de Revisão ({generatedQuiz?.questions?.length || structuredContent?.perguntas_revisao?.length || 0})
                     </CardTitle>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                       {hasQuiz && generatedQuiz && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setShowQuizModal(true)}
-                          className="bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                          className="bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100 text-xs sm:text-sm px-2 sm:px-3"
                         >
                           <Eye className="h-3 w-3 mr-1" />
                           Visualizar
@@ -2620,7 +2620,7 @@ const LectureTranscriptionPage = () => {
                           handleGenerateQuiz();
                         }}
                         disabled={isGeneratingQuiz}
-                        className="bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200"
+                        className="bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 text-xs sm:text-sm px-2 sm:px-3"
                       >
                         {isGeneratingQuiz ? (
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -2630,16 +2630,17 @@ const LectureTranscriptionPage = () => {
                         Gerar Novas
                       </Button>
                       {isGeneratingQuiz && (
-                        <Badge variant="outline" className="ml-2 animate-pulse bg-blue-50 border-blue-300 text-blue-700">
+                        <Badge variant="outline" className="ml-0 sm:ml-2 animate-pulse bg-blue-50 border-blue-300 text-blue-700 text-xs">
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          Processando...
+                          <span className="hidden xs:inline">Processando...</span>
+                          <span className="xs:hidden">...</span>
                         </Badge>
                       )}
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => openEditModal('Perguntas', { perguntas_revisao: generatedQuiz?.questions || structuredContent.perguntas_revisao })}
-                        className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
+                        className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80 text-xs sm:text-sm px-2 sm:px-3"
                       >
                         <Sparkles className="h-3 w-3 mr-1" />
                         Editar com IA
@@ -2820,18 +2821,18 @@ const LectureTranscriptionPage = () => {
 
                 {/* Flashcards */}
                 <Card id="flashcards" className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-purple-600" />
+                  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:justify-between">
+                    <CardTitle className="text-lg sm:text-xl text-slate-900 font-bold flex items-center gap-2">
+                      <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
                       Flashcards ({generatedFlashcards?.cards?.length || structuredContent.flashcards.length})
                     </CardTitle>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                       {hasFlashcards && generatedFlashcards && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setShowFlashcardsModal(true)}
-                          className="bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100"
+                          className="bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100 text-xs sm:text-sm px-2 sm:px-3"
                         >
                           <Eye className="h-3 w-3 mr-1" />
                           Visualizar
@@ -2847,7 +2848,7 @@ const LectureTranscriptionPage = () => {
                           handleGenerateFlashcards();
                         }}
                         disabled={isGeneratingFlashcards}
-                        className="bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200"
+                        className="bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200 text-xs sm:text-sm px-2 sm:px-3"
                       >
                         {isGeneratingFlashcards ? (
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -2857,16 +2858,17 @@ const LectureTranscriptionPage = () => {
                         Gerar Novos
                       </Button>
                       {isGeneratingFlashcards && (
-                        <Badge variant="outline" className="ml-2 animate-pulse bg-purple-50 border-purple-300 text-purple-700">
+                        <Badge variant="outline" className="ml-0 sm:ml-2 animate-pulse bg-purple-50 border-purple-300 text-purple-700 text-xs">
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          Processando...
+                          <span className="hidden xs:inline">Processando...</span>
+                          <span className="xs:hidden">...</span>
                         </Badge>
                       )}
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => openEditModal('Flashcards', { flashcards: generatedFlashcards?.cards || structuredContent.flashcards })}
-                        className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80"
+                        className="bg-white/50 border-slate-300 text-slate-900 hover:bg-white/80 text-xs sm:text-sm px-2 sm:px-3"
                       >
                         <Sparkles className="h-3 w-3 mr-1" />
                         Editar com IA
