@@ -2443,11 +2443,11 @@ const LectureTranscriptionPage = () => {
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
                       >
-                        <ScrollArea className={cn(
-                          isMobile 
-                            ? "h-[calc(100vh-500px)]" 
-                            : "h-[calc(100vh-200px)]"
-                        )}>
+                <ScrollArea className={cn(
+                  isMobile 
+                    ? "h-[calc(100vh-300px)]"
+                    : "h-[calc(100vh-200px)]"
+                )}>
                           <div className="overflow-x-auto">
                             <FormattedTranscriptViewer transcript={lecture?.raw_transcript || ''} />
                           </div>
@@ -2484,11 +2484,11 @@ const LectureTranscriptionPage = () => {
                               )}
                               
                               {/* WRAP CONTENT IN SCROLLABLE CONTAINER */}
-                              <ScrollArea className={cn(
-                                isMobile 
-                                  ? "h-[calc(100vh-450px)] overflow-x-hidden" 
-                                  : "h-[calc(100vh-200px)]"
-                              )}>
+                <ScrollArea className={cn(
+                  isMobile 
+                    ? "h-[calc(100vh-300px)] overflow-x-hidden"
+                    : "h-[calc(100vh-200px)]"
+                )}>
                                 <div id="material-didatico-content" className={cn(
                                   "min-w-0 max-w-full bg-white rounded-lg overflow-hidden overflow-x-hidden",
                                   isMobile ? "p-3" : "p-6"
