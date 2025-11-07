@@ -479,7 +479,7 @@ const TeacherDashboard = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+      <div className="min-h-screen max-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background with Ripple Effect */}
         <TeacherBackgroundRipple />
         
@@ -491,7 +491,7 @@ const TeacherDashboard = () => {
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 p-3 md:p-6 max-w-[1600px] mx-auto minimal-scrollbar-purple overflow-y-auto">
+        <div className="relative z-10 p-3 md:p-6 max-w-[1600px] mx-auto minimal-scrollbar-purple overflow-y-auto h-full">
           {/* Header */}
           <div className="mb-6 md:mb-8">
             <h1 className="text-2xl md:text-4xl font-bold text-white uppercase mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">Painel do Professor</h1>
@@ -711,30 +711,30 @@ const TeacherDashboard = () => {
                           <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0 ml-2" />
                         </Button>
                       </DrawerTrigger>
-                      <DrawerContent className="max-h-[60vh]">
-                        <DrawerHeader>
+                      <DrawerContent className="max-h-[60vh] flex flex-col">
+                        <DrawerHeader className="flex-shrink-0">
                           <DrawerTitle>Selecione uma Turma</DrawerTitle>
                         </DrawerHeader>
-                        <div className="overflow-y-auto px-4 pb-4">
+                        <div className="overflow-y-auto px-4 pb-4 minimal-scrollbar-purple">
                           <div className="space-y-2">
                             {classes.map((cls) => (
                               <DrawerClose key={cls.id} asChild>
                                 <Button
                                   variant={selectedClass === cls.id ? "default" : "outline"}
                                   className={cn(
-                                    "w-full justify-start text-left h-auto py-3 px-4",
+                                    "w-full justify-between text-left h-auto py-3 px-4",
                                     selectedClass === cls.id 
                                       ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white" 
                                       : "bg-white hover:bg-purple-50"
                                   )}
                                   onClick={() => setSelectedClass(cls.id)}
                                 >
-                                  <div className="flex flex-col items-start gap-1">
-                                    <span className="font-semibold text-sm">{cls.name}</span>
-                                    <span className="text-xs opacity-80">{cls.period}</span>
+                                  <div className="flex flex-col items-start gap-1 flex-1 min-w-0 pr-2">
+                                    <span className="font-semibold text-sm truncate w-full">{cls.name}</span>
+                                    <span className="text-xs opacity-80 truncate w-full">{cls.period}</span>
                                   </div>
                                   {selectedClass === cls.id && (
-                                    <Check className="h-4 w-4 ml-auto" />
+                                    <Check className="h-4 w-4 flex-shrink-0" />
                                   )}
                                 </Button>
                               </DrawerClose>
