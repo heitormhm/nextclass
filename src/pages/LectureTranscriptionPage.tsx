@@ -303,6 +303,21 @@ const LectureTranscriptionPage = () => {
     touchEnd.current = null;
   };
 
+  // Smooth scroll navigation for mobile sections
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const offset = 84; // 64px navbar + 20px padding
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   // URL validation helper
   const isValidUrl = (url: string) => {
     try {
@@ -2081,8 +2096,8 @@ const LectureTranscriptionPage = () => {
             )}>
               {/* Left column - Generated content */}
               <div className="space-y-6">
-                {/* Title - Mobile Optimized */}
-                <Card className={cn(
+                 {/* Title - Mobile Optimized */}
+                <Card id="titulo-aula" className={cn(
                   "bg-white/75 backdrop-blur-xl border-white/40 shadow-xl",
                   isMobile && "mx-0"
                 )}>
@@ -2117,7 +2132,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Conteúdo Gerado com Tabs - Mobile Optimized */}
-                <Card className={cn(
+                <Card id="conteudo-gerado" className={cn(
                   "bg-white/75 backdrop-blur-xl border-white/40 shadow-xl",
                   isMobile && "mx-0 shadow-md"
                 )}>
@@ -2366,14 +2381,31 @@ const LectureTranscriptionPage = () => {
                         </TabsTrigger>
                       </TabsList>
                       
+                      {/* Swipe hint indicator for mobile */}
+                      {isMobile && (
+                        <div className="flex items-center justify-center gap-2 py-2 text-xs text-purple-600 animate-pulse">
+                          <span>←</span>
+                          <span>Deslize para trocar abas</span>
+                          <span>→</span>
+                        </div>
+                      )}
+                      
                       <TabsContent 
                         value="resumo" 
-                        className="overflow-x-auto mt-4"
+                        className="mt-4"
                         onTouchStart={handleTouchStart}
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
                       >
-                        <FormattedTranscriptViewer transcript={lecture?.raw_transcript || ''} />
+                        <ScrollArea className={cn(
+                          isMobile 
+                            ? "h-[calc(100vh-500px)]" 
+                            : "h-[calc(100vh-200px)]"
+                        )}>
+                          <div className="overflow-x-auto">
+                            <FormattedTranscriptViewer transcript={lecture?.raw_transcript || ''} />
+                          </div>
+                        </ScrollArea>
                       </TabsContent>
                       
                       <TabsContent 
@@ -2480,7 +2512,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Main topics */}
-                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
+                <Card id="topicos-principais" className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
                       <BookOpen className="h-5 w-5 text-purple-600" />
@@ -2514,7 +2546,7 @@ const LectureTranscriptionPage = () => {
 
 
                 {/* Quiz questions */}
-                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
+                <Card id="perguntas-revisao" className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
                       <CheckSquare className="h-5 w-5 text-purple-600" />
@@ -2642,7 +2674,7 @@ const LectureTranscriptionPage = () => {
                 </Card>
 
                 {/* Flashcards */}
-                <Card className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
+                <Card id="flashcards" className="bg-white/75 backdrop-blur-xl border-white/40 shadow-xl">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-xl text-slate-900 font-bold flex items-center gap-2">
                       <Brain className="h-5 w-5 text-purple-600" />
@@ -3607,8 +3639,46 @@ const LectureTranscriptionPage = () => {
         )}
       </div>
 
-      {/* Floating Action Button - Mobile Only */}
+      {/* Floating Action Button - Mobile Navigation */}
       {isMobile && structuredContent && (
+        <div className="fixed bottom-24 right-4 z-50">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-2xl bg-gradient-to-br from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 hover:scale-110 transition-all duration-300 border-2 border-white/30"
+              >
+                <MoreVertical className="h-6 w-6 text-white" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-xl border-purple-200/50">
+              <DropdownMenuItem onClick={() => scrollToSection('titulo-aula')}>
+                <BookOpen className="h-4 w-4 mr-2 text-purple-600" />
+                Título da Aula
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => scrollToSection('conteudo-gerado')}>
+                <FileText className="h-4 w-4 mr-2 text-purple-600" />
+                Conteúdo Gerado
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => scrollToSection('topicos-principais')}>
+                <BookOpen className="h-4 w-4 mr-2 text-purple-600" />
+                Tópicos Abordados
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => scrollToSection('perguntas-revisao')}>
+                <CheckSquare className="h-4 w-4 mr-2 text-purple-600" />
+                Perguntas de Revisão
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => scrollToSection('flashcards')}>
+                <Brain className="h-4 w-4 mr-2 text-purple-600" />
+                Flashcards
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
+      {/* Legacy Save/Publish FAB - Hidden, functionality moved to sticky bar */}
+      {false && isMobile && structuredContent && (
         <div className="fixed bottom-20 right-4 z-50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
