@@ -479,7 +479,7 @@ const TeacherDashboard = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen max-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
         {/* Animated Background with Ripple Effect */}
         <TeacherBackgroundRipple />
         
@@ -491,7 +491,7 @@ const TeacherDashboard = () => {
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 p-3 md:p-6 max-w-[1600px] mx-auto minimal-scrollbar-purple overflow-y-auto h-full">
+        <div className="relative z-10 p-3 md:p-6 max-w-[1600px] mx-auto">
           {/* Header */}
           <div className="mb-6 md:mb-8">
             <h1 className="text-2xl md:text-4xl font-bold text-white uppercase mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">Painel do Professor</h1>
