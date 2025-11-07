@@ -267,7 +267,7 @@ const Navbar = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b frost-white-subtle shadow-sm">
+      <header className="sticky top-0 z-[100] w-full border-b frost-white-subtle shadow-sm [transform:translateZ(0)] will-change-transform">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 sm:h-16 items-center justify-between">
             {/* Logo */}

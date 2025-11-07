@@ -24,7 +24,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer, Camera, Copy, ChevronUp, X as CloseIcon, Monitor, Smartphone, MoreVertical, Zap } from 'lucide-react';
+import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer, Camera, Copy, ChevronUp, X as CloseIcon, Monitor, Smartphone, MoreVertical, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { printMaterialDidatico } from '@/utils/printMaterialDidatico';
@@ -269,6 +269,13 @@ const LectureTranscriptionPage = () => {
   // Screenshot capture state
   const [capturedScreenshots, setCapturedScreenshots] = useState<CalloutScreenshot[]>([]);
   const [isCapturingScreenshots, setIsCapturingScreenshots] = useState(false);
+  
+  // Swipe navigation state for questions and flashcards
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [questionTouchStart, setQuestionTouchStart] = useState(0);
+  const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
+  const [isFlashcardFlipped, setIsFlashcardFlipped] = useState(false);
+  const [flashcardTouchStart, setFlashcardTouchStart] = useState(0);
 
   // Tab state for swipe gestures
   const [activeTab, setActiveTab] = useState<'resumo' | 'material-v2'>('resumo');
@@ -1824,6 +1831,45 @@ const LectureTranscriptionPage = () => {
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+  
+  // Touch handlers for swipe navigation
+  const handleQuestionTouchStart = (e: React.TouchEvent) => {
+    setQuestionTouchStart(e.touches[0].clientX);
+  };
+
+  const handleQuestionTouchEnd = (e: React.TouchEvent) => {
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = questionTouchStart - touchEnd;
+    
+    if (Math.abs(diff) > 50) {
+      const questions = generatedQuiz?.questions || structuredContent?.perguntas_revisao || [];
+      if (diff > 0 && currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+      } else if (diff < 0 && currentQuestionIndex > 0) {
+        setCurrentQuestionIndex(prev => prev - 1);
+      }
+    }
+  };
+
+  const handleFlashcardTouchStart = (e: React.TouchEvent) => {
+    setFlashcardTouchStart(e.touches[0].clientX);
+  };
+
+  const handleFlashcardTouchEnd = (e: React.TouchEvent) => {
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = flashcardTouchStart - touchEnd;
+    
+    if (Math.abs(diff) > 50) {
+      const cards = generatedFlashcards?.cards || structuredContent?.flashcards || [];
+      if (diff > 0 && currentFlashcardIndex < cards.length - 1) {
+        setCurrentFlashcardIndex(prev => prev + 1);
+        setIsFlashcardFlipped(false);
+      } else if (diff < 0 && currentFlashcardIndex > 0) {
+        setCurrentFlashcardIndex(prev => prev - 1);
+        setIsFlashcardFlipped(false);
+      }
+    }
+  };
 
   const handlePublishConfirmed = async () => {
     if (!selectedClassId) {
@@ -2601,75 +2647,174 @@ const LectureTranscriptionPage = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <ScrollArea className="h-[400px] pr-4">
-                      <div className="space-y-6">
-                        {(generatedQuiz?.questions || structuredContent?.perguntas_revisao || []).map((pergunta, index) => {
+                    {isMobile ? (
+                      // Mobile: Single question with swipe navigation
+                      <div className="relative">
+                        {(() => {
+                          const questions = generatedQuiz?.questions || structuredContent?.perguntas_revisao || [];
+                          if (questions.length === 0) return <p className="text-center text-slate-500 py-8">Nenhuma pergunta disponível</p>;
+                          
+                          const pergunta = questions[currentQuestionIndex];
                           const isTeacherQuiz = pergunta.options && typeof pergunta.options === 'object';
                           
-                          if (isTeacherQuiz) {
-                            const opts = Object.entries(pergunta.options).map(([k, v]) => ({ letter: k, text: v as string }));
-                            return (
-                              <div key={index} className="bg-white rounded-lg p-4 border border-slate-200 relative group">
-                                {/* Action Buttons */}
-                                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 hover:bg-purple-100 text-purple-600 hover:text-purple-700"
-                                    onClick={() => handleEditQuizQuestionWithAI(index, pergunta)}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5 icon-shimmer" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 hover:bg-red-100 text-red-500 hover:text-red-600"
-                                    onClick={() => handleDeleteQuizQuestion(index)}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
+                          return (
+                            <>
+                              <div className="text-center mb-3">
+                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
+                                  Questão {currentQuestionIndex + 1} de {questions.length}
+                                </Badge>
+                              </div>
+                              
+                              <div
+                                onTouchStart={handleQuestionTouchStart}
+                                onTouchEnd={handleQuestionTouchEnd}
+                                className="bg-white rounded-lg p-4 border border-slate-200 min-h-[240px]"
+                              >
+                                {isTeacherQuiz ? (
+                                  <>
+                                    {pergunta.bloomLevel && <Badge className="mb-2 bg-purple-50 text-purple-700">{pergunta.bloomLevel}</Badge>}
+                                    <p className="text-slate-900 font-medium mb-3">{currentQuestionIndex + 1}. {pergunta.question}</p>
+                                    <div className="space-y-2">
+                                      {Object.entries(pergunta.options).map(([letter, text]) => (
+                                        <div key={letter} className={`p-3 rounded ${letter === pergunta.correctAnswer ? 'bg-green-100 border border-green-300' : 'bg-slate-50'}`}>
+                                          <span className="text-slate-900 text-sm"><span className="font-semibold mr-2">{letter})</span>{text as string}</span>
+                                          {letter === pergunta.correctAnswer && <Check className="inline-block h-4 w-4 text-green-600 ml-2" />}
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {pergunta.explanation && (
+                                      <div className="mt-3 p-3 bg-blue-50 rounded">
+                                        <p className="text-xs font-semibold text-blue-900">💡 Explicação:</p>
+                                        <p className="text-sm text-blue-800">{pergunta.explanation}</p>
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="text-slate-900 font-medium mb-3">{currentQuestionIndex + 1}. {pergunta.pergunta}</p>
+                                    <div className="space-y-2">
+                                      {(pergunta?.opcoes || []).map((opcao, opIndex) => (
+                                        <div key={opIndex} className={`p-3 rounded ${opcao.startsWith(pergunta.resposta_correta) ? 'bg-green-100 border border-green-300' : 'bg-slate-50'}`}>
+                                          <span className="text-slate-900 text-sm">{opcao}</span>
+                                          {opcao.startsWith(pergunta.resposta_correta) && <Check className="inline-block h-4 w-4 text-green-600 ml-2" />}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                              
+                              <div className="flex items-center justify-between mt-4">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                                  disabled={currentQuestionIndex === 0}
+                                  className="min-h-[44px]"
+                                >
+                                  <ChevronLeft className="h-4 w-4 mr-1" />
+                                  Anterior
+                                </Button>
+                                
+                                <div className="flex gap-1">
+                                  {questions.map((_, idx) => (
+                                    <div
+                                      key={idx}
+                                      className={cn(
+                                        "h-2 rounded-full transition-all",
+                                        idx === currentQuestionIndex 
+                                          ? "bg-purple-600 w-4" 
+                                          : "bg-slate-300 w-2"
+                                      )}
+                                    />
+                                  ))}
                                 </div>
+                                
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
+                                  disabled={currentQuestionIndex === questions.length - 1}
+                                  className="min-h-[44px]"
+                                >
+                                  Próxima
+                                  <ChevronRight className="h-4 w-4 ml-1" />
+                                </Button>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      // Desktop: Original ScrollArea view
+                      <ScrollArea className="h-[400px] pr-4">
+                        <div className="space-y-6">
+                          {(generatedQuiz?.questions || structuredContent?.perguntas_revisao || []).map((pergunta, index) => {
+                            const isTeacherQuiz = pergunta.options && typeof pergunta.options === 'object';
+                            
+                            if (isTeacherQuiz) {
+                              const opts = Object.entries(pergunta.options).map(([k, v]) => ({ letter: k, text: v as string }));
+                              return (
+                                <div key={index} className="bg-white rounded-lg p-4 border border-slate-200 relative group">
+                                  <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 hover:bg-purple-100 text-purple-600 hover:text-purple-700"
+                                      onClick={() => handleEditQuizQuestionWithAI(index, pergunta)}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5 icon-shimmer" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 hover:bg-red-100 text-red-500 hover:text-red-600"
+                                      onClick={() => handleDeleteQuizQuestion(index)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
 
-                                {pergunta.bloomLevel && <Badge className="mb-2 bg-purple-50 text-purple-700">{pergunta.bloomLevel}</Badge>}
-                                <p className="text-slate-900 font-medium mb-3 pr-16">{index + 1}. {pergunta.question}</p>
+                                  {pergunta.bloomLevel && <Badge className="mb-2 bg-purple-50 text-purple-700">{pergunta.bloomLevel}</Badge>}
+                                  <p className="text-slate-900 font-medium mb-3 pr-16">{index + 1}. {pergunta.question}</p>
+                                  <div className="space-y-2">
+                                    {opts.map(o => (
+                                      <div key={o.letter} className={`p-3 rounded ${o.letter === pergunta.correctAnswer ? 'bg-green-100 border border-green-300' : 'bg-slate-50'}`}>
+                                        <span className="text-slate-900 text-sm"><span className="font-semibold mr-2">{o.letter})</span>{o.text}</span>
+                                        {o.letter === pergunta.correctAnswer && <Check className="inline-block h-4 w-4 text-green-600 ml-2" />}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {pergunta.explanation && <div className="mt-3 p-3 bg-blue-50 rounded"><p className="text-xs font-semibold text-blue-900">💡 Explicação:</p><p className="text-sm text-blue-800">{pergunta.explanation}</p></div>}
+                                </div>
+                              );
+                            }
+                            return (
+                              <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
+                                <p className="text-slate-900 font-medium mb-3">{index + 1}. {pergunta.pergunta}</p>
                                 <div className="space-y-2">
-                                  {opts.map(o => (
-                                    <div key={o.letter} className={`p-3 rounded ${o.letter === pergunta.correctAnswer ? 'bg-green-100 border border-green-300' : 'bg-slate-50'}`}>
-                                      <span className="text-slate-900 text-sm"><span className="font-semibold mr-2">{o.letter})</span>{o.text}</span>
-                                      {o.letter === pergunta.correctAnswer && <Check className="inline-block h-4 w-4 text-green-600 ml-2" />}
+                                  {(pergunta?.opcoes || []).map((opcao, opIndex) => (
+                                    <div key={opIndex} className={`p-3 rounded ${opcao.startsWith(pergunta.resposta_correta) ? 'bg-green-100 border border-green-300' : 'bg-slate-50'}`}>
+                                      <span className="text-slate-900 text-sm">{opcao}</span>
+                                      {opcao.startsWith(pergunta.resposta_correta) && <Check className="inline-block h-4 w-4 text-green-600 ml-2" />}
                                     </div>
                                   ))}
                                 </div>
-                                {pergunta.explanation && <div className="mt-3 p-3 bg-blue-50 rounded"><p className="text-xs font-semibold text-blue-900">💡 Explicação:</p><p className="text-sm text-blue-800">{pergunta.explanation}</p></div>}
                               </div>
                             );
-                          }
-                          return (
-                            <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
-                              <p className="text-slate-900 font-medium mb-3">{index + 1}. {pergunta.pergunta}</p>
-                              <div className="space-y-2">
-                                {(pergunta?.opcoes || []).map((opcao, opIndex) => (
-                                  <div key={opIndex} className={`p-3 rounded ${opcao.startsWith(pergunta.resposta_correta) ? 'bg-green-100 border border-green-300' : 'bg-slate-50'}`}>
-                                    <span className="text-slate-900 text-sm">{opcao}</span>
-                                    {opcao.startsWith(pergunta.resposta_correta) && <Check className="inline-block h-4 w-4 text-green-600 ml-2" />}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                        
-                        {/* Add New Question Button */}
-                        <Button
-                          variant="outline"
-                          className="w-full border-2 border-dashed border-slate-300 hover:border-purple-400 hover:bg-purple-50 text-slate-600 hover:text-purple-700"
-                          onClick={handleAddQuizQuestion}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Adicionar Nova Pergunta
-                        </Button>
-                      </div>
-                    </ScrollArea>
+                          })}
+                          
+                          <Button
+                            variant="outline"
+                            className="w-full border-2 border-dashed border-slate-300 hover:border-purple-400 hover:bg-purple-50 text-slate-600 hover:text-purple-700"
+                            onClick={handleAddQuizQuestion}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Adicionar Nova Pergunta
+                          </Button>
+                        </div>
+                      </ScrollArea>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -2731,53 +2876,47 @@ const LectureTranscriptionPage = () => {
                   <CardContent>
                     {(generatedFlashcards && generatedFlashcards.cards.length > 0) || 
                      (structuredContent?.flashcards && structuredContent.flashcards.length > 0) ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(generatedFlashcards?.cards || structuredContent.flashcards.map((fc: any) => ({
-                          front: fc.termo,
-                          back: fc.definicao,
-                          tags: []
-                        }))).map((card, index) => (
-                          <div key={index} className="bg-white rounded-lg p-4 border border-slate-200 relative group">
-                            {/* Action Buttons */}
-                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 hover:bg-purple-100 text-purple-600 hover:text-purple-700"
-                                onClick={() => handleEditFlashcardWithAI(index, card)}
-                              >
-                                <Pencil className="h-3 w-3 icon-shimmer" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 hover:bg-red-100 text-red-500 hover:text-red-600"
-                                onClick={() => handleDeleteFlashcard(index)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-
-                            {card.tags && card.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mb-2">
-                                {card.tags.map((tag: string, i: number) => <Badge key={i} variant="secondary" className="text-xs">{tag}</Badge>)}
+                      isMobile ? (
+                        <div className="relative">
+                          {(() => {
+                            const cards = generatedFlashcards?.cards || structuredContent.flashcards.map((fc: any) => ({ front: fc.termo, back: fc.definicao, tags: [] }));
+                            if (cards.length === 0) return null;
+                            const card = cards[currentFlashcardIndex];
+                            return (
+                              <>
+                                <div className="text-center mb-3">
+                                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">Card {currentFlashcardIndex + 1} de {cards.length}</Badge>
+                                </div>
+                                <div onClick={() => setIsFlashcardFlipped(!isFlashcardFlipped)} onTouchStart={handleFlashcardTouchStart} onTouchEnd={handleFlashcardTouchEnd} className={cn("relative h-[200px] cursor-pointer transition-transform duration-500 [transform-style:preserve-3d]", isFlashcardFlipped && "[transform:rotateY(180deg)]")}>
+                                  <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-2 border-purple-200 [backface-visibility:hidden] flex items-center justify-center"><h3 className="text-lg font-bold text-purple-900 text-center">{card.front || card.termo}</h3></div>
+                                  <div className="absolute inset-0 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-6 border-2 border-pink-200 [transform:rotateY(180deg)] [backface-visibility:hidden] flex items-center justify-center"><p className="text-sm text-slate-700 text-center">{card.back || card.definicao}</p></div>
+                                </div>
+                                <p className="text-center text-xs text-slate-500 mt-2">Toque para virar · Deslize para navegar</p>
+                                <div className="flex items-center justify-between mt-4">
+                                  <Button variant="outline" size="sm" onClick={() => { setCurrentFlashcardIndex(prev => Math.max(0, prev - 1)); setIsFlashcardFlipped(false); }} disabled={currentFlashcardIndex === 0} className="min-h-[44px]"><ChevronLeft className="h-4 w-4 mr-1" />Anterior</Button>
+                                  <div className="flex gap-1">{cards.map((_, idx) => <div key={idx} className={cn("h-2 rounded-full transition-all", idx === currentFlashcardIndex ? "bg-purple-600 w-4" : "bg-slate-300 w-2")} />)}</div>
+                                  <Button variant="outline" size="sm" onClick={() => { setCurrentFlashcardIndex(prev => Math.min(cards.length - 1, prev + 1)); setIsFlashcardFlipped(false); }} disabled={currentFlashcardIndex === cards.length - 1} className="min-h-[44px]">Próximo<ChevronRight className="h-4 w-4 ml-1" /></Button>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {(generatedFlashcards?.cards || structuredContent.flashcards.map((fc: any) => ({ front: fc.termo, back: fc.definicao, tags: [] }))).map((card, index) => (
+                            <div key={index} className="bg-white rounded-lg p-4 border border-slate-200 relative group">
+                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-purple-100 text-purple-600 hover:text-purple-700" onClick={() => handleEditFlashcardWithAI(index, card)}><Pencil className="h-3 w-3 icon-shimmer" /></Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-red-100 text-red-500 hover:text-red-600" onClick={() => handleDeleteFlashcard(index)}><Trash2 className="h-3 w-3" /></Button>
                               </div>
-                            )}
-                            <h4 className="text-purple-700 font-semibold mb-2 text-base pr-14">{card.front || card.termo}</h4>
-                            <p className="text-slate-600 text-sm">{card.back || card.definicao}</p>
-                          </div>
-                        ))}
-                        
-                        {/* Add New Flashcard Button */}
-                        <Button
-                          variant="outline"
-                          className="h-full min-h-[120px] border-2 border-dashed border-slate-300 hover:border-purple-400 hover:bg-purple-50 text-slate-600 hover:text-purple-700"
-                          onClick={handleAddFlashcard}
-                        >
-                          <Plus className="h-5 w-5 mr-2" />
-                          Adicionar Novo Flashcard
-                        </Button>
-                      </div>
+                              {card.tags && card.tags.length > 0 && <div className="flex flex-wrap gap-1 mb-2">{card.tags.map((tag: string, i: number) => <Badge key={i} variant="secondary" className="text-xs">{tag}</Badge>)}</div>}
+                              <h4 className="text-purple-700 font-semibold mb-2 text-base pr-14">{card.front || card.termo}</h4>
+                              <p className="text-slate-600 text-sm">{card.back || card.definicao}</p>
+                            </div>
+                          ))}
+                          <Button variant="outline" className="h-full min-h-[120px] border-2 border-dashed border-slate-300 hover:border-purple-400 hover:bg-purple-50 text-slate-600 hover:text-purple-700" onClick={handleAddFlashcard}><Plus className="h-5 w-5 mr-2" />Adicionar Novo Flashcard</Button>
+                        </div>
+                      )
                     ) : (
                       <div className="text-center py-8">
                         <Brain className="h-12 w-12 text-slate-300 mx-auto mb-3" />
@@ -2940,48 +3079,57 @@ const LectureTranscriptionPage = () => {
                           </div>
                         </div>
                         
-                        {/* Controls */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                          <div className="flex gap-2 justify-center sm:justify-start">
-                            {/* Play/Pause */}
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => {
-                                if (audioRef.current) {
-                                  if (isPlaying) {
-                                    audioRef.current.pause();
-                                  } else {
-                                    audioRef.current.play();
-                                  }
-                                  setIsPlaying(!isPlaying);
+                        {/* Controls - Inline on mobile */}
+                        <div className={cn(
+                          "flex items-center gap-2",
+                          isMobile ? "justify-between" : "justify-start flex-wrap"
+                        )}>
+                          {/* Play/Pause */}
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              if (audioRef.current) {
+                                if (isPlaying) {
+                                  audioRef.current.pause();
+                                } else {
+                                  audioRef.current.play();
                                 }
-                              }}
-                              className="h-11 w-11 sm:h-10 sm:w-10"
-                            >
-                              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const speeds = [1, 1.5, 2, 0.5];
-                                const currentIndex = speeds.indexOf(playbackSpeed);
-                                const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
-                                setPlaybackSpeed(nextSpeed);
-                                if (audioRef.current) audioRef.current.playbackRate = nextSpeed;
-                              }}
-                              className="min-w-[60px] h-11 sm:h-10"
-                            >
-                              {playbackSpeed}x
-                            </Button>
-                          </div>
+                                setIsPlaying(!isPlaying);
+                              }
+                            }}
+                            className="h-11 w-11 shrink-0"
+                          >
+                            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                          </Button>
                           
-                          {/* Download button */}
+                          {/* Speed Control */}
                           <Button
                             variant="outline"
                             size="sm"
-                            className="gap-2 h-11 sm:h-10 w-full sm:w-auto"
+                            onClick={() => {
+                              const speeds = [1, 1.5, 2, 0.5];
+                              const currentIndex = speeds.indexOf(playbackSpeed);
+                              const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+                              setPlaybackSpeed(nextSpeed);
+                              if (audioRef.current) audioRef.current.playbackRate = nextSpeed;
+                            }}
+                            className={cn(
+                              "shrink-0",
+                              isMobile ? "min-w-[55px] h-11" : "min-w-[60px] h-10"
+                            )}
+                          >
+                            {playbackSpeed}x
+                          </Button>
+                          
+                          {/* Download Button - Icon only on mobile */}
+                          <Button
+                            variant="outline"
+                            size={isMobile ? "icon" : "sm"}
+                            className={cn(
+                              "shrink-0",
+                              isMobile ? "h-11 w-11" : "gap-2 h-10"
+                            )}
                             onClick={async () => {
                               try {
                                 toast({ title: 'Preparando download...' });
@@ -3014,8 +3162,15 @@ const LectureTranscriptionPage = () => {
                             }}
                           >
                             <Download className="h-4 w-4" />
-                            Baixar Áudio
+                            {!isMobile && <span>Baixar Áudio</span>}
                           </Button>
+                          
+                          {/* Time display - Desktop only */}
+                          {!isMobile && duration > 0 && (
+                            <span className="text-sm text-slate-600 font-medium ml-auto">
+                              {formatTime(duration)}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ) : (
