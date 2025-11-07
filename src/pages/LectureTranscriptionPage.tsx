@@ -2704,27 +2704,27 @@ const LectureTranscriptionPage = () => {
                                 )}
                               </div>
                               
-                              <div className="flex items-center justify-between mt-4">
+                              <div className="flex items-center justify-between mt-4 gap-2 w-full">
                                 <Button
                                   variant="outline"
-                                  size="sm"
+                                  size="icon"
                                   onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                                   disabled={currentQuestionIndex === 0}
-                                  className="min-h-[44px] min-w-[90px] px-3 text-xs"
+                                  className="h-11 w-11 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                                  aria-label="Questão anterior"
                                 >
-                                  <ChevronLeft className="h-4 w-4 mr-1" />
-                                  Anterior
+                                  <ChevronLeft className="h-5 w-5" />
                                 </Button>
                                 
-                                <div className="flex gap-1 min-w-[60px] justify-center">
+                                <div className="flex gap-1.5 flex-1 justify-center items-center px-2 max-w-[120px]">
                                   {questions.map((_, idx) => (
                                     <div
                                       key={idx}
                                       className={cn(
-                                        "h-2 rounded-full transition-all",
+                                        "h-2.5 rounded-full transition-all duration-300 shadow-sm",
                                         idx === currentQuestionIndex 
-                                          ? "bg-purple-600 w-4" 
-                                          : "bg-slate-300 w-2"
+                                          ? "bg-purple-600 w-6 shadow-md ring-2 ring-purple-200" 
+                                          : "bg-slate-400 w-2.5"
                                       )}
                                     />
                                   ))}
@@ -2732,13 +2732,13 @@ const LectureTranscriptionPage = () => {
                                 
                                 <Button
                                   variant="outline"
-                                  size="sm"
+                                  size="icon"
                                   onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
                                   disabled={currentQuestionIndex === questions.length - 1}
-                                  className="min-h-[44px] min-w-[90px] px-3 text-xs"
+                                  className="h-11 w-11 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                                  aria-label="Próxima questão"
                                 >
-                                  Próxima
-                                  <ChevronRight className="h-4 w-4 ml-1" />
+                                  <ChevronRight className="h-5 w-5" />
                                 </Button>
                               </div>
                             </>
@@ -2887,50 +2887,52 @@ const LectureTranscriptionPage = () => {
                                 <div className="text-center mb-3">
                                   <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">Card {currentFlashcardIndex + 1} de {cards.length}</Badge>
                                 </div>
-                                <div onClick={() => setIsFlashcardFlipped(!isFlashcardFlipped)} onTouchStart={handleFlashcardTouchStart} onTouchEnd={handleFlashcardTouchEnd} className={cn("relative h-[200px] cursor-pointer transition-transform duration-500 [transform-style:preserve-3d]", isFlashcardFlipped && "[transform:rotateY(180deg)]")}>
-                                  <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-2 border-purple-200 [backface-visibility:hidden] flex items-center justify-center"><h3 className="text-lg font-bold text-purple-900 text-center">{card.front || card.termo}</h3></div>
-                                  <div className="absolute inset-0 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-6 border-2 border-pink-200 [transform:rotateY(180deg)] [backface-visibility:hidden] flex items-center justify-center"><p className="text-sm text-slate-700 text-center">{card.back || card.definicao}</p></div>
+                                <div style={{ perspective: '1000px' }}>
+                                  <div onClick={() => setIsFlashcardFlipped(!isFlashcardFlipped)} onTouchStart={handleFlashcardTouchStart} onTouchEnd={handleFlashcardTouchEnd} className={cn("relative h-[200px] cursor-pointer transition-transform duration-500 ease-out [transform-style:preserve-3d]", isFlashcardFlipped && "[transform:rotateY(180deg)]")}>
+                                    <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-2 border-purple-200 [backface-visibility:hidden] flex items-center justify-center"><h3 className="text-lg font-bold text-purple-900 text-center">{card.front || card.termo}</h3></div>
+                                    <div className="absolute inset-0 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-6 border-2 border-pink-200 [transform:rotateY(180deg)] [backface-visibility:hidden] flex items-center justify-center"><p className="text-sm text-slate-700 text-center">{card.back || card.definicao}</p></div>
+                                  </div>
                                 </div>
                                 <p className="text-center text-xs text-slate-500 mt-2">Toque para virar · Deslize para navegar</p>
-                                <div className="flex items-center justify-between mt-4">
+                                <div className="flex items-center justify-between mt-4 gap-2 w-full">
                                   <Button 
                                     variant="outline" 
-                                    size="sm" 
+                                    size="icon" 
                                     onClick={() => { 
                                       setCurrentFlashcardIndex(prev => Math.max(0, prev - 1)); 
                                       setIsFlashcardFlipped(false); 
                                     }} 
                                     disabled={currentFlashcardIndex === 0} 
-                                    className="min-h-[44px] min-w-[90px] px-3 text-xs"
+                                    className="h-11 w-11 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    aria-label="Card anterior"
                                   >
-                                    <ChevronLeft className="h-4 w-4 mr-1" />
-                                    Anterior
+                                    <ChevronLeft className="h-5 w-5" />
                                   </Button>
-                                  <div className="flex gap-1 min-w-[60px] justify-center">
+                                  <div className="flex gap-1.5 flex-1 justify-center items-center px-2 max-w-[120px]">
                                     {cards.map((_, idx) => (
                                       <div 
                                         key={idx} 
                                         className={cn(
-                                          "h-2 rounded-full transition-all", 
+                                          "h-2.5 rounded-full transition-all duration-300 shadow-sm", 
                                           idx === currentFlashcardIndex 
-                                            ? "bg-purple-600 w-4" 
-                                            : "bg-slate-300 w-2"
+                                            ? "bg-purple-600 w-6 shadow-md ring-2 ring-purple-200" 
+                                            : "bg-slate-400 w-2.5"
                                         )} 
                                       />
                                     ))}
                                   </div>
                                   <Button 
                                     variant="outline" 
-                                    size="sm" 
+                                    size="icon" 
                                     onClick={() => { 
                                       setCurrentFlashcardIndex(prev => Math.min(cards.length - 1, prev + 1)); 
                                       setIsFlashcardFlipped(false); 
                                     }} 
                                     disabled={currentFlashcardIndex === cards.length - 1} 
-                                    className="min-h-[44px] min-w-[90px] px-3 text-xs"
+                                    className="h-11 w-11 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    aria-label="Próximo card"
                                   >
-                                    Próximo
-                                    <ChevronRight className="h-4 w-4 ml-1" />
+                                    <ChevronRight className="h-5 w-5" />
                                   </Button>
                                 </div>
                               </>
@@ -3832,7 +3834,7 @@ const LectureTranscriptionPage = () => {
 
       {/* Floating Action Button - Mobile Navigation with Label */}
       {isMobile && structuredContent && (
-        <div className="fixed bottom-24 right-4 z-50">
+        <div className="fixed bottom-28 right-3 z-50 max-w-[calc(100vw-1.5rem)]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
