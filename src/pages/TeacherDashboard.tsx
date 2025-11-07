@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap, MessageCircle, StickyNote, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { Calendar, Mic, BookOpen, Users, GraduationCap, Brain, Upload, Megaphone, Plus, Zap, MessageCircle, StickyNote, Calendar as CalendarIcon, Loader2, Check, ChevronDown, BarChart3 } from 'lucide-react';
 import { parseISO, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { InsightCard } from '@/components/InsightCard';
@@ -23,6 +31,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { toast as sonnerToast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface Class {
   id: string;
@@ -482,7 +491,7 @@ const TeacherDashboard = () => {
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 p-6 max-w-[1600px] mx-auto">
+        <div className="relative z-10 p-3 md:p-6 max-w-[1600px] mx-auto minimal-scrollbar-purple overflow-y-auto">
           {/* Header */}
           <div className="mb-6 md:mb-8">
             <h1 className="text-2xl md:text-4xl font-bold text-white uppercase mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">Painel do Professor</h1>
@@ -510,8 +519,51 @@ const TeacherDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Stats Cards - Dados Reais com Loading */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+              {/* Stats Cards - Mobile: Consolidated, Desktop: Separate Cards */}
+              {/* Mobile Version: Single Consolidated Card */}
+              <div className="md:hidden">
+                <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
+                  <CardHeader className="p-4">
+                    <CardTitle className="text-gray-800 text-base flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-purple-500" />
+                      Estatísticas da Turma
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 p-4 pt-0">
+                    {dashboardStats.isLoading ? (
+                      <>
+                        <Skeleton className="h-14 w-full rounded-lg" />
+                        <Skeleton className="h-14 w-full rounded-lg" />
+                        <Skeleton className="h-14 w-full rounded-lg" />
+                      </>
+                    ) : (
+                      <>
+                        <MiniStatCard
+                          label="Aulas Publicadas"
+                          value={dashboardStats.publishedLectures.toString()}
+                          trend="neutral"
+                          color="blue"
+                        />
+                        <MiniStatCard
+                          label="Alunos Ativos"
+                          value={dashboardStats.activeStudents.toString()}
+                          trend={dashboardStats.activeStudents > 0 ? "up" : "neutral"}
+                          color="green"
+                        />
+                        <MiniStatCard
+                          label="Média da Turma"
+                          value={dashboardStats.classAverage}
+                          trend="neutral"
+                          color="purple"
+                        />
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Desktop Version: Original Separate Cards */}
+              <div className="hidden md:grid grid-cols-3 gap-4">
                 {dashboardStats.isLoading ? (
                   <>
                     <Skeleton className="h-32 w-full rounded-xl" />
@@ -623,24 +675,75 @@ const TeacherDashboard = () => {
 
             {/* Right Column - Sidebar */}
             <div className="space-y-4 md:space-y-6">
-              {/* Class Selector */}
+              {/* Class Selector - Mobile: Bottom Sheet, Desktop: Dropdown */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader className="p-4 md:p-6">
                   <CardTitle className="text-gray-800 text-base md:text-lg">Turma Selecionada</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 md:p-6 pt-0">
-                  <Select value={selectedClass} onValueChange={setSelectedClass}>
-                    <SelectTrigger className="bg-white/70 bg-blue-50/15 bg-blend-overlay backdrop-blur-md border-blue-100/40 text-gray-900 shadow-sm">
-                      <SelectValue placeholder="Selecione uma turma" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white/95 backdrop-blur-xl border-blue-100/50 shadow-2xl shadow-blue-500/10">
-                      {classes.map((cls) => (
-                        <SelectItem key={cls.id} value={cls.id} className="text-gray-800 hover:bg-purple-50">
-                          {cls.name} - {cls.period}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {/* Desktop Version: Regular Select */}
+                  <div className="hidden md:block">
+                    <Select value={selectedClass} onValueChange={setSelectedClass}>
+                      <SelectTrigger className="bg-white/70 bg-blue-50/15 bg-blend-overlay backdrop-blur-md border-blue-100/40 text-gray-900 shadow-sm">
+                        <SelectValue placeholder="Selecione uma turma" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white/95 backdrop-blur-xl border-blue-100/50 shadow-2xl shadow-blue-500/10">
+                        {classes.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id} className="text-gray-800 hover:bg-purple-50">
+                            {cls.name} - {cls.period}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Mobile Version: Bottom Sheet Drawer */}
+                  <div className="md:hidden">
+                    <Drawer>
+                      <DrawerTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-between bg-white/70 bg-blue-50/15 bg-blend-overlay backdrop-blur-md border-blue-100/40 text-gray-900 shadow-sm h-12"
+                        >
+                          <span className="truncate text-left flex-1">
+                            {classes.find(c => c.id === selectedClass)?.name || 'Selecione uma turma'}
+                          </span>
+                          <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0 ml-2" />
+                        </Button>
+                      </DrawerTrigger>
+                      <DrawerContent className="max-h-[60vh]">
+                        <DrawerHeader>
+                          <DrawerTitle>Selecione uma Turma</DrawerTitle>
+                        </DrawerHeader>
+                        <div className="overflow-y-auto px-4 pb-4">
+                          <div className="space-y-2">
+                            {classes.map((cls) => (
+                              <DrawerClose key={cls.id} asChild>
+                                <Button
+                                  variant={selectedClass === cls.id ? "default" : "outline"}
+                                  className={cn(
+                                    "w-full justify-start text-left h-auto py-3 px-4",
+                                    selectedClass === cls.id 
+                                      ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white" 
+                                      : "bg-white hover:bg-purple-50"
+                                  )}
+                                  onClick={() => setSelectedClass(cls.id)}
+                                >
+                                  <div className="flex flex-col items-start gap-1">
+                                    <span className="font-semibold text-sm">{cls.name}</span>
+                                    <span className="text-xs opacity-80">{cls.period}</span>
+                                  </div>
+                                  {selectedClass === cls.id && (
+                                    <Check className="h-4 w-4 ml-auto" />
+                                  )}
+                                </Button>
+                              </DrawerClose>
+                            ))}
+                          </div>
+                        </div>
+                      </DrawerContent>
+                    </Drawer>
+                  </div>
                 </CardContent>
               </Card>
 

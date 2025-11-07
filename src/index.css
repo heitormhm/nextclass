@@ -175,6 +175,41 @@ All colors MUST be HSL. Design tokens for consistent theming.
     background: rgba(255, 255, 255, 0.3);
   }
 
+  /* Minimalist scrollbar for dark/purple backgrounds - Mobile optimized */
+  .minimal-scrollbar-purple {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 92, 246, 0.25) transparent;
+  }
+
+  .minimal-scrollbar-purple::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  .minimal-scrollbar-purple::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .minimal-scrollbar-purple::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.25);
+    border-radius: 2px;
+    transition: background 0.2s;
+  }
+
+  .minimal-scrollbar-purple::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.4);
+  }
+
+  /* Mobile-specific: even thinner scrollbar */
+  @media (max-width: 768px) {
+    .minimal-scrollbar-purple::-webkit-scrollbar {
+      width: 2px;
+    }
+    
+    .minimal-scrollbar-purple {
+      scrollbar-width: thin;
+    }
+  }
+
   /* Wave Animation for Audio Recording */
   @keyframes wave {
     0%, 100% { 
