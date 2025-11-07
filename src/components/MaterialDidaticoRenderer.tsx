@@ -116,23 +116,25 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           
           .material-didatico-content [data-callout-type],
           .material-didatico-content [class*="callout-"] {
-            padding: 0.875rem !important;
-            margin: 1rem 0 !important;
-            font-size: 0.875rem !important;
+            padding: 0.75rem !important;
+            margin: 0.875rem 0 !important;
+            font-size: 0.85rem !important;
             border-left-width: 3px !important;
             max-width: 100% !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
           }
           
           .material-didatico-content [class*="callout-"] h4,
           .material-didatico-content [class*="callout-"] h5 {
-            font-size: 1rem !important;
-            margin-bottom: 0.5rem !important;
+            font-size: 0.95rem !important;
+            margin-bottom: 0.4rem !important;
           }
           
           .material-didatico-content [class*="callout-"] p {
-            font-size: 0.875rem !important;
-            line-height: 1.5rem !important;
+            font-size: 0.85rem !important;
+            line-height: 1.45rem !important;
           }
           
           .material-didatico-content .katex-display {

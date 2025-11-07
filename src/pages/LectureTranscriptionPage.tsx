@@ -2490,8 +2490,8 @@ const LectureTranscriptionPage = () => {
                                   : "h-[calc(100vh-200px)]"
                               )}>
                                 <div id="material-didatico-content" className={cn(
-                                  "min-w-0 max-w-full bg-white rounded-lg overflow-hidden",
-                                  isMobile ? "p-4" : "p-6"
+                                  "min-w-0 max-w-full bg-white rounded-lg overflow-hidden overflow-x-hidden",
+                                  isMobile ? "p-3" : "p-6"
                                 )}>
                               {/* FASE 9: Banner de Aviso de Erros LaTeX */}
                               {hasLatexErrors && (
@@ -2710,13 +2710,13 @@ const LectureTranscriptionPage = () => {
                                   size="sm"
                                   onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                                   disabled={currentQuestionIndex === 0}
-                                  className="min-h-[44px]"
+                                  className="min-h-[44px] min-w-[90px] px-3 text-xs"
                                 >
                                   <ChevronLeft className="h-4 w-4 mr-1" />
                                   Anterior
                                 </Button>
                                 
-                                <div className="flex gap-1">
+                                <div className="flex gap-1 min-w-[60px] justify-center">
                                   {questions.map((_, idx) => (
                                     <div
                                       key={idx}
@@ -2735,7 +2735,7 @@ const LectureTranscriptionPage = () => {
                                   size="sm"
                                   onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
                                   disabled={currentQuestionIndex === questions.length - 1}
-                                  className="min-h-[44px]"
+                                  className="min-h-[44px] min-w-[90px] px-3 text-xs"
                                 >
                                   Próxima
                                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -2893,9 +2893,45 @@ const LectureTranscriptionPage = () => {
                                 </div>
                                 <p className="text-center text-xs text-slate-500 mt-2">Toque para virar · Deslize para navegar</p>
                                 <div className="flex items-center justify-between mt-4">
-                                  <Button variant="outline" size="sm" onClick={() => { setCurrentFlashcardIndex(prev => Math.max(0, prev - 1)); setIsFlashcardFlipped(false); }} disabled={currentFlashcardIndex === 0} className="min-h-[44px]"><ChevronLeft className="h-4 w-4 mr-1" />Anterior</Button>
-                                  <div className="flex gap-1">{cards.map((_, idx) => <div key={idx} className={cn("h-2 rounded-full transition-all", idx === currentFlashcardIndex ? "bg-purple-600 w-4" : "bg-slate-300 w-2")} />)}</div>
-                                  <Button variant="outline" size="sm" onClick={() => { setCurrentFlashcardIndex(prev => Math.min(cards.length - 1, prev + 1)); setIsFlashcardFlipped(false); }} disabled={currentFlashcardIndex === cards.length - 1} className="min-h-[44px]">Próximo<ChevronRight className="h-4 w-4 ml-1" /></Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => { 
+                                      setCurrentFlashcardIndex(prev => Math.max(0, prev - 1)); 
+                                      setIsFlashcardFlipped(false); 
+                                    }} 
+                                    disabled={currentFlashcardIndex === 0} 
+                                    className="min-h-[44px] min-w-[90px] px-3 text-xs"
+                                  >
+                                    <ChevronLeft className="h-4 w-4 mr-1" />
+                                    Anterior
+                                  </Button>
+                                  <div className="flex gap-1 min-w-[60px] justify-center">
+                                    {cards.map((_, idx) => (
+                                      <div 
+                                        key={idx} 
+                                        className={cn(
+                                          "h-2 rounded-full transition-all", 
+                                          idx === currentFlashcardIndex 
+                                            ? "bg-purple-600 w-4" 
+                                            : "bg-slate-300 w-2"
+                                        )} 
+                                      />
+                                    ))}
+                                  </div>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => { 
+                                      setCurrentFlashcardIndex(prev => Math.min(cards.length - 1, prev + 1)); 
+                                      setIsFlashcardFlipped(false); 
+                                    }} 
+                                    disabled={currentFlashcardIndex === cards.length - 1} 
+                                    className="min-h-[44px] min-w-[90px] px-3 text-xs"
+                                  >
+                                    Próximo
+                                    <ChevronRight className="h-4 w-4 ml-1" />
+                                  </Button>
                                 </div>
                               </>
                             );
@@ -3800,7 +3836,7 @@ const LectureTranscriptionPage = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                className="h-14 px-6 rounded-full shadow-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-fuchsia-500 hover:from-pink-600 hover:via-rose-600 hover:to-fuchsia-600 hover:scale-105 transition-all duration-300 border-2 border-white flex items-center gap-2 font-semibold text-white"
+                className="h-14 px-6 rounded-full shadow-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-fuchsia-500 hover:from-pink-600 hover:via-rose-600 hover:to-fuchsia-600 hover:scale-105 transition-all duration-300 flex items-center gap-2 font-semibold text-white"
               >
                 <Zap className="h-5 w-5" />
                 <span className="text-sm">Ações Rápidas</span>
