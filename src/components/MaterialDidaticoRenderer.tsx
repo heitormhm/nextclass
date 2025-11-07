@@ -61,6 +61,78 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           scroll-behavior: smooth;
         }
         
+        /* ===== 📱 MOBILE TYPOGRAPHY OPTIMIZATIONS ===== */
+        @media (max-width: 767px) {
+          .material-didatico-content {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+          }
+          
+          .material-didatico-content h2 {
+            font-size: 1.5rem !important;
+            line-height: 2rem !important;
+            margin-top: 2rem !important;
+            margin-bottom: 1rem !important;
+          }
+          
+          .material-didatico-content h3 {
+            font-size: 1.25rem !important;
+            line-height: 1.75rem !important;
+            margin-top: 1.5rem !important;
+            margin-bottom: 0.75rem !important;
+            padding: 0.5rem 1rem;
+          }
+          
+          .material-didatico-content h4 {
+            font-size: 1.125rem !important;
+            line-height: 1.5rem !important;
+            margin-top: 1.25rem !important;
+            margin-bottom: 0.5rem !important;
+          }
+          
+          .material-didatico-content p {
+            font-size: 0.95rem !important;
+            line-height: 1.6rem !important;
+            margin-bottom: 1rem !important;
+          }
+          
+          .material-didatico-content ul,
+          .material-didatico-content ol {
+            margin: 1rem 0 !important;
+            font-size: 0.95rem !important;
+          }
+          
+          .material-didatico-content code {
+            word-break: break-all;
+            overflow-wrap: anywhere;
+          }
+          
+          .material-didatico-content pre {
+            overflow-x: auto;
+            max-width: 100%;
+          }
+          
+          .material-didatico-content [data-callout-type],
+          .material-didatico-content [class*="callout-"] {
+            padding: 1rem !important;
+            margin: 1rem 0 !important;
+            font-size: 0.9rem !important;
+          }
+          
+          .material-didatico-content .katex-display {
+            padding: 1rem 1.5rem !important;
+            margin: 1.5rem auto !important;
+            max-width: 100% !important;
+            overflow-x: auto !important;
+          }
+          
+          .material-didatico-content .katex-display .katex {
+            font-size: 1em !important;
+          }
+        }
+        
         /* Highlight important terms */
         .material-didatico-content strong {
           background: linear-gradient(120deg, hsl(var(--accent) / 0.2) 0%, hsl(var(--accent) / 0.1) 100%);

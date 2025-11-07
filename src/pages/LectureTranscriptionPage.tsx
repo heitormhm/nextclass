@@ -24,7 +24,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer, Camera, Copy, ChevronUp, X as CloseIcon, Monitor, Smartphone, MoreVertical } from 'lucide-react';
+import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer, Camera, Copy, ChevronUp, X as CloseIcon, Monitor, Smartphone, MoreVertical, Zap } from 'lucide-react';
 import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { printMaterialDidatico } from '@/utils/printMaterialDidatico';
@@ -2440,11 +2440,11 @@ const LectureTranscriptionPage = () => {
                               {/* WRAP CONTENT IN SCROLLABLE CONTAINER */}
                               <ScrollArea className={cn(
                                 isMobile 
-                                  ? "h-[calc(100vh-420px)]" 
+                                  ? "h-[calc(100vh-450px)] overflow-x-hidden" 
                                   : "h-[calc(100vh-200px)]"
                               )}>
                                 <div id="material-didatico-content" className={cn(
-                                  "min-w-0 bg-white rounded-lg",
+                                  "min-w-0 max-w-full bg-white rounded-lg overflow-hidden",
                                   isMobile ? "p-4" : "p-6"
                                 )}>
                               {/* FASE 9: Banner de Aviso de Erros LaTeX */}
@@ -3639,38 +3639,59 @@ const LectureTranscriptionPage = () => {
         )}
       </div>
 
-      {/* Floating Action Button - Mobile Navigation */}
+      {/* Floating Action Button - Mobile Navigation with Label */}
       {isMobile && structuredContent && (
         <div className="fixed bottom-24 right-4 z-50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                size="icon"
-                className="h-14 w-14 rounded-full shadow-2xl bg-gradient-to-br from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 hover:scale-110 transition-all duration-300 border-2 border-white/30"
+                className="h-14 px-6 rounded-full shadow-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-fuchsia-500 hover:from-pink-600 hover:via-rose-600 hover:to-fuchsia-600 hover:scale-105 transition-all duration-300 border-2 border-white flex items-center gap-2 font-semibold text-white"
               >
-                <MoreVertical className="h-6 w-6 text-white" />
+                <Zap className="h-5 w-5" />
+                <span className="text-sm">Ações Rápidas</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-xl border-purple-200/50">
-              <DropdownMenuItem onClick={() => scrollToSection('titulo-aula')}>
-                <BookOpen className="h-4 w-4 mr-2 text-purple-600" />
-                Título da Aula
+            <DropdownMenuContent 
+              align="end" 
+              className="w-64 bg-white/98 backdrop-blur-xl border-pink-200/50 shadow-2xl"
+            >
+              <div className="px-2 py-1.5 text-xs font-semibold text-purple-600 uppercase tracking-wide">
+                Navegação Rápida
+              </div>
+              <DropdownMenuItem 
+                onClick={() => scrollToSection('titulo-aula')}
+                className="cursor-pointer hover:bg-purple-50 py-3"
+              >
+                <BookOpen className="h-4 w-4 mr-3 text-purple-600" />
+                <span className="font-medium">Título da Aula</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => scrollToSection('conteudo-gerado')}>
-                <FileText className="h-4 w-4 mr-2 text-purple-600" />
-                Conteúdo Gerado
+              <DropdownMenuItem 
+                onClick={() => scrollToSection('conteudo-gerado')}
+                className="cursor-pointer hover:bg-purple-50 py-3"
+              >
+                <FileText className="h-4 w-4 mr-3 text-purple-600" />
+                <span className="font-medium">Conteúdo Gerado</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => scrollToSection('topicos-principais')}>
-                <BookOpen className="h-4 w-4 mr-2 text-purple-600" />
-                Tópicos Abordados
+              <DropdownMenuItem 
+                onClick={() => scrollToSection('topicos-principais')}
+                className="cursor-pointer hover:bg-purple-50 py-3"
+              >
+                <BookOpen className="h-4 w-4 mr-3 text-purple-600" />
+                <span className="font-medium">Tópicos Abordados</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => scrollToSection('perguntas-revisao')}>
-                <CheckSquare className="h-4 w-4 mr-2 text-purple-600" />
-                Perguntas de Revisão
+              <DropdownMenuItem 
+                onClick={() => scrollToSection('perguntas-revisao')}
+                className="cursor-pointer hover:bg-purple-50 py-3"
+              >
+                <CheckSquare className="h-4 w-4 mr-3 text-purple-600" />
+                <span className="font-medium">Perguntas de Revisão</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => scrollToSection('flashcards')}>
-                <Brain className="h-4 w-4 mr-2 text-purple-600" />
-                Flashcards
+              <DropdownMenuItem 
+                onClick={() => scrollToSection('flashcards')}
+                className="cursor-pointer hover:bg-purple-50 py-3"
+              >
+                <Brain className="h-4 w-4 mr-3 text-purple-600" />
+                <span className="font-medium">Flashcards</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
