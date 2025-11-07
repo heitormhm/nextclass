@@ -15,6 +15,7 @@ import { LiveTranscriptViewer } from '@/components/LiveTranscriptViewer';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
 import { ProcessingLoadingScreen } from '@/components/ProcessingLoadingScreen';
+import { useWakeLock } from '@/hooks/useWakeLock';
 
 interface Word {
   text: string;
@@ -59,6 +60,8 @@ const LiveLecture = () => {
       setAudioSize(prev => prev + chunk.size);
     }
   });
+
+  const { isSupported: wakeLockSupported, isActive: wakeLockActive, requestWakeLock, releaseWakeLock } = useWakeLock();
   
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -237,6 +240,36 @@ const LiveLecture = () => {
     loadMicrophones();
   }, []);
 
+  // Monitor page visibility during recording
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isSpeechRecording) {
+        console.warn('[LiveLecture] ⚠️ Página oculta durante gravação');
+        
+        const fullTranscript = fullTranscriptRef.current;
+        if (fullTranscript && lectureId) {
+          supabase
+            .from('lectures')
+            .update({ 
+              raw_transcript: fullTranscript, 
+              duration: recordingTime 
+            })
+            .eq('id', lectureId)
+            .then(() => console.log('[LiveLecture] ✅ Save de emergência concluído'));
+        }
+        
+        toast({
+          title: '⚠️ Gravação em segundo plano',
+          description: 'Retorne ao app para garantir a melhor qualidade',
+          duration: 5000,
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isSpeechRecording, lectureId, recordingTime, toast]);
+
   const handleProcessingComplete = () => {
     setShowProcessingScreen(false);
     navigate(`/lecturetranscription/${lectureId}`);
@@ -263,6 +296,9 @@ const LiveLecture = () => {
         startSpeechRecording(),
         startAudioCapture()
       ]);
+      
+      console.log('[LiveLecture] 🔒 Ativando wake lock...');
+      await requestWakeLock();
       
       console.log('[LiveLecture] ✅ Recording started successfully');
       toast({
@@ -438,6 +474,9 @@ const LiveLecture = () => {
         console.log('[LiveLecture] ✅ Database updated with audio_url:', audioUrl);
       }
 
+      console.log('[LiveLecture] 🔓 Liberando wake lock...');
+      await releaseWakeLock();
+
       toast({
         title: "✅ Gravação finalizada com sucesso",
         description: audioBlob && audioUrl 
@@ -447,12 +486,13 @@ const LiveLecture = () => {
       
     } catch (error) {
       console.error('[LiveLecture] ❌ Error saving lecture:', error);
+      await releaseWakeLock();
       toast({
         variant: 'destructive',
         title: 'Erro ao salvar',
         description: error instanceof Error ? error.message : 'Não foi possível salvar a gravação',
       });
-      setShowProcessingScreen(false); // Fechar tela em caso de erro
+      setShowProcessingScreen(false);
     }
   };
 
@@ -489,12 +529,33 @@ const LiveLecture = () => {
                 
                 {isSpeechRecording && (
                   <div className="flex flex-col items-center gap-2">
-                    <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-300/40 rounded-full px-4 py-1.5 backdrop-blur-sm">
-                      <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
-                      <span className="text-white font-mono font-semibold drop-shadow-sm">
-                        {formatTime(recordingTime)}
-                      </span>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-300/40 rounded-full px-4 py-1.5 backdrop-blur-sm">
+                        <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                        <span className="text-white font-mono font-semibold drop-shadow-sm">
+                          {formatTime(recordingTime)}
+                        </span>
+                      </div>
+                      
+                      {wakeLockActive && (
+                        <Badge variant="outline" className="bg-green-500/20 border-green-300/40 text-white">
+                          🔒 Tela Protegida
+                        </Badge>
+                      )}
+                      
+                      {!wakeLockActive && wakeLockSupported && (
+                        <Badge variant="outline" className="bg-yellow-500/20 border-yellow-300/40 text-white">
+                          ⚠️ Tentando manter tela ligada...
+                        </Badge>
+                      )}
+                      
+                      {!wakeLockSupported && (
+                        <Badge variant="outline" className="bg-orange-500/20 border-orange-300/40 text-white">
+                          ⚠️ Mantenha a tela ligada manualmente
+                        </Badge>
+                      )}
                     </div>
+                    
                     {isCapturing && (
                       <Badge variant="destructive" className="bg-red-600/80 hover:bg-red-600 backdrop-blur-sm">
                         🔴 Gravando Áudio {audioSize > 0 && `(${(audioSize / 1024 / 1024).toFixed(1)} MB)`}

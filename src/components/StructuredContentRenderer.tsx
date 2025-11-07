@@ -616,63 +616,7 @@ export const StructuredContentRenderer = ({ structuredData }: StructuredContentR
               </div>
             </div>
           </div>
-        );
-
-      case 'componente_react':
-        return (
-          <details key={index} className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-4 rounded-lg my-4">
-            <summary className="cursor-pointer font-bold text-gray-800 dark:text-gray-200 mb-2">
-              💻 Exemplo de Componente: {bloco.nome}
-            </summary>
-            <div className="mt-3">
-              {bloco.descricao && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{bloco.descricao}</p>
-              )}
-              {bloco.codigo_jsx && (
-                <pre className="bg-gray-900 dark:bg-black text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
-                  <code>{bloco.codigo_jsx}</code>
-                </pre>
-              )}
-            </div>
-          </details>
-        );
-      
-      case 'referencias':
-        return (
-          <div key={index} className="mt-16 pt-10 border-t-4 border-primary/20">
-            <h2 className="text-4xl font-bold mb-8 text-foreground flex items-center gap-3">
-              <span className="text-5xl">📚</span>
-              <span>Fontes e Referências</span>
-            </h2>
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-8 shadow-lg">
-              <ol className="space-y-5">
-                {bloco.lista?.map((ref: any, i: number) => (
-                  <li key={i} className="flex gap-4 items-start group hover:bg-white dark:hover:bg-slate-700 p-4 rounded-lg transition-all">
-                    <span className="flex-shrink-0 w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-base shadow-md group-hover:scale-110 transition-transform">
-                      {i + 1}
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-foreground leading-relaxed text-base">
-                        {ref.descricao}
-                      </p>
-                      {ref.url && (
-                        <a 
-                          href={ref.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center gap-2 text-primary hover:text-primary/80 underline text-sm font-medium transition-colors"
-                        >
-                          <span>🔗</span>
-                          <span>Acessar fonte</span>
-                        </a>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-        );
+         );
       
       default:
         console.warn(`[StructuredContentRenderer] Tipo de bloco não suportado: ${bloco.tipo}`);

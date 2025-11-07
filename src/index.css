@@ -211,63 +211,93 @@ All colors MUST be HSL. Design tokens for consistent theming.
   }
 
   /* ============================================================================
-     MINIMALIST SCROLLBAR - Global Application
-     Ultra-thin, transparent, no arrows, auto-sized based on content
+     MINIMALIST SCROLLBAR - Global Application v3 (CACHE BUST 2025-01-10)
+     Ultra-aggressive, ultra-thin, transparent, no arrows
      ============================================================================ */
 
-  /* Firefox - Simple and clean */
-  * {
+  :root {
+    /* Força especificidade máxima */
     scrollbar-width: thin !important;
-    scrollbar-color: rgba(139, 92, 246, 0.35) transparent !important;
+    scrollbar-color: rgba(139, 92, 246, 0.45) transparent !important;
   }
 
-  /* Webkit browsers (Chrome, Safari, Edge) */
-  *::-webkit-scrollbar {
-    width: 4px !important;
-    height: 4px !important;
+  /* Firefox - Force on ALL elements */
+  *,
+  *::before,
+  *::after,
+  html,
+  body,
+  div,
+  aside,
+  main,
+  section,
+  article,
+  nav,
+  header,
+  footer {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(139, 92, 246, 0.45) transparent !important;
   }
 
-  *::-webkit-scrollbar-track {
+  /* Webkit - Universal override with MAXIMUM specificity */
+  :root::-webkit-scrollbar,
+  *::-webkit-scrollbar,
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  div::-webkit-scrollbar {
+    width: 5px !important;
+    height: 5px !important;
     background: transparent !important;
   }
 
+  :root::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-track {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  :root::-webkit-scrollbar-thumb,
   *::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.35) !important;
-    border-radius: 2px !important;
+    background: rgba(139, 92, 246, 0.45) !important;
+    border-radius: 3px !important;
+    border: none !important;
     transition: background 0.2s ease !important;
   }
 
+  :root::-webkit-scrollbar-thumb:hover,
   *::-webkit-scrollbar-thumb:hover {
-    background: rgba(139, 92, 246, 0.55) !important;
+    background: rgba(139, 92, 246, 0.65) !important;
   }
 
-  /* Hide scrollbar arrows/buttons completely */
-  *::-webkit-scrollbar-button {
+  /* CRITICAL: Hide ALL arrows/buttons with MAXIMUM specificity */
+  :root::-webkit-scrollbar-button,
+  *::-webkit-scrollbar-button,
+  *::-webkit-scrollbar-button:start,
+  *::-webkit-scrollbar-button:end {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
+    background: transparent !important;
   }
 
+  :root::-webkit-scrollbar-corner,
   *::-webkit-scrollbar-corner {
     background: transparent !important;
   }
 
-  /* Mobile: even thinner (2px) */
+  /* Mobile: thinner (3px) */
   @media (max-width: 768px) {
+    :root::-webkit-scrollbar,
     *::-webkit-scrollbar {
-      width: 2px !important;
-      height: 2px !important;
-    }
-    
-    * {
-      scrollbar-width: thin !important;
+      width: 3px !important;
+      height: 3px !important;
     }
   }
 
   /* Ensure html and body can scroll properly */
   html, body {
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
   }
 
   /* ============================================================================
