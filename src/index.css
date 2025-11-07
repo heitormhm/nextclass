@@ -210,35 +210,64 @@ All colors MUST be HSL. Design tokens for consistent theming.
     }
   }
 
-  /* Apply minimalist scrollbar globally to body */
-  body {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(139, 92, 246, 0.25) transparent;
+  /* ============================================================================
+     MINIMALIST SCROLLBAR - Global Application
+     Ultra-thin, transparent, no arrows, auto-sized based on content
+     ============================================================================ */
+
+  /* Firefox - Simple and clean */
+  * {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(139, 92, 246, 0.35) transparent !important;
   }
 
-  body::-webkit-scrollbar {
-    width: 3px;
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  *::-webkit-scrollbar {
+    width: 4px !important;
+    height: 4px !important;
   }
 
-  body::-webkit-scrollbar-track {
-    background: transparent;
+  *::-webkit-scrollbar-track {
+    background: transparent !important;
   }
 
-  body::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.25);
-    border-radius: 2px;
-    transition: background 0.2s;
+  *::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.35) !important;
+    border-radius: 2px !important;
+    transition: background 0.2s ease !important;
   }
 
-  body::-webkit-scrollbar-thumb:hover {
-    background: rgba(139, 92, 246, 0.4);
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.55) !important;
   }
 
-  /* Mobile: even thinner */
+  /* Hide scrollbar arrows/buttons completely */
+  *::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent !important;
+  }
+
+  /* Mobile: even thinner (2px) */
   @media (max-width: 768px) {
-    body::-webkit-scrollbar {
-      width: 2px;
+    *::-webkit-scrollbar {
+      width: 2px !important;
+      height: 2px !important;
     }
+    
+    * {
+      scrollbar-width: thin !important;
+    }
+  }
+
+  /* Ensure html and body can scroll properly */
+  html, body {
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   /* Wave Animation for Audio Recording */
