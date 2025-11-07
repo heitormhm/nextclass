@@ -491,9 +491,9 @@ const TeacherDashboard = () => {
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 p-3 md:p-6 max-w-[1600px] mx-auto">
+        <div className="relative z-10 p-3 md:p-6 max-w-[1600px] mx-auto pb-safe">
           {/* Header */}
-          <div className="mb-6 md:mb-8">
+          <div className="mb-4 md:mb-8">
             <h1 className="text-2xl md:text-4xl font-bold text-white uppercase mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">Painel do Professor</h1>
             <p className="text-sm md:text-base text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">Gerencie suas aulas e acompanhe o desempenho da turma</p>
           </div>

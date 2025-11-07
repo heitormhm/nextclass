@@ -270,6 +270,33 @@ All colors MUST be HSL. Design tokens for consistent theming.
     overflow-y: auto;
   }
 
+  /* ============================================================================
+     iOS SAFE AREA SUPPORT - Notch/Home Indicator
+     ============================================================================ */
+  :root {
+    --sat: env(safe-area-inset-top);
+    --sar: env(safe-area-inset-right);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
+  }
+
+  /* Safe area utility classes */
+  .pt-safe {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .pl-safe {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  .pr-safe {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
   /* Wave Animation for Audio Recording */
   @keyframes wave {
     0%, 100% { 

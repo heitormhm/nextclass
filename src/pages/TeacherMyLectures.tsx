@@ -418,8 +418,8 @@ const TeacherMyLectures = () => {
           <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="relative z-10 max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-8 pb-safe">
+          <div className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
             <div>
               <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
                 <BookOpen className="h-10 w-10" />
@@ -430,43 +430,45 @@ const TeacherMyLectures = () => {
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1 min-w-[200px]">
+            <div className="flex flex-col gap-3">
+              <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
                 <Input
                   placeholder="Buscar por título ou tags..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-white/10 backdrop-blur-lg border-white/20 text-white placeholder:text-white/50"
+                  className="pl-10 h-11 min-h-[44px] bg-white/10 backdrop-blur-lg border-white/20 text-white placeholder:text-white/50 text-base md:h-10 md:text-sm"
                 />
               </div>
               
-              <Select value={selectedDisciplinaFilter} onValueChange={setSelectedDisciplinaFilter}>
-                <SelectTrigger className="w-[180px] bg-white/10 backdrop-blur-lg border-white/20 text-white">
-                  <SelectValue placeholder="Disciplina" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {disciplinas.map(disc => (
-                    <SelectItem key={disc.id} value={disc.id}>{disc.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select value={sortOrder} onValueChange={(value: 'recent' | 'alphabetical' | 'oldest') => {
-                setSortOrder(value);
-                if (value === 'recent') setDateOrder('desc');
-                if (value === 'oldest') setDateOrder('asc');
-              }}>
-                <SelectTrigger className="w-[160px] bg-white/10 backdrop-blur-lg border-white/20 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Mais Recentes</SelectItem>
-                  <SelectItem value="oldest">Mais Antigas</SelectItem>
-                  <SelectItem value="alphabetical">Alfabética</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={selectedDisciplinaFilter} onValueChange={setSelectedDisciplinaFilter}>
+                  <SelectTrigger className="flex-1 h-11 min-h-[44px] md:h-10 bg-white/10 backdrop-blur-lg border-white/20 text-white">
+                    <SelectValue placeholder="Disciplina" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {disciplinas.map(disc => (
+                      <SelectItem key={disc.id} value={disc.id}>{disc.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value={sortOrder} onValueChange={(value: 'recent' | 'alphabetical' | 'oldest') => {
+                  setSortOrder(value);
+                  if (value === 'recent') setDateOrder('desc');
+                  if (value === 'oldest') setDateOrder('asc');
+                }}>
+                  <SelectTrigger className="flex-1 h-11 min-h-[44px] md:h-10 bg-white/10 backdrop-blur-lg border-white/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recent">Recentes</SelectItem>
+                    <SelectItem value="oldest">Antigas</SelectItem>
+                    <SelectItem value="alphabetical">A-Z</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 

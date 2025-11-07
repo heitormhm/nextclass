@@ -387,8 +387,8 @@ const TeacherCalendar = () => {
           <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
-        <div className="relative z-10 container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="relative z-10 container mx-auto px-3 md:px-6 py-4 md:py-6 pb-safe">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
             {/* Main Calendar - 3 columns */}
             <div className="lg:col-span-3 space-y-6">
               {isLoading ? (
@@ -464,9 +464,9 @@ const TeacherCalendar = () => {
 
                     {viewMode === 'month' ? (
                       <>
-                        <div className="grid grid-cols-7 gap-2">
+                        <div className="grid grid-cols-7 gap-1 md:gap-2">
                           {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                            <div key={day} className="p-2 text-center text-sm font-medium text-foreground-muted">
+                            <div key={day} className="p-1 md:p-2 text-center text-xs md:text-sm font-medium text-foreground-muted">
                               {day}
                             </div>
                           ))}
