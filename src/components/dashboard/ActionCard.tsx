@@ -37,17 +37,17 @@ export const ActionCard = ({
     >
       <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       
-      <div className="relative p-6 flex flex-col items-center text-center space-y-3">
+      <div className="relative p-4 md:p-6 flex flex-col items-center text-center space-y-2 md:space-y-3">
         <div className="relative">
           <div className="absolute inset-0 bg-white/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300" />
-          <div className="relative bg-white/20 backdrop-blur-sm p-4 rounded-2xl group-hover:bg-white/30 transition-all duration-300">
-            <Icon className="h-8 w-8 text-white" strokeWidth={2.5} />
+          <div className="relative bg-white/20 backdrop-blur-sm p-3 md:p-4 rounded-2xl group-hover:bg-white/30 transition-all duration-300">
+            <Icon className="h-6 w-6 md:h-8 md:w-8 text-white" strokeWidth={2.5} />
           </div>
         </div>
         
         <div className="space-y-1">
-          <h3 className="font-bold text-white text-lg leading-tight">{title}</h3>
-          <p className="text-white/80 text-sm leading-snug">{description}</p>
+          <h3 className="font-bold text-white text-base md:text-lg leading-tight">{title}</h3>
+          <p className="text-white/80 text-sm leading-snug hidden md:block">{description}</p>
         </div>
         
         {badge && (

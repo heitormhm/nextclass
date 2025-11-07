@@ -484,25 +484,25 @@ const TeacherDashboard = () => {
         {/* Main Content */}
         <div className="relative z-10 p-6 max-w-[1600px] mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white uppercase mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">Painel do Professor</h1>
-            <p className="text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">Gerencie suas aulas e acompanhe o desempenho da turma</p>
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-4xl font-bold text-white uppercase mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">Painel do Professor</h1>
+            <p className="text-sm md:text-base text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">Gerencie suas aulas e acompanhe o desempenho da turma</p>
           </div>
 
           {/* Two Column Layout */}
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-4 md:gap-6">
             {/* Left Column - Main Content */}
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Quick Actions - Novo Design com Cards Vibrantes */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
-                <CardHeader>
-                  <CardTitle className="text-gray-800 flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-purple-500" />
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="text-gray-800 flex items-center gap-2 text-base md:text-lg">
+                    <Zap className="h-4 w-4 md:h-5 md:w-5 text-purple-500" />
                     Ações Rápidas
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <CardContent className="p-4 md:p-6 pt-0">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
                     {actionCards.map((action, index) => (
                       <ActionCard key={index} {...action} index={index} />
                     ))}
@@ -511,7 +511,7 @@ const TeacherDashboard = () => {
               </Card>
 
               {/* Stats Cards - Dados Reais com Loading */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
                 {dashboardStats.isLoading ? (
                   <>
                     <Skeleton className="h-32 w-full rounded-xl" />
@@ -556,23 +556,25 @@ const TeacherDashboard = () => {
 
               {/* Insights Panel with Tabs */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
-                <CardHeader>
-                  <CardTitle className="text-gray-800">Insights da Turma</CardTitle>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="text-gray-800 text-base md:text-lg">Insights da Turma</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 md:p-6 pt-0">
                   <Tabs defaultValue="insights" className="w-full">
-                    <TabsList className="w-full bg-white/90 backdrop-blur-md border border-purple-200/50 shadow-sm p-1 rounded-lg">
+                    <TabsList className="w-full bg-white/90 backdrop-blur-md border border-purple-200/50 shadow-sm p-0.5 md:p-1 rounded-lg h-auto">
                       <TabsTrigger 
                         value="insights" 
-                        className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-gray-700 data-[state=inactive]:hover:bg-purple-50 transition-all duration-200 rounded-md"
+                        className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-gray-700 data-[state=inactive]:hover:bg-purple-50 transition-all duration-200 rounded-md text-xs sm:text-sm py-2 md:py-2.5"
                       >
-                        Alertas e Oportunidades
+                        <span className="hidden sm:inline">Alertas e Oportunidades</span>
+                        <span className="sm:hidden">Alertas</span>
                       </TabsTrigger>
                       <TabsTrigger 
                         value="performance" 
-                        className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-gray-700 data-[state=inactive]:hover:bg-purple-50 transition-all duration-200 rounded-md"
+                        className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:text-gray-700 data-[state=inactive]:hover:bg-purple-50 transition-all duration-200 rounded-md text-xs sm:text-sm py-2 md:py-2.5"
                       >
-                        Desempenho
+                        <span className="hidden sm:inline">Desempenho</span>
+                        <span className="sm:hidden">Análise</span>
                       </TabsTrigger>
                     </TabsList>
                      <TabsContent value="insights" className="space-y-4 mt-4">
@@ -620,13 +622,13 @@ const TeacherDashboard = () => {
             </div>
 
             {/* Right Column - Sidebar */}
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Class Selector */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
-                <CardHeader>
-                  <CardTitle className="text-gray-800 text-lg">Turma Selecionada</CardTitle>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="text-gray-800 text-base md:text-lg">Turma Selecionada</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 md:p-6 pt-0">
                   <Select value={selectedClass} onValueChange={setSelectedClass}>
                     <SelectTrigger className="bg-white/70 bg-blue-50/15 bg-blend-overlay backdrop-blur-md border-blue-100/40 text-gray-900 shadow-sm">
                       <SelectValue placeholder="Selecione uma turma" />
@@ -644,8 +646,8 @@ const TeacherDashboard = () => {
 
               {/* Upcoming Events - Novo Design com EventCard */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
-                <CardHeader>
-                  <CardTitle className="text-gray-800 text-lg flex items-center justify-between">
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="text-gray-800 text-base md:text-lg flex items-center justify-between">
                     Próximos Eventos
                     <Button
                       size="sm"
@@ -657,8 +659,8 @@ const TeacherDashboard = () => {
                     </Button>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
+                <CardContent className="p-4 md:p-6 pt-0">
+                  <div className="space-y-2 md:space-y-3">
                     {isLoadingEvents ? (
                       <>
                         <Skeleton className="h-24 w-full rounded-lg" />
@@ -689,10 +691,10 @@ const TeacherDashboard = () => {
 
               {/* Quick Stats - Novo Design com MiniStatCard */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
-                <CardHeader>
-                  <CardTitle className="text-gray-800 text-lg">Estatísticas Rápidas</CardTitle>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="text-gray-800 text-base md:text-lg">Estatísticas Rápidas</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2 md:space-y-3 p-4 md:p-6 pt-0">
                   {quickStats.isLoading ? (
                     <>
                       <Skeleton className="h-16 w-full rounded-lg" />

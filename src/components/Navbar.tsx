@@ -94,10 +94,11 @@ const Navbar = () => {
   const NavigationLinks = ({ mobile = false }: { mobile?: boolean }) => {
     if (mobile) {
       return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
           {navigationItems.map((item) => {
             const isCalendar = item.href === '/calendar' || item.href === '/teachercalendar';
             const showBadge = isCalendar && hasUnreadEvents;
+            const isActive = location.pathname === item.href;
             
             // Special handling for "Gravar Aula" - opens modal instead of navigation
             if (item.href === '__modal__') {
@@ -108,9 +109,9 @@ const Navbar = () => {
                     setIsRecordModalOpen(true);
                     setIsOpen(false);
                   }}
-                  className="flex items-center gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-lg p-3 rounded-lg hover:bg-accent min-h-[48px] relative"
+                  className="flex items-center gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-base p-2.5 rounded-lg hover:bg-accent min-h-[44px] relative"
                 >
-                  <item.icon className="h-6 w-6 shrink-0" />
+                  <item.icon className="h-5 w-5 shrink-0" />
                   <span className="truncate">{item.label}</span>
                 </button>
               );
@@ -120,13 +121,18 @@ const Navbar = () => {
               <Link
                 key={item.href}
                 to={item.href}
-                className="flex items-center gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-lg p-3 rounded-lg hover:bg-accent min-h-[48px] relative"
+                className={cn(
+                  "flex items-center gap-3 font-medium transition-colors text-base p-2.5 rounded-lg min-h-[44px] relative",
+                  isActive 
+                    ? "text-primary bg-accent" 
+                    : "text-foreground-muted hover:text-primary hover:bg-accent"
+                )}
                 onClick={() => {
                   setIsOpen(false);
                 }}
               >
                 <div className="relative">
-                  <item.icon className="h-6 w-6 shrink-0" />
+                  <item.icon className="h-5 w-5 shrink-0" />
                   {showBadge && (
                     <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                   )}
@@ -291,42 +297,42 @@ const Navbar = () => {
                   {!isOpen && <Menu className="h-5 w-5" />}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:w-[350px] max-w-sm">
+              <SheetContent side="right" className="w-[280px] sm:w-[320px]">
                 <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <Logo className="text-lg" />
+                  <div className="flex items-center justify-between pb-4 mb-4 border-b">
+                    <Logo className="text-base" />
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setIsOpen(false)}
-                      className="h-10 w-10"
+                      className="h-8 w-8"
                     >
-                      <X className="h-5 w-5" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                   
-                  <div className="flex-1 py-6 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto">
                     <NavigationLinks mobile />
                     
                     {/* Separator */}
-                    <div className="mx-0 my-4 border-t border-border"></div>
+                    <div className="mx-0 my-3 border-t border-border"></div>
                     
                     {/* User Section integrated into main menu */}
-                    <div className="flex flex-col gap-2">
-                      <div className="px-0">
+                    <div className="flex flex-col gap-1">
+                      <div className="px-0 mb-1">
                         <NotificationsPopup mobile />
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
-                            className="w-full justify-start gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-lg p-3 rounded-lg hover:bg-accent min-h-[48px]"
+                            className="w-full justify-start gap-3 text-foreground-muted hover:text-primary font-medium transition-colors text-base p-2.5 rounded-lg hover:bg-accent min-h-[44px]"
                           >
                             <div className="w-6 h-6 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center shadow-md">
                               <span className="text-white text-xs font-semibold">{teacherInitials}</span>
                             </div>
-                            <span className="font-medium flex-1 text-left">{teacherDisplayName}</span>
-                            <ChevronDown className="h-4 w-4" />
+                            <span className="font-medium flex-1 text-left truncate">{teacherDisplayName}</span>
+                            <ChevronDown className="h-4 w-4 shrink-0" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
