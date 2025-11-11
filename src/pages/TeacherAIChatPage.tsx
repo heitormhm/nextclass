@@ -2402,6 +2402,9 @@ INSTRUÇÕES:
           </div>
         </div>
 
+        </div>
+        {/* End of main content div from line 1981 */}
+
         <button
           onClick={() => setShowMobileHistory(true)}
           className={cn(
@@ -2411,7 +2414,6 @@ INSTRUÇÕES:
         >
           <MessageCircle className="w-6 h-6" />
         </button>
-      </MainLayout>
 
         <Sheet open={showMobileHistory} onOpenChange={setShowMobileHistory}>
           <SheetContent side="left" className="w-full sm:w-80 p-0 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30 z-[9999]">
