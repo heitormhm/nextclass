@@ -439,8 +439,18 @@ const LiveLecture = () => {
 
       if (audioBlob && audioBlob.size > 0) {
         console.log('[LiveLecture] 🚀 Starting upload with retry logic...');
+        console.log('[LiveLecture] 📊 Audio blob size:', (audioBlob.size / 1024 / 1024).toFixed(2), 'MB');
+        console.log('[LiveLecture] 📊 Audio blob type:', audioBlob.type);
+        
         try {
           audioUrl = await uploadWithRetry(audioBlob, lectureId);
+          console.log('[LiveLecture] ✅ Upload successful. audio_url:', audioUrl);
+          
+          // CRITICAL: Verificar se audioUrl não é undefined ou null
+          if (!audioUrl) {
+            console.error('[LiveLecture] ❌ CRITICAL: audioUrl is null after upload!');
+            throw new Error('audio_url is null after upload');
+          }
         } catch (uploadError) {
           console.error('[LiveLecture] ❌ Upload failed after all retries:', uploadError);
           toast({
@@ -503,11 +513,11 @@ const LiveLecture = () => {
 // Removed unused AudioWaveform component - waveform now inline in JSX
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-[100dvh] overflow-hidden">
       <MainLayout>
         <div className="flex h-[calc(100vh-64px)]">
           {/* Main Content Area - LEFT */}
-          <div className={`flex-1 relative overflow-y-auto overflow-x-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%] transition-all duration-300 ${
+          <div className={`flex-1 relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%] transition-all duration-300 ${
             isSpeechRecording && !isMobile ? 'mr-80' : ''
           }`}>
             {/* Animated Background with Ripple Effect */}
@@ -520,7 +530,7 @@ const LiveLecture = () => {
               <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
             </div>
             
-            <div className="relative z-10 flex flex-col items-center justify-center h-full p-4 space-y-8">
+            <div className="relative z-10 flex flex-col items-center justify-center min-h-full p-4 pb-safe space-y-8">
               
               {/* 1. HEADER */}
               <div className="text-center space-y-2">
@@ -697,7 +707,7 @@ const LiveLecture = () => {
               )}
 
               {/* 4. CONTROL BUTTONS */}
-              <div className="flex flex-wrap items-center justify-center gap-4">
+              <div className="flex flex-wrap items-center justify-center gap-4 relative z-50">
                 {!isSpeechRecording ? (
                   <Button
                     onClick={handleStartRecording}
@@ -753,6 +763,8 @@ const LiveLecture = () => {
                         transition-all duration-300 
                         hover:scale-105 hover:shadow-red-500/50
                         border-2 border-red-400/20
+                        touch-manipulation
+                        active:scale-95
                       "
                     >
                       <Square className="mr-2 h-5 w-5" />
@@ -894,8 +906,7 @@ const LiveLecture = () => {
           )}
 
           {/* Transcript Drawer - Mobile Only */}
-          {isMobile && (
-            <Drawer open={showTranscriptDrawer} onOpenChange={setShowTranscriptDrawer}>
+          <Drawer open={showTranscriptDrawer} onOpenChange={setShowTranscriptDrawer} key={`drawer-${transcriptSegments.length}`}>
               <DrawerContent className="h-[85vh]">
                 <DrawerHeader className="border-b border-slate-200 bg-gradient-to-r from-purple-50 to-pink-50">
                   <div className="flex items-center justify-between">
@@ -946,9 +957,8 @@ const LiveLecture = () => {
                 </div>
               </DrawerContent>
             </Drawer>
-          )}
-        </div>
-      </MainLayout>
+          </div>
+        </MainLayout>
       
       <ProcessingLoadingScreen 
         isVisible={showProcessingScreen} 

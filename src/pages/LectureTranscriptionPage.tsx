@@ -3074,7 +3074,7 @@ const LectureTranscriptionPage = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {lecture?.audio_url ? (
+                    {lecture?.audio_url && lecture.audio_url !== 'null' && lecture.audio_url !== '' ? (
                       <div className="bg-white/90 backdrop-blur-xl rounded-lg p-4 border border-white/30 shadow-lg">
                         <audio
                           ref={audioRef}
@@ -3087,6 +3087,15 @@ const LectureTranscriptionPage = () => {
                             const dur = e.currentTarget.duration;
                             if (!isNaN(dur) && isFinite(dur)) setDuration(dur);
                           }}
+                          onError={(e) => {
+                            console.error('[Audio] Erro ao carregar áudio:', e);
+                            toast({
+                              variant: 'destructive',
+                              title: 'Erro ao carregar áudio',
+                              description: 'O arquivo de áudio não pôde ser carregado. Verifique a conexão ou entre em contato com o suporte.'
+                            });
+                          }}
+                          preload="metadata"
                           onDurationChange={(e) => {
                             const dur = e.currentTarget.duration;
                             if (!isNaN(dur) && isFinite(dur)) setDuration(dur);
@@ -3214,8 +3223,25 @@ const LectureTranscriptionPage = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-white p-4 rounded-lg text-center">
-                        <p className="text-slate-600 text-sm">Nenhum áudio disponível para esta aula.</p>
+                      <div className="bg-yellow-50/90 backdrop-blur-xl rounded-lg p-6 border border-yellow-200/30 shadow-lg text-center">
+                        <p className="text-yellow-800 mb-2 font-medium">⚠️ Áudio não disponível</p>
+                        <p className="text-sm text-yellow-700">
+                          O áudio desta aula não foi gravado ou não está disponível. 
+                          {lecture?.raw_transcript && ' Apenas a transcrição está disponível.'}
+                        </p>
+                        {!isMobile && lecture?.raw_transcript && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-4"
+                            onClick={() => {
+                              const element = document.getElementById('transcricao-section');
+                              if (element) element.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                          >
+                            Ver Transcrição
+                          </Button>
+                        )}
                       </div>
                     )}
                   </CardContent>
