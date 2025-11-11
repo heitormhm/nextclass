@@ -45,8 +45,8 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
   }
 
   return (
-    <div>
-      <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content pt-6" style={{width: '100%', maxWidth: '100%', overflowX: 'hidden'}}>
+    <div className="w-full max-w-full overflow-x-hidden" style={{boxSizing: 'border-box'}}>
+      <div className="material-didatico-content pt-6" style={{width: '100%', maxWidth: '100%', overflowX: 'hidden', boxSizing: 'border-box'}}>
         <style>{`
         /* ===== 📱 RESPONSIVE CONTAINER FIXES ===== */
         .material-didatico-content {
@@ -83,52 +83,78 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           scroll-behavior: smooth;
         }
         
-        /* ===== 📱 MOBILE TYPOGRAPHY OPTIMIZATIONS ===== */
-      @media (max-width: 767px) {
-        /* Force viewport constraints globally */
-        .material-didatico-content,
-        .material-didatico-content > *,
-        .material-didatico-content * {
-          max-width: 100% !important;
-          width: auto !important;
-          box-sizing: border-box !important;
-        }
-        
-        .material-didatico-content {
-          padding: 0 0.5rem !important;
-          overflow-x: hidden !important;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-          word-break: break-word;
-          hyphens: auto;
-          max-width: calc(100vw - 1rem) !important;
-          width: 100% !important;
-        }
-        
-        /* Force all text elements to break */
-        .material-didatico-content p,
-        .material-didatico-content li,
-        .material-didatico-content div,
-        .material-didatico-content span,
-        .material-didatico-content h1,
-        .material-didatico-content h2,
-        .material-didatico-content h3,
-        .material-didatico-content h4,
-        .material-didatico-content h5,
-        .material-didatico-content h6 {
-          overflow-wrap: break-word !important;
-          word-wrap: break-word !important;
-          word-break: break-word !important;
-          hyphens: auto !important;
-          max-width: 100% !important;
-        }
-        
-        /* Special handling for long words/URLs */
-        .material-didatico-content a,
-        .material-didatico-content code {
-          overflow-wrap: anywhere !important;
-          word-break: break-all !important;
-        }
+        /* ===== 🔒 MOBILE: FORCE 100% WIDTH - NUCLEAR OPTION ===== */
+        @media (max-width: 767px) {
+          /* LAYER 1: Container constraints */
+          .material-didatico-content,
+          div.material-didatico-content,
+          .material-didatico-content.pt-6 {
+            max-width: 100vw !important;
+            width: 100% !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+            overflow-wrap: break-word !important;
+          }
+          
+          /* LAYER 2: ALL child elements MUST respect viewport */
+          .material-didatico-content *,
+          .material-didatico-content > *,
+          .material-didatico-content * > * {
+            max-width: 100% !important;
+            width: auto !important;
+            box-sizing: border-box !important;
+            overflow-wrap: break-word !important;
+            word-wrap: break-word !important;
+            word-break: break-word !important;
+          }
+          
+          /* LAYER 3: Text elements - FORCE word breaking */
+          .material-didatico-content p,
+          .material-didatico-content li,
+          .material-didatico-content div,
+          .material-didatico-content span,
+          .material-didatico-content h1,
+          .material-didatico-content h2,
+          .material-didatico-content h3,
+          .material-didatico-content h4,
+          .material-didatico-content h5,
+          .material-didatico-content h6,
+          .material-didatico-content blockquote {
+            max-width: 100% !important;
+            width: 100% !important;
+            overflow-wrap: break-word !important;
+            word-wrap: break-word !important;
+            word-break: break-word !important;
+            hyphens: auto !important;
+            -webkit-hyphens: auto !important;
+            -ms-hyphens: auto !important;
+          }
+          
+          /* LAYER 4: Callouts - constrain to viewport */
+          .material-didatico-content [data-callout-type],
+          .material-didatico-content [class*="callout-"],
+          .material-didatico-content blockquote[style] {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0.75rem !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            box-sizing: border-box !important;
+            overflow-wrap: break-word !important;
+            word-break: break-word !important;
+          }
+          
+          /* LAYER 5: Long words/URLs - break aggressively */
+          .material-didatico-content a,
+          .material-didatico-content code:not(pre code) {
+            overflow-wrap: anywhere !important;
+            word-break: break-all !important;
+            max-width: 100% !important;
+          }
 
           
           .material-didatico-content h2 {
@@ -179,18 +205,13 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             max-width: 100%;
           }
           
+          /* Typography specific adjustments */
           .material-didatico-content [data-callout-type],
           .material-didatico-content [class*="callout-"] {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
             margin: 0.75rem 0 !important;
             font-size: 0.85rem !important;
             border-left-width: 3px !important;
-            max-width: calc(100% - 0.5rem) !important;
-            width: calc(100% - 0.5rem) !important;
-            box-sizing: border-box !important;
-            overflow-wrap: break-word !important;
-            word-break: break-word !important;
-            overflow-x: hidden !important;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
           }
           

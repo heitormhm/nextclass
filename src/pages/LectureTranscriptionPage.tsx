@@ -2547,10 +2547,18 @@ const LectureTranscriptionPage = () => {
                     ? "h-[calc(100vh-250px)] w-full overflow-x-hidden"
                     : "h-[calc(100vh-200px)]"
                 )}>
-                                <div id="material-didatico-content" className={cn(
-                                  "w-full min-w-0 max-w-full bg-white rounded-lg overflow-hidden overflow-x-hidden",
-                                  isMobile ? "px-2 py-3" : "p-6"
-                                )}>
+                                <div id="material-didatico-content" 
+                                  className={cn(
+                                    "w-full min-w-0 max-w-full bg-white rounded-lg overflow-hidden overflow-x-hidden",
+                                    isMobile ? "px-3 py-3" : "p-6"
+                                  )}
+                                  style={isMobile ? {
+                                    maxWidth: '100%',
+                                    width: '100%',
+                                    overflowX: 'hidden',
+                                    boxSizing: 'border-box'
+                                  } : undefined}
+                                >
                               {/* FASE 9: Banner de Aviso de Erros LaTeX */}
                               {hasLatexErrors && (
                                 <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
