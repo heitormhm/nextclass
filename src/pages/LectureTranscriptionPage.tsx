@@ -25,7 +25,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Trash2, Pencil, Plus, Play, Pause, Download, BarChart3, Save, RefreshCw, Printer, Camera, Copy, ChevronUp, X as CloseIcon, Monitor, Smartphone, MoreVertical, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain } from 'lucide-react';
+import { Loader2, BookOpen, FileText, ExternalLink, Check, Sparkles, Upload, FileUp, Image as ImageIcon, Users, CheckSquare, Search, Eye, Brain, BookPlus } from 'lucide-react';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { printMaterialDidatico } from '@/utils/printMaterialDidatico';
 import { 
@@ -2209,7 +2209,9 @@ const LectureTranscriptionPage = () => {
                   "bg-white/75 backdrop-blur-xl border-white/40 shadow-xl",
                   isMobile && "mx-0 shadow-md"
                 )}>
-                  <CardHeader className={cn(isMobile && "px-4 py-3")}>
+                  <CardHeader className={cn(
+                    isMobile ? "px-4 py-3 flex flex-row items-center justify-between space-y-0" : ""
+                  )}>
                     <CardTitle className={cn(
                       "text-xl text-slate-900 font-bold flex items-center gap-2",
                       isMobile && "text-lg"
@@ -2217,6 +2219,23 @@ const LectureTranscriptionPage = () => {
                       <FileText className="h-5 w-5 text-purple-600" />
                       Conteúdo Gerado
                     </CardTitle>
+                    
+                    {/* Botão de gerar material - Mobile apenas, sempre visível */}
+                    {isMobile && (
+                      <Button
+                        onClick={handleGenerateMaterialV2}
+                        disabled={isGeneratingMaterialV2}
+                        size="icon"
+                        className="h-11 w-11 min-h-[44px] min-w-[44px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shrink-0"
+                        title="Gerar Material Didático"
+                      >
+                        {isGeneratingMaterialV2 ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <BookPlus className="h-5 w-5" />
+                        )}
+                      </Button>
+                    )}
                   </CardHeader>
 
                   {/* Mobile Action Toolbar */}
@@ -2420,7 +2439,19 @@ const LectureTranscriptionPage = () => {
                   )}
 
                   <CardContent className={cn(isMobile && "px-4 py-3")}>
-                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'resumo' | 'material-v2')} className="w-full">
+                    <Tabs 
+                      value={activeTab} 
+                      onValueChange={(v) => {
+                        const newTab = v as 'resumo' | 'material-v2';
+                        setActiveTab(newTab);
+                        
+                        // Auto-gerar material se usuário clicar na tab "Material" sem material existente
+                        if (newTab === 'material-v2' && !materialDidaticoV2 && !isGeneratingMaterialV2) {
+                          handleGenerateMaterialV2();
+                        }
+                      }} 
+                      className="w-full"
+                    >
                       <TabsList className={cn(
                         "grid w-full grid-cols-2 bg-muted/50 p-1 gap-1",
                         isMobile ? "min-h-[48px]" : "min-h-[52px]"
@@ -2436,7 +2467,7 @@ const LectureTranscriptionPage = () => {
                         </TabsTrigger>
                         <TabsTrigger 
                           value="material-v2" 
-                          disabled={!materialDidaticoV2}
+                          disabled={false}
                           className="text-sm sm:text-base data-[state=active]:shadow-none h-full py-3 flex items-center justify-center gap-2"
                         >
                           <Sparkles className="h-4 w-4 flex-shrink-0" />
@@ -2572,11 +2603,34 @@ const LectureTranscriptionPage = () => {
                       </>
                     ) : (
                           <div className="text-center py-8 bg-slate-50 rounded-lg">
-                            <Sparkles className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                            <p className="text-slate-600 mb-4 font-medium">Material modular ainda não gerado</p>
-                            <p className="text-slate-500 text-sm px-4">
-                              Este é o novo sistema de geração de material didático com pesquisa acadêmica e validação avançada
-                            </p>
+                            {isGeneratingMaterialV2 ? (
+                              <>
+                                <Loader2 className="h-12 w-12 text-purple-600 mx-auto mb-3 animate-spin" />
+                                <p className="text-purple-700 mb-2 font-semibold">Gerando Material Didático...</p>
+                                <p className="text-slate-600 text-sm px-4 mb-4">
+                                  {materialV2Progress}
+                                </p>
+                                <p className="text-slate-500 text-xs px-4">
+                                  Este processo pode levar 1-2 minutos
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                                <p className="text-slate-600 mb-4 font-medium">Material modular ainda não gerado</p>
+                                <p className="text-slate-500 text-sm px-4 mb-4">
+                                  Este é o novo sistema de geração de material didático com pesquisa acadêmica e validação avançada
+                                </p>
+                                <Button
+                                  onClick={handleGenerateMaterialV2}
+                                  disabled={isGeneratingMaterialV2}
+                                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                                >
+                                  <Sparkles className="h-4 w-4 mr-2" />
+                                  Gerar Material Didático
+                                </Button>
+                              </>
+                            )}
                           </div>
                         )}
                       </TabsContent>
