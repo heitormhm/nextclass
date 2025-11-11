@@ -1347,8 +1347,8 @@ const TeacherAnnotationPage = () => {
         {/* Floating Toolbar - renderizar condicionalmente */}
         {showToolbar && (
           <div className={cn(
-            "sticky z-30 backdrop-blur-xl bg-white/90 border-b shadow-sm",
-            isMobile ? "top-[120px]" : "top-0"
+            "z-30 backdrop-blur-xl bg-white/90 border-b shadow-sm",
+            isMobile ? "fixed top-16 left-0 right-0 w-full" : "sticky top-0"
           )}>
           <div className="container mx-auto px-3 py-2">
             {/* Botões com flex-wrap - múltiplas linhas no mobile */}
@@ -1600,15 +1600,17 @@ const TeacherAnnotationPage = () => {
                   handleAIAction('format_lesson_plan');
                   setShowAIActionsSheet(false);
                 }}
-                className="w-full justify-start h-auto py-4 text-base mb-2"
+                className="w-full justify-start h-12 text-base mb-2"
                 variant="outline"
               >
-                      <BookOpen className="h-5 w-5 mr-3 text-blue-600 flex-shrink-0" />
+                      <BookOpen className="h-5 w-5 mr-3 text-blue-600" />
                       <div className="flex flex-col items-start">
                         <span className="font-medium">Gerar Plano de Aula</span>
-                        <span className="text-xs text-muted-foreground">
-                          Unidade de Aprendizagem Profunda e Estruturada
-                        </span>
+                        {!isMobile && (
+                          <span className="text-xs text-muted-foreground">
+                            Unidade de Aprendizagem Profunda e Estruturada
+                          </span>
+                        )}
                       </div>
               </Button>
               
@@ -1617,15 +1619,17 @@ const TeacherAnnotationPage = () => {
                         handleAIAction('generate_activity');
                         setShowAIActionsSheet(false);
                       }}
-                      className="w-full justify-start h-auto py-4 text-base mb-2"
+                      className="w-full justify-start h-12 text-base mb-2"
                       variant="outline"
                     >
-                      <Lightbulb className="h-5 w-5 mr-3 text-orange-600 flex-shrink-0" />
+                      <Lightbulb className="h-5 w-5 mr-3 text-orange-600" />
                       <div className="flex flex-col items-start">
                         <span className="font-medium">Gerar Atividade Avaliativa</span>
-                        <span className="text-xs text-muted-foreground">
-                          10 questões objetivas + 10 abertas com rubricas
-                        </span>
+                        {!isMobile && (
+                          <span className="text-xs text-muted-foreground">
+                            10 questões objetivas + 10 abertas com rubricas
+                          </span>
+                        )}
                       </div>
                     </Button>
                     
@@ -1634,15 +1638,17 @@ const TeacherAnnotationPage = () => {
                         handleAIAction('improve_didactic');
                         setShowAIActionsSheet(false);
                       }}
-                      className="w-full justify-start h-auto py-4 text-base"
+                      className="w-full justify-start h-12 text-base"
                       variant="outline"
                     >
-                      <GraduationCap className="h-5 w-5 mr-3 text-purple-600 flex-shrink-0" />
+                      <GraduationCap className="h-5 w-5 mr-3 text-purple-600" />
                       <div className="flex flex-col items-start">
                         <span className="font-medium">Gerar Material Educativo</span>
-                        <span className="text-xs text-muted-foreground">
-                          Conteúdo de Apoio Didático para seus Alunos
-                        </span>
+                        {!isMobile && (
+                          <span className="text-xs text-muted-foreground">
+                            Conteúdo de Apoio Didático para seus Alunos
+                          </span>
+                        )}
                       </div>
               </Button>
             </div>

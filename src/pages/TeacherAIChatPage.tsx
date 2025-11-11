@@ -61,7 +61,7 @@ const TeacherAIChatPage = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [isDeepSearch, setIsDeepSearch] = useState(false);
+  const [isDeepSearch, setIsDeepSearch] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [showMobileHistory, setShowMobileHistory] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -1211,8 +1211,8 @@ INSTRUÇÕES:
     }
   };
 
-  const handleSendMessage = async () => {
-    const currentMessage = activeTag ? userInput.trim() : inputMessage.trim();
+  const handleSendMessage = async (overrideMessage?: string) => {
+    const currentMessage = overrideMessage || (activeTag ? userInput.trim() : inputMessage.trim());
     if (!currentMessage) return;
 
     // Limpar inputs
@@ -1660,12 +1660,9 @@ INSTRUÇÕES:
     const tag = ACTION_TAGS[action];
     if (!tag) return;
     
-    // ✅ NO MOBILE: Enviar diretamente sem mostrar tag
+    // ✅ NO MOBILE: Enviar diretamente sem mostrar prompt no input
     if (isMobile) {
-      setInputMessage(tag.systemPrompt);
-      setTimeout(() => {
-        handleSendMessage();
-      }, 100);
+      handleSendMessage(tag.systemPrompt);
       return;
     }
     
@@ -1986,62 +1983,99 @@ INSTRUÇÕES:
             </div>
           )}
           
+          {/* MOBILE ONLY: Barra minimalista no topo */}
+          {isMobile && (
+            <div className="fixed top-16 left-0 right-0 z-20 bg-white/95 backdrop-blur-xl border-b shadow-sm pb-safe">
+              <div className="flex items-center justify-between px-4 py-2">
+                {/* Botão histórico */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowMobileHistory(true)}
+                  className="h-10 w-10 rounded-lg hover:bg-purple-50 text-purple-600"
+                >
+                  <Clock className="w-5 h-5" />
+                </Button>
+                
+                {/* Texto centralizado */}
+                <p className="text-sm font-medium text-gray-700 flex-1 text-center px-4">
+                  Como posso ajudar você hoje?
+                </p>
+                
+                {/* Espaçador para balancear layout */}
+                <div className="w-10" />
+              </div>
+            </div>
+          )}
+          
           <div className="relative z-10 flex-1 flex flex-col min-h-full">
             
-            <ScrollArea className="flex-1 px-4 py-6 pb-36">
+            <ScrollArea className={cn(
+              "flex-1 px-4 pb-36",
+              isMobile ? "pt-24" : "py-6"
+            )}>
               <div className="max-w-4xl mx-auto space-y-6">
                  
                  {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[45vh] text-center py-6 px-4">
-            
-            {/* Header com ícone inline */}
-            <div className="flex items-center justify-center gap-4 mb-3">
-              {/* Ícone Sparkles com frosted glass - perfeitamente circular */}
-              <div className="relative w-16 h-16 flex-shrink-0">
-                {/* Outer frosted glass circle */}
-                <div className="absolute inset-0 rounded-full backdrop-blur-xl bg-white/10 border-2 border-white/30 shadow-2xl" 
-                     style={{ aspectRatio: '1 / 1' }} />
+          <>
+            {/* DESKTOP: Seção completa de boas-vindas */}
+            {!isMobile && (
+              <div className="flex flex-col items-center justify-center min-h-[45vh] text-center py-6 px-4">
                 
-                {/* Inner white circle */}
-                <div className="absolute inset-2 rounded-full bg-white shadow-xl"
-                     style={{ aspectRatio: '1 / 1' }} />
+                {/* Header com ícone inline */}
+                <div className="flex items-center justify-center gap-4 mb-3">
+                  {/* Ícone Sparkles com frosted glass - perfeitamente circular */}
+                  <div className="relative w-16 h-16 flex-shrink-0">
+                    {/* Outer frosted glass circle */}
+                    <div className="absolute inset-0 rounded-full backdrop-blur-xl bg-white/10 border-2 border-white/30 shadow-2xl" 
+                         style={{ aspectRatio: '1 / 1' }} />
+                    
+                    {/* Inner white circle */}
+                    <div className="absolute inset-2 rounded-full bg-white shadow-xl"
+                         style={{ aspectRatio: '1 / 1' }} />
+                    
+                    {/* Icon container */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Sparkles className="w-8 h-8 text-pink-500 fill-pink-500 drop-shadow-lg relative z-10" />
+                    </div>
+                  </div>
+                  
+                  {/* Texto ao lado do ícone */}
+                  <h3 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
+                    Bem-vindo, Professor!
+                  </h3>
+                </div>
                 
-                {/* Icon container */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-pink-500 fill-pink-500 drop-shadow-lg relative z-10" />
+                {/* Subtítulo compacto */}
+                <p className="text-white/90 text-base mb-5 max-w-md font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+                  Como posso ajudá-lo hoje?
+                </p>
+                        
+                {/* Grid 3x2 otimizado */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-5xl">
+                  {getInitialActionButtons().map((btn, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleActionButtonClick(btn.action)}
+                      aria-label={`${btn.label} - ${btn.description}`}
+                      className="group p-3 min-h-[70px] backdrop-blur-lg bg-white/20 border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 text-left shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-purple-600"
+                    >
+                      <div className="text-white text-sm font-semibold leading-tight">
+                        {btn.label}
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
-              
-              {/* Texto ao lado do ícone */}
-              <h3 className={cn(
-                "font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]",
-                isMobile ? "text-2xl" : "text-3xl"
-              )}>
-                {isMobile ? "Bem vindo!" : "Bem-vindo, Professor!"}
-              </h3>
-            </div>
+            )}
             
-            {/* Subtítulo compacto */}
-            <p className="text-white/90 text-base mb-5 max-w-md font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
-              Como posso ajudá-lo hoje?
-            </p>
-                    
-            {/* Grid 3x2 otimizado */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-5xl">
-              {getInitialActionButtons().map((btn, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleActionButtonClick(btn.action)}
-                  aria-label={`${btn.label} - ${btn.description}`}
-                  className="group p-3 min-h-[70px] backdrop-blur-lg bg-white/20 border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 text-left shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-purple-600"
-                >
-                  <div className="text-white text-sm font-semibold leading-tight">
-                    {btn.label}
-                  </div>
-                </button>
-              ))}
-            </div>
-                  </div>
+            {/* MOBILE: Mensagem minimalista */}
+            {isMobile && (
+              <div className="text-center py-12 text-white/70 text-sm">
+                Inicie uma conversa com a Mia
+              </div>
+            )}
+          </>
                 ) : (
                   <>
                     {messages.map((message) => (
@@ -2283,10 +2317,10 @@ INSTRUÇÕES:
                         : "Pergunte à Mia sobre pedagogia..."
                     }
                     className={cn(
-                      "resize-none rounded-2xl bg-white border-2 border-purple-200 focus:border-purple-400 shadow-sm w-full pr-20",
+                      "resize-none rounded-2xl bg-white border-2 border-purple-200 focus:border-purple-400 shadow-sm w-full",
                       isMobile 
-                        ? "min-h-[56px] max-h-32 text-sm py-3 px-4" 
-                        : "min-h-[56px] max-h-32 text-sm py-3 px-4"
+                        ? "min-h-[56px] max-h-32 text-sm py-3 px-4 pr-4" 
+                        : "min-h-[56px] max-h-32 text-sm py-3 px-4 pr-20"
                     )}
                     disabled={isLoading}
                     rows={1}
@@ -2308,40 +2342,42 @@ INSTRUÇÕES:
                     </div>
                   )}
 
-                  {/* Botões DENTRO do textarea - canto direito */}
-                  <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                    {/* Botão Voz */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleVoiceInput}
-                      className={cn(
-                        "h-10 w-10 rounded-xl",
-                        isListening ? "bg-red-100 text-red-600" : "hover:bg-purple-50 text-purple-600"
-                      )}
-                      disabled={isLoading}
-                      title={isListening ? "Parar gravação" : "Gravar voz"}
-                    >
-                      <Mic className={cn("w-4 h-4", isListening && "animate-pulse")} />
-                    </Button>
-                    
-                    {/* Botão Enviar */}
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={(activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading}
-                      size="icon"
-                      className="h-10 w-10 rounded-xl bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
+                  {/* DESKTOP ONLY: Botões DENTRO do textarea - canto direito */}
+                  {!isMobile && (
+                    <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                      {/* Botão Voz */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleVoiceInput}
+                        className={cn(
+                          "h-10 w-10 rounded-xl",
+                          isListening ? "bg-red-100 text-red-600" : "hover:bg-purple-50 text-purple-600"
+                        )}
+                        disabled={isLoading}
+                        title={isListening ? "Parar gravação" : "Gravar voz"}
+                      >
+                        <Mic className={cn("w-4 h-4", isListening && "animate-pulse")} />
+                      </Button>
+                      
+                      {/* Botão Enviar */}
+                      <Button
+                        onClick={() => handleSendMessage()}
+                        disabled={(activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading}
+                        size="icon"
+                        className="h-10 w-10 rounded-xl bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md"
+                      >
+                        {isLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                {/* LINHA 2: Anexar + Histórico + Pesquisa Profunda */}
+                {/* LINHA 2: Anexar + Pesquisa Profunda (+ Voz e Enviar no mobile) */}
                 <div className="flex items-center gap-2">
                   {/* Botão Anexar */}
                   <Button
@@ -2378,16 +2414,18 @@ INSTRUÇÕES:
                     accept="image/*,.pdf,.doc,.docx,.txt"
                   />
                   
-                  {/* Botão Histórico */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowMobileHistory(true)}
-                    className="h-9 px-3 hover:bg-purple-50 rounded-lg text-purple-600 flex items-center gap-2"
-                  >
-                    <Clock className="w-4 h-4" />
-                    <span className="text-sm">Histórico</span>
-                  </Button>
+                  {/* DESKTOP ONLY: Botão Histórico */}
+                  {!isMobile && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowMobileHistory(true)}
+                      className="h-9 px-3 hover:bg-purple-50 rounded-lg text-purple-600 flex items-center gap-2"
+                    >
+                      <Clock className="w-4 h-4" />
+                      <span className="text-sm">Histórico</span>
+                    </Button>
+                  )}
                   
                   {/* Toggle Pesquisa Profunda com TEXTO */}
                   <Button
@@ -2416,6 +2454,40 @@ INSTRUÇÕES:
                       </>
                     )}
                   </Button>
+                  
+                  {/* MOBILE ONLY: Botões voz e enviar no extremo direito */}
+                  {isMobile && (
+                    <div className="flex items-center gap-1 ml-auto">
+                      {/* Botão Voz */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleVoiceInput}
+                        className={cn(
+                          "h-9 w-9 rounded-lg",
+                          isListening ? "bg-red-100 text-red-600" : "hover:bg-purple-50 text-purple-600"
+                        )}
+                        disabled={isLoading}
+                        title={isListening ? "Parar gravação" : "Gravar voz"}
+                      >
+                        <Mic className={cn("w-4 h-4", isListening && "animate-pulse")} />
+                      </Button>
+                      
+                      {/* Botão Enviar */}
+                      <Button
+                        onClick={() => handleSendMessage()}
+                        disabled={(activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading}
+                        size="icon"
+                        className="h-9 w-9 rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md"
+                      >
+                        {isLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
               </div>
             </div>
           </div>
