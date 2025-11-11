@@ -4,6 +4,7 @@ import { Mic, MicOff, Pause, Play, Square, Settings, Radio, Clock, MessageSquare
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -16,6 +17,7 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
 import { ProcessingLoadingScreen } from '@/components/ProcessingLoadingScreen';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Word {
   text: string;
@@ -62,8 +64,10 @@ const LiveLecture = () => {
   });
 
   const { isSupported: wakeLockSupported, isActive: wakeLockActive, requestWakeLock, releaseWakeLock } = useWakeLock();
+  const isMobile = useIsMobile();
   
   const [isPaused, setIsPaused] = useState(false);
+  const [showTranscriptDrawer, setShowTranscriptDrawer] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
   const [selectedMicrophone, setSelectedMicrophone] = useState('default');
@@ -773,6 +777,44 @@ const LiveLecture = () => {
                       <Settings className="h-5 w-5" />
                     </Button>
                   </DialogTrigger>
+                  
+                  {/* Transcript Toggle Button (Mobile Only) */}
+                  {isMobile && isSpeechRecording && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => setShowTranscriptDrawer(true)}
+                          className="
+                            w-12 h-12
+                            bg-white/10 backdrop-blur-lg 
+                            border-2 border-white/20 
+                            text-white 
+                            hover:bg-white/20 hover:border-white/40
+                            shadow-lg 
+                            transition-all duration-300 
+                            hover:scale-105
+                            relative
+                          "
+                        >
+                          <MessageSquare className="h-5 w-5" />
+                          {transcriptSegments.length > 0 && (
+                            <Badge 
+                              variant="destructive" 
+                              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                            >
+                              {transcriptSegments.length}
+                            </Badge>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ver transcrição</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  
                   <DialogContent className="bg-white border-gray-200">
                     <DialogHeader>
                       <DialogTitle className="text-gray-900">Configurações de Áudio</DialogTitle>
@@ -801,8 +843,8 @@ const LiveLecture = () => {
             </div>
           </div>
 
-          {/* Sidebar - RIGHT (FIXED) */}
-          {isSpeechRecording && (
+          {/* Sidebar - RIGHT (FIXED) - Desktop Only */}
+          {isSpeechRecording && !isMobile && (
             <div className="w-80 bg-white border-l border-slate-200 flex flex-col fixed right-0 top-[64px] h-[calc(100vh-64px)]">
               <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-purple-50 to-pink-50">
                 <div className="flex items-center gap-2 mb-1">
@@ -844,6 +886,61 @@ const LiveLecture = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Transcript Drawer - Mobile Only */}
+          {isMobile && isSpeechRecording && (
+            <Drawer open={showTranscriptDrawer} onOpenChange={setShowTranscriptDrawer}>
+              <DrawerContent className="h-[85vh]">
+                <DrawerHeader className="border-b border-slate-200 bg-gradient-to-r from-purple-50 to-pink-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Radio className="h-4 w-4 text-purple-600" />
+                      <DrawerTitle>Transcrição ao Vivo</DrawerTitle>
+                    </div>
+                    <Badge variant={isSpeechRecording && !isPaused ? 'default' : 'secondary'} className="text-xs">
+                      {isSpeechRecording && !isPaused ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                  </div>
+                </DrawerHeader>
+
+                <div className="flex-1 overflow-y-auto p-4">
+                  <LiveTranscriptViewer 
+                    segments={transcriptSegments}
+                    currentWords={currentWords}
+                    isProcessing={false}
+                  />
+                </div>
+
+                <div className="p-4 border-t border-slate-200 bg-slate-50 pb-safe">
+                  <div className="grid grid-cols-3 gap-3 text-center mb-4">
+                    <div>
+                      <Clock className="h-4 w-4 mx-auto mb-1 text-slate-600" />
+                      <p className="text-xs text-slate-500">Duração</p>
+                      <p className="text-sm font-semibold text-slate-900">{formatTime(recordingTime)}</p>
+                    </div>
+                    <div>
+                      <MessageSquare className="h-4 w-4 mx-auto mb-1 text-slate-600" />
+                      <p className="text-xs text-slate-500">Segmentos</p>
+                      <p className="text-sm font-semibold text-slate-900">{transcriptSegments.length}</p>
+                    </div>
+                    <div>
+                      <Activity className="h-4 w-4 mx-auto mb-1 text-slate-600" />
+                      <p className="text-xs text-slate-500">Palavras</p>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {transcriptSegments.reduce((acc, seg) => acc + seg.words.length, 0)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <DrawerClose asChild>
+                    <Button variant="outline" className="w-full h-11 min-h-[44px]">
+                      Fechar
+                    </Button>
+                  </DrawerClose>
+                </div>
+              </DrawerContent>
+            </Drawer>
           )}
         </div>
       </MainLayout>

@@ -409,7 +409,7 @@ export const RecordLessonSetupModal = ({ open, onOpenChange }: RecordLessonSetup
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-lg md:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-2xl [&>button]:hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl font-bold">Nova Gravação de Aula</DialogTitle>
           <DialogDescription>
