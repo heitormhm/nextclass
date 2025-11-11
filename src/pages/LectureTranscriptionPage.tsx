@@ -2220,9 +2220,9 @@ const LectureTranscriptionPage = () => {
                       Conteúdo Gerado
                     </CardTitle>
                     
-                    {/* Botão de gerar material - Mobile apenas, sempre visível */}
-                    {isMobile && (
-                      <Button
+  {/* Botão de gerar material - Mobile apenas, visível quando não há material */}
+  {isMobile && !materialDidaticoV2 && (
+    <Button
                         onClick={handleGenerateMaterialV2}
                         disabled={isGeneratingMaterialV2}
                         size="icon"

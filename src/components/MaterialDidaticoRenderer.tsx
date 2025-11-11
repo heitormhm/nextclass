@@ -48,6 +48,28 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
     <div>
       <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content pt-6">
         <style>{`
+        /* ===== 📱 RESPONSIVE CONTAINER FIXES ===== */
+        .material-didatico-content {
+          max-width: 100%;
+          width: 100%;
+          box-sizing: border-box;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+        }
+
+        .material-didatico-content * {
+          max-width: 100%;
+          box-sizing: border-box;
+        }
+
+        .material-didatico-content p,
+        .material-didatico-content li,
+        .material-didatico-content div {
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          word-break: break-word;
+        }
+
         .material-didatico-content code {
           color: inherit;
           background: rgba(0,0,0,0.05);
@@ -62,13 +84,15 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
         }
         
         /* ===== 📱 MOBILE TYPOGRAPHY OPTIMIZATIONS ===== */
-        @media (max-width: 767px) {
-          .material-didatico-content {
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            word-break: break-word;
-            hyphens: auto;
-          }
+      @media (max-width: 767px) {
+        .material-didatico-content {
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+          word-break: break-word;
+          hyphens: auto;
+          padding: 0 0.75rem;
+          max-width: 100vw;
+        }
           
           .material-didatico-content h2 {
             font-size: 1.5rem !important;
@@ -92,10 +116,14 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             margin-bottom: 0.5rem !important;
           }
           
-          .material-didatico-content p {
+          .material-didatico-content p,
+          .material-didatico-content li {
             font-size: 0.95rem !important;
             line-height: 1.6rem !important;
             margin-bottom: 1rem !important;
+            max-width: 100% !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
           }
           
           .material-didatico-content ul,
@@ -123,6 +151,8 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             max-width: 100% !important;
             width: 100% !important;
             box-sizing: border-box !important;
+            overflow-wrap: break-word !important;
+            word-break: break-word !important;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
           }
           
