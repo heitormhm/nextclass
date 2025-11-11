@@ -545,30 +545,6 @@ const TeacherMyLectures = () => {
                 )}
               </div>
             </CardHeader>
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Deletar todos os rascunhos?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta ação irá deletar permanentemente <strong>{filteredDrafts.length} rascunho(s)</strong>.
-                          Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDeleteAllDrafts}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Sim, deletar todos
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </div>
-            </CardHeader>
             <CardContent>
               {isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -671,7 +647,7 @@ const TeacherMyLectures = () => {
                   </Badge>
                 )}
               </CardTitle>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-to-r from-purple-600 to-pink-600">
                   <Plus className="h-4 w-4 mr-2" />
@@ -771,9 +747,9 @@ const TeacherMyLectures = () => {
           </CardContent>
         </Card>
 
-          {/* Section 3: Published Lectures */}
-          <Card className="mb-8 bg-white/90 backdrop-blur-sm">
-            <CardHeader>
+        {/* Section 3: Published Lectures */}
+        <Card className="mb-8 bg-white/90 backdrop-blur-sm">
+          <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-purple-600" />
                 Aulas Publicadas

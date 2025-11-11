@@ -12,11 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import MainLayout from '@/components/MainLayout';
 import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripple';
 import { StructuredContentRenderer } from '@/components/StructuredContentRenderer';
@@ -28,6 +30,7 @@ const TeacherAnnotationPage = () => {
   const { id } = useParams();
   const location = useLocation();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const editorRef = useRef<HTMLDivElement>(null);
   
   const [content, setContent] = useState('');
@@ -47,6 +50,7 @@ const TeacherAnnotationPage = () => {
   const [hasInitializedHistory, setHasInitializedHistory] = useState(false);
   const [preAIContent, setPreAIContent] = useState<string | null>(null);
   const [originalInputContent, setOriginalInputContent] = useState<string>('');
+  const [showAIActionsSheet, setShowAIActionsSheet] = useState(false);
   
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
@@ -1281,17 +1285,47 @@ const TeacherAnnotationPage = () => {
         </div>
 
         {/* Floating Toolbar */}
-        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30">
-            <Card className="shadow-2xl border-0 bg-white min-w-[800px] max-w-[90vw]">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-1.5 flex-nowrap">
-                <Button variant="ghost" size="sm" onClick={() => executeCommand('bold')} title="Negrito">
+        <div className={cn(
+          "fixed bottom-8 z-30",
+          isMobile ? "left-0 right-0 px-2" : "left-1/2 transform -translate-x-1/2"
+        )}>
+          <Card className={cn(
+            "shadow-2xl border-0 bg-white",
+            isMobile ? "w-full" : "min-w-[800px] max-w-[90vw]"
+          )}>
+            <CardContent className={cn(
+              "p-3",
+              isMobile && "overflow-x-auto pb-safe"
+            )}>
+              <div className={cn(
+                "flex items-center gap-1.5",
+                isMobile ? "min-w-max" : "flex-nowrap"
+              )}>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => executeCommand('bold')} 
+                  title="Negrito"
+                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
+                >
                   <Bold className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => executeCommand('italic')} title="Itálico">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => executeCommand('italic')} 
+                  title="Itálico"
+                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
+                >
                   <Italic className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => executeCommand('underline')} title="Sublinhado">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => executeCommand('underline')} 
+                  title="Sublinhado"
+                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
+                >
                   <Underline className="h-4 w-4" />
                 </Button>
                 
@@ -1303,6 +1337,7 @@ const TeacherAnnotationPage = () => {
                   onClick={handleUndo}
                   disabled={historyIndex <= 0}
                   title="Desfazer (Ctrl+Z)"
+                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
                 >
                   <Undo className="h-4 w-4" />
                 </Button>
@@ -1312,59 +1347,99 @@ const TeacherAnnotationPage = () => {
                   onClick={handleRedo}
                   disabled={historyIndex >= history.length - 1}
                   title="Refazer (Ctrl+Shift+Z)"
+                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
                 >
                   <Redo className="h-4 w-4" />
                 </Button>
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
                 
-                <Button variant="ghost" size="sm" onClick={handleHighlight} title="Destacar">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleHighlight} 
+                  title="Destacar"
+                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
+                >
                   <Highlighter className="h-4 w-4" />
                 </Button>
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
                 
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleVoiceToggle} 
-                    title={isRecording ? "Parar transcrição" : "Iniciar transcrição de voz"}
-                    className={cn(
-                      "transition-all min-w-[40px]",
-                      isRecording && "bg-red-100 text-red-600 animate-pulse min-w-[110px]"
-                    )}
-                  >
-                    {isRecording ? (
-                      <div className="flex items-center gap-1.5 justify-center">
-                        <Mic className="h-4 w-4 flex-shrink-0" />
-                        <span className="text-xs font-medium whitespace-nowrap">Gravando</span>
-                      </div>
-                    ) : (
-                      <Mic className="h-4 w-4" />
-                    )}
-                  </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleVoiceToggle} 
+                  title={isRecording ? "Parar transcrição" : "Iniciar transcrição de voz"}
+                  className={cn(
+                    "transition-all",
+                    isMobile ? "h-11 min-h-[44px] min-w-[44px]" : "min-w-[40px]",
+                    isRecording && "bg-red-100 text-red-600 animate-pulse",
+                    isRecording && !isMobile && "min-w-[110px]"
+                  )}
+                >
+                  {isRecording ? (
+                    <div className="flex items-center gap-1.5 justify-center">
+                      <Mic className="h-4 w-4 flex-shrink-0" />
+                      {!isMobile && <span className="text-xs font-medium whitespace-nowrap">Gravando</span>}
+                    </div>
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
+                </Button>
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
                 
-                <Button variant="ghost" size="sm" onClick={() => executeCommand('insertUnorderedList')} title="Lista">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => executeCommand('insertUnorderedList')} 
+                  title="Lista"
+                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
+                >
                   <List className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => executeCommand('insertOrderedList')} title="Lista numerada">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => executeCommand('insertOrderedList')} 
+                  title="Lista numerada"
+                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
+                >
                   <ListOrdered className="h-4 w-4" />
                 </Button>
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
                 
-                <Button variant="ghost" size="sm" onClick={handleImageUpload} title="Inserir Imagem">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleImageUpload} 
+                  title="Inserir Imagem"
+                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
+                >
                   <ImagePlus className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleAddTextbox} title="Adicionar Textbox">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleAddTextbox} 
+                  title="Adicionar Textbox"
+                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
+                >
                   <Type className="h-4 w-4" />
                 </Button>
                 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
                 
-                <Button onClick={handleSave} size="sm" className="bg-primary hover:bg-primary/90 text-white whitespace-nowrap">
+                <Button 
+                  onClick={handleSave} 
+                  size="sm" 
+                  className={cn(
+                    "bg-primary hover:bg-primary/90 text-white whitespace-nowrap",
+                    isMobile && "h-11 min-h-[44px] px-4"
+                  )}
+                >
                   <Save className="h-4 w-4 mr-1" />
                   Salvar
                 </Button>
@@ -1374,9 +1449,11 @@ const TeacherAnnotationPage = () => {
         </div>
 
         {/* Floating AI Assistant Button - Teacher Theme */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        {isMobile ? (
+          <>
             <Button
+              onClick={() => setShowAIActionsSheet(true)}
+              disabled={isProcessingAI}
               className="fixed bottom-6 right-6 rounded-full w-16 h-16 z-40 
                          bg-white/20 backdrop-blur-xl border border-white/40
                          shadow-[0_8px_32px_rgba(219,39,119,0.3)]
@@ -1385,7 +1462,6 @@ const TeacherAnnotationPage = () => {
                          p-0 flex items-center justify-center"
               size="icon"
               title="Assistente IA Mia"
-              disabled={isProcessingAI}
             >
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 
                               flex items-center justify-center shadow-inner">
@@ -1396,74 +1472,223 @@ const TeacherAnnotationPage = () => {
                 )}
               </div>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            side="left" 
-            align="end" 
-            className="w-80 p-2 max-h-[80vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
-            style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: 'rgb(209 213 219) transparent'
-            }}
-          >
-            <DropdownMenuLabel className="text-blue-600 font-semibold flex items-center gap-2 text-base">
-              <Sparkles className="h-5 w-5" />
-              Assistente IA Mia
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            
-            <DropdownMenuItem onClick={() => handleAIAction('improve_grammar')} className="cursor-pointer py-3">
-              <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
-              <span className="font-medium">Corrigir erros gramaticais</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem onClick={() => handleAIAction('fact_check')} className="cursor-pointer py-3">
-              <ShieldCheck className="h-4 w-4 mr-2 text-blue-600" />
-              <span className="font-medium">Fact Checking</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuSeparator className="my-2" />
-            
-            <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
-              ✏️ Edição de Conteúdo
-            </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleAIAction('expand')} className="cursor-pointer pl-6 py-2">
-              <Sparkles className="h-4 w-4 mr-2 text-blue-600" />
-              <span className="font-medium">Expandir conteúdo</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAIAction('summarize')} className="cursor-pointer pl-6 py-2">
-              <FileText className="h-4 w-4 mr-2 text-gray-600" />
-              <span className="font-medium">Resumir conteúdo</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuSeparator className="my-2" />
-            
-            <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
-              🎓 Ferramentas Pedagógicas
-            </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleAIAction('format_lesson_plan')} className="cursor-pointer pl-6 py-2">
-              <BookOpen className="h-4 w-4 mr-2 text-blue-600" />
-              <div className="flex flex-col">
-                <span className="font-medium">Gerar Plano de Aula</span>
-                <span className="text-xs text-muted-foreground">Unidade de Aprendizagem Profunda e Estruturada</span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAIAction('generate_activity')} className="cursor-pointer pl-6 py-2">
-              <Lightbulb className="h-4 w-4 mr-2 text-orange-600" />
-              <div className="flex flex-col">
-                <span className="font-medium">Gerar Atividade Avaliativa</span>
-                <span className="text-xs text-muted-foreground">10 questões objetivas + 10 abertas com rubricas</span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAIAction('improve_didactic')} className="cursor-pointer pl-6 py-2">
-              <GraduationCap className="h-4 w-4 mr-2 text-purple-600" />
-              <div className="flex flex-col">
-                <span className="font-medium">Gerar Material Educativo</span>
-                <span className="text-xs text-muted-foreground">Conteúdo de Apoio Didático para seus Alunos</span>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+
+            <Sheet open={showAIActionsSheet} onOpenChange={setShowAIActionsSheet}>
+              <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl overflow-y-auto">
+                <SheetHeader className="pb-4">
+                  <SheetTitle className="flex items-center gap-2 text-lg">
+                    <Sparkles className="h-5 w-5 text-pink-500" />
+                    Assistente IA Mia
+                  </SheetTitle>
+                </SheetHeader>
+                
+                <div className="space-y-3 py-4">
+                  <Button
+                    onClick={() => {
+                      handleAIAction('improve_grammar');
+                      setShowAIActionsSheet(false);
+                    }}
+                    className="w-full justify-start h-14 text-base"
+                    variant="outline"
+                  >
+                    <CheckCircle2 className="h-5 w-5 mr-3 text-green-600" />
+                    Corrigir erros gramaticais
+                  </Button>
+                  
+                  <Button
+                    onClick={() => {
+                      handleAIAction('fact_check');
+                      setShowAIActionsSheet(false);
+                    }}
+                    className="w-full justify-start h-14 text-base"
+                    variant="outline"
+                  >
+                    <ShieldCheck className="h-5 w-5 mr-3 text-blue-600" />
+                    Fact Checking
+                  </Button>
+                  
+                  <div className="border-t my-4 pt-4">
+                    <p className="text-sm font-semibold text-gray-700 mb-3">
+                      ✏️ EDIÇÃO DE CONTEÚDO
+                    </p>
+                    
+                    <Button
+                      onClick={() => {
+                        handleAIAction('expand');
+                        setShowAIActionsSheet(false);
+                      }}
+                      className="w-full justify-start h-14 text-base mb-2"
+                      variant="outline"
+                    >
+                      <Sparkles className="h-5 w-5 mr-3 text-blue-600" />
+                      Expandir conteúdo
+                    </Button>
+                    
+                    <Button
+                      onClick={() => {
+                        handleAIAction('summarize');
+                        setShowAIActionsSheet(false);
+                      }}
+                      className="w-full justify-start h-14 text-base"
+                      variant="outline"
+                    >
+                      <FileText className="h-5 w-5 mr-3 text-gray-600" />
+                      Resumir conteúdo
+                    </Button>
+                  </div>
+                  
+                  <div className="border-t my-4 pt-4">
+                    <p className="text-sm font-semibold text-gray-700 mb-3">
+                      🎓 FERRAMENTAS PEDAGÓGICAS
+                    </p>
+                    
+                    <Button
+                      onClick={() => {
+                        handleAIAction('format_lesson_plan');
+                        setShowAIActionsSheet(false);
+                      }}
+                      className="w-full justify-start h-auto py-4 text-base mb-2"
+                      variant="outline"
+                    >
+                      <BookOpen className="h-5 w-5 mr-3 text-blue-600 flex-shrink-0" />
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">Gerar Plano de Aula</span>
+                        <span className="text-xs text-muted-foreground">
+                          Unidade de Aprendizagem Profunda e Estruturada
+                        </span>
+                      </div>
+                    </Button>
+                    
+                    <Button
+                      onClick={() => {
+                        handleAIAction('generate_activity');
+                        setShowAIActionsSheet(false);
+                      }}
+                      className="w-full justify-start h-auto py-4 text-base mb-2"
+                      variant="outline"
+                    >
+                      <Lightbulb className="h-5 w-5 mr-3 text-orange-600 flex-shrink-0" />
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">Gerar Atividade Avaliativa</span>
+                        <span className="text-xs text-muted-foreground">
+                          10 questões objetivas + 10 abertas com rubricas
+                        </span>
+                      </div>
+                    </Button>
+                    
+                    <Button
+                      onClick={() => {
+                        handleAIAction('improve_didactic');
+                        setShowAIActionsSheet(false);
+                      }}
+                      className="w-full justify-start h-auto py-4 text-base"
+                      variant="outline"
+                    >
+                      <GraduationCap className="h-5 w-5 mr-3 text-purple-600 flex-shrink-0" />
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">Gerar Material Educativo</span>
+                        <span className="text-xs text-muted-foreground">
+                          Conteúdo de Apoio Didático para seus Alunos
+                        </span>
+                      </div>
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className="fixed bottom-6 right-6 rounded-full w-16 h-16 z-40 
+                           bg-white/20 backdrop-blur-xl border border-white/40
+                           shadow-[0_8px_32px_rgba(219,39,119,0.3)]
+                           hover:shadow-[0_12px_48px_rgba(219,39,119,0.5)]
+                           hover:scale-110 transition-all duration-300
+                           p-0 flex items-center justify-center"
+                size="icon"
+                title="Assistente IA Mia"
+                disabled={isProcessingAI}
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 
+                                flex items-center justify-center shadow-inner">
+                  {isProcessingAI ? (
+                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                  ) : (
+                    <Sparkles className="h-6 w-6 text-white" />
+                  )}
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              side="left" 
+              align="end" 
+              className="w-80 p-2 max-h-[80vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgb(209 213 219) transparent'
+              }}
+            >
+              <DropdownMenuLabel className="text-blue-600 font-semibold flex items-center gap-2 text-base">
+                <Sparkles className="h-5 w-5" />
+                Assistente IA Mia
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem onClick={() => handleAIAction('improve_grammar')} className="cursor-pointer py-3">
+                <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+                <span className="font-medium">Corrigir erros gramaticais</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem onClick={() => handleAIAction('fact_check')} className="cursor-pointer py-3">
+                <ShieldCheck className="h-4 w-4 mr-2 text-blue-600" />
+                <span className="font-medium">Fact Checking</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator className="my-2" />
+              
+              <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
+                ✏️ Edição de Conteúdo
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => handleAIAction('expand')} className="cursor-pointer pl-6 py-2">
+                <Sparkles className="h-4 w-4 mr-2 text-blue-600" />
+                <span className="font-medium">Expandir conteúdo</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAIAction('summarize')} className="cursor-pointer pl-6 py-2">
+                <FileText className="h-4 w-4 mr-2 text-gray-600" />
+                <span className="font-medium">Resumir conteúdo</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator className="my-2" />
+              
+              <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
+                🎓 Ferramentas Pedagógicas
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => handleAIAction('format_lesson_plan')} className="cursor-pointer pl-6 py-2">
+                <BookOpen className="h-4 w-4 mr-2 text-blue-600" />
+                <div className="flex flex-col">
+                  <span className="font-medium">Gerar Plano de Aula</span>
+                  <span className="text-xs text-muted-foreground">Unidade de Aprendizagem Profunda e Estruturada</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAIAction('generate_activity')} className="cursor-pointer pl-6 py-2">
+                <Lightbulb className="h-4 w-4 mr-2 text-orange-600" />
+                <div className="flex flex-col">
+                  <span className="font-medium">Gerar Atividade Avaliativa</span>
+                  <span className="text-xs text-muted-foreground">10 questões objetivas + 10 abertas com rubricas</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAIAction('improve_didactic')} className="cursor-pointer pl-6 py-2">
+                <GraduationCap className="h-4 w-4 mr-2 text-purple-600" />
+                <div className="flex flex-col">
+                  <span className="font-medium">Gerar Material Educativo</span>
+                  <span className="text-xs text-muted-foreground">Conteúdo de Apoio Didático para seus Alunos</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         {/* Floating PDF Export Button */}
         {showPDFExportButton && !isStructuredMode && (

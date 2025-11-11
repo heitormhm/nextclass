@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ActionButtons } from "@/components/ActionButtons";
 import { JobStatus } from "@/components/JobStatus";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -52,6 +53,7 @@ interface ActionTag {
 const TeacherAIChatPage = () => {
   const { toast } = useToast();
   const location = useLocation();
+  const isMobile = useIsMobile();
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -1855,7 +1857,10 @@ INSTRUÇÕES:
 
   return (
     <MainLayout>
-      <div className="flex h-[calc(100vh-4rem)] overflow-hidden w-full relative">
+      <div className={cn(
+        "flex overflow-hidden w-full relative",
+        isMobile ? "min-h-[100dvh]" : "h-[calc(100vh-4rem)]"
+      )}>
         {/* Background com z-index controlado */}
         <div className="absolute inset-0 pointer-events-none z-0">
           <TeacherBackgroundRipple />
@@ -2284,7 +2289,10 @@ INSTRUÇÕES:
                       variant="ghost"
                       size="icon"
                       onClick={() => document.getElementById('teacher-file-upload')?.click()}
-                      className="shrink-0 h-10 w-10 hover:bg-primary/10"
+                      className={cn(
+                        "shrink-0 hover:bg-primary/10",
+                        isMobile ? "h-11 w-11 min-h-[44px] min-w-[44px]" : "h-10 w-10"
+                      )}
                       title="Anexar arquivo"
                     >
                       <Paperclip className="w-5 h-5" />
@@ -2297,7 +2305,8 @@ INSTRUÇÕES:
                     size="icon"
                     onClick={toggleVoiceInput}
                     className={cn(
-                      "shrink-0 h-10 w-10 relative hover:bg-primary/10",
+                      "shrink-0 relative hover:bg-primary/10",
+                      isMobile ? "h-11 w-11 min-h-[44px] min-w-[44px]" : "h-10 w-10",
                       isListening && "text-primary"
                     )}
                     disabled={isLoading}
@@ -2336,7 +2345,10 @@ INSTRUÇÕES:
                           ? `Complete: ${activeTag.userPromptTemplate}...` 
                           : "Pergunte à Mia sobre pedagogia, conteúdos, estratégias..."
                       }
-                      className="min-h-[40px] max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-2"
+                      className={cn(
+                        "max-h-32 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-2",
+                        isMobile ? "min-h-[44px] text-base" : "min-h-[40px]"
+                      )}
                       disabled={isLoading}
                     />
                     
@@ -2402,9 +2414,16 @@ INSTRUÇÕES:
                       (activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading
                     }
                     size="icon"
-                    className="shrink-0 h-10 w-10 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg"
+                    className={cn(
+                      "shrink-0 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg",
+                      isMobile ? "h-11 w-11 min-h-[44px] min-w-[44px]" : "h-10 w-10"
+                    )}
                   >
-                    <Send className="w-4 h-4" />
+                    {isLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>
