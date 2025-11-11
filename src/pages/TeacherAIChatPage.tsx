@@ -2029,7 +2029,7 @@ INSTRUÇÕES:
           
           {/* MOBILE ONLY: Barra minimalista no topo */}
           {isMobile && (
-            <div className="fixed top-16 left-0 right-0 z-20 bg-white/10 backdrop-blur-2xl border-b border-white/30 shadow-lg pb-safe">
+            <div className="sticky top-16 left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-lg pb-safe">
               <div className="flex items-center gap-2 px-4 py-2.5">
                 {/* Botão histórico com estilo rosa */}
                 <Button
@@ -2046,7 +2046,7 @@ INSTRUÇÕES:
                   <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="flex-1 justify-center gap-2 h-10 text-sm font-medium text-gray-800 hover:bg-white/30 backdrop-blur-sm rounded-lg"
+                      className="flex-1 justify-center gap-2 h-10 text-sm font-medium text-gray-900 hover:bg-white/40 backdrop-blur-sm rounded-lg"
                     >
                       <span>{selectedAction?.label || "Como posso ajudar você hoje?"}</span>
                       <ChevronDown className="w-4 h-4 text-gray-600" />
@@ -2135,7 +2135,7 @@ INSTRUÇÕES:
                 </p>
                         
                 {/* Grid 3x2 otimizado */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-5xl">
+                <div className="flex flex-row gap-3 w-full max-w-5xl overflow-x-auto pb-2">
                   {getInitialActionButtons().map((btn, idx) => (
                     <button
                       key={idx}
@@ -2356,11 +2356,16 @@ INSTRUÇÕES:
             </ScrollArea>
 
             {/* Input Area - Fixed at bottom */}
-            <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-white/95 backdrop-blur-xl shadow-2xl pb-safe">
-              <div className="container mx-auto px-3 py-3 max-w-4xl space-y-2">
+            <div className={cn(
+              "border-t bg-white/95 backdrop-blur-xl shadow-2xl pb-safe",
+              isMobile 
+                ? "fixed bottom-0 left-0 right-0 z-30" 
+                : "fixed bottom-0 left-80 xl:left-96 right-0 z-20"
+            )}>
+              <div className="container mx-auto px-3 py-3 max-w-4xl">
                 {/* Tag ativa */}
                 {activeTag && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 rounded-lg">
+                  <div className="flex items-center gap-2 px-3 py-2 mb-2 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 rounded-lg">
                     <span className="text-lg">{activeTag.emoji}</span>
                     <span className="text-sm font-semibold text-purple-900 flex-1">{activeTag.label}</span>
                     <Button
@@ -2377,214 +2382,231 @@ INSTRUÇÕES:
                   </div>
                 )}
                 
-                {/* LINHA 1: Textarea com botões internos */}
-                <div className="relative w-full">
-                  <Textarea
-                    value={activeTag ? userInput : inputMessage}
-                    onChange={(e) => {
-                      if (activeTag) {
-                        setUserInput(e.target.value);
-                      } else {
-                        setInputMessage(e.target.value);
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    placeholder={
-                      activeTag 
-                        ? `${activeTag.userPromptTemplate}` 
-                        : "Pergunte à Mia sobre pedagogia..."
-                    }
-                    className={cn(
-                      "resize-none rounded-2xl bg-white border-2 border-purple-200 focus:border-purple-400 shadow-sm w-full",
-                      isMobile 
-                        ? "min-h-[56px] max-h-32 text-sm py-3 px-4 pr-4" 
-                        : "min-h-[56px] max-h-32 text-sm py-3 px-4 pr-20"
-                    )}
-                    disabled={isLoading}
-                    rows={1}
-                  />
-                  
-                  {/* Preview arquivo anexado */}
-                  {attachedFile && (
-                    <div className="absolute -top-12 left-0 right-20 flex items-center gap-2 px-3 py-2 bg-purple-50 rounded-lg text-xs border border-purple-200">
-                      <Paperclip className="w-3 h-3 shrink-0 text-purple-600" />
-                      <span className="flex-1 truncate text-purple-900">{attachedFile.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5 hover:bg-red-100"
-                        onClick={() => setAttachedFile(null)}
-                      >
-                        <Trash2 className="w-3 h-3 text-red-600" />
-                      </Button>
-                    </div>
+                {/* Container principal do input */}
+                <div className={cn(
+                  isMobile 
+                    ? "space-y-2"
+                    : "flex items-center gap-2"
+                )}>
+                  {/* DESKTOP: Botão Anexar inline à esquerda */}
+                  {!isMobile && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => document.getElementById('teacher-file-upload')?.click()}
+                      className="h-10 w-10 shrink-0 hover:bg-purple-50 rounded-lg text-purple-600"
+                    >
+                      <Paperclip className="w-5 h-5" />
+                    </Button>
                   )}
 
-                  {/* DESKTOP ONLY: Botões DENTRO do textarea - canto direito */}
+                  {/* Textarea central */}
+                  <div className="relative flex-1 min-w-0">
+                    <Textarea
+                      value={activeTag ? userInput : inputMessage}
+                      onChange={(e) => {
+                        if (activeTag) {
+                          setUserInput(e.target.value);
+                        } else {
+                          setInputMessage(e.target.value);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      placeholder={
+                        activeTag 
+                          ? `${activeTag.userPromptTemplate}` 
+                          : "Pergunte à Mia sobre pedagogia..."
+                      }
+                      className={cn(
+                        "resize-none rounded-2xl bg-white border-2 border-purple-200 focus:border-purple-400 shadow-sm w-full",
+                        isMobile 
+                          ? "min-h-[56px] max-h-32 text-sm py-3 px-4" 
+                          : "min-h-[48px] max-h-24 text-base py-3 px-4"
+                      )}
+                      disabled={isLoading}
+                      rows={1}
+                    />
+
+                    {/* Preview arquivo anexado */}
+                    {attachedFile && (
+                      <div className="absolute -top-12 left-0 right-20 flex items-center gap-2 px-3 py-2 bg-purple-50 rounded-lg text-xs border border-purple-200">
+                        <Paperclip className="w-3 h-3 shrink-0 text-purple-600" />
+                        <span className="flex-1 truncate text-purple-900">{attachedFile.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 hover:bg-red-100"
+                          onClick={() => setAttachedFile(null)}
+                        >
+                          <Trash2 className="w-3 h-3 text-red-600" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* DESKTOP: Pesquisa + Enviar inline à direita */}
                   {!isMobile && (
-                    <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                      {/* Botão Voz */}
+                    <>
+                      {/* Toggle Pesquisa Profunda/Padrão */}
                       <Button
                         variant="ghost"
-                        size="icon"
-                        onClick={toggleVoiceInput}
+                        size="sm"
+                        onClick={() => setIsDeepSearch(!isDeepSearch)}
                         className={cn(
-                          "h-10 w-10 rounded-xl",
-                          isListening ? "bg-red-100 text-red-600" : "hover:bg-purple-50 text-purple-600"
+                          "h-10 px-4 shrink-0 transition-all flex items-center gap-2",
+                          isDeepSearch 
+                            ? "bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md" 
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         )}
-                        disabled={isLoading}
-                        title={isListening ? "Parar gravação" : "Gravar voz"}
                       >
-                        <Mic className={cn("w-4 h-4", isListening && "animate-pulse")} />
+                        {isDeepSearch ? (
+                          <>
+                            <div className="relative flex items-center justify-center">
+                              <div className="absolute w-2 h-2 bg-pink-200 rounded-full animate-ping" />
+                              <div className="relative w-1.5 h-1.5 bg-white rounded-full" />
+                            </div>
+                            <span className="text-sm font-medium">Pesquisa Profunda</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="w-4 h-4" />
+                            <span className="text-sm font-medium">Pesquisa Padrão</span>
+                          </>
+                        )}
                       </Button>
-                      
+
                       {/* Botão Enviar */}
                       <Button
                         onClick={() => handleSendMessage()}
                         disabled={(activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading}
                         size="icon"
-                        className="h-10 w-10 rounded-xl bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md"
+                        className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md"
                       >
                         {isLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-5 h-5 animate-spin" />
                         ) : (
-                          <Send className="w-4 h-4" />
+                          <Send className="w-5 h-5" />
                         )}
                       </Button>
+                    </>
+                  )}
+
+                  {/* MOBILE: Botões de ação em linha separada */}
+                  {isMobile && (
+                    <div className="flex items-center gap-1">
+                      {/* Botão Anexar */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => document.getElementById('teacher-file-upload')?.click()}
+                        className="h-9 px-3 bg-purple-50 text-purple-600 hover:bg-purple-100 active:scale-95 shadow-sm transition-all flex items-center gap-1.5"
+                      >
+                        <Paperclip className="w-4 h-4" />
+                        <span className="text-xs font-medium">Anexar</span>
+                      </Button>
+
+                      {/* Toggle Pesquisa Profunda/Padrão */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsDeepSearch(!isDeepSearch)}
+                        className={cn(
+                          "h-9 px-3 transition-all flex items-center gap-1.5 shadow-sm",
+                          isDeepSearch 
+                            ? "bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white" 
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        )}
+                      >
+                        {isDeepSearch ? (
+                          <>
+                            <div className="relative flex items-center justify-center">
+                              <div className="absolute w-2 h-2 bg-pink-200 rounded-full animate-ping" />
+                              <div className="relative w-1.5 h-1.5 bg-white rounded-full" />
+                            </div>
+                            <span className="text-xs font-medium">Pesquisa Profunda</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="w-4 h-4" />
+                            <span className="text-xs font-medium">Pesquisa Padrão</span>
+                          </>
+                        )}
+                      </Button>
+
+                      {/* Container Voz + Enviar */}
+                      <div className="ml-auto flex items-center gap-1">
+                        {/* Botão Voz */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={toggleVoiceInput}
+                          className={cn(
+                            "h-9 w-9 rounded-lg transition-all",
+                            isListening 
+                              ? "bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30 animate-pulse" 
+                              : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 active:scale-95"
+                          )}
+                          disabled={isLoading}
+                          title={isListening ? "Parar gravação" : "Gravar voz"}
+                        >
+                          <Mic className={cn("w-4 h-4", isListening && "animate-pulse")} />
+                        </Button>
+
+                        {/* Botão Enviar */}
+                        <Button
+                          onClick={() => handleSendMessage()}
+                          disabled={(activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading}
+                          size="icon"
+                          className="h-9 w-9 rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md active:scale-95 transition-all"
+                        >
+                          {isLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Send className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* LINHA 2: Anexar + Pesquisa Profunda (+ Voz e Enviar no mobile) */}
-                <div className="flex items-center gap-2">
-                  {/* Botão Anexar */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => document.getElementById('teacher-file-upload')?.click()}
-                    className={cn(
-                      "h-9 px-3 rounded-lg flex items-center gap-2 transition-all",
-                      isMobile
-                        ? "bg-purple-50 text-purple-600 hover:bg-purple-100 active:scale-95 shadow-sm"
-                        : "hover:bg-purple-50 text-purple-600"
-                    )}
-                  >
-                    <Paperclip className="w-4 h-4" />
-                    <span className="text-sm">Anexar</span>
-                  </Button>
-                  <input
-                    id="teacher-file-upload"
-                    type="file"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (file.size > 20 * 1024 * 1024) {
-                          toast({
-                            title: "Arquivo muito grande",
-                            description: "O arquivo deve ter no máximo 20MB",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        setAttachedFile(file);
+                <input
+                  id="teacher-file-upload"
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 20 * 1024 * 1024) {
                         toast({
-                          title: "Arquivo anexado",
-                          description: file.name,
+                          title: "Arquivo muito grande",
+                          description: "O arquivo deve ter no máximo 20MB",
+                          variant: "destructive",
                         });
+                        return;
                       }
-                    }}
-                    accept="image/*,.pdf,.doc,.docx,.txt"
-                  />
-                  
-                  {/* DESKTOP ONLY: Botão Histórico */}
-                  {!isMobile && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowMobileHistory(true)}
-                      className="h-9 px-3 hover:bg-purple-50 rounded-lg text-purple-600 flex items-center gap-2"
-                    >
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm">Histórico</span>
-                    </Button>
-                  )}
-                  
-                  {/* Toggle Pesquisa Profunda com TEXTO */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsDeepSearch(!isDeepSearch)}
-                    className={cn(
-                      "h-9 px-3 rounded-lg flex items-center gap-2 transition-all",
-                      isDeepSearch 
-                        ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md hover:from-pink-600 hover:to-pink-700" 
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    )}
-                  >
-                    {isDeepSearch ? (
-                      <>
-                        <div className="relative w-3 h-3">
-                          <div className="absolute inset-0 bg-white/30 rounded-full animate-pulse" />
-                          <div className="absolute inset-1 bg-white rounded-full" />
-                        </div>
-                        <span className="text-sm font-medium">Pesquisa Profunda</span>
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="w-4 h-4" />
-                        <span className="text-sm font-medium">Pesquisa Padrão</span>
-                      </>
-                    )}
-                  </Button>
-                  
-                  {/* MOBILE ONLY: Botões voz e enviar no extremo direito */}
-                  {isMobile && (
-                    <div className="flex items-center gap-1 ml-auto">
-                      {/* Botão Voz */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={toggleVoiceInput}
-                        className={cn(
-                          "h-9 w-9 rounded-lg transition-all shadow-sm",
-                          isListening 
-                            ? "bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30" 
-                            : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 active:scale-95"
-                        )}
-                        disabled={isLoading}
-                        title={isListening ? "Parar gravação" : "Gravar voz"}
-                      >
-                        <Mic className={cn("w-4 h-4", isListening && "animate-pulse")} />
-                      </Button>
-                      
-                      {/* Botão Enviar */}
-                      <Button
-                        onClick={() => handleSendMessage()}
-                        disabled={(activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading}
-                        size="icon"
-                        className="h-9 w-9 rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md active:scale-95 transition-all"
-                      >
-                        {isLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  )}
+                      setAttachedFile(file);
+                      toast({
+                        title: "Arquivo anexado",
+                        description: file.name,
+                      });
+                    }
+                  }}
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                />
               </div>
             </div>
-          </div>
-        </div>
 
         </div>
-        {/* End of main content div from line 1981 */}
+        {/* End of chat area div from line 1989 */}
+
+      </div>
+      {/* End of main container div from line 1909 */}
 
         <Sheet open={showMobileHistory} onOpenChange={setShowMobileHistory}>
           <SheetContent side="left" className="w-full sm:w-80 p-0 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30 z-[9999]">
