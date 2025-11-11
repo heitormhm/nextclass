@@ -507,8 +507,8 @@ const LiveLecture = () => {
       <MainLayout>
         <div className="flex h-[calc(100vh-64px)]">
           {/* Main Content Area - LEFT */}
-          <div className={`flex-1 relative overflow-y-auto bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%] transition-all duration-300 ${
-            isSpeechRecording ? 'mr-80' : ''
+          <div className={`flex-1 relative overflow-y-auto overflow-x-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%] transition-all duration-300 ${
+            isSpeechRecording && !isMobile ? 'mr-80' : ''
           }`}>
             {/* Animated Background with Ripple Effect */}
             <TeacherBackgroundRipple />
@@ -608,9 +608,10 @@ const LiveLecture = () => {
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-spin" style={{ animationDuration: '2s' }} />
                   )}
                   
-                  <div className="absolute inset-8 rounded-full flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full flex items-center justify-center p-6">
                     <div className={`
-                      w-28 h-28 md:w-32 md:h-32 rounded-full 
+                      w-full h-full max-w-[112px] max-h-[112px] md:max-w-[128px] md:max-h-[128px]
+                      aspect-square rounded-full 
                       flex items-center justify-center
                       transition-all duration-500
                       ${isSpeechRecording && !isPaused
@@ -645,53 +646,55 @@ const LiveLecture = () => {
                 </TooltipProvider>
               </div>
 
-              {/* 3. WAVEFORM */}
-              <div className="w-full max-w-2xl px-4">
-                <div className="flex justify-center items-end h-24 md:h-32 gap-0.5 mb-2">
-                  {Array.from({ length: 40 }, (_, i) => {
-                    const distanceFromCenter = Math.abs(i - 20);
-                    const normalizedDistance = distanceFromCenter / 20;
-                    
-                    const baseHeight = isSpeechRecording && !isPaused ? 64 : 15;
-                    const falloffMultiplier = 1 - (normalizedDistance * 0.4);
-                    
-                    const dynamicHeight = isSpeechRecording && !isPaused 
-                      ? baseHeight * falloffMultiplier * (0.4 + (audioLevel / 100) * 0.6) * (0.8 + Math.sin(Date.now() * 0.01 + i * 0.4) * 0.2)
-                      : baseHeight * falloffMultiplier * 0.3;
-                    
-                    return (
-                      <div
-                        key={i}
-                        className={`rounded-t transition-all duration-100 ease-out w-1 ${
-                          isSpeechRecording && !isPaused 
-                            ? 'bg-gradient-to-t from-purple-500 to-pink-400' 
-                            : 'bg-white/40'
-                        }`}
-                        style={{
-                          height: `${Math.max(3, dynamicHeight)}px`,
-                          opacity: isSpeechRecording && !isPaused 
-                            ? 0.7 + (Math.sin(Date.now() * 0.008 + i * 0.3) * 0.3)
-                            : 0.5,
-                          boxShadow: isSpeechRecording && !isPaused 
-                            ? '0 0 10px rgba(168, 85, 247, 0.5)' 
-                            : 'none'
-                        }}
-                      />
-                    );
-                  })}
+              {/* 3. WAVEFORM - Desktop Only */}
+              {!isMobile && (
+                <div className="w-full max-w-2xl px-4">
+                  <div className="flex justify-center items-end h-24 md:h-32 gap-0.5 mb-2">
+                    {Array.from({ length: 40 }, (_, i) => {
+                      const distanceFromCenter = Math.abs(i - 20);
+                      const normalizedDistance = distanceFromCenter / 20;
+                      
+                      const baseHeight = isSpeechRecording && !isPaused ? 64 : 15;
+                      const falloffMultiplier = 1 - (normalizedDistance * 0.4);
+                      
+                      const dynamicHeight = isSpeechRecording && !isPaused 
+                        ? baseHeight * falloffMultiplier * (0.4 + (audioLevel / 100) * 0.6) * (0.8 + Math.sin(Date.now() * 0.01 + i * 0.4) * 0.2)
+                        : baseHeight * falloffMultiplier * 0.3;
+                      
+                      return (
+                        <div
+                          key={i}
+                          className={`rounded-t transition-all duration-100 ease-out w-1 ${
+                            isSpeechRecording && !isPaused 
+                              ? 'bg-gradient-to-t from-purple-500 to-pink-400' 
+                              : 'bg-white/40'
+                          }`}
+                          style={{
+                            height: `${Math.max(3, dynamicHeight)}px`,
+                            opacity: isSpeechRecording && !isPaused 
+                              ? 0.7 + (Math.sin(Date.now() * 0.008 + i * 0.3) * 0.3)
+                              : 0.5,
+                            boxShadow: isSpeechRecording && !isPaused 
+                              ? '0 0 10px rgba(168, 85, 247, 0.5)' 
+                              : 'none'
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="flex items-center justify-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${
+                      isSpeechRecording && !isPaused 
+                        ? 'bg-green-400 animate-pulse shadow-lg shadow-green-400/50' 
+                        : 'bg-white/40'
+                    }`} />
+                    <p className="text-xs text-white/90 font-medium">
+                      {isSpeechRecording && !isPaused ? 'Reconhecimento de voz ativo' : 'Aguardando entrada de áudio'}
+                    </p>
+                  </div>
                 </div>
-                
-                <div className="flex items-center justify-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${
-                    isSpeechRecording && !isPaused 
-                      ? 'bg-green-400 animate-pulse shadow-lg shadow-green-400/50' 
-                      : 'bg-white/40'
-                  }`} />
-                  <p className="text-xs text-white/90 font-medium">
-                    {isSpeechRecording && !isPaused ? 'Reconhecimento de voz ativo' : 'Aguardando entrada de áudio'}
-                  </p>
-                </div>
-              </div>
+              )}
 
               {/* 4. CONTROL BUTTONS */}
               <div className="flex flex-wrap items-center justify-center gap-4">
@@ -778,8 +781,34 @@ const LiveLecture = () => {
                     </Button>
                   </DialogTrigger>
                   
-                  {/* Transcript Toggle Button (Mobile Only) */}
-                  {isMobile && isSpeechRecording && (
+                  <DialogContent className="bg-white border-gray-200">
+                    <DialogHeader>
+                      <DialogTitle className="text-gray-900">Configurações de Áudio</DialogTitle>
+                      <DialogDescription className="text-gray-600">
+                        Selecione o dispositivo de entrada de áudio
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="microphone" className="text-gray-900">Microfone</Label>
+                        <Select value={selectedMicrophone} onValueChange={setSelectedMicrophone}>
+                          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                            <SelectValue placeholder="Selecione o microfone" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-700">
+                            <SelectItem value="default">Microfone Padrão</SelectItem>
+                            <SelectItem value="headset">Headset USB</SelectItem>
+                            <SelectItem value="bluetooth">Fone Bluetooth</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                
+                {/* Transcript Toggle Button (Mobile Only) - Outside Dialog */}
+                {isMobile && isSpeechRecording && (
+                  <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button 
@@ -787,7 +816,7 @@ const LiveLecture = () => {
                           size="icon"
                           onClick={() => setShowTranscriptDrawer(true)}
                           className="
-                            w-12 h-12
+                            w-12 h-12 min-h-[44px] min-w-[44px]
                             bg-white/10 backdrop-blur-lg 
                             border-2 border-white/20 
                             text-white 
@@ -813,32 +842,8 @@ const LiveLecture = () => {
                         <p>Ver transcrição</p>
                       </TooltipContent>
                     </Tooltip>
-                  )}
-                  
-                  <DialogContent className="bg-white border-gray-200">
-                    <DialogHeader>
-                      <DialogTitle className="text-gray-900">Configurações de Áudio</DialogTitle>
-                      <DialogDescription className="text-gray-600">
-                        Selecione o dispositivo de entrada de áudio
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="microphone" className="text-gray-900">Microfone</Label>
-                        <Select value={selectedMicrophone} onValueChange={setSelectedMicrophone}>
-                          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                            <SelectValue placeholder="Selecione o microfone" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-slate-700">
-                            <SelectItem value="default">Microfone Padrão</SelectItem>
-                            <SelectItem value="headset">Headset USB</SelectItem>
-                            <SelectItem value="bluetooth">Fone Bluetooth</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                  </TooltipProvider>
+                )}
               </div>
             </div>
           </div>
@@ -889,7 +894,7 @@ const LiveLecture = () => {
           )}
 
           {/* Transcript Drawer - Mobile Only */}
-          {isMobile && isSpeechRecording && (
+          {isMobile && (
             <Drawer open={showTranscriptDrawer} onOpenChange={setShowTranscriptDrawer}>
               <DrawerContent className="h-[85vh]">
                 <DrawerHeader className="border-b border-slate-200 bg-gradient-to-r from-purple-50 to-pink-50">
