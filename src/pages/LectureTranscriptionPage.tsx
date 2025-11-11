@@ -99,6 +99,9 @@ const LectureTranscriptionPage = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
+  // Ref to prevent multiple processing attempts
+  const hasAttemptedProcessing = useRef(false);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -445,7 +448,7 @@ const LectureTranscriptionPage = () => {
       clearInterval(pollingInterval);
       clearTimeout(timeout);
     };
-  }, [lecture, structuredContent, id]);
+  }, [lecture?.status, lecture?.id, structuredContent, id]);
 
   // Subscribe to Material V2 job updates
   useEffect(() => {
@@ -803,8 +806,14 @@ const LectureTranscriptionPage = () => {
         
         setLectureTitle(data.structured_content.titulo_aula || data?.title || 'Nova Aula');
       } else if (data?.status === 'processing' && data?.raw_transcript) {
-        console.log('🔄 Lecture is processing, calling processTranscript...');
-        processTranscript(data.raw_transcript);
+        // Evitar re-processamento se já tentamos
+        if (!hasAttemptedProcessing.current) {
+          console.log('🔄 Lecture is processing, calling processTranscript...');
+          hasAttemptedProcessing.current = true; // Marcar como tentado
+          processTranscript(data.raw_transcript);
+        } else {
+          console.log('⏭️ Already attempted processing, skipping...');
+        }
       } else if (data?.status === 'processing' && !data?.raw_transcript) {
         console.warn('⚠️ Lecture status is processing but no raw_transcript found');
         toast({
@@ -952,12 +961,18 @@ const LectureTranscriptionPage = () => {
 
   const processTranscript = async (transcript: string) => {
     try {
+      console.group('🧠 [processTranscript] Starting...');
+      console.log('Lecture ID:', id);
+      console.log('Transcript length:', transcript.length);
+      console.log('Transcript preview:', transcript.substring(0, 100));
+      
       setIsProcessing(true);
       toast({
         title: 'Processando transcrição',
         description: 'A IA está gerando o material didático...',
       });
 
+      console.log('📤 Invoking process-lecture-transcript edge function...');
       const { data, error } = await supabase.functions.invoke('process-lecture-transcript', {
         body: { 
           lectureId: id, 
@@ -965,22 +980,34 @@ const LectureTranscriptionPage = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw error;
+      }
+
+      console.log('✅ Edge function response:', data);
 
       if (data?.structuredContent) {
+        console.log('✅ Structured content received, updating state...');
         setStructuredContent(data.structuredContent);
         setLectureTitle(data.structuredContent.titulo_aula || 'Nova Aula');
+        hasAttemptedProcessing.current = false; // Reset para permitir nova tentativa se necessário
         toast({
           title: 'Processamento concluído',
           description: 'Material didático gerado com sucesso',
         });
+      } else {
+        console.warn('⚠️ No structuredContent in response');
       }
+      
+      console.groupEnd();
     } catch (error) {
-      console.error('Error processing transcript:', error);
+      console.error('❌ [processTranscript] Error:', error);
+      console.groupEnd();
       toast({
         variant: 'destructive',
         title: 'Erro no processamento',
-        description: 'Não foi possível processar a transcrição',
+        description: error instanceof Error ? error.message : 'Não foi possível processar a transcrição',
       });
     } finally {
       setIsProcessing(false);
@@ -1923,7 +1950,7 @@ const LectureTranscriptionPage = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="relative min-h-screen bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%] flex items-center justify-center">
+        <div className="relative min-h-[100dvh] bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%] flex items-center justify-center pb-safe">
         <div className="absolute inset-0 z-0">
           <TeacherBackgroundRipple />
         </div>
@@ -1938,7 +1965,7 @@ const LectureTranscriptionPage = () => {
 
   return (
     <MainLayout>
-      <div className="relative min-h-screen bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+      <div className="relative min-h-[100dvh] bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%] pb-safe">
         <div className="absolute inset-0 z-0">
           <TeacherBackgroundRipple />
         </div>
