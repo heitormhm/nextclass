@@ -1166,55 +1166,96 @@ const TeacherAnnotationPage = () => {
           <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
-        {/* Fixed Header - Teacher Theme */}
+        {/* Fixed Header - REFATORADO */}
         <div className="relative z-20 sticky top-0 bg-white/90 backdrop-blur-xl border-b shadow-sm">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/teacher/annotations')}
-                className="mr-4"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="flex-1 flex items-center gap-3">
-                <Input
-                  type="text"
-                  placeholder="Título da Anotação"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="text-2xl font-bold text-center border-none focus-visible:ring-0 bg-transparent"
-                />
+          <div className="container mx-auto px-4 py-3">
+            {/* Mobile layout */}
+            {isMobile ? (
+              <div className="space-y-3">
+                {/* Linha 1: Voltar + Título + Gerar IA */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate('/teacher/annotations')}
+                    className="shrink-0"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  
+                  <Input
+                    type="text"
+                    placeholder="Título da Anotação"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="flex-1 text-lg font-bold border-none focus-visible:ring-0 bg-transparent px-2"
+                  />
+                  
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={generateTitleWithAI}
+                    disabled={isGeneratingTitle || !content || !content.trim()}
+                    title="Gerar título automático com IA"
+                    className="shrink-0 hover:bg-blue-100 hover:text-blue-600 h-10 w-10"
+                  >
+                    {isGeneratingTitle ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                    ) : (
+                      <Sparkles className="h-5 w-5 text-blue-600" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              // Desktop layout
+              <div className="flex items-center justify-between">
                 <Button
                   variant="ghost"
-                  size="sm"
-                  onClick={generateTitleWithAI}
-                  disabled={isGeneratingTitle || !content || !content.trim()}
-                  title="Gerar título automático com IA"
-                  className="shrink-0 hover:bg-blue-100 hover:text-blue-600"
+                  size="icon"
+                  onClick={() => navigate('/teacher/annotations')}
+                  className="mr-4"
                 >
-                  {isGeneratingTitle ? (
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                  ) : (
-                    <Sparkles className="h-5 w-5 text-blue-600" />
-                  )}
+                  <ArrowLeft className="h-5 w-5" />
                 </Button>
+                <div className="flex-1 flex items-center gap-3">
+                  <Input
+                    type="text"
+                    placeholder="Título da Anotação"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="text-2xl font-bold text-center border-none focus-visible:ring-0 bg-transparent"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={generateTitleWithAI}
+                    disabled={isGeneratingTitle || !content || !content.trim()}
+                    title="Gerar título automático com IA"
+                    className="shrink-0 hover:bg-blue-100 hover:text-blue-600"
+                  >
+                    {isGeneratingTitle ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                    ) : (
+                      <Sparkles className="h-5 w-5 text-blue-600" />
+                    )}
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleSaveAndExit}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
+                    ) : (
+                      <><Save className="h-4 w-4 mr-2" />Salvar e Sair</>
+                    )}
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleSaveAndExit}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
-                  ) : (
-                    <><Save className="h-4 w-4 mr-2" />Salvar e Sair</>
-                  )}
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -1284,197 +1325,215 @@ const TeacherAnnotationPage = () => {
           </div>
         </div>
 
-        {/* Floating Toolbar */}
+        {/* Floating Toolbar - SEM scroll horizontal */}
         <div className={cn(
-          "fixed bottom-8 z-30",
-          isMobile ? "left-0 right-0 px-2" : "left-1/2 transform -translate-x-1/2"
+          "sticky z-30 backdrop-blur-xl bg-white/90 border-b shadow-sm",
+          isMobile ? "top-[120px]" : "top-0"
         )}>
-          <Card className={cn(
-            "shadow-2xl border-0 bg-white",
-            isMobile ? "w-full" : "min-w-[800px] max-w-[90vw]"
-          )}>
-            <CardContent className={cn(
-              "p-3",
-              isMobile && "overflow-x-auto pb-safe"
-            )}>
-              <div className={cn(
-                "flex items-center gap-1.5",
-                isMobile ? "min-w-max" : "flex-nowrap"
-              )}>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => executeCommand('bold')} 
-                  title="Negrito"
-                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
-                >
-                  <Bold className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => executeCommand('italic')} 
-                  title="Itálico"
-                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
-                >
-                  <Italic className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => executeCommand('underline')} 
-                  title="Sublinhado"
-                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
-                >
-                  <Underline className="h-4 w-4" />
-                </Button>
-                
-                <div className="w-px h-6 bg-gray-300 mx-1" />
+          <div className="container mx-auto px-3 py-2">
+            {/* Botões com flex-wrap - múltiplas linhas no mobile */}
+            <div className="flex flex-wrap items-center gap-1.5 justify-center">
+                {/* Grupo 1: Formatação */}
+                <div className="flex gap-1 items-center border-r pr-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => executeCommand('bold')} 
+                    title="Negrito"
+                    className={cn(
+                      "rounded-lg",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    )}
+                  >
+                    <Bold className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => executeCommand('italic')} 
+                    title="Itálico"
+                    className={cn(
+                      "rounded-lg",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    )}
+                  >
+                    <Italic className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => executeCommand('underline')} 
+                    title="Sublinhado"
+                    className={cn(
+                      "rounded-lg",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    )}
+                  >
+                    <Underline className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleHighlight} 
+                    title="Destacar"
+                    className={cn(
+                      "rounded-lg hover:bg-yellow-100",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    )}
+                  >
+                    <Highlighter className="h-4 w-4" />
+                  </Button>
+                </div>
 
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleUndo}
-                  disabled={historyIndex <= 0}
-                  title="Desfazer (Ctrl+Z)"
-                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
-                >
-                  <Undo className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleRedo}
-                  disabled={historyIndex >= history.length - 1}
-                  title="Refazer (Ctrl+Shift+Z)"
-                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
-                >
-                  <Redo className="h-4 w-4" />
-                </Button>
-                
-                <div className="w-px h-6 bg-gray-300 mx-1" />
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleHighlight} 
-                  title="Destacar"
-                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
-                >
-                  <Highlighter className="h-4 w-4" />
-                </Button>
-                
-                <div className="w-px h-6 bg-gray-300 mx-1" />
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleVoiceToggle} 
-                  title={isRecording ? "Parar transcrição" : "Iniciar transcrição de voz"}
-                  className={cn(
-                    "transition-all",
-                    isMobile ? "h-11 min-h-[44px] min-w-[44px]" : "min-w-[40px]",
-                    isRecording && "bg-red-100 text-red-600 animate-pulse",
-                    isRecording && !isMobile && "min-w-[110px]"
-                  )}
-                >
-                  {isRecording ? (
-                    <div className="flex items-center gap-1.5 justify-center">
-                      <Mic className="h-4 w-4 flex-shrink-0" />
-                      {!isMobile && <span className="text-xs font-medium whitespace-nowrap">Gravando</span>}
-                    </div>
-                  ) : (
+                {/* Grupo 2: Listas */}
+                <div className="flex gap-1 items-center border-r pr-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => executeCommand('insertUnorderedList')} 
+                    title="Lista"
+                    className={cn(
+                      "rounded-lg",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    )}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => executeCommand('insertOrderedList')} 
+                    title="Lista numerada"
+                    className={cn(
+                      "rounded-lg",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    )}
+                  >
+                    <ListOrdered className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Grupo 3: Inserções */}
+                <div className="flex gap-1 items-center border-r pr-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleImageUpload} 
+                    title="Inserir Imagem"
+                    className={cn(
+                      "rounded-lg",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    )}
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleAddTextbox} 
+                    title="Adicionar Textbox"
+                    className={cn(
+                      "rounded-lg",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    )}
+                  >
+                    <Type className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Grupo 4: Undo/Redo */}
+                <div className="flex gap-1 items-center border-r pr-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleUndo}
+                    disabled={historyIndex <= 0}
+                    title="Desfazer"
+                    className={cn(
+                      "rounded-lg disabled:opacity-30",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    )}
+                  >
+                    <Undo className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleRedo}
+                    disabled={historyIndex >= history.length - 1}
+                    title="Refazer"
+                    className={cn(
+                      "rounded-lg disabled:opacity-30",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    )}
+                  >
+                    <Redo className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Grupo 5: Voz + Salvar */}
+                <div className="flex gap-1 items-center">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleVoiceToggle} 
+                    title={isRecording ? "Parar gravação" : "Iniciar gravação de voz"}
+                    disabled={isProcessingAI}
+                    className={cn(
+                      "rounded-lg",
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "min-w-[40px]",
+                      isRecording && "bg-red-100 text-red-600 animate-pulse"
+                    )}
+                  >
                     <Mic className="h-4 w-4" />
-                  )}
-                </Button>
-                
-                <div className="w-px h-6 bg-gray-300 mx-1" />
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => executeCommand('insertUnorderedList')} 
-                  title="Lista"
-                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => executeCommand('insertOrderedList')} 
-                  title="Lista numerada"
-                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
-                >
-                  <ListOrdered className="h-4 w-4" />
-                </Button>
-                
-                <div className="w-px h-6 bg-gray-300 mx-1" />
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleImageUpload} 
-                  title="Inserir Imagem"
-                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
-                >
-                  <ImagePlus className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleAddTextbox} 
-                  title="Adicionar Textbox"
-                  className={cn(isMobile && "h-11 w-11 min-h-[44px] min-w-[44px]")}
-                >
-                  <Type className="h-4 w-4" />
-                </Button>
-                
-                <div className="w-px h-6 bg-gray-300 mx-1" />
-                
-                <Button 
-                  onClick={handleSave} 
-                  size="sm" 
-                  className={cn(
-                    "bg-primary hover:bg-primary/90 text-white whitespace-nowrap",
-                    isMobile && "h-11 min-h-[44px] px-4"
-                  )}
-                >
-                  <Save className="h-4 w-4 mr-1" />
-                  Salvar
-                </Button>
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleSave} 
+                    size="sm" 
+                    className={cn(
+                      "bg-primary hover:bg-primary/90 text-white whitespace-nowrap rounded-lg",
+                      isMobile ? "h-10 min-h-[40px] px-3" : "h-9 px-3"
+                    )}
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    Salvar
+                  </Button>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
 
-        {/* Floating AI Assistant Button - Teacher Theme */}
+        {/* Floating AI Assistant Button - AJUSTADO */}
         {isMobile ? (
           <>
             <Button
               onClick={() => setShowAIActionsSheet(true)}
               disabled={isProcessingAI}
-              className="fixed bottom-6 right-6 rounded-full w-16 h-16 z-40 
-                         bg-white/20 backdrop-blur-xl border border-white/40
-                         shadow-[0_8px_32px_rgba(219,39,119,0.3)]
-                         hover:shadow-[0_12px_48px_rgba(219,39,119,0.5)]
-                         hover:scale-110 transition-all duration-300
-                         p-0 flex items-center justify-center"
+              className={cn(
+                "fixed z-40 rounded-full w-14 h-14",
+                "bg-white/20 backdrop-blur-xl border border-white/40",
+                "shadow-[0_8px_32px_rgba(219,39,119,0.3)]",
+                "hover:shadow-[0_12px_48px_rgba(219,39,119,0.5)]",
+                "hover:scale-110 transition-all duration-300",
+                "p-0 flex items-center justify-center",
+                "right-4 bottom-20"
+              )}
               size="icon"
               title="Assistente IA Mia"
             >
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 
                               flex items-center justify-center shadow-inner">
                 {isProcessingAI ? (
-                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                  <Loader2 className="h-5 w-5 text-white animate-spin" />
                 ) : (
-                  <Sparkles className="h-6 w-6 text-white" />
+                  <Sparkles className="h-5 w-5 text-white" />
                 )}
               </div>
             </Button>
 
             <Sheet open={showAIActionsSheet} onOpenChange={setShowAIActionsSheet}>
-              <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl overflow-y-auto">
+              <SheetContent side="bottom" className="h-[75vh] rounded-t-3xl">
                 <SheetHeader className="pb-4">
                   <SheetTitle className="flex items-center gap-2 text-lg">
                     <Sparkles className="h-5 w-5 text-pink-500" />
@@ -1818,6 +1877,37 @@ const TeacherAnnotationPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Fixed Footer - Botões de ação no mobile */}
+        {isMobile && (
+          <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-xl border-t shadow-2xl pb-safe">
+            <div className="container mx-auto px-4 py-3">
+              <div className="flex gap-2">
+                {isStructuredMode && structuredContent && (
+                  <Button
+                    onClick={handleExportPDF}
+                    variant="outline"
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-md h-12"
+                  >
+                    <FileDown className="h-5 w-5 mr-2" />
+                    Exportar PDF
+                  </Button>
+                )}
+                <Button
+                  onClick={handleSaveAndExit}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg h-12"
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <><Loader2 className="h-5 w-5 mr-2 animate-spin" />Salvando...</>
+                  ) : (
+                    <><Save className="h-5 w-5 mr-2" />Salvar e Sair</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </MainLayout>

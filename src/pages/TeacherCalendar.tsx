@@ -407,47 +407,49 @@ const TeacherCalendar = () => {
               ) : (
                 <Card className="border-0 shadow-sm bg-white/75 backdrop-blur-xl border-blue-100/30">
                   <CardContent className="p-6">
-                    {/* Navigation bar */}
-                    <div className="flex items-center justify-between mb-6">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => viewMode === 'month' ? navigateMonth('prev') : navigateWeek('prev')}
-                        className="hover:bg-blue-100 transition-colors"
-                        title={viewMode === 'month' ? 'Mês anterior' : 'Semana anterior'}
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </Button>
+                    {/* Navigation bar - REFATORADO */}
+                    <div className="space-y-4 mb-6">
+                      {/* Linha 1: Navegação e Título Centralizado */}
+                      <div className="flex items-center justify-between">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => viewMode === 'month' ? navigateMonth('prev') : navigateWeek('prev')}
+                          className="hover:bg-blue-100 transition-colors shrink-0"
+                          title={viewMode === 'month' ? 'Mês anterior' : 'Semana anterior'}
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </Button>
 
-                      <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent capitalize">
-                        {viewMode === 'month' 
-                          ? format(currentDate, 'MMMM yyyy', { locale: ptBR })
-                          : format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-                        }
-                      </h2>
+                        <h2 className="flex-1 text-center text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent capitalize">
+                          {viewMode === 'month' 
+                            ? format(currentDate, 'MMMM yyyy', { locale: ptBR })
+                            : format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                          }
+                        </h2>
 
-                      <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => viewMode === 'month' ? navigateMonth('next') : navigateWeek('next')}
-                          className="hover:bg-blue-100 transition-colors"
+                          className="hover:bg-blue-100 transition-colors shrink-0"
                           title={viewMode === 'month' ? 'Próximo mês' : 'Próxima semana'}
                         >
                           <ChevronRight className="h-5 w-5" />
                         </Button>
+                      </div>
 
-                        <div className="h-6 w-px bg-gray-300 mx-2" />
-
+                      {/* Linha 2: Toggle Mês/Semana - ABAIXO do título */}
+                      <div className="flex justify-center">
                         {isMobile ? (
-                          <div className="flex gap-1 bg-white/90 rounded-lg p-1 border border-gray-200">
+                          <div className="inline-flex gap-1 bg-white/90 rounded-xl p-1 border border-gray-200 shadow-sm">
                             <Button
                               variant={viewMode === 'month' ? 'default' : 'ghost'}
                               size="sm"
                               onClick={() => setViewMode('month')}
                               className={cn(
-                                "h-11 min-h-[44px] flex-1",
-                                viewMode === 'month' && "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                                "h-10 min-h-[40px] px-4 rounded-lg transition-all",
+                                viewMode === 'month' && "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                               )}
                             >
                               <CalendarIcon className="h-4 w-4 mr-2" />
@@ -458,8 +460,8 @@ const TeacherCalendar = () => {
                               size="sm"
                               onClick={() => setViewMode('week')}
                               className={cn(
-                                "h-11 min-h-[44px] flex-1",
-                                viewMode === 'week' && "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                                "h-10 min-h-[40px] px-4 rounded-lg transition-all",
+                                viewMode === 'week' && "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                               )}
                             >
                               <List className="h-4 w-4 mr-2" />
@@ -467,12 +469,13 @@ const TeacherCalendar = () => {
                             </Button>
                           </div>
                         ) : (
-                          <>
+                          <div className="inline-flex gap-2">
                             <Button
                               variant={viewMode === 'month' ? 'default' : 'outline'}
                               size="sm"
                               onClick={() => setViewMode('month')}
                               className={cn(
+                                "h-9",
                                 viewMode === 'month' && "bg-gradient-to-r from-blue-600 to-purple-600"
                               )}
                             >
@@ -484,15 +487,33 @@ const TeacherCalendar = () => {
                               size="sm"
                               onClick={() => setViewMode('week')}
                               className={cn(
+                                "h-9",
                                 viewMode === 'week' && "bg-gradient-to-r from-blue-600 to-purple-600"
                               )}
                             >
                               <List className="h-4 w-4 mr-1" />
                               Semana
                             </Button>
-                          </>
+                          </div>
                         )}
                       </div>
+                    </div>
+
+                    {/* Class Filter */}
+                    <div className="mb-6">
+                      <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todas as turmas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas as turmas</SelectItem>
+                          {classes.map(cls => (
+                            <SelectItem key={cls.id} value={cls.id}>
+                              {cls.name} - {cls.period}º período
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {viewMode === 'month' ? (

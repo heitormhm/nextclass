@@ -20,7 +20,7 @@ export const QuickActionsCard = ({
   };
 
   return (
-    <Card className="mb-6 p-6 max-h-[400px] overflow-y-auto bg-gradient-to-br from-purple-50/80 via-pink-50/80 to-blue-50/80 border-2 border-purple-200/50 shadow-xl hover:shadow-2xl transition-all duration-300 backdrop-blur-sm
+    <Card className="mb-6 p-6 max-h-[400px] overflow-y-auto bg-gradient-to-br from-purple-50/80 via-pink-50/80 to-blue-50/80 border-2 border-purple-200/50 shadow-xl hover:shadow-2xl transition-all duration-300 backdrop-blur-sm max-w-7xl mx-auto
       [&::-webkit-scrollbar]:w-2 
       [&::-webkit-scrollbar-track]:bg-transparent 
       [&::-webkit-scrollbar-thumb]:bg-purple-200/50 
@@ -94,8 +94,8 @@ export const QuickActionsCard = ({
           </Button>
         </div>
 
-        {/* Helper Text */}
-        <p className="text-sm text-center text-muted-foreground mt-4">
+        {/* Helper Text - ocultar no mobile */}
+        <p className="hidden md:block text-sm text-center text-muted-foreground mt-4">
           💡 Clique em "Publicar Material" para compartilhar arquivos ou em qualquer ação de IA para criar conteúdo com a Mia
         </p>
       </div>

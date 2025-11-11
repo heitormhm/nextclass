@@ -189,10 +189,10 @@ const TeacherAnnotationsPage = () => {
                 </p>
               </div>
               
-              {/* Filter tabs - horizontal scroll on mobile */}
+              {/* Filter tabs - horizontal scroll on mobile COM FROSTED GLASS */}
               <div className="mb-4 overflow-x-auto pb-2">
                 <div className={cn(
-                  "flex items-center gap-2",
+                  "inline-flex items-center gap-2 p-1.5 rounded-xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-lg",
                   isMobile && "min-w-max"
                 )}>
                   <Button
@@ -200,8 +200,11 @@ const TeacherAnnotationsPage = () => {
                     variant={filterBySource === 'all' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('all')}
                     className={cn(
-                      "whitespace-nowrap",
-                      isMobile ? "h-11 min-h-[44px]" : "h-8"
+                      "whitespace-nowrap rounded-lg transition-all",
+                      isMobile ? "h-10 min-h-[40px] px-4" : "h-8 px-3",
+                      filterBySource === 'all' 
+                        ? "bg-white text-purple-700 shadow-md font-semibold" 
+                        : "text-white hover:bg-white/20"
                     )}
                   >
                     Todas
@@ -211,8 +214,11 @@ const TeacherAnnotationsPage = () => {
                     variant={filterBySource === 'lecture' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('lecture')}
                     className={cn(
-                      "whitespace-nowrap",
-                      isMobile ? "h-11 min-h-[44px]" : "h-8"
+                      "whitespace-nowrap rounded-lg transition-all",
+                      isMobile ? "h-10 min-h-[40px] px-4" : "h-8 px-3",
+                      filterBySource === 'lecture' 
+                        ? "bg-white text-purple-700 shadow-md font-semibold" 
+                        : "text-white hover:bg-white/20"
                     )}
                   >
                     Aulas
@@ -222,8 +228,11 @@ const TeacherAnnotationsPage = () => {
                     variant={filterBySource === 'lesson_plan' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('lesson_plan')}
                     className={cn(
-                      "whitespace-nowrap",
-                      isMobile ? "h-11 min-h-[44px]" : "h-8"
+                      "whitespace-nowrap rounded-lg transition-all",
+                      isMobile ? "h-10 min-h-[40px] px-4" : "h-8 px-3",
+                      filterBySource === 'lesson_plan' 
+                        ? "bg-white text-purple-700 shadow-md font-semibold" 
+                        : "text-white hover:bg-white/20"
                     )}
                   >
                     Planos
@@ -233,8 +242,11 @@ const TeacherAnnotationsPage = () => {
                     variant={filterBySource === 'personal' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('personal')}
                     className={cn(
-                      "whitespace-nowrap",
-                      isMobile ? "h-11 min-h-[44px]" : "h-8"
+                      "whitespace-nowrap rounded-lg transition-all",
+                      isMobile ? "h-10 min-h-[40px] px-4" : "h-8 px-3",
+                      filterBySource === 'personal' 
+                        ? "bg-white text-purple-700 shadow-md font-semibold" 
+                        : "text-white hover:bg-white/20"
                     )}
                   >
                     Pessoais
@@ -351,7 +363,7 @@ const TeacherAnnotationsPage = () => {
               ))}
             </div>
           ) : filteredAnnotations.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 px-2 md:px-0
               [&::-webkit-scrollbar]:w-2 
               [&::-webkit-scrollbar-track]:bg-transparent 
               [&::-webkit-scrollbar-thumb]:bg-purple-200/50 
@@ -360,7 +372,7 @@ const TeacherAnnotationsPage = () => {
               {filteredAnnotations.map((annotation) => (
                 <Card 
                   key={annotation.id} 
-                  className="group p-3 hover:shadow-2xl hover:shadow-purple-500/20 hover:border-purple-300/50 transition-all duration-200 cursor-pointer relative overflow-hidden bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30"
+                  className="group p-3 hover:shadow-2xl hover:shadow-purple-500/20 hover:border-purple-300/50 transition-all duration-200 cursor-pointer relative overflow-hidden bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 max-w-full"
                   onClick={() => navigate(`/teacher/annotation/${annotation.id}`)}
                 >
                   {/* Linha decorativa azul/roxa */}
