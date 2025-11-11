@@ -2544,12 +2544,12 @@ const LectureTranscriptionPage = () => {
                               {/* WRAP CONTENT IN SCROLLABLE CONTAINER */}
                 <ScrollArea className={cn(
                   isMobile 
-                    ? "h-[calc(100vh-300px)] overflow-x-hidden"
+                    ? "h-[calc(100vh-250px)] w-full overflow-x-hidden"
                     : "h-[calc(100vh-200px)]"
                 )}>
                                 <div id="material-didatico-content" className={cn(
-                                  "min-w-0 max-w-full bg-white rounded-lg overflow-hidden overflow-x-hidden",
-                                  isMobile ? "p-3" : "p-6"
+                                  "w-full min-w-0 max-w-full bg-white rounded-lg overflow-hidden overflow-x-hidden",
+                                  isMobile ? "px-2 py-3" : "p-6"
                                 )}>
                               {/* FASE 9: Banner de Aviso de Erros LaTeX */}
                               {hasLatexErrors && (

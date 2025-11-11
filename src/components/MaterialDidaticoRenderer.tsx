@@ -46,7 +46,7 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
 
   return (
     <div>
-      <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content pt-6">
+      <div className="prose prose-lg max-w-none dark:prose-invert material-didatico-content pt-6" style={{width: '100%', maxWidth: '100%', overflowX: 'hidden'}}>
         <style>{`
         /* ===== 📱 RESPONSIVE CONTAINER FIXES ===== */
         .material-didatico-content {
@@ -85,14 +85,51 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
         
         /* ===== 📱 MOBILE TYPOGRAPHY OPTIMIZATIONS ===== */
       @media (max-width: 767px) {
+        /* Force viewport constraints globally */
+        .material-didatico-content,
+        .material-didatico-content > *,
+        .material-didatico-content * {
+          max-width: 100% !important;
+          width: auto !important;
+          box-sizing: border-box !important;
+        }
+        
         .material-didatico-content {
+          padding: 0 0.5rem !important;
+          overflow-x: hidden !important;
           word-wrap: break-word;
           overflow-wrap: break-word;
           word-break: break-word;
           hyphens: auto;
-          padding: 0 0.75rem;
-          max-width: 100vw;
+          max-width: calc(100vw - 1rem) !important;
+          width: 100% !important;
         }
+        
+        /* Force all text elements to break */
+        .material-didatico-content p,
+        .material-didatico-content li,
+        .material-didatico-content div,
+        .material-didatico-content span,
+        .material-didatico-content h1,
+        .material-didatico-content h2,
+        .material-didatico-content h3,
+        .material-didatico-content h4,
+        .material-didatico-content h5,
+        .material-didatico-content h6 {
+          overflow-wrap: break-word !important;
+          word-wrap: break-word !important;
+          word-break: break-word !important;
+          hyphens: auto !important;
+          max-width: 100% !important;
+        }
+        
+        /* Special handling for long words/URLs */
+        .material-didatico-content a,
+        .material-didatico-content code {
+          overflow-wrap: anywhere !important;
+          word-break: break-all !important;
+        }
+
           
           .material-didatico-content h2 {
             font-size: 1.5rem !important;
@@ -144,15 +181,16 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           
           .material-didatico-content [data-callout-type],
           .material-didatico-content [class*="callout-"] {
-            padding: 0.75rem !important;
-            margin: 0.875rem 0 !important;
+            padding: 0.5rem !important;
+            margin: 0.75rem 0 !important;
             font-size: 0.85rem !important;
             border-left-width: 3px !important;
-            max-width: 100% !important;
-            width: 100% !important;
+            max-width: calc(100% - 0.5rem) !important;
+            width: calc(100% - 0.5rem) !important;
             box-sizing: border-box !important;
             overflow-wrap: break-word !important;
             word-break: break-word !important;
+            overflow-x: hidden !important;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
           }
           
