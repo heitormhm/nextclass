@@ -44,6 +44,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface Lecture {
   id: string;
@@ -74,6 +76,7 @@ interface Turma {
 }
 
 const TeacherMyLectures = () => {
+  const isMobile = useIsMobile();
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [drafts, setDrafts] = useState<Lecture[]>([]);
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
@@ -475,9 +478,10 @@ const TeacherMyLectures = () => {
           {/* Section 1: Draft Lectures */}
           <Card className="mb-8 bg-white/90 backdrop-blur-sm">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                {/* Title and description */}
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                     <FileEdit className="h-5 w-5 text-yellow-600" />
                     Meus Rascunhos
                     {filteredDrafts.length > 0 && (
@@ -486,21 +490,61 @@ const TeacherMyLectures = () => {
                       </Badge>
                     )}
                   </CardTitle>
-                  <p className="text-sm text-slate-600 mt-1">
+                  <p className="text-xs md:text-sm text-slate-600 mt-1">
                     Aulas em andamento que ainda não foram publicadas
                   </p>
                 </div>
                 
+                {/* Delete All button - full width on mobile */}
                 {filteredDrafts.length > 0 && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="destructive"
                         size="sm"
-                        className="gap-2"
+                        className={cn(
+                          "gap-2 whitespace-nowrap",
+                          isMobile && "w-full h-11 min-h-[44px]"
+                        )}
                       >
                         <Trash2 className="h-4 w-4" />
-                        Deletar Todos ({filteredDrafts.length})
+                        Deletar Todos
+                      </Button>
+                    </AlertDialogTrigger>
+                    
+                    <AlertDialogContent className={cn(
+                      isMobile && "max-w-[90vw] rounded-2xl"
+                    )}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Você está prestes a deletar {filteredDrafts.length} rascunho(s). 
+                          Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className={cn(
+                        isMobile && "flex-col gap-2"
+                      )}>
+                        <AlertDialogCancel className={cn(
+                          isMobile && "w-full h-11 min-h-[44px]"
+                        )}>
+                          Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDeleteAllDrafts}
+                          className={cn(
+                            "bg-destructive hover:bg-destructive/90",
+                            isMobile && "w-full h-11 min-h-[44px]"
+                          )}
+                        >
+                          Deletar Todos
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            </CardHeader>
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>

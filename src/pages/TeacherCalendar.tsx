@@ -15,6 +15,7 @@ import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripp
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CalendarEvent {
   id: string;
@@ -44,6 +45,7 @@ interface Class {
 }
 
 const TeacherCalendar = () => {
+  const isMobile = useIsMobile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -437,80 +439,134 @@ const TeacherCalendar = () => {
 
                         <div className="h-6 w-px bg-gray-300 mx-2" />
 
-                        <Button
-                          variant={viewMode === 'month' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setViewMode('month')}
-                          className={cn(
-                            viewMode === 'month' && "bg-gradient-to-r from-blue-600 to-purple-600"
-                          )}
-                        >
-                          <CalendarIcon className="h-4 w-4 mr-1" />
-                          Mês
-                        </Button>
-                        <Button
-                          variant={viewMode === 'week' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setViewMode('week')}
-                          className={cn(
-                            viewMode === 'week' && "bg-gradient-to-r from-blue-600 to-purple-600"
-                          )}
-                        >
-                          <List className="h-4 w-4 mr-1" />
-                          Semana
-                        </Button>
+                        {isMobile ? (
+                          <div className="flex gap-1 bg-white/90 rounded-lg p-1 border border-gray-200">
+                            <Button
+                              variant={viewMode === 'month' ? 'default' : 'ghost'}
+                              size="sm"
+                              onClick={() => setViewMode('month')}
+                              className={cn(
+                                "h-11 min-h-[44px] flex-1",
+                                viewMode === 'month' && "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                              )}
+                            >
+                              <CalendarIcon className="h-4 w-4 mr-2" />
+                              Mês
+                            </Button>
+                            <Button
+                              variant={viewMode === 'week' ? 'default' : 'ghost'}
+                              size="sm"
+                              onClick={() => setViewMode('week')}
+                              className={cn(
+                                "h-11 min-h-[44px] flex-1",
+                                viewMode === 'week' && "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                              )}
+                            >
+                              <List className="h-4 w-4 mr-2" />
+                              Semana
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Button
+                              variant={viewMode === 'month' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setViewMode('month')}
+                              className={cn(
+                                viewMode === 'month' && "bg-gradient-to-r from-blue-600 to-purple-600"
+                              )}
+                            >
+                              <CalendarIcon className="h-4 w-4 mr-1" />
+                              Mês
+                            </Button>
+                            <Button
+                              variant={viewMode === 'week' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setViewMode('week')}
+                              className={cn(
+                                viewMode === 'week' && "bg-gradient-to-r from-blue-600 to-purple-600"
+                              )}
+                            >
+                              <List className="h-4 w-4 mr-1" />
+                              Semana
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
 
                     {viewMode === 'month' ? (
                       <>
-                        <div className="grid grid-cols-7 gap-1 md:gap-2">
+                        <div className="grid grid-cols-7 gap-1 md:gap-2 mb-1">
                           {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
                             <div key={day} className="p-1 md:p-2 text-center text-xs md:text-sm font-medium text-foreground-muted">
                               {day}
                             </div>
                           ))}
-                          {calendarDays.map((date, index) => {
-                            const dayEvents = getEventsForDate(date);
-                            const isCurrentMonth = isSameMonth(date, currentDate);
-                            const isDayToday = isToday(date);
-                            const isSelected = isSameDay(date, selectedDate);
+                        </div>
+                        <div className="grid grid-cols-7 gap-1 md:gap-2">
+                          {calendarDays.map((day, index) => {
+                            const dayEvents = getEventsForDate(day);
+                            const isCurrentMonth = isSameMonth(day, currentDate);
+                            const isDayToday = isToday(day);
+                            const isSelected = isSameDay(day, selectedDate);
 
                             return (
-                              <button
+                              <div
                                 key={index}
-                                onClick={() => handleDateClick(date)}
+                                onClick={() => handleDateClick(day)}
                                 className={cn(
-                                  "min-h-[80px] p-2 rounded-lg border transition-all relative",
-                                  "hover:shadow-md hover:scale-[1.02]",
-                                  isDayToday && "bg-gradient-to-b from-blue-50 to-purple-50 text-blue-600 font-bold ring-2 ring-blue-500",
-                                  isSelected && !isDayToday && "bg-blue-100 ring-2 ring-blue-400",
-                                  !isCurrentMonth && "opacity-40",
-                                  !isDayToday && !isSelected && "bg-white hover:bg-gray-50"
+                                  "aspect-square rounded-lg md:rounded-xl border cursor-pointer transition-all hover:shadow-md",
+                                  "flex flex-col items-center justify-start p-1 md:p-2",
+                                  "relative overflow-hidden",
+                                  isDayToday && "ring-2 ring-blue-500 ring-offset-2",
+                                  isSelected && "bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-xl scale-105",
+                                  !isSelected && isCurrentMonth && "bg-white hover:bg-blue-50",
+                                  !isSelected && !isCurrentMonth && "bg-gray-50 text-gray-400 opacity-50"
                                 )}
                               >
-                                <div className="text-sm mb-1">{format(date, 'd')}</div>
-                                <div className="space-y-1">
-                                  {dayEvents.slice(0, 2).map(event => (
-                                    <div
-                                      key={event.id}
-                                      className={cn(
-                                        "text-xs px-1 py-0.5 rounded truncate",
-                                        getEventColorClasses(event.color).badge,
-                                        getEventColorClasses(event.color).text
-                                      )}
-                                      title={event.title}
-                                    >
-                                      {event.title}
+                                {/* Day number */}
+                                <span className={cn(
+                                  "text-xs md:text-sm font-semibold mb-0.5 md:mb-1",
+                                  isSelected && "text-white"
+                                )}>
+                                  {format(day, 'd')}
+                                </span>
+                                
+                                {/* Event dots - hidden on mobile */}
+                                {dayEvents.length > 0 && (
+                                  <div className="hidden md:flex flex-wrap gap-0.5 mt-auto">
+                                    {dayEvents.slice(0, 3).map((event, i) => (
+                                      <div
+                                        key={i}
+                                        className={cn(
+                                          "w-1.5 h-1.5 rounded-full",
+                                          getEventDotColor(event.color)
+                                        )}
+                                      />
+                                    ))}
+                                    {dayEvents.length > 3 && (
+                                      <span className="text-[10px] text-muted-foreground ml-0.5">
+                                        +{dayEvents.length - 3}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {/* Count badge - visible on mobile */}
+                                {dayEvents.length > 0 && (
+                                  <div className="md:hidden absolute top-0.5 right-0.5">
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                      isSelected 
+                                        ? "bg-white text-blue-600" 
+                                        : "bg-blue-500 text-white"
+                                    )}>
+                                      {dayEvents.length}
                                     </div>
-                                  ))}
-                                  {dayEvents.length > 2 && (
-                                    <div className="text-xs text-gray-500">
-                                      +{dayEvents.length - 2} mais
-                                    </div>
-                                  )}
-                                </div>
-                              </button>
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
                         </div>

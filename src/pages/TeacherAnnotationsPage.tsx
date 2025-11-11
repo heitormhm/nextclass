@@ -15,6 +15,8 @@ import { TeacherBackgroundRipple } from '@/components/ui/teacher-background-ripp
 import { PublishMaterialModal } from "@/components/PublishMaterialModal";
 import { QuickActionsCard } from "@/components/QuickActionsCard";
 import { formatContentPreview } from "@/utils/contentPreviewFormatter";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface Annotation {
   id: string;
@@ -30,6 +32,7 @@ interface Annotation {
 const TeacherAnnotationsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -176,23 +179,30 @@ const TeacherAnnotationsPage = () => {
           <div className="max-w-7xl mx-auto">
             {/* Compact Header with Controls */}
             <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h1 className="text-4xl font-bold text-white uppercase mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">Minhas Anotações</h1>
-                  <p className="text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
-                    {annotations.length} {annotations.length === 1 ? 'anotação' : 'anotações'}
-                  </p>
-                </div>
+              {/* Title */}
+              <div className="mb-4">
+                <h1 className="text-3xl md:text-4xl font-bold text-white uppercase mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+                  Minhas Anotações
+                </h1>
+                <p className="text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+                  {annotations.length} {annotations.length === 1 ? 'anotação' : 'anotações'}
+                </p>
+              </div>
               
-              {/* Controls: Sort + Search + Type Filter */}
-              <div className="flex items-center gap-3">
-                {/* Filtro por tipo de anotação do professor */}
-                <div className="flex items-center gap-2 border rounded-lg p-1 bg-muted/50">
+              {/* Filter tabs - horizontal scroll on mobile */}
+              <div className="mb-4 overflow-x-auto pb-2">
+                <div className={cn(
+                  "flex items-center gap-2",
+                  isMobile && "min-w-max"
+                )}>
                   <Button
                     size="sm"
                     variant={filterBySource === 'all' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('all')}
-                    className="h-8"
+                    className={cn(
+                      "whitespace-nowrap",
+                      isMobile ? "h-11 min-h-[44px]" : "h-8"
+                    )}
                   >
                     Todas
                   </Button>
@@ -200,7 +210,10 @@ const TeacherAnnotationsPage = () => {
                     size="sm"
                     variant={filterBySource === 'lecture' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('lecture')}
-                    className="h-8"
+                    className={cn(
+                      "whitespace-nowrap",
+                      isMobile ? "h-11 min-h-[44px]" : "h-8"
+                    )}
                   >
                     Aulas
                   </Button>
@@ -208,7 +221,10 @@ const TeacherAnnotationsPage = () => {
                     size="sm"
                     variant={filterBySource === 'lesson_plan' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('lesson_plan')}
-                    className="h-8"
+                    className={cn(
+                      "whitespace-nowrap",
+                      isMobile ? "h-11 min-h-[44px]" : "h-8"
+                    )}
                   >
                     Planos
                   </Button>
@@ -216,14 +232,23 @@ const TeacherAnnotationsPage = () => {
                     size="sm"
                     variant={filterBySource === 'personal' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('personal')}
-                    className="h-8"
+                    className={cn(
+                      "whitespace-nowrap",
+                      isMobile ? "h-11 min-h-[44px]" : "h-8"
+                    )}
                   >
                     Pessoais
                   </Button>
                 </div>
-                
+              </div>
+              
+              {/* Controls (Sort + Search) - stack vertical on mobile */}
+              <div className="flex flex-col md:flex-row gap-3 md:items-center">
                 <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
-                  <SelectTrigger className="w-40 h-9">
+                  <SelectTrigger className={cn(
+                    "md:w-40",
+                    isMobile ? "h-11 min-h-[44px]" : "h-9"
+                  )}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -233,15 +258,19 @@ const TeacherAnnotationsPage = () => {
                   </SelectContent>
                 </Select>
                 
-                <div className="relative w-80">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Pesquisar anotações..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-9"
+                    className={cn(
+                      "pl-9",
+                      isMobile ? "h-11 min-h-[44px]" : "h-9"
+                    )}
                   />
                 </div>
+              </div>
               </div>
             </div>
           </div>
@@ -416,39 +445,37 @@ const TeacherAnnotationsPage = () => {
           </div>
         )}
         </div>
-      </div>
 
-          {/* Floating Action Button - Teacher Theme */}
-          <Button
-            onClick={() => navigate('/teacher/annotation/new')}
-            className="fixed bottom-8 right-8 px-6 py-6 rounded-2xl shadow-2xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 z-50 flex items-center gap-3"
-          >
-            <div className="bg-white/20 rounded-full p-2">
-              <Plus className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-white font-semibold text-base">
-              Criar Nova Anotação
-            </span>
-          </Button>
-        </div>
-      </div>
+        {/* Floating Action Button - Teacher Theme */}
+        <Button
+          onClick={() => navigate('/teacher/annotation/new')}
+          className="fixed bottom-8 right-8 px-6 py-6 rounded-2xl shadow-2xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 z-50 flex items-center gap-3"
+        >
+          <div className="bg-white/20 rounded-full p-2">
+            <Plus className="h-6 w-6 text-white" />
+          </div>
+          <span className="text-white font-semibold text-base">
+            Criar Nova Anotação
+          </span>
+        </Button>
 
-      {/* Publish Material Modal */}
-      {showPublishModal && (
-        <PublishMaterialModal
-          isOpen={showPublishModal}
-          onClose={() => {
-            setShowPublishModal(false);
-            setSelectedAnnotation(null);
-          }}
-          annotation={selectedAnnotation}
-          onPublishSuccess={() => {
-            toast.success('Material publicado com sucesso!');
-            setShowPublishModal(false);
-            setSelectedAnnotation(null);
-          }}
-        />
-      )}
+        {/* Publish Material Modal */}
+        {showPublishModal && (
+          <PublishMaterialModal
+            isOpen={showPublishModal}
+            onClose={() => {
+              setShowPublishModal(false);
+              setSelectedAnnotation(null);
+            }}
+            annotation={selectedAnnotation}
+            onPublishSuccess={() => {
+              toast.success('Material publicado com sucesso!');
+              setShowPublishModal(false);
+              setSelectedAnnotation(null);
+            }}
+          />
+        )}
+      </div>
     </MainLayout>
   );
 };
