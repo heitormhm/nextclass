@@ -78,6 +78,7 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB (default is 2 MB)
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
