@@ -43,8 +43,8 @@ export const QuickActionsCard = ({
           </p>
         </div>
 
-        {/* Actions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 xl:gap-4">
+        {/* Actions Grid - 2x2 no mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 xl:gap-4">
           {/* Publicar Material */}
           <Button
             onClick={() => handleAction('publish')}

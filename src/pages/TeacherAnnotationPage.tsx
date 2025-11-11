@@ -4,7 +4,7 @@ import {
   ImagePlus, Type, Save, ArrowLeft, Tag, 
   Sparkles, X, Loader2, CheckCircle2, FileText, FileDown,
   Mic, Undo, Redo, BookOpen, Table as TableIcon, 
-  Lightbulb, GraduationCap, ShieldCheck
+  Lightbulb, GraduationCap, ShieldCheck, Edit
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -51,6 +51,9 @@ const TeacherAnnotationPage = () => {
   const [preAIContent, setPreAIContent] = useState<string | null>(null);
   const [originalInputContent, setOriginalInputContent] = useState<string>('');
   const [showAIActionsSheet, setShowAIActionsSheet] = useState(false);
+  
+  // Toolbar visibility state (hidden by default on mobile)
+  const [showToolbar, setShowToolbar] = useState(!isMobile);
   
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
@@ -1271,21 +1274,6 @@ const TeacherAnnotationPage = () => {
                     console.log('[Render] Blocos:', structuredContent.conteudo?.length || 0);
                     return (
                       <div className="structured-content-wrapper">
-                        <div className="mb-4 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <GraduationCap className="h-5 w-5 text-purple-600" />
-                            <span className="text-sm font-semibold text-purple-900">Modo de Visualização Pedagógica Estruturada</span>
-                          </div>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={handleExportPDF}
-                            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-md hover:shadow-lg transition-all"
-                          >
-                            <FileDown className="h-4 w-4 mr-2" />
-                            Exportar PDF
-                          </Button>
-                        </div>
                         <div className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg bg-gradient-to-br from-purple-50/50 to-blue-50/50">
                           <StructuredContentRenderer structuredData={structuredContent} />
                         </div>
@@ -1325,11 +1313,12 @@ const TeacherAnnotationPage = () => {
           </div>
         </div>
 
-        {/* Floating Toolbar - SEM scroll horizontal */}
-        <div className={cn(
-          "sticky z-30 backdrop-blur-xl bg-white/90 border-b shadow-sm",
-          isMobile ? "top-[120px]" : "top-0"
-        )}>
+        {/* Floating Toolbar - renderizar condicionalmente */}
+        {showToolbar && (
+          <div className={cn(
+            "sticky z-30 backdrop-blur-xl bg-white/90 border-b shadow-sm",
+            isMobile ? "top-[120px]" : "top-0"
+          )}>
           <div className="container mx-auto px-3 py-2">
             {/* Botões com flex-wrap - múltiplas linhas no mobile */}
             <div className="flex flex-wrap items-center gap-1.5 justify-center">
@@ -1503,9 +1492,57 @@ const TeacherAnnotationPage = () => {
               </div>
             </div>
           </div>
+        )}
 
-        {/* Floating AI Assistant Button - AJUSTADO */}
-        {isMobile ? (
+        {/* Floating Dual Button - Mobile only */}
+        {isMobile && (
+          <div className="fixed right-4 bottom-20 z-40 flex flex-col gap-2">
+            {/* Botão EDITAR - Toggle da toolbar */}
+            <Button
+              onClick={() => setShowToolbar(!showToolbar)}
+              className={cn(
+                "rounded-full w-14 h-14 shadow-2xl transition-all duration-300",
+                showToolbar
+                  ? "bg-blue-500 hover:bg-blue-600"
+                  : "bg-white/90 backdrop-blur-xl border-2 border-blue-400 hover:bg-blue-50"
+              )}
+              size="icon"
+              title={showToolbar ? "Ocultar ferramentas" : "Mostrar ferramentas"}
+            >
+              {showToolbar ? (
+                <X className="h-6 w-6 text-white" />
+              ) : (
+                <Edit className="h-6 w-6 text-blue-600" />
+              )}
+            </Button>
+
+            {/* Botão FORMATAR COM MIA */}
+            <Button
+              onClick={() => setShowAIActionsSheet(true)}
+              disabled={isProcessingAI || !content?.trim()}
+              className={cn(
+                "rounded-full w-14 h-14",
+                "bg-gradient-to-br from-pink-400 to-pink-600",
+                "hover:from-pink-500 hover:to-pink-700",
+                "shadow-[0_8px_32px_rgba(219,39,119,0.4)]",
+                "hover:shadow-[0_12px_48px_rgba(219,39,119,0.6)]",
+                "hover:scale-110 transition-all duration-300",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
+              size="icon"
+              title="Formatar com Mia"
+            >
+              {isProcessingAI ? (
+                <Loader2 className="h-6 w-6 text-white animate-spin" />
+              ) : (
+                <Sparkles className="h-6 w-6 text-white" />
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Floating AI Assistant Button - Desktop */}
+        {!isMobile ? (
           <>
             <Button
               onClick={() => setShowAIActionsSheet(true)}

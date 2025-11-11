@@ -27,6 +27,7 @@ interface WeekCalendarViewProps {
   onEventUpdate: (eventId: string, action: 'complete' | 'cancel') => void;
   onEventClick?: (event: CalendarEvent) => void;
   onEventDelete?: (eventId: string) => void;
+  isMobile?: boolean;
 }
 
 export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
@@ -34,7 +35,8 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   selectedDate,
   onEventUpdate,
   onEventClick,
-  onEventDelete
+  onEventDelete,
+  isMobile = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -69,8 +71,10 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
     return colorMap[color] || colorMap['azul'];
   };
 
-  // Generate 5 consecutive days starting from selectedDate
-  const weekDays = Array.from({ length: 5 }, (_, i) => addDays(selectedDate, i));
+  // Generate days: 1 day on mobile, 5 days on desktop
+  const weekDays = isMobile 
+    ? [selectedDate]
+    : Array.from({ length: 5 }, (_, i) => addDays(selectedDate, i));
 
   // Time slots (6h to 23h = 18 hours)
   const timeSlots = Array.from({ length: 18 }, (_, i) => i + 6);
@@ -121,7 +125,10 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
   return (
     <div className="bg-white/60 backdrop-blur-xl rounded-lg border border-pink-100 overflow-hidden">
       {/* Week header */}
-      <div className="grid grid-cols-[80px_repeat(5,1fr)] border-b border-border sticky top-0 bg-white/90 backdrop-blur-xl z-20">
+      <div className={cn(
+        "grid border-b border-border sticky top-0 bg-white/90 backdrop-blur-xl z-20",
+        isMobile ? "grid-cols-[80px_1fr]" : "grid-cols-[80px_repeat(5,1fr)]"
+      )}>
         <div className="p-4 border-r border-border"></div>
         {weekDays.map((day, idx) => {
           const isCurrentDay = isToday(day);

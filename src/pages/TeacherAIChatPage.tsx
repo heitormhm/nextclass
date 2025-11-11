@@ -2005,8 +2005,11 @@ INSTRUÇÕES:
               </div>
               
               {/* Texto ao lado do ícone */}
-              <h3 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
-                Bem-vindo, Professor!
+              <h3 className={cn(
+                "font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]",
+                isMobile ? "text-2xl" : "text-3xl"
+              )}>
+                {isMobile ? "Bem vindo!" : "Bem-vindo, Professor!"}
               </h3>
             </div>
             
@@ -2236,232 +2239,192 @@ INSTRUÇÕES:
                 
                 {/* Tag Display */}
                 {activeTag && (
-                  <div className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-300 rounded-md mb-2 text-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <span className="text-sm">{activeTag.emoji}</span>
-                    <span className="text-xs font-medium text-purple-900">{activeTag.label}</span>
-                    
-                    {/* Cycle Button */}
+                  <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-300 rounded-lg mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <span className="text-xl">{activeTag.emoji}</span>
+                    <span className="text-sm font-medium text-purple-900 flex-1">{activeTag.label}</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-4 w-4 hover:bg-purple-100 ml-auto"
-                      onClick={handleCycleTag}
-                      title="Alternar modo"
-                    >
-                      <RefreshCw className="w-3 h-3 text-purple-600" />
-                    </Button>
-                    
-                    {/* Remove Button */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-4 w-4 hover:bg-destructive/10"
-                      onClick={handleRemoveTag}
-                      title="Remover tag"
+                      className="h-6 w-6 hover:bg-red-100 rounded-full"
+                      onClick={() => {
+                        setActiveTag(null);
+                        setUserInput("");
+                      }}
                     >
                       <X className="w-3 h-3 text-red-500" />
                     </Button>
                   </div>
                 )}
                 
-                <div className="flex items-end gap-2 sm:gap-3">
-                  
-                  {/* Layout otimizado para mobile */}
-                  <div className="flex items-end gap-2">
-                    
-                    {/* Botões compactos à esquerda */}
-                    <div className="flex gap-1.5 flex-shrink-0">
-                      <input
-                        id="teacher-file-upload"
-                        type="file"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            if (file.size > 20 * 1024 * 1024) {
-                              toast({
-                                title: "Arquivo muito grande",
-                                description: "O arquivo deve ter no máximo 20MB",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-                            setAttachedFile(file);
-                            toast({
-                              title: "Arquivo anexado",
-                              description: file.name,
-                            });
-                          }
-                        }}
-                        accept="image/*,.pdf,.doc,.docx,.txt"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => document.getElementById('teacher-file-upload')?.click()}
-                        className={cn(
-                          "shrink-0 hover:bg-primary/10 rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-10 w-10"
-                        )}
-                        title="Anexar arquivo"
-                      >
-                        <Paperclip className="w-4 h-4" />
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={toggleVoiceInput}
-                        className={cn(
-                          "shrink-0 relative hover:bg-primary/10 rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-10 w-10",
-                          isListening && "text-red-500 bg-red-50"
-                        )}
-                        disabled={isLoading}
-                      >
-                        <Mic className={cn(
-                          "w-4 h-4",
-                          isListening && "animate-pulse"
-                        )} />
-                        {isListening && (
-                          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                          </span>
-                        )}
-                      </Button>
-                    </div>
-
-                    {/* Textarea EXPANDIDA */}
-                    <div className="flex-1 relative min-w-0">
-                      <Textarea
-                        value={activeTag ? userInput : inputMessage}
-                        onChange={(e) => {
-                          if (activeTag) {
-                            setUserInput(e.target.value);
-                          } else {
-                            setInputMessage(e.target.value);
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }}
-                        placeholder={
-                          activeTag 
-                            ? `Complete: ${activeTag.userPromptTemplate}...` 
-                            : "Pergunte à Mia..."
+                <div className="flex items-end gap-2">
+                  {/* Botão Anexar - compacto */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => document.getElementById('teacher-file-upload')?.click()}
+                    className={cn(
+                      "shrink-0 hover:bg-purple-50 rounded-lg",
+                      isMobile ? "h-10 w-10" : "h-10 w-10"
+                    )}
+                    title="Anexar arquivo"
+                  >
+                    <Paperclip className="w-4 h-4 text-purple-600" />
+                  </Button>
+                  <input
+                    id="teacher-file-upload"
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 20 * 1024 * 1024) {
+                          toast({
+                            title: "Arquivo muito grande",
+                            description: "O arquivo deve ter no máximo 20MB",
+                            variant: "destructive",
+                          });
+                          return;
                         }
-                        className={cn(
-                          "resize-none rounded-2xl bg-white border-2 border-purple-200 focus:border-purple-400 shadow-sm pr-12",
-                          isMobile 
-                            ? "min-h-[56px] max-h-40 text-base py-3 px-4" 
-                            : "min-h-[44px] max-h-32 text-sm py-2 px-3"
-                        )}
-                        disabled={isLoading}
-                        rows={isMobile ? 2 : 1}
-                      />
-                      
-                      {attachedFile && (
-                        <div className="absolute bottom-12 left-2 right-12 flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-lg text-xs border border-purple-200">
-                          <Paperclip className="w-3 h-3 shrink-0 text-purple-600" />
-                          <span className="flex-1 truncate text-purple-900">{attachedFile.name}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 hover:bg-red-100"
-                            onClick={() => setAttachedFile(null)}
-                          >
-                            <Trash2 className="w-3 h-3 text-red-600" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                        setAttachedFile(file);
+                        toast({
+                          title: "Arquivo anexado",
+                          description: file.name,
+                        });
+                      }
+                    }}
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                  />
 
+                  {/* Botão Voz - compacto */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleVoiceInput}
+                    className={cn(
+                      "shrink-0 hover:bg-purple-50 rounded-lg relative",
+                      isMobile ? "h-10 w-10" : "h-10 w-10",
+                      isListening && "bg-red-50 text-red-600"
+                    )}
+                    disabled={isLoading}
+                    title={isListening ? "Parar gravação" : "Gravar voz"}
+                  >
+                    <Mic className={cn("w-4 h-4", isListening && "animate-pulse")} />
+                    {isListening && (
+                      <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                      </span>
+                    )}
+                  </Button>
+
+                  {/* Textarea expandida - máximo espaço */}
+                  <div className="flex-1 relative min-w-0">
+                    <Textarea
+                      value={activeTag ? userInput : inputMessage}
+                      onChange={(e) => {
+                        if (activeTag) {
+                          setUserInput(e.target.value);
+                        } else {
+                          setInputMessage(e.target.value);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      placeholder={
+                        activeTag 
+                          ? `${activeTag.userPromptTemplate}` 
+                          : "Pergunte à Mia sobre pedagogia..."
+                      }
+                      className={cn(
+                        "resize-none rounded-2xl bg-white border-2 border-purple-200 focus:border-purple-400 shadow-sm",
+                        isMobile 
+                          ? "min-h-[48px] max-h-28 text-base py-3 px-4 pr-12" 
+                          : "min-h-[48px] max-h-32 text-sm py-3 px-4 pr-12"
+                      )}
+                      disabled={isLoading}
+                      rows={1}
+                    />
+                    
+                    {/* Preview arquivo anexado */}
+                    {attachedFile && (
+                      <div className="absolute -top-10 left-0 right-0 flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-lg text-xs border border-purple-200">
+                        <Paperclip className="w-3 h-3 shrink-0 text-purple-600" />
+                        <span className="flex-1 truncate text-purple-900">{attachedFile.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 hover:bg-red-100"
+                          onClick={() => setAttachedFile(null)}
+                        >
+                          <Trash2 className="w-3 h-3 text-red-600" />
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Botão enviar DENTRO do textarea - canto direito */}
                     <Button
                       onClick={handleSendMessage}
                       disabled={(activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading}
                       size="icon"
                       className={cn(
-                        "shrink-0 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg rounded-xl",
-                        isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-10 w-10"
+                        "absolute bottom-1.5 right-1.5 rounded-xl",
+                        "bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700",
+                        "text-white shadow-md disabled:from-gray-300 disabled:to-gray-400",
+                        isMobile ? "h-9 w-9" : "h-9 w-9"
                       )}
                     >
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
 
-                  {isMobile && (
-                    <div className="mt-2 flex items-center justify-center">
-                      <button
-                        onClick={() => setIsDeepSearch(!isDeepSearch)}
-                        className={cn(
-                          "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-                          isDeepSearch 
-                            ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md" 
-                            : "bg-gray-100 text-gray-700 border border-gray-300"
-                        )}
-                      >
-                        {isDeepSearch ? "🔬 Busca Profunda" : "⚡ Busca Padrão"}
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="hidden sm:flex shrink-0">
-                    <button
-                      onClick={() => setIsDeepSearch(!isDeepSearch)}
-                      className={cn(
-                        "relative inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300 transform hover:scale-105",
-                        isDeepSearch 
-                          ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-purple-500/25" 
-                          : "bg-background-secondary/50 text-foreground-muted hover:bg-background-secondary/70 border border-border"
-                      )}
-                    >
+                  {/* Busca Profunda - ícone no mobile */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsDeepSearch(!isDeepSearch)}
+                    className={cn(
+                      "shrink-0 rounded-lg transition-all",
+                      isMobile ? "h-10 w-10" : "h-10 w-auto px-4",
+                      isDeepSearch 
+                        ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md hover:from-pink-600 hover:to-pink-700" 
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    )}
+                    title={isDeepSearch ? "Busca Profunda ativa" : "Busca Padrão"}
+                  >
+                    {isMobile ? (
+                      isDeepSearch ? (
+                        <div className="relative w-4 h-4">
+                          <div className="absolute inset-0 bg-white/30 rounded-full animate-pulse" />
+                          <div className="absolute inset-1 bg-white rounded-full" />
+                        </div>
+                      ) : (
+                        <Zap className="w-4 h-4" />
+                      )
+                    ) : (
                       <div className="flex items-center gap-2">
                         {isDeepSearch ? (
                           <>
-                            <div className="w-4 h-4 relative">
-                              <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" />
+                            <div className="relative w-4 h-4">
+                              <div className="absolute inset-0 bg-white/30 rounded-full animate-pulse" />
                               <div className="absolute inset-1 bg-white rounded-full" />
                             </div>
-                            <div className="flex items-center">
-                              <span className="text-sm font-medium">Busca Profunda</span>
-                            </div>
+                            <span className="text-sm font-medium">Busca Profunda</span>
                           </>
                         ) : (
                           <>
-                            <Sparkles className="w-4 h-4" />
-                            <div className="flex items-center">
-                              <span className="text-sm font-medium">Busca Padrão</span>
-                            </div>
+                            <Zap className="w-4 h-4" />
+                            <span className="text-sm font-medium">Busca Padrão</span>
                           </>
                         )}
                       </div>
-                      
-                      {isDeepSearch && (
-                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 blur-md -z-10" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Botão de Enviar */}
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={
-                      (activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading
-                    }
-                    size="icon"
-                    className={cn(
-                      "shrink-0 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg",
-                      isMobile ? "h-11 w-11 min-h-[44px] min-w-[44px]" : "h-10 w-10"
-                    )}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
                     )}
                   </Button>
                 </div>
@@ -2474,7 +2437,7 @@ INSTRUÇÕES:
           onClick={() => setShowMobileHistory(true)}
           className={cn(
             "lg:hidden fixed left-4 w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-xl flex items-center justify-center z-50",
-            isMobile ? "bottom-24" : "bottom-6"
+            isMobile ? "bottom-28" : "bottom-6"
           )}
         >
           <MessageCircle className="w-6 h-6" />

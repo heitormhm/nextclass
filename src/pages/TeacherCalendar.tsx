@@ -602,6 +602,7 @@ const TeacherCalendar = () => {
                           setIsEditMode(false);
                           setShowEventDetailsDialog(true);
                         }}
+                        isMobile={isMobile}
                       />
                     )}
                   </CardContent>

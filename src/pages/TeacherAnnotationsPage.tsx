@@ -189,19 +189,16 @@ const TeacherAnnotationsPage = () => {
                 </p>
               </div>
               
-              {/* Filter tabs - horizontal scroll on mobile COM FROSTED GLASS */}
-              <div className="mb-4 overflow-x-auto pb-2">
-                <div className={cn(
-                  "inline-flex items-center gap-2 p-1.5 rounded-xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-lg",
-                  isMobile && "min-w-max"
-                )}>
+              {/* Filter tabs - sem scroll horizontal, distribuídas igualmente */}
+              <div className="mb-4">
+                <div className="inline-flex items-center gap-1.5 p-1 rounded-xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-lg w-full justify-between">
                   <Button
                     size="sm"
                     variant={filterBySource === 'all' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('all')}
                     className={cn(
-                      "whitespace-nowrap rounded-lg transition-all",
-                      isMobile ? "h-10 min-h-[40px] px-4" : "h-8 px-3",
+                      "whitespace-nowrap rounded-lg transition-all flex-1",
+                      isMobile ? "h-9 min-h-[36px] px-2 text-xs" : "h-8 px-3",
                       filterBySource === 'all' 
                         ? "bg-white text-purple-700 shadow-md font-semibold" 
                         : "text-white hover:bg-white/20"
@@ -214,8 +211,8 @@ const TeacherAnnotationsPage = () => {
                     variant={filterBySource === 'lecture' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('lecture')}
                     className={cn(
-                      "whitespace-nowrap rounded-lg transition-all",
-                      isMobile ? "h-10 min-h-[40px] px-4" : "h-8 px-3",
+                      "whitespace-nowrap rounded-lg transition-all flex-1",
+                      isMobile ? "h-9 min-h-[36px] px-2 text-xs" : "h-8 px-3",
                       filterBySource === 'lecture' 
                         ? "bg-white text-purple-700 shadow-md font-semibold" 
                         : "text-white hover:bg-white/20"
@@ -228,8 +225,8 @@ const TeacherAnnotationsPage = () => {
                     variant={filterBySource === 'lesson_plan' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('lesson_plan')}
                     className={cn(
-                      "whitespace-nowrap rounded-lg transition-all",
-                      isMobile ? "h-10 min-h-[40px] px-4" : "h-8 px-3",
+                      "whitespace-nowrap rounded-lg transition-all flex-1",
+                      isMobile ? "h-9 min-h-[36px] px-2 text-xs" : "h-8 px-3",
                       filterBySource === 'lesson_plan' 
                         ? "bg-white text-purple-700 shadow-md font-semibold" 
                         : "text-white hover:bg-white/20"
@@ -242,8 +239,8 @@ const TeacherAnnotationsPage = () => {
                     variant={filterBySource === 'personal' ? 'default' : 'ghost'}
                     onClick={() => setFilterBySource('personal')}
                     className={cn(
-                      "whitespace-nowrap rounded-lg transition-all",
-                      isMobile ? "h-10 min-h-[40px] px-4" : "h-8 px-3",
+                      "whitespace-nowrap rounded-lg transition-all flex-1",
+                      isMobile ? "h-9 min-h-[36px] px-2 text-xs" : "h-8 px-3",
                       filterBySource === 'personal' 
                         ? "bg-white text-purple-700 shadow-md font-semibold" 
                         : "text-white hover:bg-white/20"
