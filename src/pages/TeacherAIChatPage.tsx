@@ -1215,7 +1215,21 @@ INSTRUÇÕES:
   };
 
   const handleSendMessage = async (overrideMessage?: string) => {
-    const currentMessage = overrideMessage || (activeTag ? userInput.trim() : inputMessage.trim());
+    let currentMessage = overrideMessage;
+    
+    // No mobile com selectedAction, usar o systemPrompt invisível
+    if (!currentMessage) {
+      if (isMobile && selectedAction && !activeTag) {
+        // Mobile: Combinar systemPrompt invisível + input do usuário
+        const userText = inputMessage.trim();
+        currentMessage = userText 
+          ? `${selectedAction.systemPrompt}\n\nMinha solicitação: ${userText}`
+          : selectedAction.systemPrompt;
+      } else {
+        currentMessage = activeTag ? userInput.trim() : inputMessage.trim();
+      }
+    }
+    
     if (!currentMessage) return;
 
     // Limpar inputs
@@ -1230,6 +1244,11 @@ INSTRUÇÕES:
     if (activeTag) {
       finalMessage = `${activeTag.userPromptTemplate}${currentMessage}`;
       systemPromptToSend = activeTag.systemPrompt;
+    }
+    
+    // Limpar selectedAction após enviar (mobile)
+    if (isMobile && selectedAction) {
+      setSelectedAction(null);
     }
     
     // Manter tag ativa para permitir múltiplas mensagens no mesmo contexto
@@ -1694,12 +1713,20 @@ INSTRUÇÕES:
     if (!tag) return;
     
     setSelectedAction(tag);
-    setActiveTag(tag);
+    
+    // Mobile: NÃO definir activeTag (tag fica invisível ao usuário)
+    // Desktop: Definir activeTag normalmente
+    if (!isMobile) {
+      setActiveTag(tag);
+    }
+    
     setShowActionDropdown(false);
     
     toast({
       title: `${tag.emoji} ${tag.label} selecionado`,
-      description: "Digite sua solicitação e envie para começar"
+      description: isMobile 
+        ? "Digite sua mensagem e envie para começar" 
+        : "Digite sua solicitação e envie para começar"
     });
   };
 
@@ -2002,7 +2029,7 @@ INSTRUÇÕES:
           
           {/* MOBILE ONLY: Barra minimalista no topo */}
           {isMobile && (
-            <div className="fixed top-0 left-0 right-0 z-20 bg-white/95 backdrop-blur-xl border-b shadow-sm">
+            <div className="fixed top-16 left-0 right-0 z-20 bg-white/95 backdrop-blur-xl border-b shadow-sm pb-safe">
               <div className="flex items-center gap-2 px-4 py-2.5">
                 {/* Botão histórico com estilo rosa */}
                 <Button
@@ -2440,7 +2467,12 @@ INSTRUÇÕES:
                     variant="ghost"
                     size="sm"
                     onClick={() => document.getElementById('teacher-file-upload')?.click()}
-                    className="h-9 px-3 hover:bg-purple-50 rounded-lg text-purple-600 flex items-center gap-2"
+                    className={cn(
+                      "h-9 px-3 rounded-lg flex items-center gap-2 transition-all",
+                      isMobile
+                        ? "bg-purple-50 text-purple-600 hover:bg-purple-100 active:scale-95 shadow-sm"
+                        : "hover:bg-purple-50 text-purple-600"
+                    )}
                   >
                     <Paperclip className="w-4 h-4" />
                     <span className="text-sm">Anexar</span>
@@ -2520,8 +2552,10 @@ INSTRUÇÕES:
                         size="icon"
                         onClick={toggleVoiceInput}
                         className={cn(
-                          "h-9 w-9 rounded-lg",
-                          isListening ? "bg-red-100 text-red-600" : "hover:bg-purple-50 text-purple-600"
+                          "h-9 w-9 rounded-lg transition-all shadow-sm",
+                          isListening 
+                            ? "bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30" 
+                            : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 active:scale-95"
                         )}
                         disabled={isLoading}
                         title={isListening ? "Parar gravação" : "Gravar voz"}
@@ -2534,7 +2568,7 @@ INSTRUÇÕES:
                         onClick={() => handleSendMessage()}
                         disabled={(activeTag ? !userInput.trim() : !inputMessage.trim()) || isLoading}
                         size="icon"
-                        className="h-9 w-9 rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md"
+                        className="h-9 w-9 rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-md active:scale-95 transition-all"
                       >
                         {isLoading ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
