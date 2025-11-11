@@ -1494,117 +1494,82 @@ const TeacherAnnotationPage = () => {
           </div>
         )}
 
-        {/* Floating Dual Button - Mobile only */}
-        {isMobile && (
-          <div className="fixed right-4 bottom-20 z-40 flex flex-col gap-2">
-            {/* Botão EDITAR - Toggle da toolbar */}
-            <Button
-              onClick={() => setShowToolbar(!showToolbar)}
-              className={cn(
-                "rounded-full w-14 h-14 shadow-2xl transition-all duration-300",
-                showToolbar
-                  ? "bg-blue-500 hover:bg-blue-600"
-                  : "bg-white/90 backdrop-blur-xl border-2 border-blue-400 hover:bg-blue-50"
-              )}
-              size="icon"
-              title={showToolbar ? "Ocultar ferramentas" : "Mostrar ferramentas"}
-            >
-              {showToolbar ? (
-                <X className="h-6 w-6 text-white" />
-              ) : (
-                <Edit className="h-6 w-6 text-blue-600" />
-              )}
-            </Button>
+      {/* Floating Dual Button - Mobile only */}
+      {isMobile && (
+        <div className="fixed right-4 bottom-20 z-40 flex flex-col gap-3">
+          {/* Botão EDITAR com ícone + texto */}
+          <Button
+            onClick={() => setShowToolbar(!showToolbar)}
+            className={cn(
+              "rounded-full h-14 px-4 shadow-2xl transition-all duration-300 flex items-center gap-2",
+              showToolbar
+                ? "bg-blue-500 hover:bg-blue-600 text-white"
+                : "bg-white/90 backdrop-blur-xl border-2 border-blue-400 hover:bg-blue-50 text-blue-600"
+            )}
+            title={showToolbar ? "Ocultar ferramentas" : "Mostrar ferramentas"}
+          >
+            <Edit className="h-5 w-5" />
+            <span className="font-medium text-sm">Editar</span>
+          </Button>
 
-            {/* Botão FORMATAR COM MIA */}
-            <Button
-              onClick={() => setShowAIActionsSheet(true)}
-              disabled={isProcessingAI || !content?.trim()}
-              className={cn(
-                "rounded-full w-14 h-14",
-                "bg-gradient-to-br from-pink-400 to-pink-600",
-                "hover:from-pink-500 hover:to-pink-700",
-                "shadow-[0_8px_32px_rgba(219,39,119,0.4)]",
-                "hover:shadow-[0_12px_48px_rgba(219,39,119,0.6)]",
-                "hover:scale-110 transition-all duration-300",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
-              )}
-              size="icon"
-              title="Formatar com Mia"
-            >
-              {isProcessingAI ? (
-                <Loader2 className="h-6 w-6 text-white animate-spin" />
-              ) : (
-                <Sparkles className="h-6 w-6 text-white" />
-              )}
-            </Button>
-          </div>
-        )}
+          {/* Botão FORMATAR COM IA com ícone + texto */}
+          <Button
+            onClick={() => setShowAIActionsSheet(true)}
+            disabled={isProcessingAI || !content?.trim()}
+            className={cn(
+              "rounded-full h-14 px-4 shadow-2xl transition-all duration-300 flex items-center gap-2",
+              "bg-gradient-to-br from-pink-400 to-pink-600 hover:from-pink-500 hover:to-pink-700",
+              "text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+            title="Formatar com Mia"
+          >
+            {isProcessingAI ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Sparkles className="h-5 w-5" />
+            )}
+            <span className="font-medium text-sm">Formatar com IA</span>
+          </Button>
+        </div>
+      )}
 
-        {/* Floating AI Assistant Button - Desktop */}
-        {!isMobile ? (
-          <>
+      {/* Sheet for mobile AI actions */}
+      <Sheet open={showAIActionsSheet} onOpenChange={setShowAIActionsSheet}>
+        <SheetContent side="bottom" className="h-[75vh] rounded-t-3xl">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="h-5 w-5 text-pink-500" />
+              Assistente IA Mia
+            </SheetTitle>
+          </SheetHeader>
+          
+          <div className="space-y-3 py-4">
             <Button
-              onClick={() => setShowAIActionsSheet(true)}
-              disabled={isProcessingAI}
-              className={cn(
-                "fixed z-40 rounded-full w-14 h-14",
-                "bg-white/20 backdrop-blur-xl border border-white/40",
-                "shadow-[0_8px_32px_rgba(219,39,119,0.3)]",
-                "hover:shadow-[0_12px_48px_rgba(219,39,119,0.5)]",
-                "hover:scale-110 transition-all duration-300",
-                "p-0 flex items-center justify-center",
-                "right-4 bottom-20"
-              )}
-              size="icon"
-              title="Assistente IA Mia"
+              onClick={() => {
+                handleAIAction('improve_grammar');
+                setShowAIActionsSheet(false);
+              }}
+              className="w-full justify-start h-14 text-base"
+              variant="outline"
             >
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 
-                              flex items-center justify-center shadow-inner">
-                {isProcessingAI ? (
-                  <Loader2 className="h-5 w-5 text-white animate-spin" />
-                ) : (
-                  <Sparkles className="h-5 w-5 text-white" />
-                )}
-              </div>
+              <CheckCircle2 className="h-5 w-5 mr-3 text-green-600" />
+              Corrigir erros gramaticais
             </Button>
-
-            <Sheet open={showAIActionsSheet} onOpenChange={setShowAIActionsSheet}>
-              <SheetContent side="bottom" className="h-[75vh] rounded-t-3xl">
-                <SheetHeader className="pb-4">
-                  <SheetTitle className="flex items-center gap-2 text-lg">
-                    <Sparkles className="h-5 w-5 text-pink-500" />
-                    Assistente IA Mia
-                  </SheetTitle>
-                </SheetHeader>
-                
-                <div className="space-y-3 py-4">
-                  <Button
-                    onClick={() => {
-                      handleAIAction('improve_grammar');
-                      setShowAIActionsSheet(false);
-                    }}
-                    className="w-full justify-start h-14 text-base"
-                    variant="outline"
-                  >
-                    <CheckCircle2 className="h-5 w-5 mr-3 text-green-600" />
-                    Corrigir erros gramaticais
-                  </Button>
                   
-                  <Button
-                    onClick={() => {
-                      handleAIAction('fact_check');
-                      setShowAIActionsSheet(false);
-                    }}
-                    className="w-full justify-start h-14 text-base"
-                    variant="outline"
-                  >
-                    <ShieldCheck className="h-5 w-5 mr-3 text-blue-600" />
-                    Fact Checking
-                  </Button>
-                  
-                  <div className="border-t my-4 pt-4">
-                    <p className="text-sm font-semibold text-gray-700 mb-3">
+            <Button
+              onClick={() => {
+                handleAIAction('fact_check');
+                setShowAIActionsSheet(false);
+              }}
+              className="w-full justify-start h-14 text-base"
+              variant="outline"
+            >
+              <ShieldCheck className="h-5 w-5 mr-3 text-blue-600" />
+              Fact Checking
+            </Button>
+            
+            <div className="border-t my-4 pt-4">
+              <p className="text-sm font-semibold text-gray-700 mb-3">
                       ✏️ EDIÇÃO DE CONTEÚDO
                     </p>
                     
@@ -1618,9 +1583,9 @@ const TeacherAnnotationPage = () => {
                     >
                       <Sparkles className="h-5 w-5 mr-3 text-blue-600" />
                       Expandir conteúdo
-                    </Button>
-                    
-                    <Button
+              </Button>
+              
+              <Button
                       onClick={() => {
                         handleAIAction('summarize');
                         setShowAIActionsSheet(false);
@@ -1635,17 +1600,17 @@ const TeacherAnnotationPage = () => {
                   
                   <div className="border-t my-4 pt-4">
                     <p className="text-sm font-semibold text-gray-700 mb-3">
-                      🎓 FERRAMENTAS PEDAGÓGICAS
-                    </p>
-                    
-                    <Button
-                      onClick={() => {
-                        handleAIAction('format_lesson_plan');
-                        setShowAIActionsSheet(false);
-                      }}
-                      className="w-full justify-start h-auto py-4 text-base mb-2"
-                      variant="outline"
-                    >
+                🎓 FERRAMENTAS PEDAGÓGICAS
+              </p>
+              
+              <Button
+                onClick={() => {
+                  handleAIAction('format_lesson_plan');
+                  setShowAIActionsSheet(false);
+                }}
+                className="w-full justify-start h-auto py-4 text-base mb-2"
+                variant="outline"
+              >
                       <BookOpen className="h-5 w-5 mr-3 text-blue-600 flex-shrink-0" />
                       <div className="flex flex-col items-start">
                         <span className="font-medium">Gerar Plano de Aula</span>
@@ -1653,9 +1618,9 @@ const TeacherAnnotationPage = () => {
                           Unidade de Aprendizagem Profunda e Estruturada
                         </span>
                       </div>
-                    </Button>
-                    
-                    <Button
+              </Button>
+              
+              <Button
                       onClick={() => {
                         handleAIAction('generate_activity');
                         setShowAIActionsSheet(false);
@@ -1687,104 +1652,11 @@ const TeacherAnnotationPage = () => {
                           Conteúdo de Apoio Didático para seus Alunos
                         </span>
                       </div>
-                    </Button>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </>
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                className="fixed bottom-6 right-6 rounded-full w-16 h-16 z-40 
-                           bg-white/20 backdrop-blur-xl border border-white/40
-                           shadow-[0_8px_32px_rgba(219,39,119,0.3)]
-                           hover:shadow-[0_12px_48px_rgba(219,39,119,0.5)]
-                           hover:scale-110 transition-all duration-300
-                           p-0 flex items-center justify-center"
-                size="icon"
-                title="Assistente IA Mia"
-                disabled={isProcessingAI}
-              >
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 
-                                flex items-center justify-center shadow-inner">
-                  {isProcessingAI ? (
-                    <Loader2 className="h-6 w-6 text-white animate-spin" />
-                  ) : (
-                    <Sparkles className="h-6 w-6 text-white" />
-                  )}
-                </div>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              side="left" 
-              align="end" 
-              className="w-80 p-2 max-h-[80vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
-              style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'rgb(209 213 219) transparent'
-              }}
-            >
-              <DropdownMenuLabel className="text-blue-600 font-semibold flex items-center gap-2 text-base">
-                <Sparkles className="h-5 w-5" />
-                Assistente IA Mia
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem onClick={() => handleAIAction('improve_grammar')} className="cursor-pointer py-3">
-                <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
-                <span className="font-medium">Corrigir erros gramaticais</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem onClick={() => handleAIAction('fact_check')} className="cursor-pointer py-3">
-                <ShieldCheck className="h-4 w-4 mr-2 text-blue-600" />
-                <span className="font-medium">Fact Checking</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator className="my-2" />
-              
-              <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
-                ✏️ Edição de Conteúdo
-              </DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => handleAIAction('expand')} className="cursor-pointer pl-6 py-2">
-                <Sparkles className="h-4 w-4 mr-2 text-blue-600" />
-                <span className="font-medium">Expandir conteúdo</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleAIAction('summarize')} className="cursor-pointer pl-6 py-2">
-                <FileText className="h-4 w-4 mr-2 text-gray-600" />
-                <span className="font-medium">Resumir conteúdo</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator className="my-2" />
-              
-              <DropdownMenuLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-2 py-1">
-                🎓 Ferramentas Pedagógicas
-              </DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => handleAIAction('format_lesson_plan')} className="cursor-pointer pl-6 py-2">
-                <BookOpen className="h-4 w-4 mr-2 text-blue-600" />
-                <div className="flex flex-col">
-                  <span className="font-medium">Gerar Plano de Aula</span>
-                  <span className="text-xs text-muted-foreground">Unidade de Aprendizagem Profunda e Estruturada</span>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleAIAction('generate_activity')} className="cursor-pointer pl-6 py-2">
-                <Lightbulb className="h-4 w-4 mr-2 text-orange-600" />
-                <div className="flex flex-col">
-                  <span className="font-medium">Gerar Atividade Avaliativa</span>
-                  <span className="text-xs text-muted-foreground">10 questões objetivas + 10 abertas com rubricas</span>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleAIAction('improve_didactic')} className="cursor-pointer pl-6 py-2">
-                <GraduationCap className="h-4 w-4 mr-2 text-purple-600" />
-                <div className="flex flex-col">
-                  <span className="font-medium">Gerar Material Educativo</span>
-                  <span className="text-xs text-muted-foreground">Conteúdo de Apoio Didático para seus Alunos</span>
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
         {/* Floating PDF Export Button */}
         {showPDFExportButton && !isStructuredMode && (

@@ -284,8 +284,8 @@ const TeacherAnnotationsPage = () => {
             </div>
           </div>
 
-          {/* Collapsible Filters */}
-          {annotations.length > 0 && allTags.length > 0 && (
+          {/* Collapsible Filters - Desktop only */}
+          {!isMobile && annotations.length > 0 && allTags.length > 0 && (
             <div className="mb-4">
               <Button
                 variant="outline"

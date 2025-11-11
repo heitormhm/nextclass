@@ -20,7 +20,7 @@ export const QuickActionsCard = ({
   };
 
   return (
-    <Card className="mb-6 p-6 max-h-[400px] overflow-y-auto bg-gradient-to-br from-purple-50/80 via-pink-50/80 to-blue-50/80 border-2 border-purple-200/50 shadow-xl hover:shadow-2xl transition-all duration-300 backdrop-blur-sm max-w-7xl mx-auto
+    <Card className="mb-6 p-6 max-h-[400px] overflow-y-auto bg-gradient-to-br from-purple-50/80 via-pink-50/80 to-blue-50/80 border-2 border-purple-200/50 shadow-xl hover:shadow-2xl transition-all duration-300 backdrop-blur-sm max-w-[92%] sm:max-w-7xl mx-auto
       [&::-webkit-scrollbar]:w-2 
       [&::-webkit-scrollbar-track]:bg-transparent 
       [&::-webkit-scrollbar-thumb]:bg-purple-200/50 
@@ -53,7 +53,6 @@ export const QuickActionsCard = ({
             <Upload className="h-6 w-6" />
             <div className="text-center">
               <p className="font-bold text-sm">Publicar Material</p>
-              <p className="text-xs opacity-90">Compartilhar na biblioteca</p>
             </div>
           </Button>
 
@@ -65,7 +64,6 @@ export const QuickActionsCard = ({
             <BookOpen className="h-6 w-6" />
             <div className="text-center">
               <p className="font-bold text-sm">Material Didático</p>
-              <p className="text-xs opacity-90">Criar com Mia</p>
             </div>
           </Button>
 
@@ -77,7 +75,6 @@ export const QuickActionsCard = ({
             <FileText className="h-6 w-6" />
             <div className="text-center">
               <p className="font-bold text-sm">Plano de Aula</p>
-              <p className="text-xs opacity-90">Criar com Mia</p>
             </div>
           </Button>
 
@@ -89,7 +86,6 @@ export const QuickActionsCard = ({
             <ClipboardCheck className="h-6 w-6" />
             <div className="text-center">
               <p className="font-bold text-sm">Atividade Avaliativa</p>
-              <p className="text-xs opacity-90">Criar com Mia</p>
             </div>
           </Button>
         </div>

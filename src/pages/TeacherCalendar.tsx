@@ -243,11 +243,13 @@ const TeacherCalendar = () => {
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
+    // Mobile: navega 1 dia por vez, Desktop: navega 5 dias
+    const daysToMove = isMobile ? 1 : 5;
     setCurrentDate(prev => 
-      direction === 'prev' ? addDays(prev, -5) : addDays(prev, 5)
+      direction === 'prev' ? addDays(prev, -daysToMove) : addDays(prev, daysToMove)
     );
     setSelectedDate(prev => 
-      direction === 'prev' ? addDays(prev, -5) : addDays(prev, 5)
+      direction === 'prev' ? addDays(prev, -daysToMove) : addDays(prev, daysToMove)
     );
   };
 
@@ -493,6 +495,31 @@ const TeacherCalendar = () => {
                             >
                               <List className="h-4 w-4 mr-1" />
                               Semana
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Setas de navegação para Week View Mobile */}
+                        {viewMode === 'week' && isMobile && (
+                          <div className="flex items-center justify-between px-4 py-2 bg-white/90 mt-2 rounded-lg">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigateWeek('prev')}
+                              className="hover:bg-blue-100"
+                            >
+                              <ChevronLeft className="h-5 w-5" />
+                            </Button>
+                            <span className="text-sm font-medium text-gray-700">
+                              {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigateWeek('next')}
+                              className="hover:bg-blue-100"
+                            >
+                              <ChevronRight className="h-5 w-5" />
                             </Button>
                           </div>
                         )}
