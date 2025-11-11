@@ -100,60 +100,72 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             overflow-wrap: break-word !important;
           }
           
-          /* LAYER 2: ALL child elements MUST respect viewport */
-          .material-didatico-content *,
-          .material-didatico-content > *,
-          .material-didatico-content * > * {
+          /* LAYER 2: ALL child elements MUST respect viewport (EXCEPT callout internals) */
+          .material-didatico-content *:not([data-callout-type] *):not([data-callout-type]),
+          .material-didatico-content > *:not([data-callout-type]),
+          .material-didatico-content * > *:not([data-callout-type] *) {
             max-width: 100% !important;
-            width: auto !important;
             box-sizing: border-box !important;
             overflow-wrap: break-word !important;
             word-wrap: break-word !important;
-            word-break: break-word !important;
           }
           
-          /* LAYER 3: Text elements - FORCE word breaking */
-          .material-didatico-content p,
-          .material-didatico-content li,
-          .material-didatico-content div,
-          .material-didatico-content span,
-          .material-didatico-content h1,
-          .material-didatico-content h2,
-          .material-didatico-content h3,
-          .material-didatico-content h4,
-          .material-didatico-content h5,
-          .material-didatico-content h6,
-          .material-didatico-content blockquote {
+          /* LAYER 3: Text elements - Smart word breaking */
+          .material-didatico-content p:not([data-callout-type] *),
+          .material-didatico-content li:not([data-callout-type] *),
+          .material-didatico-content div:not([data-callout-type] *):not([data-callout-type]),
+          .material-didatico-content span:not([data-callout-type] *),
+          .material-didatico-content h1:not([data-callout-type] *),
+          .material-didatico-content h2:not([data-callout-type] *),
+          .material-didatico-content h3:not([data-callout-type] *),
+          .material-didatico-content h4:not([data-callout-type] *),
+          .material-didatico-content h5:not([data-callout-type] *),
+          .material-didatico-content h6:not([data-callout-type] *),
+          .material-didatico-content blockquote:not([data-callout-type]) {
             max-width: 100% !important;
-            width: 100% !important;
             overflow-wrap: break-word !important;
             word-wrap: break-word !important;
-            word-break: break-word !important;
             hyphens: auto !important;
             -webkit-hyphens: auto !important;
             -ms-hyphens: auto !important;
           }
           
-          /* LAYER 4: Callouts - constrain to viewport */
-          .material-didatico-content [data-callout-type],
-          .material-didatico-content [class*="callout-"],
-          .material-didatico-content blockquote[style] {
+          /* LAYER 4: Callouts - constrain to viewport WITHOUT overriding inline styles */
+          .material-didatico-content [data-callout-type] {
             max-width: 100% !important;
             width: 100% !important;
-            padding: 0.75rem !important;
             margin-left: 0 !important;
             margin-right: 0 !important;
             box-sizing: border-box !important;
+            display: block !important;
+          }
+
+          /* Callout internal structure protection */
+          .material-didatico-content [data-callout-type] > div {
+            display: flex !important;
+            align-items: start !important;
+            gap: 0.75rem !important;
+          }
+
+          .material-didatico-content [data-callout-type] .callout-content {
+            flex: 1 !important;
+            min-width: 0 !important;
             overflow-wrap: break-word !important;
-            word-break: break-word !important;
+            word-wrap: break-word !important;
           }
           
-          /* LAYER 5: Long words/URLs - break aggressively */
+          /* LAYER 5: Long words/URLs/Code - break aggressively (ONLY for these elements) */
           .material-didatico-content a,
           .material-didatico-content code:not(pre code) {
             overflow-wrap: anywhere !important;
             word-break: break-all !important;
             max-width: 100% !important;
+            display: inline-block !important;
+          }
+
+          /* Exception: links inside callouts use softer breaking */
+          .material-didatico-content [data-callout-type] a {
+            word-break: break-word !important;
           }
 
           
@@ -179,14 +191,11 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             margin-bottom: 0.5rem !important;
           }
           
-          .material-didatico-content p,
-          .material-didatico-content li {
+          .material-didatico-content p:not([data-callout-type] *),
+          .material-didatico-content li:not([data-callout-type] *) {
             font-size: 0.95rem !important;
             line-height: 1.6rem !important;
             margin-bottom: 1rem !important;
-            max-width: 100% !important;
-            overflow-wrap: anywhere !important;
-            word-break: break-word !important;
           }
           
           .material-didatico-content ul,
@@ -205,25 +214,21 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
             max-width: 100%;
           }
           
-          /* Typography specific adjustments */
-          .material-didatico-content [data-callout-type],
-          .material-didatico-content [class*="callout-"] {
-            padding: 0.75rem !important;
-            margin: 0.75rem 0 !important;
-            font-size: 0.85rem !important;
-            border-left-width: 3px !important;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+          /* Mobile-specific callout adjustments */
+          .material-didatico-content [data-callout-type] {
+            font-size: 0.875rem !important;
+            line-height: 1.5rem !important;
+            margin: 1rem 0 !important;
           }
-          
-          .material-didatico-content [class*="callout-"] h4,
-          .material-didatico-content [class*="callout-"] h5 {
-            font-size: 0.95rem !important;
-            margin-bottom: 0.4rem !important;
+
+          .material-didatico-content [data-callout-type] .callout-content p {
+            font-size: 0.875rem !important;
+            line-height: 1.5rem !important;
+            margin-bottom: 0.75rem !important;
           }
-          
-          .material-didatico-content [class*="callout-"] p {
-            font-size: 0.85rem !important;
-            line-height: 1.45rem !important;
+
+          .material-didatico-content [data-callout-type] .callout-content p:last-child {
+            margin-bottom: 0 !important;
           }
           
           .material-didatico-content .katex-display {
@@ -274,186 +279,6 @@ export const MaterialDidaticoRenderer: React.FC<MaterialDidaticoRendererProps> =
           color: #fce7f3;
         }
         
-        /* ===== 🎨 CALLOUT SYSTEM (12 TIPOS COM CORES FIXAS) - CLASSES GLOBAIS ===== */
-        .callout-conceito-chave {
-          background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%) !important;
-          border-left: 4px solid #9333ea !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(147, 51, 234, 0.15) !important;
-        }
-        
-        .dark .callout-conceito-chave {
-          background: linear-gradient(135deg, #581c87 0%, #6b21a8 100%) !important;
-          border-left-color: #a855f7 !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-pergunta-para-reflexao {
-          background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%) !important;
-          border-left: 4px solid #7c3aed !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15) !important;
-        }
-        
-        .dark .callout-pergunta-para-reflexao {
-          background: linear-gradient(135deg, #581c87 0%, #6b21a8 100%) !important;
-          border-left-color: #a855f7 !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-dica-importante {
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
-          border-left: 4px solid #ca8a04 !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(202, 138, 4, 0.15) !important;
-        }
-        
-        .dark .callout-dica-importante {
-          background: linear-gradient(135deg, #713f12 0%, #854d0e 100%) !important;
-          border-left-color: #fbbf24 !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-atencao {
-          background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%) !important;
-          border-left: 4px solid #ea580c !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(234, 88, 12, 0.15) !important;
-        }
-        
-        .dark .callout-atencao {
-          background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%) !important;
-          border-left-color: #fb923c !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-exemplo-pratico {
-          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
-          border-left: 4px solid #2563eb !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
-        }
-        
-        .dark .callout-exemplo-pratico {
-          background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
-          border-left-color: #60a5fa !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-resumo-executivo {
-          background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
-          border-left: 4px solid #059669 !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15) !important;
-        }
-        
-        .dark .callout-resumo-executivo {
-          background: linear-gradient(135deg, #14532d 0%, #166534 100%) !important;
-          border-left-color: #34d399 !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-aplicacao-profissional {
-          background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%) !important;
-          border-left: 4px solid #4f46e5 !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15) !important;
-        }
-        
-        .dark .callout-aplicacao-profissional {
-          background: linear-gradient(135deg, #312e81 0%, #3730a3 100%) !important;
-          border-left-color: #818cf8 !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-exercicio-rapido {
-          background: linear-gradient(135deg, #ecfccb 0%, #d9f99d 100%) !important;
-          border-left: 4px solid #65a30d !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(101, 163, 13, 0.15) !important;
-        }
-        
-        .dark .callout-exercicio-rapido {
-          background: linear-gradient(135deg, #365314 0%, #3f6212 100%) !important;
-          border-left-color: #a3e635 !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-erro-comum {
-          background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%) !important;
-          border-left: 4px solid #dc2626 !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15) !important;
-        }
-        
-        .dark .callout-erro-comum {
-          background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%) !important;
-          border-left-color: #f87171 !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-aprofundamento {
-          background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%) !important;
-          border-left: 4px solid #7c3aed !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15) !important;
-        }
-        
-        .dark .callout-aprofundamento {
-          background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%) !important;
-          border-left-color: #a78bfa !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-citacao-do-especialista {
-          background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
-          border-left: 4px solid #4b5563 !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(75, 85, 99, 0.15) !important;
-        }
-        
-        .dark .callout-citacao-do-especialista {
-          background: linear-gradient(135deg, #111827 0%, #1f2937 100%) !important;
-          border-left-color: #9ca3af !important;
-          opacity: 0.95 !important;
-        }
-        
-        .callout-conexao-com-outros-conceitos {
-          background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%) !important;
-          border-left: 4px solid #0891b2 !important;
-          border-radius: 0.75rem !important;
-          padding: 1.5rem !important;
-          margin: 1.5rem 0 !important;
-          box-shadow: 0 4px 12px rgba(8, 145, 178, 0.15) !important;
-        }
-        
-        .dark .callout-conexao-com-outros-conceitos {
-          background: linear-gradient(135deg, #164e63 0%, #155e75 100%) !important;
-          border-left-color: #22d3ee !important;
-          opacity: 0.95 !important;
-        }
         
         /* ===== 📚 DESIGN SYSTEM - TYPOGRAPHY HIERARCHY ===== */
         .material-didatico-content h2 {
