@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { format, addDays, startOfWeek, isSameDay, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Check, X, Video, Users, MapPin, Clock } from 'lucide-react';
+import { Check, X, Video, Users, MapPin, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -136,22 +136,50 @@ export const WeekCalendarView: React.FC<WeekCalendarViewProps> = ({
         <div
           key={idx}
           className={cn(
-            "p-3 text-center border-r border-border last:border-r-0 flex flex-col items-center justify-center min-h-[80px]",
+            "p-3 text-center border-r border-border last:border-r-0 flex items-center justify-center min-h-[80px] relative",
             isCurrentDay && "bg-gradient-to-b from-pink-50 to-purple-50"
           )}
         >
-          <div className={cn(
-            "text-xs font-medium uppercase tracking-wide",
-            isCurrentDay ? "text-pink-600" : "text-foreground-muted"
-          )}>
-            {format(day, 'EEE', { locale: ptBR })}
+          {/* Seta PREV - só aparece no mobile quando week view */}
+          {isMobile && idx === 0 && (
+            <button
+              onClick={() => {
+                const event = new CustomEvent('weekNavigation', { detail: 'prev' });
+                window.dispatchEvent(event);
+              }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 hover:bg-purple-100 rounded-full p-1.5"
+            >
+              <ChevronLeft className="h-5 w-5 text-purple-600" />
+            </button>
+          )}
+          
+          <div className="flex flex-col items-center">
+            <div className={cn(
+              "text-xs font-medium uppercase tracking-wide",
+              isCurrentDay ? "text-pink-600" : "text-foreground-muted"
+            )}>
+              {format(day, 'EEE', { locale: ptBR })}
+            </div>
+            <div className={cn(
+              "text-3xl font-bold mt-1 leading-none",
+              isCurrentDay && "text-pink-600"
+            )}>
+              {format(day, 'd')}
+            </div>
           </div>
-          <div className={cn(
-            "text-3xl font-bold mt-1 leading-none",
-            isCurrentDay && "text-pink-600"
-          )}>
-            {format(day, 'd')}
-          </div>
+          
+          {/* Seta NEXT - só aparece no mobile quando week view */}
+          {isMobile && idx === 0 && (
+            <button
+              onClick={() => {
+                const event = new CustomEvent('weekNavigation', { detail: 'next' });
+                window.dispatchEvent(event);
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-purple-100 rounded-full p-1.5"
+            >
+              <ChevronRight className="h-5 w-5 text-purple-600" />
+            </button>
+          )}
         </div>
           );
         })}

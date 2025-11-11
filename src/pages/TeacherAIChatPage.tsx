@@ -1660,12 +1660,20 @@ INSTRUÇÕES:
     const tag = ACTION_TAGS[action];
     if (!tag) return;
     
-    // ✅ CORRIGIDO: Ler do estado correto dependendo se já existe tag ativa
-    const currentText = activeTag ? userInput.trim() : inputMessage.trim();
+    // ✅ NO MOBILE: Enviar diretamente sem mostrar tag
+    if (isMobile) {
+      setInputMessage(tag.systemPrompt);
+      setTimeout(() => {
+        handleSendMessage();
+      }, 100);
+      return;
+    }
     
+    // Desktop: comportamento original com tag
+    const currentText = activeTag ? userInput.trim() : inputMessage.trim();
     setActiveTag(tag);
-    setUserInput(currentText); // Transfer to userInput
-    setInputMessage(""); // Clear main input
+    setUserInput(currentText);
+    setInputMessage("");
     
     setTimeout(() => {
       document.querySelector('textarea')?.focus();
@@ -2275,9 +2283,9 @@ INSTRUÇÕES:
                         : "Pergunte à Mia sobre pedagogia..."
                     }
                     className={cn(
-                      "resize-none rounded-2xl bg-white border-2 border-purple-200 focus:border-purple-400 shadow-sm w-full pr-24",
+                      "resize-none rounded-2xl bg-white border-2 border-purple-200 focus:border-purple-400 shadow-sm w-full pr-20",
                       isMobile 
-                        ? "min-h-[56px] max-h-32 text-base py-3 px-4" 
+                        ? "min-h-[56px] max-h-32 text-sm py-3 px-4" 
                         : "min-h-[56px] max-h-32 text-sm py-3 px-4"
                     )}
                     disabled={isLoading}
@@ -2333,7 +2341,7 @@ INSTRUÇÕES:
                   </div>
                 </div>
 
-                {/* LINHA 2: Anexar + Pesquisa Profunda */}
+                {/* LINHA 2: Anexar + Histórico + Pesquisa Profunda */}
                 <div className="flex items-center gap-2">
                   {/* Botão Anexar */}
                   <Button
@@ -2370,6 +2378,17 @@ INSTRUÇÕES:
                     accept="image/*,.pdf,.doc,.docx,.txt"
                   />
                   
+                  {/* Botão Histórico */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowMobileHistory(true)}
+                    className="h-9 px-3 hover:bg-purple-50 rounded-lg text-purple-600 flex items-center gap-2"
+                  >
+                    <Clock className="w-4 h-4" />
+                    <span className="text-sm">Histórico</span>
+                  </Button>
+                  
                   {/* Toggle Pesquisa Profunda com TEXTO */}
                   <Button
                     variant="ghost"
@@ -2404,16 +2423,6 @@ INSTRUÇÕES:
 
         </div>
         {/* End of main content div from line 1981 */}
-
-        <button
-          onClick={() => setShowMobileHistory(true)}
-          className={cn(
-            "lg:hidden fixed left-4 w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-xl flex items-center justify-center z-50",
-            isMobile ? "bottom-32" : "bottom-6"
-          )}
-        >
-          <MessageCircle className="w-6 h-6" />
-        </button>
 
         <Sheet open={showMobileHistory} onOpenChange={setShowMobileHistory}>
           <SheetContent side="left" className="w-full sm:w-80 p-0 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30 z-[9999]">

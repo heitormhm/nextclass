@@ -1265,6 +1265,37 @@ const TeacherAnnotationPage = () => {
         {/* Main Content */}
         <div className="relative z-10 container mx-auto px-4 py-6">
           <div className="max-w-5xl mx-auto">
+            {/* Botões de ação - Mobile only - Entre título e conteúdo */}
+            {isMobile && (
+              <div className="grid grid-cols-2 gap-2 mb-4 px-2">
+                <Button
+                  onClick={() => setShowToolbar(!showToolbar)}
+                  className={cn(
+                    "h-12 flex items-center justify-center gap-2 rounded-xl",
+                    showToolbar
+                      ? "bg-blue-500 hover:bg-blue-600 text-white"
+                      : "bg-white/90 border-2 border-blue-400 text-blue-600 hover:bg-blue-50"
+                  )}
+                >
+                  <Edit className="h-4 w-4" />
+                  <span className="font-medium text-sm">Editar</span>
+                </Button>
+                
+                <Button
+                  onClick={() => setShowAIActionsSheet(true)}
+                  disabled={isProcessingAI || !content?.trim()}
+                  className="h-12 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-pink-400 to-pink-600 hover:from-pink-500 hover:to-pink-700 text-white disabled:opacity-50"
+                >
+                  {isProcessingAI ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  <span className="font-medium text-sm">Formatar com IA</span>
+                </Button>
+              </div>
+            )}
+            
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-xl">
               <CardContent className="p-8">
                 {isStructuredMode && structuredContent ? (
@@ -1494,56 +1525,17 @@ const TeacherAnnotationPage = () => {
           </div>
         )}
 
-      {/* Floating Dual Button - Mobile only */}
-      {isMobile && (
-        <div className="fixed right-4 bottom-20 z-40 flex flex-col gap-3">
-          {/* Botão EDITAR com ícone + texto */}
-          <Button
-            onClick={() => setShowToolbar(!showToolbar)}
-            className={cn(
-              "rounded-full h-14 px-4 shadow-2xl transition-all duration-300 flex items-center gap-2",
-              showToolbar
-                ? "bg-blue-500 hover:bg-blue-600 text-white"
-                : "bg-white/90 backdrop-blur-xl border-2 border-blue-400 hover:bg-blue-50 text-blue-600"
-            )}
-            title={showToolbar ? "Ocultar ferramentas" : "Mostrar ferramentas"}
-          >
-            <Edit className="h-5 w-5" />
-            <span className="font-medium text-sm">Editar</span>
-          </Button>
-
-          {/* Botão FORMATAR COM IA com ícone + texto */}
-          <Button
-            onClick={() => setShowAIActionsSheet(true)}
-            disabled={isProcessingAI || !content?.trim()}
-            className={cn(
-              "rounded-full h-14 px-4 shadow-2xl transition-all duration-300 flex items-center gap-2",
-              "bg-gradient-to-br from-pink-400 to-pink-600 hover:from-pink-500 hover:to-pink-700",
-              "text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-            title="Formatar com Mia"
-          >
-            {isProcessingAI ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Sparkles className="h-5 w-5" />
-            )}
-            <span className="font-medium text-sm">Formatar com IA</span>
-          </Button>
-        </div>
-      )}
-
       {/* Sheet for mobile AI actions */}
       <Sheet open={showAIActionsSheet} onOpenChange={setShowAIActionsSheet}>
-        <SheetContent side="bottom" className="h-[75vh] rounded-t-3xl">
-          <SheetHeader className="pb-4">
+        <SheetContent side="bottom" className="h-[75vh] rounded-t-3xl overflow-hidden flex flex-col">
+          <SheetHeader className="pb-4 flex-shrink-0">
             <SheetTitle className="flex items-center gap-2 text-lg">
               <Sparkles className="h-5 w-5 text-pink-500" />
               Assistente IA Mia
             </SheetTitle>
           </SheetHeader>
           
-          <div className="space-y-3 py-4">
+          <div className="flex-1 overflow-y-auto space-y-3 py-4 px-6">
             <Button
               onClick={() => {
                 handleAIAction('improve_grammar');
