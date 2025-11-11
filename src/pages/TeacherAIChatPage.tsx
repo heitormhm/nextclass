@@ -2029,14 +2029,14 @@ INSTRUÇÕES:
           
           {/* MOBILE ONLY: Barra minimalista no topo */}
           {isMobile && (
-            <div className="fixed top-16 left-0 right-0 z-20 bg-white/95 backdrop-blur-xl border-b shadow-sm pb-safe">
+            <div className="fixed top-16 left-0 right-0 z-20 bg-white/10 backdrop-blur-2xl border-b border-white/30 shadow-lg pb-safe">
               <div className="flex items-center gap-2 px-4 py-2.5">
                 {/* Botão histórico com estilo rosa */}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowMobileHistory(true)}
-                  className="h-10 w-10 shrink-0 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-600"
+                  className="h-10 w-10 shrink-0 rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20"
                 >
                   <Clock className="w-5 h-5" />
                 </Button>
@@ -2046,10 +2046,10 @@ INSTRUÇÕES:
                   <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="flex-1 justify-center gap-2 h-10 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      className="flex-1 justify-center gap-2 h-10 text-sm font-medium text-gray-800 hover:bg-white/30 backdrop-blur-sm rounded-lg"
                     >
                       <span>{selectedAction?.label || "Como posso ajudar você hoje?"}</span>
-                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                      <ChevronDown className="w-4 h-4 text-gray-600" />
                     </Button>
                   </PopoverTrigger>
                   
