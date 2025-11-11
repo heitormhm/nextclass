@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock, Target, Lightbulb, Brain, CheckCircle2, Scale, Zap, BarChart } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock, Target, Lightbulb, Brain, CheckCircle2, Scale, Zap, BarChart, ChevronDown } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import 'katex/dist/katex.min.css';
@@ -15,6 +15,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ActionButtons } from "@/components/ActionButtons";
 import { JobStatus } from "@/components/JobStatus";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TeacherBackgroundRipple } from "@/components/ui/teacher-background-ripple";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -64,6 +65,8 @@ const TeacherAIChatPage = () => {
   const [isDeepSearch, setIsDeepSearch] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [showMobileHistory, setShowMobileHistory] = useState(false);
+  const [showActionDropdown, setShowActionDropdown] = useState(false);
+  const [selectedAction, setSelectedAction] = useState<ActionTag | null>(null);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [activeJobs, setActiveJobs] = useState<Map<string, any>>(new Map());
   const processedJobsRef = useRef<Set<string>>(new Set());
@@ -1686,6 +1689,20 @@ INSTRUÇÕES:
     setUserInput("");
   };
 
+  const handleSelectAction = (actionId: string) => {
+    const tag = ACTION_TAGS[actionId];
+    if (!tag) return;
+    
+    setSelectedAction(tag);
+    setActiveTag(tag);
+    setShowActionDropdown(false);
+    
+    toast({
+      title: `${tag.emoji} ${tag.label} selecionado`,
+      description: "Digite sua solicitação e envie para começar"
+    });
+  };
+
   const handleCycleTag = () => {
     if (!activeTag) return;
     
@@ -1985,25 +2002,64 @@ INSTRUÇÕES:
           
           {/* MOBILE ONLY: Barra minimalista no topo */}
           {isMobile && (
-            <div className="fixed top-16 left-0 right-0 z-20 bg-white/95 backdrop-blur-xl border-b shadow-sm pb-safe">
-              <div className="flex items-center justify-between px-4 py-2">
-                {/* Botão histórico */}
+            <div className="fixed top-0 left-0 right-0 z-20 bg-white/95 backdrop-blur-xl border-b shadow-sm">
+              <div className="flex items-center gap-2 px-4 py-2.5">
+                {/* Botão histórico com estilo rosa */}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowMobileHistory(true)}
-                  className="h-10 w-10 rounded-lg hover:bg-purple-50 text-purple-600"
+                  className="h-10 w-10 shrink-0 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-600"
                 >
                   <Clock className="w-5 h-5" />
                 </Button>
                 
-                {/* Texto centralizado */}
-                <p className="text-sm font-medium text-gray-700 flex-1 text-center px-4">
-                  Como posso ajudar você hoje?
-                </p>
+                {/* Dropdown de ações */}
+                <Popover open={showActionDropdown} onOpenChange={setShowActionDropdown}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="flex-1 justify-center gap-2 h-10 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <span>{selectedAction?.label || "Como posso ajudar você hoje?"}</span>
+                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                    </Button>
+                  </PopoverTrigger>
+                  
+                  <PopoverContent className="w-[280px] p-2" align="center">
+                    <div className="space-y-1">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-12 text-left hover:bg-blue-50"
+                        onClick={() => handleSelectAction('study-material')}
+                      >
+                        <span className="text-2xl mr-3">📚</span>
+                        <span className="font-medium">Criar Material de Estudo</span>
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-12 text-left hover:bg-orange-50"
+                        onClick={() => handleSelectAction('lesson-plan')}
+                      >
+                        <span className="text-2xl mr-3">📋</span>
+                        <span className="font-medium">Criar Roteiro de Aula</span>
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-12 text-left hover:bg-green-50"
+                        onClick={() => handleSelectAction('assessment')}
+                      >
+                        <span className="text-2xl mr-3">✅</span>
+                        <span className="font-medium">Criar Atividade Avaliativa</span>
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 
-                {/* Espaçador para balancear layout */}
-                <div className="w-10" />
+                {/* Espaçador para balancear */}
+                <div className="w-10 shrink-0" />
               </div>
             </div>
           )}
@@ -2012,7 +2068,7 @@ INSTRUÇÕES:
             
             <ScrollArea className={cn(
               "flex-1 px-4 pb-36",
-              isMobile ? "pt-24" : "py-6"
+              isMobile ? "pt-[4.5rem]" : "py-6"
             )}>
               <div className="max-w-4xl mx-auto space-y-6">
                  
