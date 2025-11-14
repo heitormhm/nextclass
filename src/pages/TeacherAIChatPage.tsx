@@ -11,11 +11,19 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 import { ActionButtons } from "@/components/ActionButtons";
 import { JobStatus } from "@/components/JobStatus";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { TeacherBackgroundRipple } from "@/components/ui/teacher-background-ripple";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -55,6 +63,7 @@ const TeacherAIChatPage = () => {
   const { toast } = useToast();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -1915,7 +1924,8 @@ INSTRUÇÕES:
           <TeacherBackgroundRipple />
         </div>
         
-        {/* ========== SIDEBAR ESQUERDA ========== */}
+        {/* SIDEBAR ESQUERDA - SOMENTE DESKTOP */}
+        {!isMobile && !isTablet && (
         <div className="hidden lg:flex lg:w-80 xl:w-96 flex-col border-r border-border/40 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30 z-[9999] relative">
           
           <div className="p-6 pb-4">
@@ -1984,6 +1994,7 @@ INSTRUÇÕES:
             </ScrollArea>
           </div>
         </div>
+        )}
 
         {/* ========== ÁREA DE CHAT ========== */}
         <div className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
@@ -2027,66 +2038,54 @@ INSTRUÇÕES:
             </div>
           )}
           
-          {/* MOBILE ONLY: Barra minimalista no topo */}
-          {isMobile && (
-            <div className="sticky top-16 left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-lg pb-safe">
-              <div className="flex items-center gap-2 px-4 py-2.5">
+          {/* MOBILE/TABLET: Barra minimalista grudada na navbar com dropdown */}
+          {(isMobile || isTablet) && (
+            <div className="sticky top-16 left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
+              <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
+                {/* Dropdown de ações rápidas - Bottom Sheet para mobile/tablet */}
+                <Drawer>
+                  <DrawerTrigger asChild>
+                    <button className="flex-1 flex items-center justify-between px-4 py-3 h-11 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm">
+                      <span className="text-sm text-gray-900 font-bold">
+                        Como posso ajudá-lo hoje?
+                      </span>
+                      <ChevronDown className="w-5 h-5 text-gray-700" />
+                    </button>
+                  </DrawerTrigger>
+                  <DrawerContent className="max-h-[80vh]">
+                    <DrawerHeader>
+                      <DrawerTitle className="text-center text-xl font-bold">
+                        Como posso ajudá-lo?
+                      </DrawerTitle>
+                    </DrawerHeader>
+                    <div className="px-4 pb-8 space-y-3">
+                      {getInitialActionButtons().map((action) => (
+                        <DrawerClose key={action.label} asChild>
+                          <button
+                            onClick={() => handleActionButtonClick(action.action)}
+                            className="w-full flex items-center gap-4 p-4 h-16 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 transition-all shadow-sm border border-purple-200"
+                          >
+                            <div className="text-4xl">{action.label.split(' ')[0]}</div>
+                            <div className="flex-1 text-left">
+                              <div className="font-bold text-base">{action.label.substring(action.label.indexOf(' ') + 1)}</div>
+                              <div className="text-xs text-gray-600">{action.description}</div>
+                            </div>
+                          </button>
+                        </DrawerClose>
+                      ))}
+                    </div>
+                  </DrawerContent>
+                </Drawer>
+
                 {/* Botão histórico com estilo rosa */}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowMobileHistory(true)}
-                  className="h-10 w-10 shrink-0 rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20"
+                  className="h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20"
                 >
                   <Clock className="w-5 h-5" />
                 </Button>
-                
-                {/* Dropdown de ações */}
-                <Popover open={showActionDropdown} onOpenChange={setShowActionDropdown}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="flex-1 justify-center gap-2 h-10 text-sm font-medium text-gray-900 hover:bg-white/40 backdrop-blur-sm rounded-lg"
-                    >
-                      <span>{selectedAction?.label || "Como posso ajudar você hoje?"}</span>
-                      <ChevronDown className="w-4 h-4 text-gray-600" />
-                    </Button>
-                  </PopoverTrigger>
-                  
-                  <PopoverContent className="w-[280px] p-2" align="center">
-                    <div className="space-y-1">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start h-12 text-left hover:bg-blue-50"
-                        onClick={() => handleSelectAction('study-material')}
-                      >
-                        <span className="text-2xl mr-3">📚</span>
-                        <span className="font-medium">Criar Material de Estudo</span>
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start h-12 text-left hover:bg-orange-50"
-                        onClick={() => handleSelectAction('lesson-plan')}
-                      >
-                        <span className="text-2xl mr-3">📋</span>
-                        <span className="font-medium">Criar Roteiro de Aula</span>
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start h-12 text-left hover:bg-green-50"
-                        onClick={() => handleSelectAction('assessment')}
-                      >
-                        <span className="text-2xl mr-3">✅</span>
-                        <span className="font-medium">Criar Atividade Avaliativa</span>
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                
-                {/* Espaçador para balancear */}
-                <div className="w-10 shrink-0" />
               </div>
             </div>
           )}
@@ -2102,58 +2101,47 @@ INSTRUÇÕES:
                  {messages.length === 0 ? (
           <>
             {/* DESKTOP: Seção completa de boas-vindas */}
-            {!isMobile && (
-              <div className="flex flex-col items-center justify-center min-h-[45vh] text-center py-6 px-4">
-                
-                {/* Header com ícone inline */}
-                <div className="flex items-center justify-center gap-4 mb-3">
-                  {/* Ícone Sparkles com frosted glass - perfeitamente circular */}
-                  <div className="relative w-16 h-16 flex-shrink-0">
-                    {/* Outer frosted glass circle */}
-                    <div className="absolute inset-0 rounded-full backdrop-blur-xl bg-white/10 border-2 border-white/30 shadow-2xl" 
-                         style={{ aspectRatio: '1 / 1' }} />
-                    
-                    {/* Inner white circle */}
-                    <div className="absolute inset-2 rounded-full bg-white shadow-xl"
-                         style={{ aspectRatio: '1 / 1' }} />
-                    
-                    {/* Icon container */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles className="w-8 h-8 text-pink-500 fill-pink-500 drop-shadow-lg relative z-10" />
-                    </div>
+            {!isMobile && !isTablet && (
+              <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-12 px-4">
+                {/* Seção de boas-vindas */}
+                <div className="text-center space-y-3">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 mb-2">
+                    <Sparkles className="w-10 h-10 text-purple-600" />
                   </div>
-                  
-                  {/* Texto ao lado do ícone */}
-                  <h3 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     Bem-vindo, Professor!
-                  </h3>
+                  </h2>
+                  <p className="text-gray-600 text-xl">
+                    Como posso ajudá-lo hoje?
+                  </p>
                 </div>
-                
-                {/* Subtítulo compacto */}
-                <p className="text-white/90 text-base mb-5 max-w-md font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
-                  Como posso ajudá-lo hoje?
-                </p>
-                        
-                {/* Grid 3x2 otimizado */}
-                <div className="flex flex-row gap-3 w-full max-w-5xl overflow-x-auto pb-2">
-                  {getInitialActionButtons().map((btn, idx) => (
+
+                {/* Cards de ação - Grid 3 colunas */}
+                <div className="grid grid-cols-3 gap-6 w-full max-w-4xl mx-auto">
+                  {getInitialActionButtons().map((action, index) => (
                     <button
-                      key={idx}
-                      onClick={() => handleActionButtonClick(btn.action)}
-                      aria-label={`${btn.label} - ${btn.description}`}
-                      className="group p-3 min-h-[70px] backdrop-blur-lg bg-white/20 border border-white/30 rounded-xl hover:bg-white/30 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 text-left shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-purple-600"
+                      key={action.label}
+                      onClick={() => handleActionButtonClick(action.action)}
+                      className="flex flex-col items-center justify-center min-h-[140px] p-8 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-white to-purple-50 hover:border-purple-400 hover:shadow-xl transition-all duration-300 group"
+                      style={{
+                        animationDelay: `${index * 100}ms`,
+                      }}
                     >
-                      <div className="text-white text-sm font-semibold leading-tight">
-                        {btn.label}
+                      <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
+                        {action.label.split(' ')[0]}
                       </div>
+                      <h3 className="font-bold text-lg text-gray-900 mb-2 text-center">
+                        {action.label.substring(action.label.indexOf(' ') + 1)}
+                      </h3>
+                      <p className="text-sm text-gray-600 text-center">{action.description}</p>
                     </button>
                   ))}
                 </div>
               </div>
             )}
             
-            {/* MOBILE: Mensagem minimalista */}
-            {isMobile && (
+            {/* MOBILE/TABLET: Mensagem minimalista */}
+            {(isMobile || isTablet) && (
               <div className="text-center py-12 text-white/70 text-sm">
                 Inicie uma conversa com a Mia
               </div>
@@ -2358,8 +2346,8 @@ INSTRUÇÕES:
             {/* Input Area - Fixed at bottom */}
             <div className={cn(
               "border-t bg-white/95 backdrop-blur-xl shadow-2xl pb-safe",
-              isMobile 
-                ? "fixed bottom-0 left-0 right-0 z-30" 
+              isMobile || isTablet
+                ? "fixed bottom-0 left-0 right-0 z-30"
                 : "fixed bottom-0 left-80 xl:left-96 right-0 z-20"
             )}>
               <div className="container mx-auto px-3 py-3 max-w-4xl">
@@ -2384,7 +2372,7 @@ INSTRUÇÕES:
                 
                 {/* Container principal do input */}
                 <div className={cn(
-                  isMobile 
+                  isMobile || isTablet
                     ? "space-y-2"
                     : "flex items-center gap-2"
                 )}>
@@ -2450,7 +2438,7 @@ INSTRUÇÕES:
                   </div>
 
                   {/* DESKTOP: Pesquisa + Enviar inline à direita */}
-                  {!isMobile && (
+                  {!isMobile && !isTablet && (
                     <>
                       {/* Toggle Pesquisa Profunda/Padrão */}
                       <Button
@@ -2496,8 +2484,8 @@ INSTRUÇÕES:
                     </>
                   )}
 
-                  {/* MOBILE: Botões de ação em linha separada */}
-                  {isMobile && (
+                  {/* MOBILE/TABLET: Botões de ação em linha separada */}
+                  {(isMobile || isTablet) && (
                     <div className="flex items-center gap-1">
                       {/* Botão Anexar */}
                       <Button
