@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock, Target, Lightbulb, Brain, CheckCircle2, Scale, Zap, BarChart, ChevronDown } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock, MessageSquare, Target, Lightbulb, Brain, CheckCircle2, Scale, Zap, BarChart, ChevronDown } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import 'katex/dist/katex.min.css';
@@ -2040,8 +2040,19 @@ INSTRUÇÕES:
           
           {/* MOBILE/TABLET: Barra minimalista grudada na navbar com dropdown */}
           {(isMobile || isTablet) && (
-            <div className="sticky top-16 left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
+            <div className="sticky top-16 -mt-px left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
               <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
+                {/* Botão histórico com estilo rosa - ANTES do dropdown */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowMobileHistory(true)}
+                  className="h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20"
+                  aria-label="Histórico de conversas"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                </Button>
+
                 {/* Dropdown de ações rápidas - Bottom Sheet para mobile/tablet */}
                 <Drawer>
                   <DrawerTrigger asChild>
@@ -2076,16 +2087,6 @@ INSTRUÇÕES:
                     </div>
                   </DrawerContent>
                 </Drawer>
-
-                {/* Botão histórico com estilo rosa */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowMobileHistory(true)}
-                  className="h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20"
-                >
-                  <Clock className="w-5 h-5" />
-                </Button>
               </div>
             </div>
           )}
@@ -2111,9 +2112,9 @@ INSTRUÇÕES:
                   <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     Bem-vindo, Professor!
                   </h2>
-                  <p className="text-gray-600 text-xl">
-                    Como posso ajudá-lo hoje?
-                  </p>
+                <p className="text-white/90 text-xl drop-shadow-sm">
+                  Como posso ajudá-lo hoje?
+                </p>
                 </div>
 
                 {/* Cards de ação - Grid 3 colunas */}
@@ -2377,7 +2378,7 @@ INSTRUÇÕES:
                     : "flex items-center gap-2"
                 )}>
                   {/* DESKTOP: Botão Anexar inline à esquerda */}
-                  {!isMobile && (
+                  {!isMobile && !isTablet && (
                     <Button
                       variant="ghost"
                       size="icon"
