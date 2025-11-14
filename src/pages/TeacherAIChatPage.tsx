@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock, MessageSquare, Target, Lightbulb, Brain, CheckCircle2, Scale, Zap, BarChart, ChevronDown } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock, MessageSquare, MessagesSquare, Target, Lightbulb, Brain, CheckCircle2, Scale, Zap, BarChart, ChevronDown } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import 'katex/dist/katex.min.css';
@@ -605,17 +605,20 @@ Markdown com:
 
   const getInitialActionButtons = () => [
     {
-      label: "📚 Criar Material de Estudo",
+      icon: BookOpen,
+      label: "Criar Material de Estudo",
       action: "study-material",
       description: "Gere materiais de apoio educacionais"
     },
     {
-      label: "📋 Criar Roteiro de Aula",
+      icon: FileText,
+      label: "Criar Roteiro de Aula",
       action: "lesson-plan",
       description: "Planeje uma aula completa"
     },
     {
-      label: "✅ Criar Atividade Avaliativa",
+      icon: CheckSquare,
+      label: "Criar Atividade Avaliativa",
       action: "assessment",
       description: "Gere atividades de múltipla escolha ou dissertativas"
     }
@@ -2040,7 +2043,7 @@ INSTRUÇÕES:
           
           {/* MOBILE/TABLET: Barra minimalista grudada na navbar com dropdown */}
           {(isMobile || isTablet) && (
-            <div className="sticky top-16 -mt-px left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
+            <div className="sticky top-16 -mt-4 left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
               <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
                 {/* Botão histórico com estilo rosa - ANTES do dropdown */}
                 <Button
@@ -2050,7 +2053,7 @@ INSTRUÇÕES:
                   className="h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20"
                   aria-label="Histórico de conversas"
                 >
-                  <MessageSquare className="w-5 h-5" />
+                  <MessagesSquare className="w-5 h-5" />
                 </Button>
 
                 {/* Dropdown de ações rápidas - Bottom Sheet para mobile/tablet */}
@@ -2076,9 +2079,11 @@ INSTRUÇÕES:
                             onClick={() => handleActionButtonClick(action.action)}
                             className="w-full flex items-center gap-4 p-4 h-16 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 transition-all shadow-sm border border-purple-200"
                           >
-                            <div className="text-4xl">{action.label.split(' ')[0]}</div>
+                            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-100">
+                              <action.icon className="w-6 h-6 text-purple-600" />
+                            </div>
                             <div className="flex-1 text-left">
-                              <div className="font-bold text-base">{action.label.substring(action.label.indexOf(' ') + 1)}</div>
+                              <div className="font-bold text-base">{action.label}</div>
                               <div className="text-xs text-gray-600">{action.description}</div>
                             </div>
                           </button>
@@ -2109,7 +2114,7 @@ INSTRUÇÕES:
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 mb-2">
                     <Sparkles className="w-10 h-10 text-purple-600" />
                   </div>
-                  <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(255,255,255,0.9)]">
                     Bem-vindo, Professor!
                   </h2>
                 <p className="text-white/90 text-xl drop-shadow-sm">
@@ -2128,11 +2133,11 @@ INSTRUÇÕES:
                         animationDelay: `${index * 100}ms`,
                       }}
                     >
-                      <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
-                        {action.label.split(' ')[0]}
+                      <div className="flex items-center justify-center w-20 h-20 mb-4 rounded-2xl bg-purple-100 group-hover:scale-110 transition-transform">
+                        <action.icon className="w-10 h-10 text-purple-600" />
                       </div>
                       <h3 className="font-bold text-lg text-gray-900 mb-2 text-center">
-                        {action.label.substring(action.label.indexOf(' ') + 1)}
+                        {action.label}
                       </h3>
                       <p className="text-sm text-gray-600 text-center">{action.description}</p>
                     </button>
