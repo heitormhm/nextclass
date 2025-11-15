@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js';
+import { identifyRelevantBooks, ENGINEERING_BOOKS, formatBooksForContext } from '../_shared/engineering-knowledge.ts';
+import { enrichContentWithSearch } from '../_shared/web-search.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +17,29 @@ serve(async (req) => {
   try {
     const { message, fileData, fileType, fileName, isDeepSearch, conversationId, action, context, systemPrompt, useAdvancedModel, skipAutoSuggestions } = await req.json();
     console.log('[TEACHER] Received request:', { message, fileType, fileName, isDeepSearch, conversationId, action, useAdvancedModel, skipAutoSuggestions });
+
+    // Auto-enrich thin content with web search (if Brave API key is available)
+    const BRAVE_API_KEY = Deno.env.get('BRAVE_SEARCH_API_KEY');
+    let enrichedMessage = message;
+    
+    if (message && BRAVE_API_KEY && !isDeepSearch && !action) {
+      try {
+        const { enrichedContent, sources } = await enrichContentWithSearch(
+          message.substring(0, 100), // Extract topic from first 100 chars
+          message,
+          BRAVE_API_KEY
+        );
+        
+        if (sources.length > 0) {
+          console.log(`[TEACHER] ✅ Content enriched with ${sources.length} web sources`);
+          enrichedMessage = enrichedContent;
+        }
+      } catch (enrichError: any) {
+        console.error('[TEACHER] ⚠️ Content enrichment failed:', enrichError.message);
+        // Continue with original message if enrichment fails
+      }
+    }
+
 
     // Get authenticated user
     const authHeader = req.headers.get('Authorization');
@@ -234,16 +259,48 @@ serve(async (req) => {
       teacherContext += '\nEste é um bom momento para começar a criar suas primeiras turmas e planos de aula!\n';
     }
 
+    // Inject Engineering Books Context
+    teacherContext += '\n\n**📚 LIVROS DE ENGENHARIA PRIORITÁRIOS:**\n';
+    teacherContext += 'Quando responder questões técnicas, priorize estes livros acadêmicos:\n';
+    ENGINEERING_BOOKS.slice(0, 10).forEach(book => {
+      teacherContext += `- "${book.title}" por ${book.authors} (Tópicos: ${book.topics.slice(0, 3).join(', ')})\n`;
+    });
+    teacherContext += '\nSEMPRE cite estes livros quando aplicável ao tema do professor.\n';
+
     teacherContext += '\n**FONTES PEDAGÓGICAS PRIORITÁRIAS:**\n';
     teacherContext += '- **Primárias:** ERIC (Education Resources Information Center), revistas de educação em engenharia (IEEE Education Society, ASEE)\n';
     teacherContext += '- **Secundárias:** Google Scholar (artigos pedagógicos), repositórios institucionais, frameworks de aprendizagem ativa\n';
     teacherContext += '- **Exclusão:** Evite fontes não acadêmicas ou sem fundamentação pedagógica\n';
 
+    // Identify relevant books based on conversation context
+    if (conversationId) {
+      const { data: recentMessages } = await supabaseAdmin
+        .from('messages')
+        .select('content')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (recentMessages && recentMessages.length > 0) {
+        const combinedText = recentMessages.map(m => m.content).join(' ');
+        const relevantBooks = identifyRelevantBooks(combinedText);
+        
+        if (relevantBooks.length > 0) {
+          teacherContext += '\n**📖 LIVROS RELEVANTES DETECTADOS (baseado no contexto da conversa):**\n';
+          relevantBooks.slice(0, 3).forEach(book => {
+            teacherContext += `  - "${book.title}" (${book.authors}) - ISBN: ${book.isbn}\n`;
+          });
+          teacherContext += '\n';
+        }
+      }
+    }
+
+
     // Build the content array
     const contentParts: any[] = [
       {
         type: "text",
-        text: message
+        text: enrichedMessage // Use enriched message instead of original
       }
     ];
 

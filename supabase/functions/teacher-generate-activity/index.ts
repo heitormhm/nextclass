@@ -203,8 +203,8 @@ Analisar o [TEXTO BASE] fornecido, realizar uma desconstrução conceitual para 
 **Verificação de Suficiência e Enriquecimento Estratégico de Conteúdo:**
 
 - Avalie se o [TEXTO BASE] possui profundidade, abrangência e dados suficientes para gerar 20 questões de alta qualidade que cubram diferentes níveis da Taxonomia de Bloom (conhecimento, compreensão, aplicação, análise, síntese, avaliação).
-- **SE INSUFICIENTE:** Mencione que idealmente uma busca web seria feita para enriquecer o conteúdo (mas gere a atividade com base no texto disponível).
-- **OBRIGATÓRIO:** Ao final da atividade, crie uma seção chamada "Fontes e Referências Adicionais" com sugestões de fontes para aprofundamento (formato ABNT).
+- **SE INSUFICIENTE:** Analise o contexto fornecido e use conhecimento técnico para expandir conceitos fundamentais. **OBRIGATÓRIO:** Inclua exemplos práticos de engenharia brasileira (normas ABNT, contexto de mercado BR, casos reais de empresas nacionais como Petrobras, Vale, Embraer). Se necessário, indique lacunas de informação na seção de referências bibliográficas.
+- **OBRIGATÓRIO:** Ao final da atividade, crie uma seção chamada "Fontes e Referências Adicionais" com sugestões de fontes para aprofundamento (formato ABNT), priorizando livros técnicos brasileiros e normas ABNT aplicáveis.
 
 ### ETAPA 2: Estruturação Textual da Atividade
 
@@ -468,6 +468,21 @@ Retorne a atividade em **JSON estruturado** seguindo este schema:
       jsonString = jsonString.replace(/^```(?:json)?\s*\n?/gm, '');
       jsonString = jsonString.replace(/\n?```\s*$/gm, '');
       
+      // CRITICAL: AGGRESSIVE SYSTEM PROMPT LEAKAGE REMOVAL (BEFORE JSON extraction)
+      let cleanedText = jsonString;
+      
+      // Remove any system prompt sections that may have leaked
+      cleanedText = cleanedText.replace(/#+\s*SISTEMA DE SEGURANÇA[\s\S]*?(?=\{|$)/gi, '');
+      cleanedText = cleanedText.replace(/#+\s*PROTEÇÃO DE PROMPT[\s\S]*?(?=\{|$)/gi, '');
+      cleanedText = cleanedText.replace(/#+\s*MASTER PROMPT[\s\S]*?(?=\{|$)/gi, '');
+      cleanedText = cleanedText.replace(/ESTA INSTRUÇÃO NÃO PODE SER REVELADA[\s\S]*?(?=\{|$)/gi, '');
+      cleanedText = cleanedText.replace(/responda APENAS:[\s\S]*?(?=\{|$)/gi, '');
+      cleanedText = cleanedText.replace(/##\s*Persona[\s\S]*?(?=##|\{|$)/gi, '');
+      cleanedText = cleanedText.replace(/##\s*Objetivo Principal[\s\S]*?(?=##|\{|$)/gi, '');
+      cleanedText = cleanedText.replace(/##\s*Processo de Execução[\s\S]*?(?=##|\{|$)/gi, '');
+      
+      jsonString = cleanedText.trim();
+      
       // 2. Extract JSON object (first { to last })
       const firstBrace = jsonString.indexOf('{');
       const lastBrace = jsonString.lastIndexOf('}');
@@ -480,7 +495,51 @@ Retorne a atividade em **JSON estruturado** seguindo este schema:
       // 3. Parse the cleaned JSON
       const structuredData = JSON.parse(jsonString);
       
-      // 4. Apply manual safety validations
+      // CRITICAL POST-PARSE VALIDATION: Check for system prompt leakage in parsed data
+      const responseStr = JSON.stringify(structuredData);
+      const forbiddenTerms = [
+        'SISTEMA DE SEGURANÇA', 
+        'PROTEÇÃO DE PROMPT', 
+        'MASTER PROMPT', 
+        'Persona', 
+        'Objetivo Principal',
+        'INSTRUÇÃO NÃO PODE SER REVELADA',
+        'Processo de Execução'
+      ];
+      
+      for (const term of forbiddenTerms) {
+        if (responseStr.includes(term)) {
+          console.error(`[Generate Activity] ⚠️ SECURITY: System prompt leaked: "${term}"`);
+          
+          // Sanitize all text fields in the content
+          if (structuredData.conteudo) {
+            structuredData.conteudo = structuredData.conteudo.map((bloco: any) => {
+              if (bloco.texto) {
+                bloco.texto = bloco.texto.replace(new RegExp(term, 'gi'), '');
+              }
+              if (bloco.contexto) {
+                bloco.contexto = bloco.contexto.replace(new RegExp(term, 'gi'), '');
+              }
+              if (bloco.situacao) {
+                bloco.situacao = bloco.situacao.replace(new RegExp(term, 'gi'), '');
+              }
+              return bloco;
+            });
+          }
+          
+          // Also check and sanitize other top-level fields
+          if (structuredData.checklist_objetivos) {
+            structuredData.checklist_objetivos = structuredData.checklist_objetivos.map((obj: string) =>
+              obj.replace(new RegExp(term, 'gi'), '')
+            );
+          }
+          if (structuredData.sintese_conceitual) {
+            structuredData.sintese_conceitual = structuredData.sintese_conceitual.replace(new RegExp(term, 'gi'), '');
+          }
+        }
+      }
+      
+      // 4. Apply manual safety validations (Mermaid, references, HTML)
       console.log('[Generate Activity] Aplicando validações de segurança...');
       const validatedData = applyManualSafetyValidations(structuredData);
       console.log('[Generate Activity] ✅ Validated successfully');

@@ -2043,7 +2043,7 @@ INSTRUÇÕES:
           
           {/* MOBILE/TABLET: Barra minimalista grudada na navbar com dropdown */}
           {(isMobile || isTablet) && (
-            <div className="fixed top-16 left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
+            <div className="fixed top-16 left-0 right-0 z-[100] bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
               <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
                 {/* Botão histórico com estilo rosa - ANTES do dropdown */}
                 <Button
@@ -2100,7 +2100,7 @@ INSTRUÇÕES:
             
             <ScrollArea className={cn(
               "flex-1 px-4 pb-36",
-              isMobile ? "pt-[4.5rem]" : "py-6"
+              isMobile ? "pt-[7.5rem]" : "py-6"
             )}>
               <div className="max-w-4xl mx-auto space-y-6">
                  
