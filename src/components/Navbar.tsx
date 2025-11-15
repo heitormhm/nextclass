@@ -182,7 +182,7 @@ const Navbar = () => {
               aria-label={item.label}
             >
               <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              <span className="hidden lg:inline">{item.label}</span>
             </Link>
               );
             }
@@ -277,7 +277,7 @@ const Navbar = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 sm:h-16 items-center justify-between">
             {/* Logo */}
-            <Logo />
+            <Logo className="h-8 w-auto md:h-7 lg:h-8" />
 
             {/* Desktop Navigation */}
             <nav className="hidden md:block">
