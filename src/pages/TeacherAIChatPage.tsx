@@ -2043,7 +2043,7 @@ INSTRUÇÕES:
           
           {/* MOBILE/TABLET: Barra minimalista grudada na navbar com dropdown */}
           {(isMobile || isTablet) && (
-            <div className="sticky top-16 -mt-16 left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
+            <div className="fixed top-16 left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
               <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
                 {/* Botão histórico com estilo rosa - ANTES do dropdown */}
                 <Button
@@ -2114,7 +2114,7 @@ INSTRUÇÕES:
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 mb-2">
                     <Sparkles className="w-10 h-10 text-purple-600" />
                   </div>
-                  <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(255,255,255,0.9)]">
+                  <h2 className="text-4xl font-bold text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
                     Bem-vindo, Professor!
                   </h2>
                 <p className="text-white/90 text-xl drop-shadow-sm">
