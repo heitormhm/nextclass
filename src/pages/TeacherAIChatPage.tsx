@@ -25,10 +25,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { TeacherBackgroundRipple } from "@/components/ui/teacher-background-ripple";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
+import { MobileResponsiveMarkdown } from "@/components/MobileResponsiveMarkdown";
 import { generateVisualPDF } from "@/utils/visualPdfGenerator";
 import { validateAndNormalizeMarkdown } from "@/utils/sanitize";
 import { processInlineMarkdown } from "@/utils/markdownInlineProcessor";
@@ -2045,53 +2042,77 @@ INSTRUÇÕES:
           {(isMobile || isTablet) && (
             <div className="fixed top-16 left-0 right-0 z-[100] bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
               <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
-                {/* Botão histórico com estilo rosa - ANTES do dropdown */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowMobileHistory(true)}
-                  className="h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20"
-                  aria-label="Histórico de conversas"
-                >
-                  <MessagesSquare className="w-5 h-5" />
-                </Button>
+                
+                {messages.length === 0 ? (
+                  <>
+                    {/* INITIAL STATE: Icon + Dropdown */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowMobileHistory(true)}
+                      className="h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20"
+                      aria-label="Histórico de conversas"
+                    >
+                      <MessagesSquare className="w-5 h-5" />
+                    </Button>
 
-                {/* Dropdown de ações rápidas - Bottom Sheet para mobile/tablet */}
-                <Drawer>
-                  <DrawerTrigger asChild>
-                    <button className="flex-1 flex items-center justify-between px-4 py-3 h-11 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm">
-                      <span className="text-sm text-gray-900 font-bold">
-                        Como posso ajudá-lo hoje?
-                      </span>
-                      <ChevronDown className="w-5 h-5 text-gray-700" />
-                    </button>
-                  </DrawerTrigger>
-                  <DrawerContent className="max-h-[80vh]">
-                    <DrawerHeader>
-                      <DrawerTitle className="text-center text-xl font-bold">
-                        Como posso ajudá-lo?
-                      </DrawerTitle>
-                    </DrawerHeader>
-                    <div className="px-4 pb-8 space-y-3">
-                      {getInitialActionButtons().map((action) => (
-                        <DrawerClose key={action.label} asChild>
-                          <button
-                            onClick={() => handleActionButtonClick(action.action)}
-                            className="w-full flex items-center gap-4 p-4 h-16 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 transition-all shadow-sm border border-purple-200"
-                          >
-                  <div className="text-4xl">
-                    {action.emoji}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="font-bold text-base">{action.label}</div>
-                    <div className="text-xs text-gray-600">{action.description}</div>
-                  </div>
-                          </button>
-                        </DrawerClose>
-                      ))}
-                    </div>
-                  </DrawerContent>
-                </Drawer>
+                    <Drawer>
+                      <DrawerTrigger asChild>
+                        <button className="flex-1 flex items-center justify-between px-4 py-3 h-11 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm">
+                          <span className="text-sm text-gray-900 font-bold">
+                            Como posso ajudá-lo hoje?
+                          </span>
+                          <ChevronDown className="w-5 h-5 text-gray-700" />
+                        </button>
+                      </DrawerTrigger>
+                      <DrawerContent className="max-h-[80vh]">
+                        <DrawerHeader>
+                          <DrawerTitle className="text-center text-xl font-bold">
+                            Como posso ajudá-lo?
+                          </DrawerTitle>
+                        </DrawerHeader>
+                        <div className="px-4 pb-8 space-y-3">
+                          {getInitialActionButtons().map((action) => (
+                            <DrawerClose key={action.label} asChild>
+                              <button
+                                onClick={() => handleActionButtonClick(action.action)}
+                                className="w-full flex items-center gap-4 p-4 h-16 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 transition-all shadow-sm border border-purple-200"
+                              >
+                                <div className="text-4xl">
+                                  {action.emoji}
+                                </div>
+                                <div className="flex-1 text-left">
+                                  <div className="font-bold text-base">{action.label}</div>
+                                  <div className="text-xs text-gray-600">{action.description}</div>
+                                </div>
+                              </button>
+                            </DrawerClose>
+                          ))}
+                        </div>
+                      </DrawerContent>
+                    </Drawer>
+                  </>
+                ) : (
+                  <>
+                    {/* MORPHED STATE: Expanded buttons */}
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowMobileHistory(true)}
+                      className="flex-1 h-11 min-h-[44px] rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20 flex items-center justify-center gap-2"
+                    >
+                      <MessagesSquare className="w-5 h-5" />
+                      <span className="text-sm font-semibold">Histórico de Conversas</span>
+                    </Button>
+
+                    <Button
+                      onClick={handleNewConversation}
+                      className="flex-1 h-11 min-h-[44px] rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white flex items-center justify-center gap-2 shadow-md"
+                    >
+                      <Plus className="w-5 h-5" />
+                      <span className="text-sm font-semibold">Gerar nova conversa</span>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -2159,142 +2180,22 @@ INSTRUÇÕES:
                       <div
                         key={message.id}
                         className={cn(
-                          "flex",
+                          "flex w-full mb-4 px-3 md:px-0",
                           message.isUser ? "justify-end" : "justify-start"
                         )}
                       >
                 <div
                   className={cn(
-                    "max-w-[85%] rounded-2xl px-6 py-5 shadow-lg backdrop-blur-xl transition-all hover:shadow-xl break-words",
+                    "rounded-2xl px-6 py-5 shadow-lg backdrop-blur-xl transition-all hover:shadow-xl break-words",
+                    isMobile || isTablet 
+                      ? "max-w-[90%] text-sm" 
+                      : "max-w-[85%]",
                     message.isUser
                       ? "bg-gradient-to-br from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 text-gray-900 dark:text-gray-100 border-2 border-pink-200 dark:border-pink-800 shadow-pink-200/50 dark:shadow-pink-900/30"
                       : "bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 text-gray-900 dark:text-gray-100 border-2 border-purple-200 dark:border-purple-800 shadow-purple-200/50 dark:shadow-purple-900/30"
                   )}
                 >
-                  <div className="prose prose-sm max-w-none prose-gray break-words overflow-x-auto">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm, remarkMath]}
-                          rehypePlugins={[rehypeKatex]}
-                          components={{
-                            h2: ({node, ...props}) => (
-                              <h2 className="text-xl font-bold mt-6 mb-3 text-gray-900 dark:text-white pb-2 border-b-2 border-purple-200 dark:border-purple-800" {...props} />
-                            ),
-                            h3: ({node, ...props}) => (
-                              <h3 className="text-lg font-semibold mt-4 mb-2 text-gray-800 dark:text-gray-100 flex items-center gap-2" {...props} />
-                            ),
-                            p: ({node, children, ...props}) => {
-                              // Detectar caixas de destaque
-                              const text = String(children);
-                              if (text.startsWith('> **')) {
-                                const match = text.match(/^> \*\*(.+?):\*\* (.+)$/);
-                                if (match) {
-                                  const [, title, content] = match;
-                                  const bgColors: { [key: string]: string } = {
-                                    'Nota': 'bg-yellow-50 border-yellow-300',
-                                    'Atenção': 'bg-red-50 border-red-300',
-                                    'Dica': 'bg-blue-50 border-blue-300',
-                                    'Exemplo': 'bg-green-50 border-green-300'
-                                  };
-                                  const colorClass = bgColors[title] || 'bg-gray-50 border-gray-300';
-                                  
-                                  return (
-                                    <div className={`my-3 p-3 rounded-lg border-l-4 ${colorClass}`}>
-                                      <span className="font-bold text-sm">{title}:</span>{' '}
-                                      <span className="text-sm">{content}</span>
-                                    </div>
-                                  );
-                                }
-                              }
-                              return <p className="mb-2 text-foreground leading-relaxed" {...props}>{children}</p>;
-                            },
-                            strong: ({node, ...props}) => <strong className="font-bold text-foreground" {...props} />,
-                            div: ({node, className, ...props}: any) => {
-                              if (className === 'math math-display') {
-                                return <div className="my-4 overflow-x-auto text-center" {...props} />;
-                              }
-                              return <div className={className} {...props} />;
-                            },
-                            span: ({node, className, ...props}: any) => {
-                              if (className === 'math math-inline') {
-                                return <span className="mx-1" {...props} />;
-                              }
-                              return <span className={className} {...props} />;
-                            },
-                            code: ({node, inline, className, children, ...props}: any) => {
-                              const content = String(children).replace(/\n$/, '');
-                              
-                              if (inline) {
-                                // Detectar LaTeX inline
-                                if (content.match(/^\$.+\$$/)) {
-                                  return <span className="mx-1">{content}</span>;
-                                }
-                                
-                                // Detectar JSON inline
-                                if (content.trim().startsWith('{') && content.trim().endsWith('}')) {
-                                  try {
-                                    const jsonObj = JSON.parse(content);
-                                    return (
-                                      <div className="my-3 p-4 rounded-lg bg-gray-900 dark:bg-gray-950 text-white overflow-x-auto">
-                                        <div className="flex items-center gap-2 mb-2 text-xs text-gray-400">
-                                          <FileCode className="w-3 h-3" />
-                                          <span>Estrutura de Dados</span>
-                                        </div>
-                                        <pre className="text-sm font-mono whitespace-pre-wrap">
-                                          {JSON.stringify(jsonObj, null, 2)}
-                                        </pre>
-                                      </div>
-                                    );
-                                  } catch {
-                                    return <code className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs font-mono text-pink-600 dark:text-pink-400 border border-gray-200 dark:border-gray-700" {...props}>{content}</code>;
-                                  }
-                                }
-                                
-                                // Detectar variáveis matemáticas simples (1-3 chars, pode ter números/subscritos)
-                                if (content.match(/^[A-Za-z]{1,3}[₀-₉]*$/) || content.match(/^[A-Za-z]{1,3}_[0-9]$/)) {
-                                  return <span className="font-medium text-purple-600 dark:text-purple-400">{content}</span>;
-                                }
-                                
-                                // Código inline normal
-                                return (
-                                  <code 
-                                    className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs font-mono text-pink-600 dark:text-pink-400 border border-gray-200 dark:border-gray-700 break-all whitespace-pre-wrap" 
-                                    {...props}
-                                  >
-                                    {content}
-                                  </code>
-                                );
-                              }
-                              
-                              // Código em bloco
-                              return (
-                                <div className="my-3 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                                  <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 font-medium">
-                                    Código
-                                  </div>
-                                  <code 
-                                    className="block bg-gray-50 dark:bg-gray-900 p-4 text-sm font-mono overflow-x-auto text-gray-800 dark:text-gray-200 whitespace-pre-wrap" 
-                                    {...props}
-                                  >
-                                    {content}
-                                  </code>
-                                </div>
-                              );
-                            },
-                            pre: ({node, ...props}) => <pre className="bg-background/50 p-3 rounded overflow-x-auto my-2" {...props} />,
-                            a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80 transition-colors" target="_blank" rel="noopener noreferrer" {...props} />,
-                            ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 space-y-2 my-3 text-gray-800 dark:text-gray-200" {...props} />,
-                            ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 space-y-2 my-3 text-gray-800 dark:text-gray-200" {...props} />,
-                            li: ({node, ...props}) => <li className="text-gray-800 dark:text-gray-200 pl-1 leading-relaxed" {...props} />,
-                            blockquote: ({node, ...props}) => (
-                              <blockquote className="border-l-4 border-purple-500 pl-4 py-2 italic my-3 bg-purple-50 dark:bg-purple-900/20 rounded-r-lg text-gray-700 dark:text-gray-300" {...props} />
-                            ),
-                            sub: ({node, ...props}) => <sub className="text-xs" {...props} />,
-                            sup: ({node, ...props}) => <sup className="text-xs text-pink-600 font-semibold" {...props} />,
-                          }}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
-                      </div>
+                  <MobileResponsiveMarkdown content={message.content} />
 
                             
                           {!message.isUser && message.jobIds?.map((jobId) => {
@@ -2472,6 +2373,23 @@ INSTRUÇÕES:
                             <span className="text-sm font-medium">Pesquisa Padrão</span>
                           </>
                         )}
+                      </Button>
+
+                      {/* Botão Microfone (DESKTOP) */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleVoiceInput}
+                        className={cn(
+                          "h-10 w-10 shrink-0 rounded-lg transition-all",
+                          isListening 
+                            ? "bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30 animate-pulse" 
+                            : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 active:scale-95"
+                        )}
+                        disabled={isLoading}
+                        title={isListening ? "Parar gravação" : "Gravar voz"}
+                      >
+                        <Mic className={cn("w-5 h-5", isListening && "animate-pulse")} />
                       </Button>
 
                       {/* Botão Enviar */}
