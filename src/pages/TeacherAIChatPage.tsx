@@ -605,22 +605,22 @@ Markdown com:
 
   const getInitialActionButtons = () => [
     {
-      icon: BookOpen,
+      emoji: "📚",
       label: "Criar Material de Estudo",
       action: "study-material",
-      description: "Gere materiais de apoio educacionais"
+      description: "Materiais educacionais completos"
     },
     {
-      icon: FileText,
+      emoji: "📋",
       label: "Criar Roteiro de Aula",
       action: "lesson-plan",
-      description: "Planeje uma aula completa"
+      description: "Planejamento completo de aula"
     },
     {
-      icon: CheckSquare,
+      emoji: "✅",
       label: "Criar Atividade Avaliativa",
       action: "assessment",
-      description: "Gere atividades de múltipla escolha ou dissertativas"
+      description: "Atividades e questões avaliativas"
     }
   ];
 
@@ -2043,7 +2043,7 @@ INSTRUÇÕES:
           
           {/* MOBILE/TABLET: Barra minimalista grudada na navbar com dropdown */}
           {(isMobile || isTablet) && (
-            <div className="sticky top-16 -mt-4 left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
+            <div className="sticky top-16 -mt-16 left-0 right-0 z-20 bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
               <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
                 {/* Botão histórico com estilo rosa - ANTES do dropdown */}
                 <Button
@@ -2079,13 +2079,13 @@ INSTRUÇÕES:
                             onClick={() => handleActionButtonClick(action.action)}
                             className="w-full flex items-center gap-4 p-4 h-16 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 transition-all shadow-sm border border-purple-200"
                           >
-                            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-100">
-                              <action.icon className="w-6 h-6 text-purple-600" />
-                            </div>
-                            <div className="flex-1 text-left">
-                              <div className="font-bold text-base">{action.label}</div>
-                              <div className="text-xs text-gray-600">{action.description}</div>
-                            </div>
+                  <div className="text-4xl">
+                    {action.emoji}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="font-bold text-base">{action.label}</div>
+                    <div className="text-xs text-gray-600">{action.description}</div>
+                  </div>
                           </button>
                         </DrawerClose>
                       ))}
@@ -2123,7 +2123,7 @@ INSTRUÇÕES:
                 </div>
 
                 {/* Cards de ação - Grid 3 colunas */}
-                <div className="grid grid-cols-3 gap-6 w-full max-w-4xl mx-auto">
+                <div className="grid grid-cols-3 gap-6 w-full max-w-5xl mx-auto">
                   {getInitialActionButtons().map((action, index) => (
                     <button
                       key={action.label}
@@ -2133,8 +2133,8 @@ INSTRUÇÕES:
                         animationDelay: `${index * 100}ms`,
                       }}
                     >
-                      <div className="flex items-center justify-center w-20 h-20 mb-4 rounded-2xl bg-purple-100 group-hover:scale-110 transition-transform">
-                        <action.icon className="w-10 h-10 text-purple-600" />
+                      <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">
+                        {action.emoji}
                       </div>
                       <h3 className="font-bold text-lg text-gray-900 mb-2 text-center">
                         {action.label}
