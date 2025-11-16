@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock, MessageSquare, MessagesSquare, Target, Lightbulb, Brain, CheckCircle2, Scale, Zap, BarChart, ChevronDown } from "lucide-react";
+import { Send, Sparkles, Mic, Plus, MessageCircle, Trash2, Paperclip, BookOpen, CheckSquare, Edit, FileDown, X, RefreshCw, FileCode, Search, GitBranch, TrendingUp, FileText, CheckCircle, Check, Loader2, Clock, MessageSquare, MessagesSquare, Target, Lightbulb, Brain, CheckCircle2, Scale, Zap, BarChart, ChevronDown, History } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import 'katex/dist/katex.min.css';
@@ -1226,18 +1226,21 @@ INSTRUÇÕES:
   const handleSendMessage = async (overrideMessage?: string) => {
     let currentMessage = overrideMessage;
     
-    // No mobile com selectedAction, usar o systemPrompt invisível
+    // FIXED: Never concatenate systemPrompt with user message - send separately
     if (!currentMessage) {
       if (isMobile && selectedAction && !activeTag) {
-        // Mobile: Combinar systemPrompt invisível + input do usuário
-        const userText = inputMessage.trim();
-        currentMessage = userText 
-          ? `${selectedAction.systemPrompt}\n\nMinha solicitação: ${userText}`
-          : selectedAction.systemPrompt;
+        // Mobile: Use ONLY user text, systemPrompt sent separately
+        currentMessage = inputMessage.trim() || "Criar conteúdo sobre o tema solicitado";
       } else {
         currentMessage = activeTag ? userInput.trim() : inputMessage.trim();
       }
     }
+    
+    console.log('[DEBUG] Sending message:', { 
+      messageLength: currentMessage?.length,
+      containsSystemPrompt: currentMessage?.includes('PROTEÇÃO DE PROMPT'),
+      preview: currentMessage?.substring(0, 100)
+    });
     
     if (!currentMessage) return;
 
@@ -1253,6 +1256,11 @@ INSTRUÇÕES:
     if (activeTag) {
       finalMessage = `${activeTag.userPromptTemplate}${currentMessage}`;
       systemPromptToSend = activeTag.systemPrompt;
+    }
+    
+    // FIXED: For mobile selectedAction, also send systemPrompt separately
+    if (isMobile && selectedAction && !activeTag) {
+      systemPromptToSend = selectedAction.systemPrompt;
     }
     
     // Limpar selectedAction após enviar (mobile)
@@ -1996,6 +2004,62 @@ INSTRUÇÕES:
         </div>
         )}
 
+        {/* MOBILE/TABLET: Barra minimalista FORA do container (FIXED positioning) */}
+        {(isMobile || isTablet) && (
+          <div className="fixed top-[64px] left-0 right-0 z-[150] bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg">
+            <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
+              
+              {messages.length === 0 ? (
+                <>
+                  {/* INITIAL STATE: Icon + Dropdown */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowMobileHistory(!showMobileHistory)}
+                    className="flex items-center gap-2 text-purple-700 hover:text-purple-900 hover:bg-purple-50/80 transition-all duration-200 px-3 py-2 rounded-lg"
+                  >
+                    <History className="w-4 h-4" />
+                    <span className="text-sm font-semibold">Histórico</span>
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleNewConversation}
+                    className="flex items-center gap-2 text-pink-600 hover:text-pink-800 hover:bg-pink-50/80 transition-all duration-200 px-3 py-2 rounded-lg"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-semibold">Nova conversa</span>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {/* MORPHED STATE: Mini buttons */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowMobileHistory(!showMobileHistory)}
+                    className="flex items-center gap-1.5 text-purple-700 hover:bg-purple-50/80 px-2.5 py-1.5 rounded-md transition-all"
+                  >
+                    <History className="w-3.5 h-3.5" />
+                    <span className="text-sm font-semibold">Histórico</span>
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleNewConversation}
+                    className="flex items-center gap-1.5 text-pink-600 hover:bg-pink-50/80 px-2.5 py-1.5 rounded-md transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span className="text-sm font-semibold">Nova conversa</span>
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ========== ÁREA DE CHAT ========== */}
         <div className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
           
@@ -2038,90 +2102,13 @@ INSTRUÇÕES:
             </div>
           )}
           
-          {/* MOBILE/TABLET: Barra minimalista grudada na navbar com dropdown */}
-          {(isMobile || isTablet) && (
-            <div className="fixed top-[64px] left-0 right-0 z-[150] bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg">
-              <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
-                
-                {messages.length === 0 ? (
-                  <>
-                    {/* INITIAL STATE: Icon + Dropdown */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowMobileHistory(true)}
-                      className="h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20"
-                      aria-label="Histórico de conversas"
-                    >
-                      <MessagesSquare className="w-5 h-5" />
-                    </Button>
-
-                    <Drawer>
-                      <DrawerTrigger asChild>
-                        <button className="flex-1 flex items-center justify-between px-4 py-3 h-11 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm">
-                          <span className="text-sm text-gray-900 font-bold">
-                            Como posso ajudá-lo hoje?
-                          </span>
-                          <ChevronDown className="w-5 h-5 text-gray-700" />
-                        </button>
-                      </DrawerTrigger>
-                      <DrawerContent className="max-h-[80vh]">
-                        <DrawerHeader>
-                          <DrawerTitle className="text-center text-xl font-bold">
-                            Como posso ajudá-lo?
-                          </DrawerTitle>
-                        </DrawerHeader>
-                        <div className="px-4 pb-8 space-y-3">
-                          {getInitialActionButtons().map((action) => (
-                            <DrawerClose key={action.label} asChild>
-                              <button
-                                onClick={() => handleActionButtonClick(action.action)}
-                                className="w-full flex items-center gap-4 p-4 h-16 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 transition-all shadow-sm border border-purple-200"
-                              >
-                                <div className="text-4xl">
-                                  {action.emoji}
-                                </div>
-                                <div className="flex-1 text-left">
-                                  <div className="font-bold text-base">{action.label}</div>
-                                  <div className="text-xs text-gray-600">{action.description}</div>
-                                </div>
-                              </button>
-                            </DrawerClose>
-                          ))}
-                        </div>
-                      </DrawerContent>
-                    </Drawer>
-                  </>
-                ) : (
-                  <>
-                    {/* MORPHED STATE: Expanded buttons */}
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowMobileHistory(true)}
-                      className="flex-1 h-11 min-h-[44px] rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20 flex items-center justify-center gap-2"
-                    >
-                      <MessagesSquare className="w-5 h-5" />
-                      <span className="text-sm font-semibold">Histórico</span>
-                    </Button>
-
-                    <Button
-                      onClick={handleNewConversation}
-                      className="flex-1 h-11 min-h-[44px] rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white flex items-center justify-center gap-2 shadow-md"
-                    >
-                      <Plus className="w-5 h-5" />
-                      <span className="text-sm font-semibold">Nova conversa</span>
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
+          {/* STICKY BAR REMOVED FROM HERE - NOW RENDERED OUTSIDE CHAT CONTAINER */}
           
           <div className="relative z-0 flex-1 flex flex-col min-h-full">
             
             <ScrollArea className={cn(
               "flex-1 px-4 pb-36",
-              isMobile ? "pt-[8.5rem]" : "py-6"
+              isMobile ? "pt-[9rem]" : "py-6"
             )}>
               <div className="max-w-4xl mx-auto space-y-6">
                  
