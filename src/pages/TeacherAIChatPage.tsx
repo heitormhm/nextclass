@@ -2040,7 +2040,7 @@ INSTRUÇÕES:
           
           {/* MOBILE/TABLET: Barra minimalista grudada na navbar com dropdown */}
           {(isMobile || isTablet) && (
-            <div className="fixed top-16 left-0 right-0 z-[100] bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg pb-safe">
+            <div className="fixed top-16 left-0 right-0 z-[100] bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg">
               <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
                 
                 {messages.length === 0 ? (
@@ -2169,7 +2169,7 @@ INSTRUÇÕES:
             
             {/* MOBILE/TABLET: Mensagem minimalista */}
             {(isMobile || isTablet) && (
-              <div className="text-center py-12 text-white/70 text-sm">
+              <div className="flex items-center justify-center min-h-[calc(100vh-20rem)] text-white/70 text-base font-medium drop-shadow-lg">
                 Inicie uma conversa com a Mia
               </div>
             )}
