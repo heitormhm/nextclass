@@ -2039,8 +2039,7 @@ INSTRUÇÕES:
                           size="lg"
                           className="w-full h-16 justify-start gap-4 text-left border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-400 transition-all"
                           onClick={() => {
-                            setSelectedAction(ACTION_TAGS['study-material']);
-                            setShowActionDropdown(false);
+                            handleSelectAction('study-material');
                           }}
                         >
                           <span className="text-4xl">📚</span>
@@ -2056,8 +2055,7 @@ INSTRUÇÕES:
                           size="lg"
                           className="w-full h-16 justify-start gap-4 text-left border-2 border-orange-200 hover:bg-orange-50 hover:border-orange-400 transition-all"
                           onClick={() => {
-                            setSelectedAction(ACTION_TAGS['lesson-plan']);
-                            setShowActionDropdown(false);
+                            handleSelectAction('lesson-plan');
                           }}
                         >
                           <span className="text-4xl">📋</span>
@@ -2073,8 +2071,7 @@ INSTRUÇÕES:
                           size="lg"
                           className="w-full h-16 justify-start gap-4 text-left border-2 border-green-200 hover:bg-green-50 hover:border-green-400 transition-all"
                           onClick={() => {
-                            setSelectedAction(ACTION_TAGS['assessment']);
-                            setShowActionDropdown(false);
+                            handleSelectAction('assessment');
                           }}
                         >
                           <span className="text-4xl">✅</span>
@@ -2162,10 +2159,10 @@ INSTRUÇÕES:
           <div className="relative z-0 flex-1 flex flex-col min-h-full">
             
             <ScrollArea className={cn(
-              "flex-1 px-4 pb-36",
-              isMobile ? "pt-28" : "py-6"
+              "flex-1 px-4",
+              isMobile || isTablet ? "pt-28 pb-32" : "py-6 pb-24"
             )}>
-              <div className="max-w-4xl mx-auto space-y-6">
+              <div className="max-w-4xl mx-auto space-y-6 mb-8">
                  
                  {messages.length === 0 ? (
           <>
@@ -2769,36 +2766,37 @@ INSTRUÇÕES:
                 </div>
 
                 {/* Timeline horizontal de steps dinâmicos */}
-                <div className="flex justify-between items-center w-full px-1 sm:px-2">
+                <div className="flex justify-between items-center w-full px-1 sm:px-2 relative">
                   {getLoaderSteps(activeTag, isDeepSearch).map((step, idx) => {
                     const IconComponent = step.icon;
                     return (
-                      <div key={step.id} className="flex flex-col items-center space-y-1 flex-1">
-                        <div className={cn(
-                          "w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5 rounded-full flex items-center justify-center transition-all duration-500 border",
-                          idx < Math.floor(deepSearchProgress)
-                            ? `bg-gradient-to-br ${step.color} border-transparent shadow-md scale-105`
-                            : idx === Math.floor(deepSearchProgress)
-                            ? `bg-gradient-to-br ${step.color} border-white/50 animate-loader-pulse shadow-lg scale-110`
-                            : "bg-muted border-border scale-90"
-                        )}>
-                          {idx < Math.floor(deepSearchProgress) ? (
-                            <Check className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-2.5 md:h-2.5 text-white" />
-                          ) : idx === Math.floor(deepSearchProgress) ? (
-                            <Loader2 className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-2.5 md:h-2.5 text-white animate-spin" />
-                          ) : (
-                            <div className="w-0.5 h-0.5 sm:w-1 sm:h-1 md:w-1 md:h-1 rounded-full bg-muted-foreground/30" />
-                          )}
-                        </div>
-                        {/* Linha conectora */}
-                        {idx < getLoaderSteps(activeTag, isDeepSearch).length - 1 && (
+                      <div key={step.id} className="flex items-center flex-1">
+                        <div className="flex flex-col items-center space-y-1">
                           <div className={cn(
-                            "absolute h-0.5 top-2.5 transition-all duration-500",
-                            idx < Math.floor(deepSearchProgress) ? "bg-primary" : "bg-border"
-                          )} style={{
-                            left: `${((idx + 0.5) / getLoaderSteps(activeTag, isDeepSearch).length) * 100}%`,
-                            width: `${(1 / getLoaderSteps(activeTag, isDeepSearch).length) * 100}%`,
-                          }} />
+                            "w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5 rounded-full flex items-center justify-center transition-all duration-500 border",
+                            idx < Math.floor(deepSearchProgress)
+                              ? `bg-gradient-to-br ${step.color} border-transparent shadow-md scale-105`
+                              : idx === Math.floor(deepSearchProgress)
+                              ? `bg-gradient-to-br ${step.color} border-white/50 animate-loader-pulse shadow-lg scale-110`
+                              : "bg-muted border-border scale-90"
+                          )}>
+                            {idx < Math.floor(deepSearchProgress) ? (
+                              <Check className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-2.5 md:h-2.5 text-white" />
+                            ) : idx === Math.floor(deepSearchProgress) ? (
+                              <Loader2 className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-2.5 md:h-2.5 text-white animate-spin" />
+                            ) : (
+                              IconComponent && <IconComponent className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-muted-foreground/40" />
+                            )}
+                          </div>
+                        </div>
+                        {/* Linha conectora simplificada */}
+                        {idx < getLoaderSteps(activeTag, isDeepSearch).length - 1 && (
+                          <div className="flex-1 h-0.5 mx-1">
+                            <div className={cn(
+                              "h-full rounded-full transition-all duration-500",
+                              idx < Math.floor(deepSearchProgress) ? "bg-primary/60" : "bg-border"
+                            )} />
+                          </div>
                         )}
                       </div>
                     );
