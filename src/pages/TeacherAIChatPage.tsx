@@ -88,6 +88,13 @@ const TeacherAIChatPage = () => {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const smoothProgressRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Debug logging for sticky bar state
+  useEffect(() => {
+    if (isMobile || isTablet) {
+      console.log('[STICKY BAR DEBUG] Messages count:', messages.length, '| Initial state:', messages.length === 0);
+    }
+  }, [messages.length, isMobile, isTablet]);
+
   // Auto-ativação de tags quando navegando de QuickActionsCard
   useEffect(() => {
     if (location.state?.autoActivate && location.state?.actionType) {
@@ -2006,35 +2013,108 @@ INSTRUÇÕES:
 
         {/* MOBILE/TABLET: Barra minimalista FORA do container (FIXED positioning) */}
         {(isMobile || isTablet) && (
-          <div className="fixed top-[64px] left-0 right-0 z-[150] bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg">
+          <div className="fixed top-14 sm:top-16 left-0 right-0 z-[150] bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg">
             <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
               
               {messages.length === 0 ? (
                 <>
-                  {/* INITIAL STATE: Icon + Dropdown */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowMobileHistory(!showMobileHistory)}
-                    className="flex items-center gap-2 text-purple-700 hover:text-purple-900 hover:bg-purple-50/80 transition-all duration-200 px-3 py-2 rounded-lg"
-                  >
-                    <History className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Histórico</span>
-                  </Button>
+                  {/* INITIAL STATE: Welcome text + Action dropdown */}
+                  <div className="flex items-center gap-2 text-purple-700">
+                    <Sparkles className="w-5 h-5" />
+                    <span className="text-sm font-semibold">Como posso ajudar você hoje?</span>
+                  </div>
                   
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleNewConversation}
-                    className="flex items-center gap-2 text-pink-600 hover:text-pink-800 hover:bg-pink-50/80 transition-all duration-200 px-3 py-2 rounded-lg"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Nova conversa</span>
-                  </Button>
+                  {/* Action Dropdown */}
+                  <Popover open={showActionDropdown} onOpenChange={setShowActionDropdown}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                      >
+                        <ChevronDown className="w-4 h-4 mr-1" />
+                        Ações
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-2" align="end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 text-left"
+                        onClick={() => {
+                          setSelectedAction(ACTION_TAGS['study-material']);
+                          setShowActionDropdown(false);
+                        }}
+                      >
+                        <span className="text-xl">📚</span>
+                        <span className="text-sm">Material de Estudo</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 text-left"
+                        onClick={() => {
+                          setSelectedAction(ACTION_TAGS['lesson-plan']);
+                          setShowActionDropdown(false);
+                        }}
+                      >
+                        <span className="text-xl">📋</span>
+                        <span className="text-sm">Plano de Aula</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 text-left"
+                        onClick={() => {
+                          setSelectedAction(ACTION_TAGS['assessment']);
+                          setShowActionDropdown(false);
+                        }}
+                      >
+                        <span className="text-xl">✅</span>
+                        <span className="text-sm">Avaliação</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 text-left"
+                        onClick={() => {
+                          setSelectedAction(ACTION_TAGS['quiz']);
+                          setShowActionDropdown(false);
+                        }}
+                      >
+                        <span className="text-xl">❓</span>
+                        <span className="text-sm">Quiz</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 text-left"
+                        onClick={() => {
+                          setSelectedAction(ACTION_TAGS['feedback']);
+                          setShowActionDropdown(false);
+                        }}
+                      >
+                        <span className="text-xl">💬</span>
+                        <span className="text-sm">Feedback</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 text-left"
+                        onClick={() => {
+                          setSelectedAction(ACTION_TAGS['rubric']);
+                          setShowActionDropdown(false);
+                        }}
+                      >
+                        <span className="text-xl">📊</span>
+                        <span className="text-sm">Rubrica</span>
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
                 </>
               ) : (
                 <>
-                  {/* MORPHED STATE: Mini buttons */}
+                  {/* MORPHED STATE: Show buttons AFTER response */}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -2108,7 +2188,7 @@ INSTRUÇÕES:
             
             <ScrollArea className={cn(
               "flex-1 px-4 pb-36",
-              isMobile ? "pt-[9rem]" : "py-6"
+              isMobile ? "pt-28" : "py-6"
             )}>
               <div className="max-w-4xl mx-auto space-y-6">
                  
