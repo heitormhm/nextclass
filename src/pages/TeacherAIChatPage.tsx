@@ -1706,13 +1706,7 @@ INSTRUÇÕES:
     const tag = ACTION_TAGS[action];
     if (!tag) return;
     
-    // ✅ NO MOBILE: Enviar diretamente sem mostrar prompt no input
-    if (isMobile) {
-      handleSendMessage(tag.systemPrompt);
-      return;
-    }
-    
-    // Desktop: comportamento original com tag
+    // Set tag for all devices (mobile, tablet, desktop)
     const currentText = activeTag ? userInput.trim() : inputMessage.trim();
     setActiveTag(tag);
     setUserInput(currentText);
@@ -1738,19 +1732,14 @@ INSTRUÇÕES:
     
     setSelectedAction(tag);
     
-    // Mobile: NÃO definir activeTag (tag fica invisível ao usuário)
-    // Desktop: Definir activeTag normalmente
-    if (!isMobile) {
-      setActiveTag(tag);
-    }
+    // Set activeTag for all devices (mobile, tablet, desktop)
+    setActiveTag(tag);
     
     setShowActionDropdown(false);
     
     toast({
       title: `${tag.emoji} ${tag.label} selecionado`,
-      description: isMobile 
-        ? "Digite sua mensagem e envie para começar" 
-        : "Digite sua solicitação e envie para começar"
+      description: "Digite sua solicitação e envie para começar"
     });
   };
 
@@ -1941,7 +1930,7 @@ INSTRUÇÕES:
         
         {/* SIDEBAR ESQUERDA - SOMENTE DESKTOP */}
         {!isMobile && !isTablet && (
-        <div className="hidden lg:flex lg:w-80 xl:w-96 flex-col border-r border-border/40 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30 z-[9999] relative">
+        <div className="hidden lg:flex lg:w-80 xl:w-96 flex-col border-r border-border/40 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30 z-[90] relative">
           
           <div className="p-6 pb-4">
             <div className="flex items-center gap-3 mb-2">
@@ -2324,11 +2313,25 @@ INSTRUÇÕES:
                 : "fixed bottom-0 left-80 xl:left-96 right-0 z-20"
             )}>
               <div className="container mx-auto px-3 py-3 max-w-4xl">
-                {/* Tag ativa */}
+                {/* Tag ativa - responsive size */}
                 {activeTag && (
-                  <div className="flex items-center gap-2 px-3 py-2 mb-2 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 rounded-lg">
-                    <span className="text-lg">{activeTag.emoji}</span>
-                    <span className="text-sm font-semibold text-purple-900 flex-1">{activeTag.label}</span>
+                  <div className={cn(
+                    "flex items-center gap-2 mb-2 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 rounded-lg",
+                    isMobile || isTablet 
+                      ? "px-2 py-1.5" 
+                      : "px-3 py-2"
+                  )}>
+                    <span className={cn(
+                      isMobile || isTablet ? "text-sm" : "text-lg"
+                    )}>
+                      {activeTag.emoji}
+                    </span>
+                    <span className={cn(
+                      "font-semibold text-purple-900 flex-1",
+                      isMobile || isTablet ? "text-xs" : "text-sm"
+                    )}>
+                      {activeTag.label}
+                    </span>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -2336,9 +2339,15 @@ INSTRUÇÕES:
                         setActiveTag(null);
                         setUserInput("");
                       }}
-                      className="h-6 w-6 hover:bg-red-100 rounded-full"
+                      className={cn(
+                        "hover:bg-red-100 rounded-full",
+                        isMobile || isTablet ? "h-5 w-5" : "h-6 w-6"
+                      )}
                     >
-                      <X className="w-3 h-3 text-red-500" />
+                      <X className={cn(
+                        "text-red-500",
+                        isMobile || isTablet ? "w-2.5 h-2.5" : "w-3 h-3"
+                      )} />
                     </Button>
                   </div>
                 )}
