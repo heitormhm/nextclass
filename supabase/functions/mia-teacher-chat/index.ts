@@ -557,7 +557,14 @@ ${teacherContext}
     }
 
     // Apply sanitization
+    const originalLength = assistantMessage.length;
     assistantMessage = sanitizeAIResponse(assistantMessage);
+    
+    console.log('[SECURITY] Message sanitized:', {
+      originalLength,
+      sanitizedLength: assistantMessage.length,
+      removedContent: originalLength - assistantMessage.length > 0
+    });
     
     // Security validation: Log if forbidden terms remain
     const remainingForbiddenTerms = ['PROTEÇÃO DE PROMPT', 'IDENTIDADE', 'SISTEMA DE SEGURANÇA'];
