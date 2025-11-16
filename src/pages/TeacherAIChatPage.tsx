@@ -2024,93 +2024,79 @@ INSTRUÇÕES:
                     <span className="text-sm font-semibold">Como posso ajudar você hoje?</span>
                   </div>
                   
-                  {/* Action Dropdown */}
-                  <Popover open={showActionDropdown} onOpenChange={setShowActionDropdown}>
-                    <PopoverTrigger asChild>
+                  {/* Action Drawer - Bottom Sheet with 3 Actions */}
+                  <Drawer open={showActionDropdown} onOpenChange={setShowActionDropdown}>
+                    <DrawerTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                        className="border-purple-300 text-purple-700 hover:bg-purple-50 transition-all"
                       >
                         <ChevronDown className="w-4 h-4 mr-1" />
                         Ações
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-64 p-2" align="end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start gap-2 text-left"
-                        onClick={() => {
-                          setSelectedAction(ACTION_TAGS['study-material']);
-                          setShowActionDropdown(false);
-                        }}
-                      >
-                        <span className="text-xl">📚</span>
-                        <span className="text-sm">Material de Estudo</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start gap-2 text-left"
-                        onClick={() => {
-                          setSelectedAction(ACTION_TAGS['lesson-plan']);
-                          setShowActionDropdown(false);
-                        }}
-                      >
-                        <span className="text-xl">📋</span>
-                        <span className="text-sm">Plano de Aula</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start gap-2 text-left"
-                        onClick={() => {
-                          setSelectedAction(ACTION_TAGS['assessment']);
-                          setShowActionDropdown(false);
-                        }}
-                      >
-                        <span className="text-xl">✅</span>
-                        <span className="text-sm">Avaliação</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start gap-2 text-left"
-                        onClick={() => {
-                          setSelectedAction(ACTION_TAGS['quiz']);
-                          setShowActionDropdown(false);
-                        }}
-                      >
-                        <span className="text-xl">❓</span>
-                        <span className="text-sm">Quiz</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start gap-2 text-left"
-                        onClick={() => {
-                          setSelectedAction(ACTION_TAGS['feedback']);
-                          setShowActionDropdown(false);
-                        }}
-                      >
-                        <span className="text-xl">💬</span>
-                        <span className="text-sm">Feedback</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start gap-2 text-left"
-                        onClick={() => {
-                          setSelectedAction(ACTION_TAGS['rubric']);
-                          setShowActionDropdown(false);
-                        }}
-                      >
-                        <span className="text-xl">📊</span>
-                        <span className="text-sm">Rubrica</span>
-                      </Button>
-                    </PopoverContent>
-                  </Popover>
+                    </DrawerTrigger>
+                    <DrawerContent className="pb-8">
+                      <DrawerHeader>
+                        <DrawerTitle className="text-center text-lg font-semibold text-purple-700">
+                          Como posso ajudar você?
+                        </DrawerTitle>
+                      </DrawerHeader>
+                      
+                      <div className="px-4 py-6 space-y-3">
+                        {/* Action 1: Material de Estudo */}
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="w-full h-16 justify-start gap-4 text-left border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-400 transition-all"
+                          onClick={() => {
+                            setSelectedAction(ACTION_TAGS['study-material']);
+                            setShowActionDropdown(false);
+                          }}
+                        >
+                          <span className="text-4xl">📚</span>
+                          <div className="flex flex-col items-start">
+                            <span className="text-base font-semibold text-blue-800">Criar Material de Estudo</span>
+                            <span className="text-xs text-gray-600">Conteúdo pedagógico completo</span>
+                          </div>
+                        </Button>
+
+                        {/* Action 2: Roteiro de Aula */}
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="w-full h-16 justify-start gap-4 text-left border-2 border-orange-200 hover:bg-orange-50 hover:border-orange-400 transition-all"
+                          onClick={() => {
+                            setSelectedAction(ACTION_TAGS['lesson-plan']);
+                            setShowActionDropdown(false);
+                          }}
+                        >
+                          <span className="text-4xl">📋</span>
+                          <div className="flex flex-col items-start">
+                            <span className="text-base font-semibold text-orange-800">Criar Roteiro de Aula</span>
+                            <span className="text-xs text-gray-600">Plano detalhado passo a passo</span>
+                          </div>
+                        </Button>
+
+                        {/* Action 3: Atividade Avaliativa */}
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="w-full h-16 justify-start gap-4 text-left border-2 border-green-200 hover:bg-green-50 hover:border-green-400 transition-all"
+                          onClick={() => {
+                            setSelectedAction(ACTION_TAGS['assessment']);
+                            setShowActionDropdown(false);
+                          }}
+                        >
+                          <span className="text-4xl">✅</span>
+                          <div className="flex flex-col items-start">
+                            <span className="text-base font-semibold text-green-800">Criar Atividade Avaliativa</span>
+                            <span className="text-xs text-gray-600">Questões e exercícios</span>
+                          </div>
+                        </Button>
+                      </div>
+                    </DrawerContent>
+                  </Drawer>
                 </>
               ) : (
                 <>
@@ -2141,7 +2127,7 @@ INSTRUÇÕES:
         )}
 
         {/* ========== ÁREA DE CHAT ========== */}
-        <div className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+        <div className="flex-1 flex flex-col relative overflow-hidden pt-14 sm:pt-16 bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
           
           {/* NOVO: Animated Background with Ripple Effect */}
           <TeacherBackgroundRipple />
