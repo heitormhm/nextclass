@@ -147,7 +147,7 @@ const Navbar = () => {
 
     return (
       <TooltipProvider>
-        <div className="flex items-center gap-3 md:gap-4 lg:gap-8">
+        <div className="flex items-center gap-2 md:gap-3 lg:gap-8 md:justify-evenly md:flex-1 md:px-4">
           {navigationItems.map((item) => {
             // Special handling for "Gravar Aula" - opens modal instead of navigation
             if (item.href === '__modal__') {

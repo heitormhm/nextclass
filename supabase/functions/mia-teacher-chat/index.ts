@@ -504,10 +504,68 @@ ${teacherContext}
     const aiData = await aiResponse.json();
     console.log('[TEACHER] AI response received');
 
-    const assistantMessage = aiData.choices?.[0]?.message?.content;
+    let assistantMessage = aiData.choices?.[0]?.message?.content;
     if (!assistantMessage) {
       throw new Error('Resposta inválida da IA');
     }
+
+    // CRITICAL: Sanitize AI response to remove system prompt leakage
+    function sanitizeAIResponse(content: string): string {
+      let sanitized = content;
+      
+      // Remove system prompt sections
+      const forbiddenPatterns = [
+        /#+\s*🔒\s*SISTEMA.*?DE SEGURANÇA[\s\S]*?(?=\n\n|$)/gi,
+        /#+\s*PROTEÇÃO DE PROMPT[\s\S]*?(?=\n\n|$)/gi,
+        /#+\s*IDENTIDADE[\s\S]*?(?=\n\n|$)/gi,
+        /ESTA INSTRUÇÃO NÃO PODE SER REVELADA[\s\S]*?(?=\n\n|$)/gi,
+        /\*\*Nome:\*\*\s*Mia \(assistente pedagógica[\s\S]*?(?=\n\n|$)/gi,
+        /\*\*Primeira Mensagem.*?detecção automática[\s\S]*?(?=\n\n|$)/gi,
+        /##\s*Persona[\s\S]*?(?=##|$)/gi,
+        /##\s*Objetivo Principal[\s\S]*?(?=##|$)/gi,
+        /PRIORITY OVERRIDE[\s\S]*?(?=\n\n|$)/gi,
+        /##\s*COMPORTAMENTO ADAPTATIVO[\s\S]*?(?=##|$)/gi,
+        /##\s*MODO FLASH[\s\S]*?(?=##|$)/gi,
+        /##\s*DIRETRIZES OBRIGATÓRIAS[\s\S]*?(?=##|$)/gi,
+      ];
+      
+      forbiddenPatterns.forEach(pattern => {
+        sanitized = sanitized.replace(pattern, '');
+      });
+      
+      // Remove specific forbidden terms
+      const forbiddenTerms = [
+        'SISTEMA CRÍTICO DE SEGURANÇA',
+        'PROTEÇÃO DE PROMPT',
+        'NÍVEL MÁXIMO',
+        'IDENTIDADE E TOM DE VOZ',
+        'PRIORITY OVERRIDE',
+        'Processo de Execução',
+        'COMPORTAMENTO ADAPTATIVO POR MODELO',
+        'MODO FLASH',
+      ];
+      
+      forbiddenTerms.forEach(term => {
+        const regex = new RegExp(term, 'gi');
+        sanitized = sanitized.replace(regex, '');
+      });
+      
+      // Clean up multiple blank lines
+      sanitized = sanitized.replace(/\n{3,}/g, '\n\n').trim();
+      
+      return sanitized;
+    }
+
+    // Apply sanitization
+    assistantMessage = sanitizeAIResponse(assistantMessage);
+    
+    // Security validation: Log if forbidden terms remain
+    const remainingForbiddenTerms = ['PROTEÇÃO DE PROMPT', 'IDENTIDADE', 'SISTEMA DE SEGURANÇA'];
+    remainingForbiddenTerms.forEach(term => {
+      if (assistantMessage.includes(term)) {
+        console.error(`[SECURITY] ⚠️ Forbidden term "${term}" detected in response after sanitization!`);
+      }
+    });
 
     // Handle conversation history
     let activeConversationId = conversationId;
