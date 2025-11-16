@@ -2040,7 +2040,7 @@ INSTRUÇÕES:
           
           {/* MOBILE/TABLET: Barra minimalista grudada na navbar com dropdown */}
           {(isMobile || isTablet) && (
-            <div className="fixed top-16 left-0 right-0 z-[100] bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg">
+            <div className="fixed top-[64px] left-0 right-0 z-[150] bg-white/70 backdrop-blur-xl border-b border-t-0 border-white/40 shadow-lg">
               <div className="container mx-auto px-3 py-3 flex items-center justify-between gap-3">
                 
                 {messages.length === 0 ? (
@@ -2101,7 +2101,7 @@ INSTRUÇÕES:
                       className="flex-1 h-11 min-h-[44px] rounded-lg bg-pink-500/15 backdrop-blur-sm hover:bg-pink-500/25 text-pink-600 border border-pink-400/20 flex items-center justify-center gap-2"
                     >
                       <MessagesSquare className="w-5 h-5" />
-                      <span className="text-sm font-semibold">Histórico de Conversas</span>
+                      <span className="text-sm font-semibold">Histórico</span>
                     </Button>
 
                     <Button
@@ -2109,7 +2109,7 @@ INSTRUÇÕES:
                       className="flex-1 h-11 min-h-[44px] rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white flex items-center justify-center gap-2 shadow-md"
                     >
                       <Plus className="w-5 h-5" />
-                      <span className="text-sm font-semibold">Gerar nova conversa</span>
+                      <span className="text-sm font-semibold">Nova conversa</span>
                     </Button>
                   </>
                 )}
@@ -2117,11 +2117,11 @@ INSTRUÇÕES:
             </div>
           )}
           
-          <div className="relative z-10 flex-1 flex flex-col min-h-full">
+          <div className="relative z-0 flex-1 flex flex-col min-h-full">
             
             <ScrollArea className={cn(
               "flex-1 px-4 pb-36",
-              isMobile ? "pt-[7.5rem]" : "py-6"
+              isMobile ? "pt-[8.5rem]" : "py-6"
             )}>
               <div className="max-w-4xl mx-auto space-y-6">
                  
@@ -2167,10 +2167,23 @@ INSTRUÇÕES:
               </div>
             )}
             
-            {/* MOBILE/TABLET: Mensagem minimalista */}
+            {/* MOBILE/TABLET: Welcome section with icon */}
             {(isMobile || isTablet) && (
-              <div className="flex items-center justify-center min-h-[calc(100vh-20rem)] text-white/70 text-base font-medium drop-shadow-lg">
-                Inicie uma conversa com a Mia
+              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-20rem)] space-y-6 px-4">
+                {/* Icon */}
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm">
+                  <Sparkles className="w-8 h-8 text-white" />
+                </div>
+                
+                {/* Welcome Text */}
+                <div className="text-center space-y-2">
+                  <h2 className="text-2xl md:text-3xl font-bold text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+                    Bem-vindo, Professor!
+                  </h2>
+                  <p className="text-white/80 text-sm md:text-base drop-shadow-sm">
+                    Inicie uma conversa com a Mia
+                  </p>
+                </div>
               </div>
             )}
           </>
