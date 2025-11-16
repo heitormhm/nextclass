@@ -147,7 +147,7 @@ const Navbar = () => {
 
     return (
       <TooltipProvider>
-        <div className="flex items-center gap-4 md:gap-6 lg:gap-8">
+        <div className="flex items-center gap-3 md:gap-4 lg:gap-8">
           {navigationItems.map((item) => {
             // Special handling for "Gravar Aula" - opens modal instead of navigation
             if (item.href === '__modal__') {
@@ -277,7 +277,7 @@ const Navbar = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 sm:h-16 items-center justify-between">
             {/* Logo */}
-            <Logo className="h-8 w-auto md:h-7 lg:h-8" />
+            <Logo className="h-8 w-auto md:h-6 lg:h-8" />
 
             {/* Desktop Navigation */}
             <nav className="hidden md:block">
@@ -299,16 +299,8 @@ const Navbar = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] sm:w-[320px]">
                 <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between pb-4 mb-4 border-b">
+                  <div className="flex items-center justify-start pb-4 mb-4 border-b">
                     <Logo className="text-base" />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIsOpen(false)}
-                      className="h-8 w-8"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
                   </div>
                   
                   <div className="flex-1 overflow-y-auto">
