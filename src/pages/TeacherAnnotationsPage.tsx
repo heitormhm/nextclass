@@ -175,7 +175,7 @@ const TeacherAnnotationsPage = () => {
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 container mx-auto px-4 py-8">
+        <div className="relative z-10 container mx-auto px-4 pt-24 pb-8">
           <div className="max-w-7xl mx-auto">
             {/* Compact Header with Controls */}
             <div className="mb-6">
@@ -284,57 +284,6 @@ const TeacherAnnotationsPage = () => {
             </div>
           </div>
 
-          {/* Collapsible Filters - Desktop only */}
-          {!isMobile && annotations.length > 0 && allTags.length > 0 && (
-            <div className="mb-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="gap-2"
-              >
-                <Filter className="h-4 w-4" />
-                Filtros
-                {selectedTags.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {selectedTags.length}
-                  </Badge>
-                )}
-              </Button>
-              
-              {showFilters && (
-                <Card className="mt-3 p-4 animate-in slide-in-from-top-2 duration-200 bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Filtrar por Tags</p>
-                      {selectedTags.length > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={clearFilters}
-                          className="text-xs h-7"
-                        >
-                          Limpar
-                        </Button>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {allTags.map(tag => (
-                        <Badge
-                          key={tag}
-                          variant={selectedTags.includes(tag) ? "default" : "outline"}
-                          className="cursor-pointer hover:bg-primary/10 transition-colors"
-                          onClick={() => handleTagToggle(tag)}
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
-              )}
-            </div>
-          )}
 
           {/* Quick Actions Card - Centralizado */}
           <QuickActionsCard
