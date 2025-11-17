@@ -807,7 +807,10 @@ const TeacherMyLectures = () => {
                     <span className="font-semibold">
                       {filteredLectures.length}
                     </span>
-                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                    <span className={cn(
+                      "text-muted-foreground",
+                      isMobile ? "text-[10px]" : "text-xs"
+                    )}>
                       {filteredLectures.length === 1 ? 'aula' : 'aulas'}
                     </span>
                   </Button>
@@ -827,7 +830,10 @@ const TeacherMyLectures = () => {
                   <span className="font-semibold">
                     {lectures.reduce((total, lecture) => total + (lecture.view_count || 0), 0)}
                   </span>
-                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                  <span className={cn(
+                    "text-muted-foreground",
+                    isMobile ? "text-[10px]" : "text-xs"
+                  )}>
                     visualizações
                   </span>
                 </Button>
