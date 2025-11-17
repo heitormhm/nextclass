@@ -652,30 +652,34 @@ const TeacherMyLectures = () => {
           {/* Section 2: Manage Disciplines */}
           <Card className="mb-8 bg-white/90 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-green-600" />
-                Gerenciar Disciplinas
-                {disciplinas.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {disciplinas.length}
-                  </Badge>
-                )}
-              </CardTitle>
-              
-              {/* Button - Full width on mobile, inline on desktop */}
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    className={cn(
-                      "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700",
-                      isMobile ? "w-full mt-4 h-12 text-base" : "mt-3"
-                    )}
-                    size={isMobile ? "lg" : "default"}
-                  >
-                    <Plus className={cn(isMobile ? "h-5 w-5 mr-2" : "h-4 w-4 mr-2")} />
-                    Nova Disciplina
-                  </Button>
-                </DialogTrigger>
+              <div className={cn(
+                "flex gap-4",
+                isMobile ? "flex-col items-start" : "flex-row items-center justify-between"
+              )}>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-green-600" />
+                  Gerenciar Disciplinas
+                  {disciplinas.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {disciplinas.length}
+                    </Badge>
+                  )}
+                </CardTitle>
+                
+                {/* Button - Full width on mobile, inline on desktop/tablet */}
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className={cn(
+                        "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700",
+                        isMobile && "w-full h-12 text-base"
+                      )}
+                      size={isMobile ? "lg" : "default"}
+                    >
+                      <Plus className={cn(isMobile ? "h-5 w-5 mr-2" : "h-4 w-4 mr-2")} />
+                      Nova Disciplina
+                    </Button>
+                  </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Criar Nova Disciplina</DialogTitle>
@@ -715,6 +719,7 @@ const TeacherMyLectures = () => {
                 </div>
               </DialogContent>
             </Dialog>
+              </div>
           </CardHeader>
           <CardContent>
             {disciplinas.length === 0 ? (
@@ -794,7 +799,7 @@ const TeacherMyLectures = () => {
                   className="gap-2 h-8"
                   disabled
                 >
-                  <Users className="h-4 w-4" />
+                  <Eye className="h-4 w-4" />
                   <span className="font-semibold">
                     {lectures.reduce((total, lecture) => total + (lecture.view_count || 0), 0)}
                   </span>
@@ -898,19 +903,13 @@ const TeacherMyLectures = () => {
                                 
                             {/* Footer com duração e visualizações */}
                             <div className="flex items-center justify-between pt-3 border-t border-purple-200">
-                              <div className="flex items-center gap-3 text-xs text-slate-500">
+                              <div className="flex items-center gap-2 text-xs text-slate-500">
                                 {lecture.duration && (
                                   <div className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
                                     <span>{Math.round(lecture.duration / 60)} min</span>
                                   </div>
                                 )}
-                                
-                                <div className="flex items-center gap-1 text-blue-600">
-                                  <Eye className="h-3 w-3" />
-                                  <span className="font-semibold">{lecture.view_count || 0}</span>
-                                  <span className="text-slate-400">visualizações</span>
-                                </div>
                               </div>
                               
                               <Button 
