@@ -777,31 +777,55 @@ const TeacherMyLectures = () => {
         {/* Section 3: Published Lectures */}
         <Card className="mb-8 bg-white/90 backdrop-blur-sm">
           <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              {/* Title Section */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 text-purple-600" />
-                  Aulas Publicadas
-                </CardTitle>
-                
-                {/* Lecture Count Badge */}
+            <div className="flex flex-col gap-4">
+              {/* Row 1: Title */}
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-purple-600" />
+                Aulas Publicadas
+              </CardTitle>
+              
+              {/* Row 2: Stats - Responsive Grid */}
+              <div className={cn(
+                "grid gap-3",
+                isMobile ? "grid-cols-2" : "flex flex-wrap"
+              )}>
+                {/* Lecture Count Button */}
                 {filteredLectures.length > 0 && (
-                  <Badge variant="secondary">
-                    {filteredLectures.length} {filteredLectures.length === 1 ? 'aula' : 'aulas'}
-                  </Badge>
+                  <Button 
+                    variant="outline" 
+                    size={isMobile ? "default" : "sm"}
+                    className={cn(
+                      "gap-2 justify-start",
+                      isMobile ? "h-10 w-full" : "h-8"
+                    )}
+                    disabled
+                  >
+                    <GraduationCap className="h-4 w-4 shrink-0" />
+                    <span className="font-semibold">
+                      {filteredLectures.length}
+                    </span>
+                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                      {filteredLectures.length === 1 ? 'aula' : 'aulas'}
+                    </span>
+                  </Button>
                 )}
                 
                 {/* Total Views Button */}
                 <Button 
                   variant="outline" 
-                  size="sm"
-                  className="gap-2 h-8"
+                  size={isMobile ? "default" : "sm"}
+                  className={cn(
+                    "gap-2 justify-start",
+                    isMobile ? "h-10 w-full" : "h-8"
+                  )}
                   disabled
                 >
-                  <Eye className="h-4 w-4" />
+                  <Eye className="h-4 w-4 shrink-0" />
                   <span className="font-semibold">
                     {lectures.reduce((total, lecture) => total + (lecture.view_count || 0), 0)}
+                  </span>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    visualizações
                   </span>
                 </Button>
               </div>
@@ -842,8 +866,7 @@ const TeacherMyLectures = () => {
                   }, {} as Record<string, Record<string, Lecture[]>>)
                 ).map(([turma, disciplinasGroup]) => (
                   <div key={turma}>
-                    <h3 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <Users className="h-5 w-5 text-blue-600" />
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3">
                       {turma}
                     </h3>
                     {Object.entries(disciplinasGroup).map(([disciplina, lecturesList]) => (
