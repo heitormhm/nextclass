@@ -29,6 +29,7 @@ import { structuredContentToMarkdown } from '@/utils/structuredContentToMarkdown
 import { SyntaxHighlightedEditor } from '@/components/annotation-editor/SyntaxHighlightedEditor';
 import { MarkerToolbar } from '@/components/annotation-editor/MarkerToolbar';
 import { PreviewPanel } from '@/components/annotation-editor/PreviewPanel';
+import { ShortcutsDialog } from '@/components/annotation-editor/ShortcutsDialog';
 import { structuredToPlaintext } from '@/utils/structuredToPlaintext';
 import { validateAnnotationMarkers, ValidationError } from '@/utils/annotationValidation';
 import { useKeyboardShortcuts, getAnnotationEditorShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -71,7 +72,7 @@ const TeacherAnnotationPage = () => {
   const [isParsingPreview, setIsParsingPreview] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
-  const [editorRef2, setEditorRef2] = useState<HTMLTextAreaElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   
   // PDF Export state
   const [lastAIFormattedContent, setLastAIFormattedContent] = useState<string>('');
@@ -421,16 +422,23 @@ const TeacherAnnotationPage = () => {
 
   // Handle marker insertion
   const handleInsertMarker = (marker: string) => {
-    if (!editorRef2) return;
+    if (!textareaRef.current) {
+      // No cursor position, just append to end
+      const newContent = plaintextContent + '\n' + marker;
+      setPlaintextContent(newContent);
+      const errors = validateAnnotationMarkers(newContent);
+      setValidationErrors(errors);
+      return;
+    }
     
-    const start = editorRef2.selectionStart;
-    const end = editorRef2.selectionEnd;
+    const start = textareaRef.current.selectionStart;
+    const end = textareaRef.current.selectionEnd;
     const selectedText = plaintextContent.substring(start, end);
     
     let newText = '';
     if (selectedText && !marker.includes('\n')) {
       // Wrap selected text for inline markers
-      newText = marker.replace('Your text', selectedText);
+      newText = marker.replace('Your text here', selectedText).replace('Your text', selectedText);
     } else {
       // Insert at cursor for block markers
       newText = marker;
@@ -446,11 +454,12 @@ const TeacherAnnotationPage = () => {
     const errors = validateAnnotationMarkers(newContent);
     setValidationErrors(errors);
     
-    // Focus back to editor
+    // Focus back to editor and set cursor position
     setTimeout(() => {
-      if (editorRef2) {
-        editorRef2.focus();
-        editorRef2.setSelectionRange(start + newText.length, start + newText.length);
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const newCursorPos = start + newText.length;
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
       }
     }, 0);
   };
@@ -620,24 +629,13 @@ const TeacherAnnotationPage = () => {
   };
 
   // Keyboard shortcuts
-  const shortcuts = getAnnotationEditorShortcuts({
+  // Keyboard shortcuts for edit mode
+  useKeyboardShortcuts(getAnnotationEditorShortcuts({
     onSave: handleSaveStructuredEdits,
     onTogglePreview: handleTogglePreview,
     onInsertCalloutInfo: () => handleInsertMarker('[CALLOUT-INFO]\nYour text here\n[/CALLOUT-INFO]'),
     onInsertCalloutWarning: () => handleInsertMarker('[CALLOUT-WARNING]\nYour text here\n[/CALLOUT-WARNING]'),
     onInsertDiagram: () => handleInsertMarker('[DIAGRAM-MERMAID]\ngraph TD\n  A[Start] --> B[End]\n[/DIAGRAM-MERMAID]'),
-    onShowHelp: () => setShowShortcutsHelp(true),
-  });
-
-  useKeyboardShortcuts(shortcuts, isEditMode);
-
-  // Keyboard shortcuts
-  useKeyboardShortcuts(getAnnotationEditorShortcuts({
-    onSave: handleSaveStructuredEdits,
-    onTogglePreview: handleTogglePreview,
-    onInsertCalloutInfo: () => handleInsertMarker('[CALLOUT-INFO]\nYour text\n[/CALLOUT-INFO]'),
-    onInsertCalloutWarning: () => handleInsertMarker('[CALLOUT-WARNING]\nYour text\n[/CALLOUT-WARNING]'),
-    onInsertDiagram: () => handleInsertMarker('[DIAGRAM-MERMAID]\ngraph TD\n  A-->B\n[/DIAGRAM-MERMAID]'),
     onShowHelp: () => setShowShortcutsHelp(true),
   }), isEditMode);
 
@@ -1821,56 +1819,89 @@ const TeacherAnnotationPage = () => {
 
             {/* Structured Content Edit Mode (Plaintext with Markers) */}
             {isStructuredMode && isEditMode && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-2 p-4 bg-muted/30 rounded-lg">
+              <div className="flex flex-col h-[calc(100vh-300px)]">
+                <div className="flex items-center justify-between gap-2 p-4 bg-muted/30 border-b">
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={handleToggleEditMode}
-                      disabled={isSaving}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Cancelar
+                    <Button variant="outline" onClick={handleToggleEditMode} disabled={isSaving} size="sm">
+                      <X className="h-4 w-4 mr-2" />Cancelar
                     </Button>
-                    <Button
-                      onClick={handleSaveStructuredEdits}
-                      disabled={isSaving}
-                      className="gap-2 bg-primary text-primary-foreground"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Salvando...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4" />
-                          Salvar alterações
-                        </>
+                    <Button onClick={handleSaveStructuredEdits} disabled={isSaving || validationErrors.some(e => e.severity === 'error')} size="sm">
+                      {isSaving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</> : <><Save className="h-4 w-4 mr-2" />Salvar</>}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleTogglePreview}>
+                      {showPreview ? <><EyeOff className="h-4 w-4 mr-2" />Ocultar</> : <><Eye className="h-4 w-4 mr-2" />Preview</>}
+                    </Button>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setShowShortcutsHelp(true)}>
+                    <HelpCircle className="h-4 w-4 mr-2" />Atalhos
+                  </Button>
+                </div>
+                <MarkerToolbar onInsertMarker={handleInsertMarker} onInsertTemplate={handleInsertTemplate} isMobile={isMobile} />
+                <div className="flex-1 flex overflow-hidden">
+                  {showPreview ? (
+                    <>
+                      <div className="flex-1 border-r">
+                        <div className="h-full relative">
+                          <SyntaxHighlightedEditor 
+                            value={plaintextContent} 
+                            onChange={setPlaintextContent} 
+                            validationErrors={validationErrors} 
+                            className="h-full"
+                          />
+                          <textarea
+                            ref={textareaRef}
+                            value={plaintextContent}
+                            onChange={(e) => setPlaintextContent(e.target.value)}
+                            className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+                            tabIndex={-1}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <PreviewPanel 
+                          structuredData={previewData} 
+                          isLoading={isParsingPreview} 
+                          className="h-full" 
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="h-full relative w-full">
+                      <SyntaxHighlightedEditor 
+                        value={plaintextContent} 
+                        onChange={setPlaintextContent} 
+                        validationErrors={validationErrors} 
+                        className="h-full"
+                      />
+                      <textarea
+                        ref={textareaRef}
+                        value={plaintextContent}
+                        onChange={(e) => setPlaintextContent(e.target.value)}
+                        className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+                        tabIndex={-1}
+                      />
+                    </div>
+                  )}
+                </div>
+                {validationErrors.length > 0 && (
+                  <div className="border-t bg-muted/30 p-3 max-h-32 overflow-y-auto">
+                    <div className="text-xs font-semibold mb-2">
+                      {validationErrors.filter(e => e.severity === 'error').length} erros, {validationErrors.filter(e => e.severity === 'warning').length} avisos
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      {validationErrors.slice(0, 3).map((e, i) => (
+                        <div key={i} className={cn("p-2 rounded", e.severity === 'error' ? "bg-red-50 text-red-700" : "bg-yellow-50 text-yellow-700")}>
+                          Linha {e.line}: {e.message}
+                        </div>
+                      ))}
+                      {validationErrors.length > 3 && (
+                        <div className="text-muted-foreground pt-1">
+                          ... e mais {validationErrors.length - 3} problema(s)
+                        </div>
                       )}
-                    </Button>
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Modo de edição com marcadores
-                  </div>
-                </div>
-
-                <div className="bg-muted/50 rounded-lg p-4 text-sm">
-                  <p className="font-medium mb-2">💡 Dica: Use marcadores especiais</p>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                    <code className="bg-background px-2 py-1 rounded">[CALLOUT-INFO]texto[/CALLOUT-INFO]</code>
-                    <code className="bg-background px-2 py-1 rounded">[POSTIT-YELLOW]nota[/POSTIT-YELLOW]</code>
-                    <code className="bg-background px-2 py-1 rounded">[COLOR-RED]texto[/COLOR-RED]</code>
-                    <code className="bg-background px-2 py-1 rounded"># Título 1, ## Título 2</code>
-                  </div>
-                </div>
-
-                <Textarea
-                  value={plaintextContent}
-                  onChange={(e) => setPlaintextContent(e.target.value)}
-                  className="min-h-[500px] font-mono text-sm"
-                  placeholder="Digite ou edite o conteúdo usando marcadores..."
-                />
+                )}
               </div>
             )}
 
@@ -2019,6 +2050,12 @@ const TeacherAnnotationPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Shortcuts Help Dialog */}
+        <ShortcutsDialog 
+          open={showShortcutsHelp} 
+          onOpenChange={setShowShortcutsHelp} 
+        />
 
         {/* Fixed Footer - Botões de ação no mobile */}
         {isMobile && (
