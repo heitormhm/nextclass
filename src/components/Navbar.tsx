@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import Logo from "./Logo";
 import NotificationsPopup from "./NotificationsPopup";
+import { TeacherNotificationHistory } from "./TeacherNotificationHistory";
 import { cn } from "@/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -221,7 +222,11 @@ const Navbar = () => {
       mobile && "flex-col gap-4 w-full"
     )}>
       {/* Notification Bell */}
-      <NotificationsPopup mobile={mobile} />
+      {isTeacherMode ? (
+        <TeacherNotificationHistory />
+      ) : (
+        <NotificationsPopup mobile={mobile} />
+      )}
 
       {/* User Profile Dropdown */}
       <DropdownMenu>

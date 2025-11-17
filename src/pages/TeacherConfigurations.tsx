@@ -167,19 +167,19 @@ const TeacherConfigurations = () => {
           <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
         
-        <div className="container mx-auto px-4 py-8 max-w-4xl relative z-10">
+        <div className="container mx-auto px-3 md:px-6 pb-8 max-w-4xl relative z-10">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 leading-tight">
               Configurações da Conta
             </h1>
-            <p className="text-white/80 text-lg">
+            <p className="text-white/80 text-base md:text-lg leading-relaxed">
               Personalize suas preferências e configurações do sistema
             </p>
           </div>
 
           {loading ? (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                 <CardHeader>
                   <Skeleton className="h-6 w-32" />
@@ -200,7 +200,7 @@ const TeacherConfigurations = () => {
               </Card>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Notification Settings - Full Width */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] md:col-span-2">
               <CardHeader>
