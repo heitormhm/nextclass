@@ -4,7 +4,7 @@ import {
   ImagePlus, Type, Save, ArrowLeft, Tag, 
   Sparkles, X, Loader2, CheckCircle2, FileText, FileDown,
   Mic, Undo, Redo, BookOpen, Table as TableIcon, 
-  Lightbulb, GraduationCap, ShieldCheck, Edit
+  Lightbulb, GraduationCap, ShieldCheck, Edit, Eye, EyeOff, HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -26,6 +26,12 @@ import { StructuredContentRenderer } from '@/components/StructuredContentRendere
 import { generateVisualPDF } from '@/utils/visualPdfGenerator';
 import { generateReportPDF } from '@/utils/pdfGenerator';
 import { structuredContentToMarkdown } from '@/utils/structuredContentToMarkdown';
+import { SyntaxHighlightedEditor } from '@/components/annotation-editor/SyntaxHighlightedEditor';
+import { MarkerToolbar } from '@/components/annotation-editor/MarkerToolbar';
+import { PreviewPanel } from '@/components/annotation-editor/PreviewPanel';
+import { structuredToPlaintext } from '@/utils/structuredToPlaintext';
+import { validateAnnotationMarkers, ValidationError } from '@/utils/annotationValidation';
+import { useKeyboardShortcuts, getAnnotationEditorShortcuts } from '@/hooks/useKeyboardShortcuts';
 const TeacherAnnotationPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -60,6 +66,12 @@ const TeacherAnnotationPage = () => {
   const [isStructuredMode, setIsStructuredMode] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [plaintextContent, setPlaintextContent] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [isParsingPreview, setIsParsingPreview] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [editorRef2, setEditorRef2] = useState<HTMLTextAreaElement | null>(null);
   
   // PDF Export state
   const [lastAIFormattedContent, setLastAIFormattedContent] = useState<string>('');
@@ -80,61 +92,7 @@ const TeacherAnnotationPage = () => {
   const [postItColor, setPostItColor] = useState('#fef08a'); // Default yellow
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   
-  // View/Edit mode removed - editor is always editable like student version
-  
   const isLoading = isLoadingAnnotation;
-
-  // Convert structured JSON to plaintext with markers
-  const structuredToPlaintext = (jsonData: any): string => {
-    if (!jsonData?.conteudo) return "";
-
-    let plaintext = "";
-    
-    jsonData.conteudo.forEach((block: any) => {
-      switch (block.tipo) {
-        case "titulo":
-          const prefix = "#".repeat(block.nivel || 1);
-          plaintext += `${prefix} ${block.conteudo}\n\n`;
-          break;
-        
-        case "paragrafo":
-          plaintext += `${block.conteudo}\n\n`;
-          break;
-        
-        case "callout":
-          const calloutType = (block.tipo_callout || "info").toUpperCase();
-          plaintext += `[CALLOUT-${calloutType}]\n${block.conteudo}\n[/CALLOUT-${calloutType}]\n\n`;
-          break;
-        
-        case "diagrama":
-          if (block.tipo_diagrama === "mermaid") {
-            plaintext += `[DIAGRAM-MERMAID]\n${block.codigo_diagrama}\n[/DIAGRAM-MERMAID]\n\n`;
-          }
-          break;
-        
-        case "grafico":
-          if (block.tipo_grafico === "barras") {
-            plaintext += `[CHART-BARS]\n${JSON.stringify(block.dados_grafico, null, 2)}\n[/CHART-BARS]\n\n`;
-          }
-          break;
-        
-        case "accordion":
-          plaintext += `[ACCORDION title="${block.titulo_acordeao}"]\n`;
-          block.itens_acordeao?.forEach((item: any) => {
-            plaintext += `## ${item.titulo}\n${item.conteudo}\n\n`;
-          });
-          plaintext += `[/ACCORDION]\n\n`;
-          break;
-        
-        default:
-          if (block.conteudo) {
-            plaintext += `${block.conteudo}\n\n`;
-          }
-      }
-    });
-
-    return plaintext.trim();
-  };
 
   useEffect(() => {
     const loadAnnotation = async () => {
@@ -449,17 +407,129 @@ const TeacherAnnotationPage = () => {
       const plaintext = structuredToPlaintext(structuredContent);
       setPlaintextContent(plaintext);
       setIsEditMode(true);
+      
+      // Run initial validation
+      const errors = validateAnnotationMarkers(plaintext);
+      setValidationErrors(errors);
     } else {
       // Switching back to view mode: cancel edits
       setIsEditMode(false);
+      setShowPreview(false);
+      setValidationErrors([]);
     }
   };
+
+  // Handle marker insertion
+  const handleInsertMarker = (marker: string) => {
+    if (!editorRef2) return;
+    
+    const start = editorRef2.selectionStart;
+    const end = editorRef2.selectionEnd;
+    const selectedText = plaintextContent.substring(start, end);
+    
+    let newText = '';
+    if (selectedText && !marker.includes('\n')) {
+      // Wrap selected text for inline markers
+      newText = marker.replace('Your text', selectedText);
+    } else {
+      // Insert at cursor for block markers
+      newText = marker;
+    }
+    
+    const before = plaintextContent.substring(0, start);
+    const after = plaintextContent.substring(end);
+    const newContent = before + newText + after;
+    
+    setPlaintextContent(newContent);
+    
+    // Update validation
+    const errors = validateAnnotationMarkers(newContent);
+    setValidationErrors(errors);
+    
+    // Focus back to editor
+    setTimeout(() => {
+      if (editorRef2) {
+        editorRef2.focus();
+        editorRef2.setSelectionRange(start + newText.length, start + newText.length);
+      }
+    }, 0);
+  };
+
+  // Handle template insertion
+  const handleInsertTemplate = (template: string) => {
+    setPlaintextContent(template);
+    const errors = validateAnnotationMarkers(template);
+    setValidationErrors(errors);
+  };
+
+  // Toggle preview panel
+  const handleTogglePreview = async () => {
+    if (!showPreview) {
+      // Generate preview
+      setShowPreview(true);
+      await generatePreview();
+    } else {
+      setShowPreview(false);
+    }
+  };
+
+  // Generate preview from current plaintext
+  const generatePreview = async () => {
+    if (!plaintextContent.trim()) {
+      setPreviewData(null);
+      return;
+    }
+
+    setIsParsingPreview(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-teacher-annotation', {
+        body: { plaintextContent },
+      });
+
+      if (error) throw error;
+      if (data?.structuredData) {
+        setPreviewData(data.structuredData);
+      }
+    } catch (error) {
+      console.error('Preview generation error:', error);
+      // Don't show error toast for preview, just log it
+    } finally {
+      setIsParsingPreview(false);
+    }
+  };
+
+  // Update preview when content changes (debounced)
+  useEffect(() => {
+    if (!isEditMode || !showPreview) return;
+
+    const timeoutId = setTimeout(() => {
+      generatePreview();
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [plaintextContent, isEditMode, showPreview]);
+
+  // Validate on content change
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    const errors = validateAnnotationMarkers(plaintextContent);
+    setValidationErrors(errors);
+  }, [plaintextContent, isEditMode]);
 
   // Save plaintext edits by parsing with AI
   const handleSaveStructuredEdits = async () => {
     if (!isEditMode || !plaintextContent.trim()) {
       toast.error("Conteúdo vazio", {
         description: "Adicione conteúdo antes de salvar.",
+      });
+      return;
+    }
+
+    // Check for validation errors
+    if (validationErrors.some(e => e.severity === 'error')) {
+      toast.error("Erros de validação", {
+        description: "Corrija os erros marcados antes de salvar.",
       });
       return;
     }
@@ -477,6 +547,13 @@ const TeacherAnnotationPage = () => {
 
       if (parseError) {
         console.error('Parse error:', parseError);
+        
+        if (parseError.message?.includes('429')) {
+          throw new Error('Limite de requisições excedido. Aguarde e tente novamente.');
+        } else if (parseError.message?.includes('402')) {
+          throw new Error('Créditos insuficientes. Adicione créditos à sua conta.');
+        }
+        
         throw new Error(parseError.message || 'Failed to parse content');
       }
 
@@ -525,6 +602,9 @@ const TeacherAnnotationPage = () => {
       }
 
       setIsEditMode(false);
+      setShowPreview(false);
+      setValidationErrors([]);
+      
       toast.success("Salvo com sucesso", {
         description: "Suas alterações foram salvas.",
       });
@@ -538,6 +618,28 @@ const TeacherAnnotationPage = () => {
       setIsSaving(false);
     }
   };
+
+  // Keyboard shortcuts
+  const shortcuts = getAnnotationEditorShortcuts({
+    onSave: handleSaveStructuredEdits,
+    onTogglePreview: handleTogglePreview,
+    onInsertCalloutInfo: () => handleInsertMarker('[CALLOUT-INFO]\nYour text here\n[/CALLOUT-INFO]'),
+    onInsertCalloutWarning: () => handleInsertMarker('[CALLOUT-WARNING]\nYour text here\n[/CALLOUT-WARNING]'),
+    onInsertDiagram: () => handleInsertMarker('[DIAGRAM-MERMAID]\ngraph TD\n  A[Start] --> B[End]\n[/DIAGRAM-MERMAID]'),
+    onShowHelp: () => setShowShortcutsHelp(true),
+  });
+
+  useKeyboardShortcuts(shortcuts, isEditMode);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts(getAnnotationEditorShortcuts({
+    onSave: handleSaveStructuredEdits,
+    onTogglePreview: handleTogglePreview,
+    onInsertCalloutInfo: () => handleInsertMarker('[CALLOUT-INFO]\nYour text\n[/CALLOUT-INFO]'),
+    onInsertCalloutWarning: () => handleInsertMarker('[CALLOUT-WARNING]\nYour text\n[/CALLOUT-WARNING]'),
+    onInsertDiagram: () => handleInsertMarker('[DIAGRAM-MERMAID]\ngraph TD\n  A-->B\n[/DIAGRAM-MERMAID]'),
+    onShowHelp: () => setShowShortcutsHelp(true),
+  }), isEditMode);
 
   const handleSave = async () => {
     if (!user) {
