@@ -1930,7 +1930,7 @@ INSTRUÇÕES:
         
         {/* SIDEBAR ESQUERDA - SOMENTE DESKTOP */}
         {!isMobile && !isTablet && (
-        <div className="hidden lg:flex lg:w-80 xl:w-96 flex-col border-r border-border/40 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30 z-[90] relative">
+        <div className="hidden lg:flex lg:w-80 xl:w-96 flex-col border-r border-border/40 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-purple-950/30 dark:to-indigo-950/30 z-[90] relative pt-16">
           
           <div className="p-6 pb-4">
             <div className="flex items-center gap-3 mb-2">
@@ -2160,7 +2160,7 @@ INSTRUÇÕES:
             
             <ScrollArea className={cn(
               "flex-1 px-4",
-              isMobile || isTablet ? "pt-28 pb-32" : "py-6 pb-24"
+              isMobile || isTablet ? "pt-28 pb-32" : "py-6 pb-36"
             )}>
               <div className="max-w-4xl mx-auto space-y-6 mb-8">
                  
@@ -2188,15 +2188,15 @@ INSTRUÇÕES:
                     <button
                       key={action.label}
                       onClick={() => handleActionButtonClick(action.action)}
-                      className="flex flex-col items-center justify-center min-h-[140px] p-8 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-white to-purple-50 hover:border-purple-400 hover:shadow-xl transition-all duration-300 group"
+                      className="flex flex-col items-center justify-center min-h-[110px] p-5 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-white to-purple-50 hover:border-purple-400 hover:shadow-xl transition-all duration-300 group"
                       style={{
                         animationDelay: `${index * 100}ms`,
                       }}
                     >
-                      <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">
+                      <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">
                         {action.emoji}
                       </div>
-                      <h3 className="font-bold text-lg text-gray-900 mb-2 text-center">
+                      <h3 className="font-bold text-base text-gray-900 mb-1.5 text-center">
                         {action.label}
                       </h3>
                       <p className="text-sm text-gray-600 text-center">{action.description}</p>
@@ -2668,8 +2668,8 @@ INSTRUÇÕES:
                          w-[85vw] sm:w-auto sm:min-w-[273px] md:min-w-[312px] lg:min-w-[351px]
                          max-w-[90vw] sm:max-w-[325px] md:max-w-[364px] lg:max-w-[403px]
                          mx-auto
-                         shadow-lg md:shadow-xl
-                         border border-border/50"
+                         shadow-2xl
+                         border-0"
             >
               <div className="flex flex-col items-center space-y-4">
                 {/* Ícone central tri-camada */}
@@ -2785,7 +2785,7 @@ INSTRUÇÕES:
                             ) : idx === Math.floor(deepSearchProgress) ? (
                               <Loader2 className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-2.5 md:h-2.5 text-white animate-spin" />
                             ) : (
-                              IconComponent && <IconComponent className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-muted-foreground/40" />
+                              IconComponent && <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground/50" />
                             )}
                           </div>
                         </div>
