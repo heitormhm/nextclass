@@ -57,7 +57,7 @@ export const validateAnnotationMarkers = (content: string): ValidationError[] =>
           errors.push({
             line: lineNumber,
             column: match.index + 1,
-            message: `Closing tag [/${marker}] found without matching opening tag`,
+            message: `Tag de fechamento [/${marker}] encontrada sem tag de abertura correspondente`,
             severity: 'error',
             type: 'unmatched-closing-tag',
           });
@@ -67,12 +67,12 @@ export const validateAnnotationMarkers = (content: string): ValidationError[] =>
       }
     });
     
-    // Check for very long lines (warning)
-    if (line.length > 200) {
+    // Check for very long lines (warning) - relaxed threshold
+    if (line.length > 120) {
       errors.push({
         line: lineNumber,
-        column: 200,
-        message: 'Line is very long. Consider breaking it into multiple lines for better readability',
+        column: 120,
+        message: 'Linha muito longa. Considere dividi-la em várias linhas para melhor legibilidade',
         severity: 'warning',
         type: 'long-line',
       });
@@ -99,7 +99,7 @@ export const validateAnnotationMarkers = (content: string): ValidationError[] =>
           errors.push({
             line: jsonStart + 1,
             column: 1,
-            message: `Invalid JSON in CHART-BARS: ${e instanceof Error ? e.message : 'Unknown error'}`,
+            message: `JSON inválido em CHART-BARS: ${e instanceof Error ? e.message : 'Erro desconhecido'}`,
             severity: 'error',
             type: 'invalid-json',
           });
@@ -113,7 +113,7 @@ export const validateAnnotationMarkers = (content: string): ValidationError[] =>
     errors.push({
       line: tag.line,
       column: tag.column,
-      message: `Opening tag [${tag.tag}] at line ${tag.line} is never closed`,
+      message: `Tag de abertura [${tag.tag}] na linha ${tag.line} nunca foi fechada`,
       severity: 'error',
       type: 'unclosed-tag',
     });

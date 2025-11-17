@@ -78,11 +78,16 @@ const TeacherAnnotationPage = () => {
   const [lastAIFormattedContent, setLastAIFormattedContent] = useState<string>('');
   const [showPDFExportButton, setShowPDFExportButton] = useState(false);
   
-  // History state for undo/redo
+  // History state for undo/redo (HTML editor)
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isUndoRedoAction, setIsUndoRedoAction] = useState(false);
   const historyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Plaintext editor undo/redo state
+  const [plaintextHistory, setPlaintextHistory] = useState<string[]>([]);
+  const [plaintextHistoryIndex, setPlaintextHistoryIndex] = useState(-1);
+  const plaintextHistoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Voice transcription refs
   const recognitionRef = useRef<any>(null);
@@ -205,18 +210,20 @@ const TeacherAnnotationPage = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      // Route undo/redo to appropriate handler based on mode
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
-        handleUndo();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
-        e.preventDefault();
-        handleRedo();
+        if (isEditMode) {
+          e.shiftKey ? handlePlaintextRedo() : handlePlaintextUndo();
+        } else {
+          e.shiftKey ? handleRedo() : handleUndo();
+        }
       }
     };
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [historyIndex, history]);
+  }, [isEditMode, historyIndex, history, plaintextHistoryIndex, plaintextHistory]);
 
   useEffect(() => {
     return () => {
@@ -366,6 +373,39 @@ const TeacherAnnotationPage = () => {
     }
   };
 
+  // Plaintext editor undo/redo functions
+  const savePlaintextToHistory = (content: string) => {
+    if (plaintextHistoryTimeoutRef.current) {
+      clearTimeout(plaintextHistoryTimeoutRef.current);
+    }
+    
+    plaintextHistoryTimeoutRef.current = setTimeout(() => {
+      const newHistory = plaintextHistory.slice(0, plaintextHistoryIndex + 1);
+      newHistory.push(content);
+      if (newHistory.length > 50) newHistory.shift();
+      setPlaintextHistory(newHistory);
+      setPlaintextHistoryIndex(newHistory.length - 1);
+    }, 500);
+  };
+
+  const handlePlaintextUndo = () => {
+    if (plaintextHistoryIndex > 0) {
+      const newIndex = plaintextHistoryIndex - 1;
+      setPlaintextContent(plaintextHistory[newIndex]);
+      setPlaintextHistoryIndex(newIndex);
+      toast.info('Desfeito');
+    }
+  };
+
+  const handlePlaintextRedo = () => {
+    if (plaintextHistoryIndex < plaintextHistory.length - 1) {
+      const newIndex = plaintextHistoryIndex + 1;
+      setPlaintextContent(plaintextHistory[newIndex]);
+      setPlaintextHistoryIndex(newIndex);
+      toast.info('Refeito');
+    }
+  };
+
   const executeCommand = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
     if (editorRef.current) {
@@ -409,6 +449,10 @@ const TeacherAnnotationPage = () => {
       setPlaintextContent(plaintext);
       setIsEditMode(true);
       
+      // Initialize plaintext history
+      setPlaintextHistory([plaintext]);
+      setPlaintextHistoryIndex(0);
+      
       // Run initial validation
       const errors = validateAnnotationMarkers(plaintext);
       setValidationErrors(errors);
@@ -420,12 +464,13 @@ const TeacherAnnotationPage = () => {
     }
   };
 
-  // Handle marker insertion
+   // Handle marker insertion
   const handleInsertMarker = (marker: string) => {
     if (!textareaRef.current) {
       // No cursor position, just append to end
       const newContent = plaintextContent + '\n' + marker;
       setPlaintextContent(newContent);
+      savePlaintextToHistory(newContent);
       const errors = validateAnnotationMarkers(newContent);
       setValidationErrors(errors);
       return;
@@ -438,7 +483,7 @@ const TeacherAnnotationPage = () => {
     let newText = '';
     if (selectedText && !marker.includes('\n')) {
       // Wrap selected text for inline markers
-      newText = marker.replace('Your text here', selectedText).replace('Your text', selectedText);
+      newText = marker.replace('Your text here', selectedText).replace('Your text', selectedText).replace('Seu texto aqui', selectedText).replace('Seu texto', selectedText);
     } else {
       // Insert at cursor for block markers
       newText = marker;
@@ -449,6 +494,7 @@ const TeacherAnnotationPage = () => {
     const newContent = before + newText + after;
     
     setPlaintextContent(newContent);
+    savePlaintextToHistory(newContent);
     
     // Update validation
     const errors = validateAnnotationMarkers(newContent);
@@ -467,6 +513,7 @@ const TeacherAnnotationPage = () => {
   // Handle template insertion
   const handleInsertTemplate = (template: string) => {
     setPlaintextContent(template);
+    savePlaintextToHistory(template);
     const errors = validateAnnotationMarkers(template);
     setValidationErrors(errors);
   };
@@ -628,14 +675,13 @@ const TeacherAnnotationPage = () => {
     }
   };
 
-  // Keyboard shortcuts
   // Keyboard shortcuts for edit mode
   useKeyboardShortcuts(getAnnotationEditorShortcuts({
     onSave: handleSaveStructuredEdits,
     onTogglePreview: handleTogglePreview,
-    onInsertCalloutInfo: () => handleInsertMarker('[CALLOUT-INFO]\nYour text here\n[/CALLOUT-INFO]'),
-    onInsertCalloutWarning: () => handleInsertMarker('[CALLOUT-WARNING]\nYour text here\n[/CALLOUT-WARNING]'),
-    onInsertDiagram: () => handleInsertMarker('[DIAGRAM-MERMAID]\ngraph TD\n  A[Start] --> B[End]\n[/DIAGRAM-MERMAID]'),
+    onInsertCalloutInfo: () => handleInsertMarker('[CALLOUT-INFO]\nSeu texto aqui\n[/CALLOUT-INFO]'),
+    onInsertCalloutWarning: () => handleInsertMarker('[CALLOUT-WARNING]\nSeu texto aqui\n[/CALLOUT-WARNING]'),
+    onInsertDiagram: () => handleInsertMarker('[DIAGRAM-MERMAID]\ngraph TD\n  A[Início] --> B[Fim]\n[/DIAGRAM-MERMAID]'),
     onShowHelp: () => setShowShortcutsHelp(true),
   }), isEditMode);
 
@@ -1841,21 +1887,15 @@ const TeacherAnnotationPage = () => {
                   {showPreview ? (
                     <>
                       <div className="flex-1 border-r">
-                        <div className="h-full relative">
-                          <SyntaxHighlightedEditor 
-                            value={plaintextContent} 
-                            onChange={setPlaintextContent} 
-                            validationErrors={validationErrors} 
-                            className="h-full"
-                          />
-                          <textarea
-                            ref={textareaRef}
-                            value={plaintextContent}
-                            onChange={(e) => setPlaintextContent(e.target.value)}
-                            className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
-                            tabIndex={-1}
-                          />
-                        </div>
+                        <SyntaxHighlightedEditor 
+                          value={plaintextContent} 
+                          onChange={(value) => {
+                            setPlaintextContent(value);
+                            savePlaintextToHistory(value);
+                          }} 
+                          validationErrors={validationErrors} 
+                          className="h-full"
+                        />
                       </div>
                       <div className="flex-1">
                         <PreviewPanel 
@@ -1866,21 +1906,15 @@ const TeacherAnnotationPage = () => {
                       </div>
                     </>
                   ) : (
-                    <div className="h-full relative w-full">
-                      <SyntaxHighlightedEditor 
-                        value={plaintextContent} 
-                        onChange={setPlaintextContent} 
-                        validationErrors={validationErrors} 
-                        className="h-full"
-                      />
-                      <textarea
-                        ref={textareaRef}
-                        value={plaintextContent}
-                        onChange={(e) => setPlaintextContent(e.target.value)}
-                        className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
-                        tabIndex={-1}
-                      />
-                    </div>
+                    <SyntaxHighlightedEditor 
+                      value={plaintextContent} 
+                      onChange={(value) => {
+                        setPlaintextContent(value);
+                        savePlaintextToHistory(value);
+                      }} 
+                      validationErrors={validationErrors} 
+                      className="h-full"
+                    />
                   )}
                 </div>
                 {validationErrors.length > 0 && (

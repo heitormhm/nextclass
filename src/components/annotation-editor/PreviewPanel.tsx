@@ -44,11 +44,11 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     <div className={cn("relative h-full flex flex-col", className)}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground">Preview</h3>
+        <h3 className="text-sm font-semibold text-foreground">Visualização</h3>
         {isLoading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Parsing...
+            Processando...
           </div>
         )}
       </div>
@@ -64,7 +64,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
             <StructuredContentRenderer structuredData={structuredData} />
           ) : (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
-              Start editing to see preview
+              Comece a editar para ver a visualização
             </div>
           )}
         </div>
