@@ -77,6 +77,9 @@ const TeacherAnnotationPage = () => {
   const [highlightColor, setHighlightColor] = useState('#fef08a'); // Default yellow
   const [postItColor, setPostItColor] = useState('#fef08a'); // Default yellow
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  
+  // View/Edit mode state
+  const [isEditMode, setIsEditMode] = useState(true);
 
   useEffect(() => {
     const loadAnnotation = async () => {
@@ -1371,7 +1374,12 @@ const TeacherAnnotationPage = () => {
             {isMobile && (
               <div className="grid grid-cols-2 gap-2 mb-4 px-2">
                 <Button
-                  onClick={() => setShowToolbar(!showToolbar)}
+                  onClick={() => {
+                    setShowToolbar(!showToolbar);
+                    if (!showToolbar) {
+                      setIsEditMode(true);
+                    }
+                  }}
                   className={cn(
                     "h-12 flex items-center justify-center gap-2 rounded-xl",
                     showToolbar
@@ -1401,38 +1409,36 @@ const TeacherAnnotationPage = () => {
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-xl">
               <CardContent className="p-8">
                 {isStructuredMode && structuredContent ? (
-                  (() => {
-                    console.log('[Render] 📊 Renderizando conteúdo estruturado');
-                    console.log('[Render] Título:', structuredContent.titulo_geral);
-                    console.log('[Render] Blocos:', structuredContent.conteudo?.length || 0);
-                    return (
-                      <div className="structured-content-wrapper">
-                        <div className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg bg-gradient-to-br from-purple-50/50 to-blue-50/50">
-                          <StructuredContentRenderer structuredData={structuredContent} />
-                        </div>
-                      </div>
-                    );
-                  })()
+                  <div className="structured-content-wrapper">
+                    <div className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg bg-gradient-to-br from-purple-50/50 to-blue-50/50">
+                      <StructuredContentRenderer structuredData={structuredContent} />
+                    </div>
+                  </div>
+                ) : isEditMode ? (
+                  <div
+                    ref={editorRef}
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    onInput={handleInput}
+                    className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white prose prose-lg max-w-none"
+                    style={{
+                      whiteSpace: 'pre-wrap',
+                      wordWrap: 'break-word',
+                      lineHeight: '1.8',
+                      fontSize: '17px'
+                    }}
+                  />
                 ) : (
-                  (() => {
-                    console.log('[Render] 📝 Renderizando editor HTML');
-                    console.log('[Render] isStructuredMode:', isStructuredMode);
-                    console.log('[Render] hasStructuredContent:', !!structuredContent);
-                    return (
-              <div
-                ref={editorRef}
-                contentEditable
-                onInput={handleInput}
-                className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 border-2 border-border rounded-lg focus:outline-none focus:border-primary bg-background prose prose-lg max-w-none"
-                style={{
-                  whiteSpace: 'pre-wrap',
-                  wordWrap: 'break-word',
-                  lineHeight: '1.8',
-                  fontSize: '17px'
-                }}
-              />
-                    );
-                  })()
+                  <div
+                    className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 border-2 border-gray-200 rounded-lg bg-gray-50 prose prose-lg max-w-none"
+                    style={{
+                      whiteSpace: 'pre-wrap',
+                      wordWrap: 'break-word',
+                      lineHeight: '1.8',
+                      fontSize: '17px'
+                    }}
+                    dangerouslySetInnerHTML={{ __html: content }}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -1448,8 +1454,40 @@ const TeacherAnnotationPage = () => {
           <div className="container mx-auto px-3 py-2">
             {/* Botões com flex-wrap - múltiplas linhas no mobile */}
             <div className="flex flex-wrap items-center gap-1.5 justify-center">
-                {/* Grupo 1: Formatação */}
-                <div className="flex gap-1 items-center border-r pr-2">
+              {/* View/Edit Mode Toggle - Always Visible */}
+              <div className="flex gap-1 items-center border-r pr-2">
+                <Button 
+                  variant={isEditMode ? "default" : "ghost"}
+                  size="sm" 
+                  onClick={() => setIsEditMode(!isEditMode)} 
+                  title={isEditMode ? "Modo Visualização" : "Modo Edição"}
+                  className={cn(
+                    "rounded-lg",
+                    isMobile ? "h-10 px-3 min-h-[40px]" : "h-9 px-3",
+                    isEditMode 
+                      ? "bg-blue-500 text-white hover:bg-blue-600" 
+                      : "bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+                  )}
+                >
+                  {isEditMode ? (
+                    <>
+                      <Edit className="h-4 w-4 mr-1.5" />
+                      {!isMobile && <span className="text-xs font-medium">Editando</span>}
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-1.5" />
+                      {!isMobile && <span className="text-xs font-medium">Visualizando</span>}
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Formatting buttons - Only show in edit mode */}
+              {isEditMode && (
+                <>
+                  {/* Grupo 1: Formatação */}
+                  <div className="flex gap-1 items-center border-r pr-2">
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -1689,7 +1727,9 @@ const TeacherAnnotationPage = () => {
                     Salvar
                   </Button>
                 </div>
-              </div>
+                </>
+              )}
+            </div>
             </div>
           </div>
         )}
