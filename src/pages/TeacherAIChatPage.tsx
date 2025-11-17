@@ -1732,10 +1732,18 @@ INSTRUÇÕES:
     
     setSelectedAction(tag);
     
-    // Set activeTag for all devices (mobile, tablet, desktop)
+    // ✅ PRESERVE TEXT: Transfer current input to userInput (like handleActionButtonClick)
+    const currentText = activeTag ? userInput.trim() : inputMessage.trim();
     setActiveTag(tag);
+    setUserInput(currentText);
+    setInputMessage("");
     
     setShowActionDropdown(false);
+    
+    // Focus textarea after tag is set
+    setTimeout(() => {
+      document.querySelector('textarea')?.focus();
+    }, 100);
     
     toast({
       title: `${tag.emoji} ${tag.label} selecionado`,
@@ -2223,6 +2231,16 @@ INSTRUÇÕES:
                     Inicie uma conversa com a Mia
                   </p>
                 </div>
+                
+                {/* "Minhas Conversas" Button */}
+                <Button
+                  onClick={() => setShowMobileHistory(true)}
+                  className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6 py-3 text-base font-semibold"
+                  size="lg"
+                >
+                  <History className="w-5 h-5 mr-2" />
+                  Minhas Conversas
+                </Button>
               </div>
             )}
           </>
