@@ -1,35 +1,24 @@
 // Convert structured JSON content to marked plaintext for editing
 
-// Wrap long text at word boundaries (max 100 chars per line)
+// Wrap long text at word boundaries
 const wrapText = (text: string, maxLength = 100): string => {
   if (!text || text.length <= maxLength) return text;
   
-  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-  const wrappedLines: string[] = [];
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
   
-  sentences.forEach(sentence => {
-    const trimmed = sentence.trim();
-    if (trimmed.length <= maxLength) {
-      wrappedLines.push(trimmed);
-      return;
+  words.forEach(word => {
+    if ((currentLine + ' ' + word).length > maxLength && currentLine) {
+      lines.push(currentLine.trim());
+      currentLine = word;
+    } else {
+      currentLine += (currentLine ? ' ' : '') + word;
     }
-    
-    const words = trimmed.split(' ');
-    let currentLine = '';
-    
-    words.forEach(word => {
-      if ((currentLine + ' ' + word).length > maxLength && currentLine) {
-        wrappedLines.push(currentLine.trim());
-        currentLine = word;
-      } else {
-        currentLine += (currentLine ? ' ' : '') + word;
-      }
-    });
-    
-    if (currentLine) wrappedLines.push(currentLine.trim());
   });
   
-  return wrappedLines.join('\n');
+  if (currentLine) lines.push(currentLine.trim());
+  return lines.join('\n');
 };
 
 export const structuredToPlaintext = (structuredData: any): string => {
@@ -72,7 +61,13 @@ export const structuredToPlaintext = (structuredData: any): string => {
         if (block.itens && Array.isArray(block.itens)) {
           block.itens.forEach((item: any) => {
             const itemText = typeof item === 'string' ? item : (item.texto || item.conteudo || '');
-            blocks.push(`- ${itemText}`);
+            const wrappedItem = wrapText(itemText, 80);
+            const lines = wrappedItem.split('\n');
+            blocks.push(`- ${lines[0]}`);
+            // Indent continuation lines
+            for (let i = 1; i < lines.length; i++) {
+              blocks.push(`  ${lines[i]}`);
+            }
           });
         }
         blocks.push('');
@@ -83,7 +78,13 @@ export const structuredToPlaintext = (structuredData: any): string => {
         if (block.itens && Array.isArray(block.itens)) {
           block.itens.forEach((item: any, index: number) => {
             const itemText = typeof item === 'string' ? item : (item.texto || item.conteudo || '');
-            blocks.push(`${index + 1}. ${itemText}`);
+            const wrappedItem = wrapText(itemText, 80);
+            const lines = wrappedItem.split('\n');
+            blocks.push(`${index + 1}. ${lines[0]}`);
+            // Indent continuation lines
+            for (let i = 1; i < lines.length; i++) {
+              blocks.push(`   ${lines[i]}`);
+            }
           });
         }
         blocks.push('');
@@ -93,14 +94,14 @@ export const structuredToPlaintext = (structuredData: any): string => {
         const calloutType = (block.tipo_callout || 'info').toUpperCase();
         const calloutText = block.conteudo || block.texto || '';
         blocks.push(`[CALLOUT-${calloutType}]`);
-        blocks.push(calloutText);
+        blocks.push(wrapText(calloutText, 90));
         blocks.push(`[/CALLOUT-${calloutType}]\n`);
         break;
         
       case 'postit':
         const postitText = block.conteudo || block.texto || '';
         blocks.push(`[POSTIT-YELLOW]`);
-        blocks.push(postitText);
+        blocks.push(wrapText(postitText, 90));
         blocks.push(`[/POSTIT-YELLOW]\n`);
         break;
         
