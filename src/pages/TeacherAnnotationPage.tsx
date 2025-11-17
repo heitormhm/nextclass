@@ -52,8 +52,7 @@ const TeacherAnnotationPage = () => {
   const [originalInputContent, setOriginalInputContent] = useState<string>('');
   const [showAIActionsSheet, setShowAIActionsSheet] = useState(false);
   
-  // Toolbar visibility state (hidden by default on mobile)
-  const [showToolbar, setShowToolbar] = useState(!isMobile);
+  // Toolbar is always visible - removed showToolbar state
   
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
@@ -1370,31 +1369,13 @@ const TeacherAnnotationPage = () => {
         {/* Main Content */}
         <div className="relative z-10 container mx-auto px-4 py-6">
           <div className="max-w-5xl mx-auto">
-            {/* Botões de ação - Mobile only - Entre título e conteúdo */}
+            {/* Mobile AI Actions Button */}
             {isMobile && (
-              <div className="grid grid-cols-2 gap-2 mb-4 px-2">
-                <Button
-                  onClick={() => {
-                    setShowToolbar(!showToolbar);
-                    if (!showToolbar) {
-                      setIsEditMode(true);
-                    }
-                  }}
-                  className={cn(
-                    "h-12 flex items-center justify-center gap-2 rounded-xl",
-                    showToolbar
-                      ? "bg-blue-500 hover:bg-blue-600 text-white"
-                      : "bg-white/90 border-2 border-blue-400 text-blue-600 hover:bg-blue-50"
-                  )}
-                >
-                  <Edit className="h-4 w-4" />
-                  <span className="font-medium text-sm">Editar</span>
-                </Button>
-                
+              <div className="mb-4 px-2">
                 <Button
                   onClick={() => setShowAIActionsSheet(true)}
                   disabled={isProcessingAI || !content?.trim()}
-                  className="h-12 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-pink-400 to-pink-600 hover:from-pink-500 hover:to-pink-700 text-white disabled:opacity-50"
+                  className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-pink-400 to-pink-600 hover:from-pink-500 hover:to-pink-700 text-white disabled:opacity-50"
                 >
                   {isProcessingAI ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -1407,6 +1388,276 @@ const TeacherAnnotationPage = () => {
             )}
             
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-xl">
+              {/* Toolbar - Always visible, inside Card */}
+              <div className="border-b p-4 bg-white">
+                <div className="flex flex-wrap items-center gap-1.5 justify-center">
+                  {/* View/Edit Mode Toggle - Always Visible */}
+                  <div className="flex gap-1 items-center border-r pr-2">
+                    <Button 
+                      variant={isEditMode ? "default" : "ghost"}
+                      size="sm" 
+                      onClick={() => setIsEditMode(!isEditMode)} 
+                      title={isEditMode ? "Modo Visualização" : "Modo Edição"}
+                      className={cn(
+                        "rounded-lg",
+                        isMobile ? "h-10 px-3 min-h-[40px]" : "h-9 px-3",
+                        isEditMode 
+                          ? "bg-blue-500 text-white hover:bg-blue-600" 
+                          : "bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+                      )}
+                    >
+                      {isEditMode ? (
+                        <>
+                          <Edit className="h-4 w-4 mr-1.5" />
+                          {!isMobile && <span className="text-xs font-medium">Editando</span>}
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="h-4 w-4 mr-1.5" />
+                          {!isMobile && <span className="text-xs font-medium">Visualizando</span>}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Formatting buttons - Only show in edit mode */}
+                  {isEditMode && (
+                    <>
+                      {/* Grupo 1: Formatação */}
+                      <div className="flex gap-1 items-center border-r pr-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => executeCommand('bold')} 
+                        title="Negrito"
+                        className={cn(
+                          "rounded-lg",
+                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
+                          activeFormats.has('bold') && "bg-blue-100 text-blue-600"
+                        )}
+                      >
+                        <Bold className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => executeCommand('italic')} 
+                        title="Itálico"
+                        className={cn(
+                          "rounded-lg",
+                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
+                          activeFormats.has('italic') && "bg-blue-100 text-blue-600"
+                        )}
+                      >
+                        <Italic className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => executeCommand('underline')} 
+                        title="Sublinhado"
+                        className={cn(
+                          "rounded-lg",
+                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
+                          activeFormats.has('underline') && "bg-blue-100 text-blue-600"
+                        )}
+                      >
+                        <Underline className="h-4 w-4" />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            title="Destacar texto"
+                            className={cn(
+                              "rounded-lg",
+                              isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                            )}
+                          >
+                            <Highlighter className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56">
+                          <DropdownMenuLabel>Cor do destaque</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <div className="grid grid-cols-4 gap-2 p-2">
+                            {[
+                              { color: '#fef08a', name: 'Amarelo' },
+                              { color: '#86efac', name: 'Verde' },
+                              { color: '#fca5a5', name: 'Vermelho' },
+                              { color: '#93c5fd', name: 'Azul' },
+                              { color: '#e9d5ff', name: 'Roxo' },
+                              { color: '#fdba74', name: 'Laranja' },
+                              { color: '#fda4af', name: 'Rosa' },
+                              { color: '#d1d5db', name: 'Cinza' },
+                            ].map(({ color, name }) => (
+                              <button
+                                key={color}
+                                onClick={() => {
+                                  setHighlightColor(color);
+                                  handleHighlight(color);
+                                }}
+                                className="w-8 h-8 rounded border-2 border-gray-300 hover:border-gray-500 transition-colors"
+                                style={{ backgroundColor: color }}
+                                title={name}
+                              />
+                            ))}
+                          </div>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    {/* Grupo 2: Listas */}
+                    <div className="flex gap-1 items-center border-r pr-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => executeCommand('insertUnorderedList')} 
+                        title="Lista com marcadores"
+                        className={cn(
+                          "rounded-lg",
+                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                        )}
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => executeCommand('insertOrderedList')} 
+                        title="Lista numerada"
+                        className={cn(
+                          "rounded-lg",
+                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                        )}
+                      >
+                        <ListOrdered className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Grupo 3: Mídias e Recursos */}
+                    <div className="flex gap-1 items-center border-r pr-2">
+                      <label htmlFor="image-upload">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          title="Inserir imagem"
+                          className={cn(
+                            "rounded-lg cursor-pointer",
+                            isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                          )}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            document.getElementById('image-upload')?.click();
+                          }}
+                          disabled={isUploadingImage}
+                        >
+                          {isUploadingImage ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <ImagePlus className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </label>
+                      <input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                        disabled={isUploadingImage}
+                      />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            title="Adicionar post-it"
+                            className={cn(
+                              "rounded-lg",
+                              isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                            )}
+                          >
+                            <Type className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56">
+                          <DropdownMenuLabel>Cor do post-it</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <div className="grid grid-cols-4 gap-2 p-2">
+                            {[
+                              { color: '#fef08a', name: 'Amarelo' },
+                              { color: '#86efac', name: 'Verde' },
+                              { color: '#fca5a5', name: 'Vermelho' },
+                              { color: '#93c5fd', name: 'Azul' },
+                              { color: '#e9d5ff', name: 'Roxo' },
+                              { color: '#fdba74', name: 'Laranja' },
+                              { color: '#fda4af', name: 'Rosa' },
+                              { color: '#d1d5db', name: 'Cinza' },
+                            ].map(({ color, name }) => (
+                              <button
+                                key={color}
+                                onClick={() => {
+                                  setPostItColor(color);
+                                  handleAddTextbox(color);
+                                }}
+                                className="w-8 h-8 rounded border-2 border-gray-300 hover:border-gray-500 transition-colors"
+                                style={{ backgroundColor: color }}
+                                title={name}
+                              />
+                            ))}
+                          </div>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title={isRecording ? "Parar gravação" : "Transcrever voz"}
+                        onClick={handleVoiceToggle}
+                        className={cn(
+                          "rounded-lg",
+                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
+                          isRecording && "bg-red-100 text-red-600 animate-pulse"
+                        )}
+                      >
+                        <Mic className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Grupo 4: Undo/Redo */}
+                    <div className="flex gap-1 items-center">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleUndo} 
+                        disabled={historyIndex <= 0}
+                        title="Desfazer"
+                        className={cn(
+                          "rounded-lg",
+                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                        )}
+                      >
+                        <Undo className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleRedo} 
+                        disabled={historyIndex >= history.length - 1}
+                        title="Refazer"
+                        className={cn(
+                          "rounded-lg",
+                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                        )}
+                      >
+                        <Redo className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    </>
+                  )}
+                </div>
+              </div>
               <CardContent className="p-8">
                 {isStructuredMode && structuredContent ? (
                   <div className="structured-content-wrapper">
@@ -1445,294 +1696,7 @@ const TeacherAnnotationPage = () => {
           </div>
         </div>
 
-        {/* Floating Toolbar - renderizar condicionalmente */}
-        {showToolbar && (
-          <div className={cn(
-            "z-30 backdrop-blur-xl bg-white/90 border-b shadow-sm",
-            isMobile ? "fixed top-16 left-0 right-0 w-full" : "sticky top-0"
-          )}>
-          <div className="container mx-auto px-3 py-2">
-            {/* Botões com flex-wrap - múltiplas linhas no mobile */}
-            <div className="flex flex-wrap items-center gap-1.5 justify-center">
-              {/* View/Edit Mode Toggle - Always Visible */}
-              <div className="flex gap-1 items-center border-r pr-2">
-                <Button 
-                  variant={isEditMode ? "default" : "ghost"}
-                  size="sm" 
-                  onClick={() => setIsEditMode(!isEditMode)} 
-                  title={isEditMode ? "Modo Visualização" : "Modo Edição"}
-                  className={cn(
-                    "rounded-lg",
-                    isMobile ? "h-10 px-3 min-h-[40px]" : "h-9 px-3",
-                    isEditMode 
-                      ? "bg-blue-500 text-white hover:bg-blue-600" 
-                      : "bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50"
-                  )}
-                >
-                  {isEditMode ? (
-                    <>
-                      <Edit className="h-4 w-4 mr-1.5" />
-                      {!isMobile && <span className="text-xs font-medium">Editando</span>}
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4 mr-1.5" />
-                      {!isMobile && <span className="text-xs font-medium">Visualizando</span>}
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* Formatting buttons - Only show in edit mode */}
-              {isEditMode && (
-                <>
-                  {/* Grupo 1: Formatação */}
-                  <div className="flex gap-1 items-center border-r pr-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => executeCommand('bold')} 
-                    title="Negrito"
-                    className={cn(
-                      "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
-                      activeFormats.has('bold') && "bg-blue-100 text-blue-600"
-                    )}
-                  >
-                    <Bold className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => executeCommand('italic')} 
-                    title="Itálico"
-                    className={cn(
-                      "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
-                      activeFormats.has('italic') && "bg-blue-100 text-blue-600"
-                    )}
-                  >
-                    <Italic className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => executeCommand('underline')} 
-                    title="Sublinhado"
-                    className={cn(
-                      "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
-                      activeFormats.has('underline') && "bg-blue-100 text-blue-600"
-                    )}
-                  >
-                    <Underline className="h-4 w-4" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        title="Destacar"
-                        className={cn(
-                          "rounded-lg hover:bg-yellow-100 relative",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                        )}
-                      >
-                        <Highlighter className="h-4 w-4" />
-                        <div 
-                          className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white" 
-                          style={{ backgroundColor: highlightColor }}
-                        />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuLabel>Cor do Destaque</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleHighlight('#fef08a')}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-yellow-200 border border-yellow-400" />
-                          <span>Amarelo</span>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleHighlight('#86efac')}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-green-200 border border-green-400" />
-                          <span>Verde</span>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleHighlight('#fca5a5')}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-red-200 border border-red-400" />
-                          <span>Vermelho</span>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleHighlight('#93c5fd')}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-blue-200 border border-blue-400" />
-                          <span>Azul</span>
-                        </div>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {/* Grupo 2: Listas */}
-                <div className="flex gap-1 items-center border-r pr-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => executeCommand('insertUnorderedList')} 
-                    title="Lista"
-                    className={cn(
-                      "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                    )}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => executeCommand('insertOrderedList')} 
-                    title="Lista numerada"
-                    className={cn(
-                      "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                    )}
-                  >
-                    <ListOrdered className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Grupo 3: Inserções */}
-                <div className="flex gap-1 items-center border-r pr-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleImageUpload} 
-                    title="Inserir Imagem"
-                    disabled={isUploadingImage}
-                    className={cn(
-                      "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                    )}
-                  >
-                    {isUploadingImage ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ImagePlus className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        title="Adicionar Post-it"
-                        className={cn(
-                          "rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                        )}
-                      >
-                        <Type className="h-4 w-4" style={{ color: postItColor }} />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuLabel>Cor do Post-it</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleAddTextbox('#fef08a')}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-yellow-200 border-2 border-yellow-400" />
-                          <span>Amarelo</span>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddTextbox('#fbcfe8')}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-pink-200 border-2 border-pink-400" />
-                          <span>Rosa</span>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddTextbox('#86efac')}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-green-200 border-2 border-green-400" />
-                          <span>Verde</span>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddTextbox('#93c5fd')}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-blue-200 border-2 border-blue-400" />
-                          <span>Azul</span>
-                        </div>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {/* Grupo 4: Undo/Redo */}
-                <div className="flex gap-1 items-center border-r pr-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleUndo}
-                    disabled={historyIndex <= 0}
-                    title="Desfazer"
-                    className={cn(
-                      "rounded-lg disabled:opacity-30",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                    )}
-                  >
-                    <Undo className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleRedo}
-                    disabled={historyIndex >= history.length - 1}
-                    title="Refazer"
-                    className={cn(
-                      "rounded-lg disabled:opacity-30",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                    )}
-                  >
-                    <Redo className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Grupo 5: Voz + Salvar */}
-                <div className="flex gap-1 items-center">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleVoiceToggle} 
-                    title={isRecording ? "Parar gravação" : "Iniciar gravação de voz"}
-                    disabled={isProcessingAI}
-                    className={cn(
-                      "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "min-w-[40px]",
-                      isRecording && "bg-red-100 text-red-600 animate-pulse"
-                    )}
-                  >
-                    <Mic className="h-4 w-4" />
-                  </Button>
-                  
-                  <Button 
-                    onClick={handleSave} 
-                    size="sm" 
-                    className={cn(
-                      "bg-primary hover:bg-primary/90 text-white whitespace-nowrap rounded-lg",
-                      isMobile ? "h-10 min-h-[40px] px-3" : "h-9 px-3"
-                    )}
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    Salvar
-                  </Button>
-                </div>
-                </>
-              )}
-            </div>
-            </div>
-          </div>
-        )}
+        {/* Toolbar moved inside Card - removed floating toolbar */}
 
       {/* Sheet for mobile AI actions */}
       <Sheet open={showAIActionsSheet} onOpenChange={setShowAIActionsSheet}>
