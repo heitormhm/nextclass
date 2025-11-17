@@ -43,84 +43,84 @@ export const MarkerToolbar: React.FC<MarkerToolbarProps> = ({
   isMobile = false,
 }) => {
   const textFormats = [
-    { label: 'H1', marker: '# ', icon: Type, tooltip: 'Heading 1' },
-    { label: 'H2', marker: '## ', icon: Type, tooltip: 'Heading 2' },
-    { label: 'H3', marker: '### ', icon: Type, tooltip: 'Heading 3' },
+    { label: 'Título 1', marker: '# ', icon: Type, tooltip: 'Título principal' },
+    { label: 'Título 2', marker: '## ', icon: Type, tooltip: 'Subtítulo' },
+    { label: 'Título 3', marker: '### ', icon: Type, tooltip: 'Seção' },
   ];
 
   const callouts = [
-    { label: 'Info', marker: '[CALLOUT-INFO]\nYour text here\n[/CALLOUT-INFO]', icon: AlertCircle, color: 'text-blue-600', tooltip: 'Information callout' },
-    { label: 'Warning', marker: '[CALLOUT-WARNING]\nYour text here\n[/CALLOUT-WARNING]', icon: AlertTriangle, color: 'text-yellow-600', tooltip: 'Warning message' },
-    { label: 'Success', marker: '[CALLOUT-SUCCESS]\nYour text here\n[/CALLOUT-SUCCESS]', icon: CheckCircle2, color: 'text-green-600', tooltip: 'Success message' },
-    { label: 'Error', marker: '[CALLOUT-ERROR]\nYour text here\n[/CALLOUT-ERROR]', icon: XCircle, color: 'text-red-600', tooltip: 'Error message' },
+    { label: 'Info', marker: '[CALLOUT-INFO]\nSeu texto aqui\n[/CALLOUT-INFO]', icon: AlertCircle, color: 'text-blue-600', tooltip: 'Caixa informativa' },
+    { label: 'Aviso', marker: '[CALLOUT-WARNING]\nSeu texto aqui\n[/CALLOUT-WARNING]', icon: AlertTriangle, color: 'text-yellow-600', tooltip: 'Mensagem de alerta' },
+    { label: 'Sucesso', marker: '[CALLOUT-SUCCESS]\nSeu texto aqui\n[/CALLOUT-SUCCESS]', icon: CheckCircle2, color: 'text-green-600', tooltip: 'Mensagem de sucesso' },
+    { label: 'Erro', marker: '[CALLOUT-ERROR]\nSeu texto aqui\n[/CALLOUT-ERROR]', icon: XCircle, color: 'text-red-600', tooltip: 'Mensagem de erro' },
   ];
 
   const visualElements = [
-    { label: 'Post-it', marker: '[POSTIT-YELLOW]\nYour note here\n[/POSTIT-YELLOW]', icon: StickyNote, tooltip: 'Sticky note' },
-    { label: 'Red Text', marker: '[COLOR-RED]Your text[/COLOR-RED]', icon: Palette, tooltip: 'Red colored text' },
-    { label: 'Blue Text', marker: '[COLOR-BLUE]Your text[/COLOR-BLUE]', icon: Palette, tooltip: 'Blue colored text' },
-    { label: 'Green Text', marker: '[COLOR-GREEN]Your text[/COLOR-GREEN]', icon: Palette, tooltip: 'Green colored text' },
+    { label: 'Post-it', marker: '[POSTIT-YELLOW]\nSua nota aqui\n[/POSTIT-YELLOW]', icon: StickyNote, tooltip: 'Nota adesiva' },
+    { label: 'Texto Vermelho', marker: '[COLOR-RED]Seu texto[/COLOR-RED]', icon: Palette, tooltip: 'Texto em vermelho' },
+    { label: 'Texto Azul', marker: '[COLOR-BLUE]Seu texto[/COLOR-BLUE]', icon: Palette, tooltip: 'Texto em azul' },
+    { label: 'Texto Verde', marker: '[COLOR-GREEN]Seu texto[/COLOR-GREEN]', icon: Palette, tooltip: 'Texto em verde' },
   ];
 
   const structures = [
-    { label: 'Bullet List', marker: '[LIST-BULLET]\n- Item 1\n- Item 2\n- Item 3', icon: List, tooltip: 'Bullet list' },
-    { label: 'Numbered List', marker: '[LIST-NUMBER]\n1. First\n2. Second\n3. Third', icon: ListOrdered, tooltip: 'Numbered list' },
-    { label: 'Diagram', marker: '[DIAGRAM-MERMAID]\ngraph TD\n  A[Start] --> B[End]\n[/DIAGRAM-MERMAID]', icon: DiagramIcon, tooltip: 'Mermaid diagram (read-only)' },
-    { label: 'Chart', marker: '[CHART-BARS]\n{"labels": ["A", "B"], "values": [10, 20]}\n[/CHART-BARS]', icon: BarChart3, tooltip: 'Bar chart (read-only)' },
+    { label: 'Lista', marker: '[LIST-BULLET]\n- Item 1\n- Item 2\n- Item 3', icon: List, tooltip: 'Lista com marcadores' },
+    { label: 'Lista Numerada', marker: '[LIST-NUMBER]\n1. Primeiro\n2. Segundo\n3. Terceiro', icon: ListOrdered, tooltip: 'Lista numerada' },
+    { label: 'Diagrama', marker: '[DIAGRAM-MERMAID]\ngraph TD\n  A[Início] --> B[Fim]\n[/DIAGRAM-MERMAID]', icon: DiagramIcon, tooltip: 'Diagrama Mermaid (somente leitura)' },
+    { label: 'Gráfico', marker: '[CHART-BARS]\n{"labels": ["A", "B"], "values": [10, 20]}\n[/CHART-BARS]', icon: BarChart3, tooltip: 'Gráfico de barras (somente leitura)' },
   ];
 
   const templates = [
     {
-      name: 'Study Notes',
-      content: `# [Topic Name]
+      name: 'Notas de Estudo',
+      content: `# [Nome do Tópico]
 
 [CALLOUT-INFO]
-Key Concept: [Fill in]
+Conceito Chave: [Preencher]
 [/CALLOUT-INFO]
 
-## Summary
-[Your notes here]
+## Resumo
+[Suas anotações aqui]
 
-## Questions
+## Questões
 [POSTIT-YELLOW]
-- Question 1
-- Question 2
+- Questão 1
+- Questão 2
 [/POSTIT-YELLOW]`
     },
     {
-      name: 'Lab Report',
-      content: `# Experiment: [Name]
+      name: 'Relatório de Laboratório',
+      content: `# Experimento: [Nome]
 
-## Objective
+## Objetivo
 [CALLOUT-INFO]
-[Your objective here]
+[Seu objetivo aqui]
 [/CALLOUT-INFO]
 
-## Results
+## Resultados
 [CHART-BARS]
-{"labels": ["Test 1", "Test 2"], "values": [0, 0]}
+{"labels": ["Teste 1", "Teste 2"], "values": [0, 0]}
 [/CHART-BARS]
 
-## Conclusion
-[Your analysis here]`
+## Conclusão
+[Sua análise aqui]`
     },
     {
-      name: 'Lecture Notes',
-      content: `# [Lecture Title]
+      name: 'Notas de Aula',
+      content: `# [Título da Aula]
 
-## Main Topics
+## Tópicos Principais
 [LIST-BULLET]
-- Topic 1
-- Topic 2
-- Topic 3
+- Tópico 1
+- Tópico 2
+- Tópico 3
 
-## Important Points
+## Pontos Importantes
 [CALLOUT-WARNING]
-[Highlight critical information]
+[Destacar informação crítica]
 [/CALLOUT-WARNING]
 
-## Summary
-[Your summary here]`
+## Resumo
+[Seu resumo aqui]`
     },
   ];
 
@@ -129,14 +129,14 @@ Key Concept: [Fill in]
       <div className="flex flex-wrap gap-2 p-2 bg-background border-t border-border">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="h-11 min-h-[44px]">
               <Type className="w-4 h-4 mr-2" />
-              Text
+              📝 Formato
               <ChevronDown className="w-3 h-3 ml-2" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Text Formatting</DropdownMenuLabel>
+            <DropdownMenuLabel>Formatação de Texto</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {textFormats.map((format) => (
               <DropdownMenuItem
@@ -152,14 +152,14 @@ Key Concept: [Fill in]
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="h-11 min-h-[44px]">
               <AlertCircle className="w-4 h-4 mr-2" />
-              Callouts
+              💡 Destaques
               <ChevronDown className="w-3 h-3 ml-2" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Callouts</DropdownMenuLabel>
+            <DropdownMenuLabel>Caixas de Destaque</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {callouts.map((callout) => (
               <DropdownMenuItem
@@ -175,14 +175,14 @@ Key Concept: [Fill in]
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="h-11 min-h-[44px]">
               <DiagramIcon className="w-4 h-4 mr-2" />
-              More
+              📊 Mais
               <ChevronDown className="w-3 h-3 ml-2" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Visual Elements</DropdownMenuLabel>
+            <DropdownMenuLabel>Elementos Visuais</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {visualElements.map((elem) => (
               <DropdownMenuItem
@@ -194,7 +194,7 @@ Key Concept: [Fill in]
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>Structures</DropdownMenuLabel>
+            <DropdownMenuLabel>Estruturas</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {structures.map((struct) => (
               <DropdownMenuItem
@@ -210,21 +210,22 @@ Key Concept: [Fill in]
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="h-11 min-h-[44px]">
               <FileText className="w-4 h-4 mr-2" />
-              Templates
+              📚 Modelos
               <ChevronDown className="w-3 h-3 ml-2" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Insert Template</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel>Modelos Prontos</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {templates.map((template) => (
               <DropdownMenuItem
                 key={template.name}
                 onClick={() => onInsertTemplate(template.content)}
+                className="flex-col items-start"
               >
-                {template.name}
+                <span className="font-medium">{template.name}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -238,7 +239,7 @@ Key Concept: [Fill in]
       <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/50 border-b border-border">
         {/* Text Formatting */}
         <div className="flex items-center gap-1 pr-2 border-r border-border">
-          <span className="text-xs font-medium text-muted-foreground mr-2">Text</span>
+          <span className="text-xs font-medium text-muted-foreground mr-2">Texto</span>
           {textFormats.map((format) => (
             <Tooltip key={format.label}>
               <TooltipTrigger asChild>
@@ -259,7 +260,7 @@ Key Concept: [Fill in]
 
         {/* Callouts */}
         <div className="flex items-center gap-1 pr-2 border-r border-border">
-          <span className="text-xs font-medium text-muted-foreground mr-2">Callouts</span>
+          <span className="text-xs font-medium text-muted-foreground mr-2">Destaques</span>
           {callouts.map((callout) => (
             <Tooltip key={callout.label}>
               <TooltipTrigger asChild>
@@ -318,7 +319,7 @@ Key Concept: [Fill in]
 
         {/* Structures */}
         <div className="flex items-center gap-1 pr-2 border-r border-border">
-          <span className="text-xs font-medium text-muted-foreground mr-2">Structure</span>
+          <span className="text-xs font-medium text-muted-foreground mr-2">Estrutura</span>
           {structures.slice(0, 2).map((struct) => (
             <Tooltip key={struct.label}>
               <TooltipTrigger asChild>
