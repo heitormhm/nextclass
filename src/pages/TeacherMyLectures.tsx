@@ -44,7 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 interface Lecture {
@@ -77,6 +77,7 @@ interface Turma {
 
 const TeacherMyLectures = () => {
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [drafts, setDrafts] = useState<Lecture[]>([]);
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
@@ -421,19 +422,32 @@ const TeacherMyLectures = () => {
           <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-8 pb-safe">
-          <div className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
-                <BookOpen className="h-10 w-10" />
+        <div className="relative z-10 max-w-7xl mx-auto px-3 md:px-6 pt-20 md:pt-24 pb-4 md:pb-8 pb-safe">
+          {/* Mobile Title - Appears above search on mobile only */}
+          {isMobile && (
+            <div className="mb-4">
+              <h1 className="text-2xl font-bold text-white flex items-center gap-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+                <BookOpen className="h-7 w-7" />
                 Minhas Aulas
               </h1>
-              <p className="text-white/80 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+              <p className="text-white/80 text-sm mt-1 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+                Gerencie suas aulas publicadas e disciplinas
+              </p>
+            </div>
+          )}
+
+          <div className="mb-6 md:mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 md:gap-4">
+            <div className="hidden md:block">
+              <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2 flex items-center gap-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+                <BookOpen className="h-8 w-8 lg:h-10 lg:w-10" />
+                Minhas Aulas
+              </h1>
+              <p className="text-white/80 text-sm lg:text-base drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
                 Gerencie suas aulas publicadas e disciplinas
               </p>
             </div>
             
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 w-full lg:w-auto">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
                 <Input
@@ -637,7 +651,7 @@ const TeacherMyLectures = () => {
 
           {/* Section 2: Manage Disciplines */}
           <Card className="mb-8 bg-white/90 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-green-600" />
                 Gerenciar Disciplinas
@@ -647,13 +661,21 @@ const TeacherMyLectures = () => {
                   </Badge>
                 )}
               </CardTitle>
+              
+              {/* Button - Full width on mobile, inline on desktop */}
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-purple-600 to-pink-600">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nova Disciplina
-                </Button>
-              </DialogTrigger>
+                <DialogTrigger asChild>
+                  <Button 
+                    className={cn(
+                      "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700",
+                      isMobile ? "w-full mt-4 h-12 text-base" : "mt-3"
+                    )}
+                    size={isMobile ? "lg" : "default"}
+                  >
+                    <Plus className={cn(isMobile ? "h-5 w-5 mr-2" : "h-4 w-4 mr-2")} />
+                    Nova Disciplina
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Criar Nova Disciplina</DialogTitle>
@@ -750,19 +772,40 @@ const TeacherMyLectures = () => {
         {/* Section 3: Published Lectures */}
         <Card className="mb-8 bg-white/90 backdrop-blur-sm">
           <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GraduationCap className="h-5 w-5 text-purple-600" />
-                Aulas Publicadas
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              {/* Title Section */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5 text-purple-600" />
+                  Aulas Publicadas
+                </CardTitle>
+                
+                {/* Lecture Count Badge */}
                 {filteredLectures.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {filteredLectures.length}
+                  <Badge variant="secondary">
+                    {filteredLectures.length} {filteredLectures.length === 1 ? 'aula' : 'aulas'}
                   </Badge>
                 )}
-              </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">
-                Aulas já disponibilizadas para os alunos
-              </p>
-            </CardHeader>
+                
+                {/* Total Views Button */}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="gap-2 h-8"
+                  disabled
+                >
+                  <Users className="h-4 w-4" />
+                  <span className="font-semibold">
+                    {lectures.reduce((total, lecture) => total + (lecture.view_count || 0), 0)}
+                  </span>
+                </Button>
+              </div>
+            </div>
+            
+            <p className="text-sm text-slate-600 mt-2">
+              Aulas já disponibilizadas para os alunos
+            </p>
+          </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="space-y-4">
