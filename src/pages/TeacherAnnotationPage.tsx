@@ -117,18 +117,15 @@ const TeacherAnnotationPage = () => {
             // Não é JSON estruturado, continuar com HTML normal
           }
           
-      setTimeout(() => {
-        if (editorRef.current && data.content) {
-          editorRef.current.innerHTML = data.content;
-          setContent(data.content);
-          
-          setHistory([data.content]);
-          setHistoryIndex(0);
-          
-          // Auto-focus editor after content loads
-          focusEditor();
-        }
-      }, 100);
+        setTimeout(() => {
+          if (editorRef.current && data.content) {
+            editorRef.current.innerHTML = data.content;
+            setContent(data.content);
+            
+            setHistory([data.content]);
+            setHistoryIndex(0);
+          }
+        }, 100);
         }
       } catch (error) {
         console.error('Unexpected error:', error);
@@ -373,27 +370,18 @@ const TeacherAnnotationPage = () => {
     setActiveFormats(formats);
   }, []);
 
-  const focusEditor = useCallback(() => {
-    if (editorRef.current) {
-      editorRef.current.focus();
-      
-      // Place cursor at end of content if there's existing content
-      const range = document.createRange();
-      const selection = window.getSelection();
-      
-      if (editorRef.current.childNodes.length > 0) {
-        const lastChild = editorRef.current.lastChild;
-        range.setStartAfter(lastChild!);
-        range.collapse(true);
-      } else {
-        range.selectNodeContents(editorRef.current);
-        range.collapse(false);
+  // Update active formats on selection change
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      if (document.activeElement === editorRef.current) {
+        updateActiveFormats();
       }
-      
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-    }
-  }, []);
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, [updateActiveFormats]);
+
 
   const handleSave = async () => {
     if (!user) {
@@ -1127,10 +1115,6 @@ const TeacherAnnotationPage = () => {
     if (editorRef.current && !isUndoRedoAction) {
       const newContent = editorRef.current.innerHTML;
       setContent(newContent);
-      updateActiveFormats();
-      
-      // Clear preAI content when user manually edits
-      if (preAIContent) setPreAIContent(null);
       
       if (historyTimeoutRef.current) {
         clearTimeout(historyTimeoutRef.current);
@@ -1435,26 +1419,18 @@ const TeacherAnnotationPage = () => {
                     console.log('[Render] isStructuredMode:', isStructuredMode);
                     console.log('[Render] hasStructuredContent:', !!structuredContent);
                     return (
-                      <div
-                    ref={editorRef}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    onInput={handleInput}
-                    onClick={focusEditor}
-                    className={cn(
-                      'min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg cursor-text',
-                      'focus:outline-none focus:ring-2 focus:ring-primary/20',
-                      'prose prose-lg max-w-none',
-                      '[&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-800 [&_h2]:mb-4',
-                      '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2',
-                      '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2',
-                      '[&_li]:text-gray-700',
-                      '[&_p]:text-gray-700 [&_p]:leading-relaxed',
-                      !content && 'empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text'
-                    )}
-                    data-placeholder="Comece a escrever sua anotação..."
-                    style={{ lineHeight: '1.8', fontSize: '17px' }}
-                  />
+              <div
+                ref={editorRef}
+                contentEditable
+                onInput={handleInput}
+                className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 border-2 border-border rounded-lg focus:outline-none focus:border-primary bg-background prose prose-lg max-w-none"
+                style={{
+                  whiteSpace: 'pre-wrap',
+                  wordWrap: 'break-word',
+                  lineHeight: '1.8',
+                  fontSize: '17px'
+                }}
+              />
                     );
                   })()
                 )}
