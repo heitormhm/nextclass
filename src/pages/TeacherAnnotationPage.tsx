@@ -72,6 +72,11 @@ const TeacherAnnotationPage = () => {
   // Voice transcription refs
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Color picker states
+  const [highlightColor, setHighlightColor] = useState('#fef08a'); // Default yellow
+  const [postItColor, setPostItColor] = useState('#fef08a'); // Default yellow
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     const loadAnnotation = async () => {
@@ -859,33 +864,108 @@ const TeacherAnnotationPage = () => {
     }
   };
 
-  const handleHighlight = () => {
-    executeCommand('hiliteColor', '#fef08a');
+  const handleHighlight = (color?: string) => {
+    const colorToUse = color || highlightColor;
+    executeCommand('hiliteColor', colorToUse);
+    if (color) setHighlightColor(color);
   };
 
-  const handleImageUpload = () => {
+  const handleImageUpload = async () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = (e) => {
+    
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const placeholderUrl = 'https://via.placeholder.com/300x200?text=Imagem+Carregada';
-        executeCommand('insertHTML', `<img src="${placeholderUrl}" alt="Imagem carregada" style="max-width: 100%; height: auto; margin: 10px 0;" />`);
+      if (!file || !user) return;
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Imagem muito grande. Máximo: 5MB');
+        return;
+      }
+
+      setIsUploadingImage(true);
+      
+      try {
+        // Generate unique filename
+        const fileExt = file.name.split('.').pop();
+        const fileName = `annotation-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('annotation-images')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('annotation-images')
+          .getPublicUrl(filePath);
+
+        if (!urlData?.publicUrl) {
+          throw new Error('Falha ao obter URL da imagem');
+        }
+
+        // Insert image into editor
+        const imgHtml = `<img src="${urlData.publicUrl}" alt="Imagem carregada" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />`;
+        executeCommand('insertHTML', imgHtml);
+        
         toast.success('Imagem inserida com sucesso!');
+      } catch (error: any) {
+        console.error('Error uploading image:', error);
+        toast.error('Erro ao carregar imagem: ' + (error.message || 'Erro desconhecido'));
+      } finally {
+        setIsUploadingImage(false);
       }
     };
+    
     input.click();
   };
 
-  const handleAddTextbox = () => {
+  const handleAddTextbox = (color?: string) => {
+    const colorToUse = color || postItColor;
+    
+    // Post-it color palettes
+    const colors = {
+      '#fef08a': { bg: '#fef08a', border: '#fbbf24', shadow: 'rgba(251, 191, 36, 0.3)' }, // Yellow
+      '#fbcfe8': { bg: '#fbcfe8', border: '#ec4899', shadow: 'rgba(236, 72, 153, 0.3)' }, // Pink
+      '#86efac': { bg: '#86efac', border: '#22c55e', shadow: 'rgba(34, 197, 94, 0.3)' }, // Green
+      '#93c5fd': { bg: '#93c5fd', border: '#3b82f6', shadow: 'rgba(59, 130, 246, 0.3)' }  // Blue
+    };
+    
+    const selectedColor = colors[colorToUse as keyof typeof colors] || colors['#fef08a'];
+    
     const textboxHtml = `
-      <div style="border: 2px dashed #e2e8f0; padding: 10px; margin: 10px 0; background: #f8fafc;">
-        <p style="margin: 0; color: #64748b; font-style: italic;">Clique para editar este textbox...</p>
+      <div contenteditable="true" style="
+        background: ${selectedColor.bg};
+        border: 2px solid ${selectedColor.border};
+        border-radius: 12px;
+        padding: 16px;
+        margin: 16px 0;
+        min-height: 80px;
+        box-shadow: 0 4px 12px ${selectedColor.shadow}, 0 2px 4px rgba(0,0,0,0.08);
+        font-family: 'Comic Sans MS', 'Segoe Print', cursive;
+        font-size: 15px;
+        line-height: 1.6;
+        position: relative;
+        transform: rotate(-1deg);
+        transition: transform 0.2s;
+      " onmouseover="this.style.transform='rotate(0deg) scale(1.02)'" onmouseout="this.style.transform='rotate(-1deg)'">
+        <p style="margin: 0; color: #1f2937;">Clique para editar este post-it...</p>
       </div>
     `;
+    
     executeCommand('insertHTML', textboxHtml);
-    toast.success('Textbox adicionado!');
+    if (color) setPostItColor(color);
+    toast.success('Post-it adicionado!');
   };
 
   const handleExportPDF = async () => {
@@ -1391,18 +1471,49 @@ const TeacherAnnotationPage = () => {
                   >
                     <Underline className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleHighlight} 
-                    title="Destacar"
-                    className={cn(
-                      "rounded-lg hover:bg-yellow-100",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                    )}
-                  >
-                    <Highlighter className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Destacar"
+                        className={cn(
+                          "rounded-lg hover:bg-yellow-100",
+                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                        )}
+                      >
+                        <Highlighter className="h-4 w-4" style={{ color: highlightColor }} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel>Cor do Destaque</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleHighlight('#fef08a')}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded bg-yellow-200 border border-yellow-400" />
+                          <span>Amarelo</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleHighlight('#86efac')}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded bg-green-200 border border-green-400" />
+                          <span>Verde</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleHighlight('#fca5a5')}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded bg-red-200 border border-red-400" />
+                          <span>Vermelho</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleHighlight('#93c5fd')}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded bg-blue-200 border border-blue-400" />
+                          <span>Azul</span>
+                        </div>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 {/* Grupo 2: Listas */}
@@ -1440,25 +1551,61 @@ const TeacherAnnotationPage = () => {
                     size="sm" 
                     onClick={handleImageUpload} 
                     title="Inserir Imagem"
+                    disabled={isUploadingImage}
                     className={cn(
                       "rounded-lg",
                       isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
                     )}
                   >
-                    <ImagePlus className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleAddTextbox} 
-                    title="Adicionar Textbox"
-                    className={cn(
-                      "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                    {isUploadingImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="h-4 w-4" />
                     )}
-                  >
-                    <Type className="h-4 w-4" />
                   </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Adicionar Post-it"
+                        className={cn(
+                          "rounded-lg",
+                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                        )}
+                      >
+                        <Type className="h-4 w-4" style={{ color: postItColor }} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel>Cor do Post-it</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleAddTextbox('#fef08a')}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded bg-yellow-200 border-2 border-yellow-400" />
+                          <span>Amarelo</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAddTextbox('#fbcfe8')}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded bg-pink-200 border-2 border-pink-400" />
+                          <span>Rosa</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAddTextbox('#86efac')}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded bg-green-200 border-2 border-green-400" />
+                          <span>Verde</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAddTextbox('#93c5fd')}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded bg-blue-200 border-2 border-blue-400" />
+                          <span>Azul</span>
+                        </div>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 {/* Grupo 4: Undo/Redo */}
