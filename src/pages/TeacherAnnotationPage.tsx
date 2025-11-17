@@ -117,15 +117,18 @@ const TeacherAnnotationPage = () => {
             // Não é JSON estruturado, continuar com HTML normal
           }
           
-          setTimeout(() => {
-            if (editorRef.current && data.content) {
-              editorRef.current.innerHTML = data.content;
-              setContent(data.content);
-              
-              setHistory([data.content]);
-              setHistoryIndex(0);
-            }
-          }, 100);
+      setTimeout(() => {
+        if (editorRef.current && data.content) {
+          editorRef.current.innerHTML = data.content;
+          setContent(data.content);
+          
+          setHistory([data.content]);
+          setHistoryIndex(0);
+          
+          // Auto-focus editor after content loads
+          focusEditor();
+        }
+      }, 100);
         }
       } catch (error) {
         console.error('Unexpected error:', error);
@@ -357,6 +360,40 @@ const TeacherAnnotationPage = () => {
       saveToHistory(newContent);
     }
   }, [historyIndex, history]);
+
+  const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
+
+  const updateActiveFormats = useCallback(() => {
+    const formats = new Set<string>();
+    
+    if (document.queryCommandState('bold')) formats.add('bold');
+    if (document.queryCommandState('italic')) formats.add('italic');
+    if (document.queryCommandState('underline')) formats.add('underline');
+    
+    setActiveFormats(formats);
+  }, []);
+
+  const focusEditor = useCallback(() => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+      
+      // Place cursor at end of content if there's existing content
+      const range = document.createRange();
+      const selection = window.getSelection();
+      
+      if (editorRef.current.childNodes.length > 0) {
+        const lastChild = editorRef.current.lastChild;
+        range.setStartAfter(lastChild!);
+        range.collapse(true);
+      } else {
+        range.selectNodeContents(editorRef.current);
+        range.collapse(false);
+      }
+      
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+  }, []);
 
   const handleSave = async () => {
     if (!user) {
@@ -1090,6 +1127,7 @@ const TeacherAnnotationPage = () => {
     if (editorRef.current && !isUndoRedoAction) {
       const newContent = editorRef.current.innerHTML;
       setContent(newContent);
+      updateActiveFormats();
       
       // Clear preAI content when user manually edits
       if (preAIContent) setPreAIContent(null);
@@ -1399,11 +1437,12 @@ const TeacherAnnotationPage = () => {
                     return (
                       <div
                     ref={editorRef}
-                    contentEditable
+                    contentEditable={true}
                     suppressContentEditableWarning={true}
                     onInput={handleInput}
+                    onClick={focusEditor}
                     className={cn(
-                      'min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg',
+                      'min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg cursor-text',
                       'focus:outline-none focus:ring-2 focus:ring-primary/20',
                       'prose prose-lg max-w-none',
                       '[&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-gray-800 [&_h2]:mb-4',
@@ -1442,7 +1481,8 @@ const TeacherAnnotationPage = () => {
                     title="Negrito"
                     className={cn(
                       "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
+                      activeFormats.has('bold') && "bg-blue-100 text-blue-600"
                     )}
                   >
                     <Bold className="h-4 w-4" />
@@ -1454,7 +1494,8 @@ const TeacherAnnotationPage = () => {
                     title="Itálico"
                     className={cn(
                       "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
+                      activeFormats.has('italic') && "bg-blue-100 text-blue-600"
                     )}
                   >
                     <Italic className="h-4 w-4" />
@@ -1466,7 +1507,8 @@ const TeacherAnnotationPage = () => {
                     title="Sublinhado"
                     className={cn(
                       "rounded-lg",
-                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
+                      isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
+                      activeFormats.has('underline') && "bg-blue-100 text-blue-600"
                     )}
                   >
                     <Underline className="h-4 w-4" />
@@ -1478,11 +1520,15 @@ const TeacherAnnotationPage = () => {
                         size="sm" 
                         title="Destacar"
                         className={cn(
-                          "rounded-lg hover:bg-yellow-100",
+                          "rounded-lg hover:bg-yellow-100 relative",
                           isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
                         )}
                       >
-                        <Highlighter className="h-4 w-4" style={{ color: highlightColor }} />
+                        <Highlighter className="h-4 w-4" />
+                        <div 
+                          className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white" 
+                          style={{ backgroundColor: highlightColor }}
+                        />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
