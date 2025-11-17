@@ -183,19 +183,19 @@ const TeacherProfileSettings = () => {
           <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
         
-        <div className="container mx-auto px-4 py-8 max-w-4xl relative z-10">
+        <div className="container mx-auto px-3 md:px-6 pb-8 max-w-4xl relative z-10">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 leading-tight">
               Meu Perfil
             </h1>
-            <p className="text-white/80 text-lg">
+            <p className="text-white/80 text-base md:text-lg leading-relaxed">
               Gerencie suas informações pessoais e configurações de conta
             </p>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="flex flex-col md:grid md:grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] h-fit">
                 <CardHeader>
                   <Skeleton className="h-6 w-32" />
@@ -205,7 +205,7 @@ const TeacherProfileSettings = () => {
                   <Skeleton className="h-10 w-full" />
                 </CardContent>
               </Card>
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-4 md:space-y-6">
                 <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)]">
                   <CardHeader>
                     <Skeleton className="h-6 w-48" />
@@ -218,7 +218,7 @@ const TeacherProfileSettings = () => {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="flex flex-col md:grid md:grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
               {/* Profile Picture */}
               <Card className="bg-white/75 bg-blend-overlay backdrop-blur-xl border-blue-100/30 shadow-[0_8px_30px_rgb(59,130,246,0.08)] h-fit">
                 <CardHeader>
