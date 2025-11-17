@@ -1533,7 +1533,7 @@ const TeacherAnnotationPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleAddTextbox}
+                onClick={() => handleAddTextbox()}
                 title="Adicionar caixa de texto"
               >
                 <Type className="h-4 w-4" />
