@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
@@ -57,6 +58,8 @@ const TeacherAnnotationPage = () => {
   // Structured content state
   const [structuredContent, setStructuredContent] = useState<any>(null);
   const [isStructuredMode, setIsStructuredMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [plaintextContent, setPlaintextContent] = useState("");
   
   // PDF Export state
   const [lastAIFormattedContent, setLastAIFormattedContent] = useState<string>('');
@@ -78,6 +81,60 @@ const TeacherAnnotationPage = () => {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   
   // View/Edit mode removed - editor is always editable like student version
+  
+  const isLoading = isLoadingAnnotation;
+
+  // Convert structured JSON to plaintext with markers
+  const structuredToPlaintext = (jsonData: any): string => {
+    if (!jsonData?.conteudo) return "";
+
+    let plaintext = "";
+    
+    jsonData.conteudo.forEach((block: any) => {
+      switch (block.tipo) {
+        case "titulo":
+          const prefix = "#".repeat(block.nivel || 1);
+          plaintext += `${prefix} ${block.conteudo}\n\n`;
+          break;
+        
+        case "paragrafo":
+          plaintext += `${block.conteudo}\n\n`;
+          break;
+        
+        case "callout":
+          const calloutType = (block.tipo_callout || "info").toUpperCase();
+          plaintext += `[CALLOUT-${calloutType}]\n${block.conteudo}\n[/CALLOUT-${calloutType}]\n\n`;
+          break;
+        
+        case "diagrama":
+          if (block.tipo_diagrama === "mermaid") {
+            plaintext += `[DIAGRAM-MERMAID]\n${block.codigo_diagrama}\n[/DIAGRAM-MERMAID]\n\n`;
+          }
+          break;
+        
+        case "grafico":
+          if (block.tipo_grafico === "barras") {
+            plaintext += `[CHART-BARS]\n${JSON.stringify(block.dados_grafico, null, 2)}\n[/CHART-BARS]\n\n`;
+          }
+          break;
+        
+        case "accordion":
+          plaintext += `[ACCORDION title="${block.titulo_acordeao}"]\n`;
+          block.itens_acordeao?.forEach((item: any) => {
+            plaintext += `## ${item.titulo}\n${item.conteudo}\n\n`;
+          });
+          plaintext += `[/ACCORDION]\n\n`;
+          break;
+        
+        default:
+          if (block.conteudo) {
+            plaintext += `${block.conteudo}\n\n`;
+          }
+      }
+    });
+
+    return plaintext.trim();
+  };
 
   useEffect(() => {
     const loadAnnotation = async () => {
@@ -383,6 +440,104 @@ const TeacherAnnotationPage = () => {
     return () => document.removeEventListener('selectionchange', handleSelectionChange);
   }, [updateActiveFormats]);
 
+  // Toggle edit mode for structured content
+  const handleToggleEditMode = () => {
+    if (!isStructuredMode) return;
+
+    if (!isEditMode) {
+      // Switching to edit mode: convert structured to plaintext
+      const plaintext = structuredToPlaintext(structuredContent);
+      setPlaintextContent(plaintext);
+      setIsEditMode(true);
+    } else {
+      // Switching back to view mode: cancel edits
+      setIsEditMode(false);
+    }
+  };
+
+  // Save plaintext edits by parsing with AI
+  const handleSaveStructuredEdits = async () => {
+    if (!isEditMode || !plaintextContent.trim()) {
+      toast.error("Conteúdo vazio", {
+        description: "Adicione conteúdo antes de salvar.",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      console.log('Parsing plaintext with AI...');
+      
+      const { data: parseData, error: parseError } = await supabase.functions.invoke(
+        'parse-teacher-annotation',
+        {
+          body: { plaintextContent }
+        }
+      );
+
+      if (parseError) {
+        console.error('Parse error:', parseError);
+        throw new Error(parseError.message || 'Failed to parse content');
+      }
+
+      if (!parseData?.structuredData) {
+        throw new Error('Invalid response from parser');
+      }
+
+      console.log('Successfully parsed to structured format');
+
+      // Update structured data
+      const newStructuredData = parseData.structuredData;
+      setStructuredContent(newStructuredData);
+      
+      // Save to database
+      const contentToSave = JSON.stringify(newStructuredData);
+
+      if (id) {
+        const { error: updateError } = await supabase
+          .from('annotations')
+          .update({
+            content: contentToSave,
+            title: title.trim() || 'Anotação sem título',
+            tags,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id)
+          .eq('user_id', user?.id);
+
+        if (updateError) throw updateError;
+      } else {
+        const { data: newAnnotation, error: insertError } = await supabase
+          .from('annotations')
+          .insert({
+            content: contentToSave,
+            title: title.trim() || 'Anotação sem título',
+            tags,
+            user_id: user?.id,
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        if (newAnnotation) {
+          navigate(`/teacher/annotation/${newAnnotation.id}`, { replace: true });
+        }
+      }
+
+      setIsEditMode(false);
+      toast.success("Salvo com sucesso", {
+        description: "Suas alterações foram salvas.",
+      });
+
+    } catch (error) {
+      console.error('Error saving structured edits:', error);
+      toast.error("Erro ao salvar", {
+        description: error instanceof Error ? error.message : "Não foi possível salvar as alterações.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) {
@@ -1542,16 +1697,94 @@ const TeacherAnnotationPage = () => {
           </CardHeader>
           
           <CardContent>
-            <div
-              ref={editorRef}
-              contentEditable
-              onInput={handleInput}
-              className="min-h-[500px] p-6 border-2 border-border rounded-lg focus:outline-none focus:border-primary bg-background prose prose-lg max-w-none"
-              style={{
-                whiteSpace: 'pre-wrap',
-                wordWrap: 'break-word',
-              }}
-            />
+            {/* Structured Content Display (View Mode) */}
+            {isStructuredMode && structuredContent && !isEditMode && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Visualizando conteúdo estruturado</p>
+                  <Button
+                    variant="outline"
+                    onClick={handleToggleEditMode}
+                    className="gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Editar conteúdo
+                  </Button>
+                </div>
+                <div className="bg-background rounded-lg border border-border p-6">
+                  <StructuredContentRenderer structuredData={structuredContent} />
+                </div>
+              </div>
+            )}
+
+            {/* Structured Content Edit Mode (Plaintext with Markers) */}
+            {isStructuredMode && isEditMode && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-2 p-4 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleToggleEditMode}
+                      disabled={isSaving}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleSaveStructuredEdits}
+                      disabled={isSaving}
+                      className="gap-2 bg-primary text-primary-foreground"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Salvando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          Salvar alterações
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Modo de edição com marcadores
+                  </div>
+                </div>
+
+                <div className="bg-muted/50 rounded-lg p-4 text-sm">
+                  <p className="font-medium mb-2">💡 Dica: Use marcadores especiais</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <code className="bg-background px-2 py-1 rounded">[CALLOUT-INFO]texto[/CALLOUT-INFO]</code>
+                    <code className="bg-background px-2 py-1 rounded">[POSTIT-YELLOW]nota[/POSTIT-YELLOW]</code>
+                    <code className="bg-background px-2 py-1 rounded">[COLOR-RED]texto[/COLOR-RED]</code>
+                    <code className="bg-background px-2 py-1 rounded"># Título 1, ## Título 2</code>
+                  </div>
+                </div>
+
+                <Textarea
+                  value={plaintextContent}
+                  onChange={(e) => setPlaintextContent(e.target.value)}
+                  className="min-h-[500px] font-mono text-sm"
+                  placeholder="Digite ou edite o conteúdo usando marcadores..."
+                />
+              </div>
+            )}
+
+            {/* Regular HTML Editor (non-structured content) */}
+            {!isStructuredMode && (
+              <div
+                ref={editorRef}
+                contentEditable
+                onInput={handleInput}
+                className="min-h-[500px] p-6 border-2 border-border rounded-lg focus:outline-none focus:border-primary bg-background prose prose-lg max-w-none"
+                style={{
+                  whiteSpace: 'pre-wrap',
+                  wordWrap: 'break-word',
+                }}
+              />
+            )}
           </CardContent>
         </Card>
         </div>
