@@ -1,4 +1,37 @@
 // Convert structured JSON content to marked plaintext for editing
+
+// Wrap long text at word boundaries (max 100 chars per line)
+const wrapText = (text: string, maxLength = 100): string => {
+  if (!text || text.length <= maxLength) return text;
+  
+  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+  const wrappedLines: string[] = [];
+  
+  sentences.forEach(sentence => {
+    const trimmed = sentence.trim();
+    if (trimmed.length <= maxLength) {
+      wrappedLines.push(trimmed);
+      return;
+    }
+    
+    const words = trimmed.split(' ');
+    let currentLine = '';
+    
+    words.forEach(word => {
+      if ((currentLine + ' ' + word).length > maxLength && currentLine) {
+        wrappedLines.push(currentLine.trim());
+        currentLine = word;
+      } else {
+        currentLine += (currentLine ? ' ' : '') + word;
+      }
+    });
+    
+    if (currentLine) wrappedLines.push(currentLine.trim());
+  });
+  
+  return wrappedLines.join('\n');
+};
+
 export const structuredToPlaintext = (structuredData: any): string => {
   if (!structuredData || !structuredData.conteudo) {
     return '';
@@ -31,7 +64,7 @@ export const structuredToPlaintext = (structuredData: any): string => {
         
       case 'paragrafo':
         const paraText = block.texto || block.conteudo || '';
-        blocks.push(`${paraText}\n`);
+        blocks.push(wrapText(paraText) + '\n');
         break;
         
       case 'lista':
