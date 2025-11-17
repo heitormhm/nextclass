@@ -777,17 +777,20 @@ const TeacherMyLectures = () => {
         {/* Section 3: Published Lectures */}
         <Card className="mb-8 bg-white/90 backdrop-blur-sm">
           <CardHeader>
-            <div className="flex flex-col gap-4">
-              {/* Row 1: Title */}
+            <div className={cn(
+              "flex gap-4",
+              isMobile ? "flex-col" : "flex-row items-center justify-between"
+            )}>
+              {/* Left Side: Title */}
               <CardTitle className="flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-purple-600" />
                 Aulas Publicadas
               </CardTitle>
               
-              {/* Row 2: Stats - Responsive Grid */}
+              {/* Right Side: Stats */}
               <div className={cn(
-                "grid gap-3",
-                isMobile ? "grid-cols-2" : "flex flex-wrap"
+                "flex gap-3",
+                isMobile ? "grid grid-cols-2" : "flex-row"
               )}>
                 {/* Lecture Count Button */}
                 {filteredLectures.length > 0 && (
@@ -876,9 +879,6 @@ const TeacherMyLectures = () => {
                             <Badge className="bg-purple-100 text-purple-700 border-purple-300">
                               {disciplina}
                             </Badge>
-                            <span className="text-xs text-slate-500">
-                              {lecturesList.length} {lecturesList.length === 1 ? 'aula' : 'aulas'}
-                            </span>
                           </div>
                         </div>
                         
