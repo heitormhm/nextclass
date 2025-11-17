@@ -7,7 +7,7 @@ import {
   Lightbulb, GraduationCap, ShieldCheck, Edit
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -77,8 +77,7 @@ const TeacherAnnotationPage = () => {
   const [postItColor, setPostItColor] = useState('#fef08a'); // Default yellow
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   
-  // View/Edit mode state
-  const [isEditMode, setIsEditMode] = useState(true);
+  // View/Edit mode removed - editor is always editable like student version
 
   useEffect(() => {
     const loadAnnotation = async () => {
@@ -1273,561 +1272,289 @@ const TeacherAnnotationPage = () => {
           <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
         </div>
 
-        {/* Fixed Header - REFATORADO */}
-        <div className="relative z-20 sticky top-0 bg-white/90 backdrop-blur-xl border-b shadow-sm">
-          <div className="container mx-auto px-4 py-3">
-            {/* Mobile layout */}
-            {isMobile ? (
-              <div className="space-y-3">
-                {/* Linha 1: Voltar + Título + Gerar IA */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigate('/teacher/annotations')}
-                    className="shrink-0"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                  
-                  <Input
-                    type="text"
-                    placeholder="Título da Anotação"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="flex-1 text-lg font-bold border-none focus-visible:ring-0 bg-transparent px-2"
-                  />
-                  
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={generateTitleWithAI}
-                    disabled={isGeneratingTitle || !content || !content.trim()}
-                    title="Gerar título automático com IA"
-                    className="shrink-0 hover:bg-blue-100 hover:text-blue-600 h-10 w-10"
-                  >
-                    {isGeneratingTitle ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    ) : (
-                      <Sparkles className="h-5 w-5 text-blue-600" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              // Desktop layout
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/teacher/annotations')}
-                  className="mr-4"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <div className="flex-1 flex items-center gap-3">
-                  <Input
-                    type="text"
-                    placeholder="Título da Anotação"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="text-2xl font-bold text-center border-none focus-visible:ring-0 bg-transparent"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={generateTitleWithAI}
-                    disabled={isGeneratingTitle || !content || !content.trim()}
-                    title="Gerar título automático com IA"
-                    className="shrink-0 hover:bg-blue-100 hover:text-blue-600"
-                  >
-                    {isGeneratingTitle ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    ) : (
-                      <Sparkles className="h-5 w-5 text-blue-600" />
-                    )}
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleSaveAndExit}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-                    disabled={isSaving}
-                  >
-                    {isSaving ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
-                    ) : (
-                      <><Save className="h-4 w-4 mr-2" />Salvar e Sair</>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Main Content */}
-        <div className="relative z-10 container mx-auto px-4 py-6">
-          <div className="max-w-5xl mx-auto">
-            {/* Mobile AI Actions Button */}
-            {isMobile && (
-              <div className="mb-4 px-2">
-                <Button
-                  onClick={() => setShowAIActionsSheet(true)}
-                  disabled={isProcessingAI || !content?.trim()}
-                  className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-pink-400 to-pink-600 hover:from-pink-500 hover:to-pink-700 text-white disabled:opacity-50"
+        <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <Card className="shadow-lg">
+          <CardHeader className="space-y-4">
+            {/* Back Button and Actions Row */}
+            <div className="flex items-center justify-between">
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/teacher/annotations')}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleUndo}
+                  disabled={historyIndex <= 0}
                 >
-                  {isProcessingAI ? (
+                  <Undo className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleRedo}
+                  disabled={historyIndex >= history.length - 1}
+                >
+                  <Redo className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleVoiceToggle}
+                  className={cn(isRecording && "bg-red-100 text-red-600")}
+                >
+                  <Mic className="h-4 w-4" />
+                  {isRecording && <span className="ml-1">Gravando...</span>}
+                </Button>
+                <Button 
+                  onClick={handleSaveAndExit}
+                  disabled={isSaving}
+                  className="gap-2"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Salvar e Sair
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Title Input Row */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Título da anotação..."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="flex-1 text-lg font-semibold"
+              />
+              <Button
+                variant="outline"
+                onClick={generateTitleWithAI}
+                disabled={isGeneratingTitle || !content.trim()}
+              >
+                {isGeneratingTitle ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                Gerar Título
+              </Button>
+            </div>
+
+            {/* Tags Row */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="gap-1">
+                    <Tag className="h-3 w-3" />
+                    {tag}
+                    <button
+                      onClick={() => handleRemoveTag(tag)}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Adicionar tag..."
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTag();
+                    }
+                  }}
+                  className="flex-1"
+                />
+                <Button onClick={handleAddTag} variant="outline" size="sm">
+                  Adicionar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={generateTagsWithAI}
+                  disabled={isGeneratingTags || !content.trim()}
+                >
+                  {isGeneratingTags ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Sparkles className="h-4 w-4" />
                   )}
-                  <span className="font-medium text-sm">Formatar com IA</span>
                 </Button>
               </div>
-            )}
-            
-            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-xl">
-              {/* Toolbar - Always visible, inside Card */}
-              <div className="border-b p-4 bg-white">
-                <div className="flex flex-wrap items-center gap-1.5 justify-center">
-                  {/* View/Edit Mode Toggle - Always Visible */}
-                  <div className="flex gap-1 items-center border-r pr-2">
-                    <Button 
-                      variant={isEditMode ? "default" : "ghost"}
-                      size="sm" 
-                      onClick={() => setIsEditMode(!isEditMode)} 
-                      title={isEditMode ? "Modo Visualização" : "Modo Edição"}
-                      className={cn(
-                        "rounded-lg",
-                        isMobile ? "h-10 px-3 min-h-[40px]" : "h-9 px-3",
-                        isEditMode 
-                          ? "bg-blue-500 text-white hover:bg-blue-600" 
-                          : "bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50"
-                      )}
+              {suggestedTags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {suggestedTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-secondary"
+                      onClick={() => {
+                        if (!tags.includes(tag)) {
+                          setTags([...tags, tag]);
+                          setSuggestedTags(suggestedTags.filter(t => t !== tag));
+                        }
+                      }}
                     >
-                      {isEditMode ? (
-                        <>
-                          <Edit className="h-4 w-4 mr-1.5" />
-                          {!isMobile && <span className="text-xs font-medium">Editando</span>}
-                        </>
-                      ) : (
-                        <>
-                          <FileText className="h-4 w-4 mr-1.5" />
-                          {!isMobile && <span className="text-xs font-medium">Visualizando</span>}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Formatting buttons - Only show in edit mode */}
-                  {isEditMode && (
-                    <>
-                      {/* Grupo 1: Formatação */}
-                      <div className="flex gap-1 items-center border-r pr-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => executeCommand('bold')} 
-                        title="Negrito"
-                        className={cn(
-                          "rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
-                          activeFormats.has('bold') && "bg-blue-100 text-blue-600"
-                        )}
-                      >
-                        <Bold className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => executeCommand('italic')} 
-                        title="Itálico"
-                        className={cn(
-                          "rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
-                          activeFormats.has('italic') && "bg-blue-100 text-blue-600"
-                        )}
-                      >
-                        <Italic className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => executeCommand('underline')} 
-                        title="Sublinhado"
-                        className={cn(
-                          "rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
-                          activeFormats.has('underline') && "bg-blue-100 text-blue-600"
-                        )}
-                      >
-                        <Underline className="h-4 w-4" />
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            title="Destacar texto"
-                            className={cn(
-                              "rounded-lg",
-                              isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                            )}
-                          >
-                            <Highlighter className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56">
-                          <DropdownMenuLabel>Cor do destaque</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <div className="grid grid-cols-4 gap-2 p-2">
-                            {[
-                              { color: '#fef08a', name: 'Amarelo' },
-                              { color: '#86efac', name: 'Verde' },
-                              { color: '#fca5a5', name: 'Vermelho' },
-                              { color: '#93c5fd', name: 'Azul' },
-                              { color: '#e9d5ff', name: 'Roxo' },
-                              { color: '#fdba74', name: 'Laranja' },
-                              { color: '#fda4af', name: 'Rosa' },
-                              { color: '#d1d5db', name: 'Cinza' },
-                            ].map(({ color, name }) => (
-                              <button
-                                key={color}
-                                onClick={() => {
-                                  setHighlightColor(color);
-                                  handleHighlight(color);
-                                }}
-                                className="w-8 h-8 rounded border-2 border-gray-300 hover:border-gray-500 transition-colors"
-                                style={{ backgroundColor: color }}
-                                title={name}
-                              />
-                            ))}
-                          </div>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-
-                    {/* Grupo 2: Listas */}
-                    <div className="flex gap-1 items-center border-r pr-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => executeCommand('insertUnorderedList')} 
-                        title="Lista com marcadores"
-                        className={cn(
-                          "rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                        )}
-                      >
-                        <List className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => executeCommand('insertOrderedList')} 
-                        title="Lista numerada"
-                        className={cn(
-                          "rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                        )}
-                      >
-                        <ListOrdered className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Grupo 3: Mídias e Recursos */}
-                    <div className="flex gap-1 items-center border-r pr-2">
-                      <label htmlFor="image-upload">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          title="Inserir imagem"
-                          className={cn(
-                            "rounded-lg cursor-pointer",
-                            isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                          )}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            document.getElementById('image-upload')?.click();
-                          }}
-                          disabled={isUploadingImage}
-                        >
-                          {isUploadingImage ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <ImagePlus className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </label>
-                      <input
-                        id="image-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleImageUpload}
-                        disabled={isUploadingImage}
-                      />
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            title="Adicionar post-it"
-                            className={cn(
-                              "rounded-lg",
-                              isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                            )}
-                          >
-                            <Type className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56">
-                          <DropdownMenuLabel>Cor do post-it</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <div className="grid grid-cols-4 gap-2 p-2">
-                            {[
-                              { color: '#fef08a', name: 'Amarelo' },
-                              { color: '#86efac', name: 'Verde' },
-                              { color: '#fca5a5', name: 'Vermelho' },
-                              { color: '#93c5fd', name: 'Azul' },
-                              { color: '#e9d5ff', name: 'Roxo' },
-                              { color: '#fdba74', name: 'Laranja' },
-                              { color: '#fda4af', name: 'Rosa' },
-                              { color: '#d1d5db', name: 'Cinza' },
-                            ].map(({ color, name }) => (
-                              <button
-                                key={color}
-                                onClick={() => {
-                                  setPostItColor(color);
-                                  handleAddTextbox(color);
-                                }}
-                                className="w-8 h-8 rounded border-2 border-gray-300 hover:border-gray-500 transition-colors"
-                                style={{ backgroundColor: color }}
-                                title={name}
-                              />
-                            ))}
-                          </div>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        title={isRecording ? "Parar gravação" : "Transcrever voz"}
-                        onClick={handleVoiceToggle}
-                        className={cn(
-                          "rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9",
-                          isRecording && "bg-red-100 text-red-600 animate-pulse"
-                        )}
-                      >
-                        <Mic className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Grupo 4: Undo/Redo */}
-                    <div className="flex gap-1 items-center">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleUndo} 
-                        disabled={historyIndex <= 0}
-                        title="Desfazer"
-                        className={cn(
-                          "rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                        )}
-                      >
-                        <Undo className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleRedo} 
-                        disabled={historyIndex >= history.length - 1}
-                        title="Refazer"
-                        className={cn(
-                          "rounded-lg",
-                          isMobile ? "h-10 w-10 min-h-[40px] min-w-[40px]" : "h-9 w-9"
-                        )}
-                      >
-                        <Redo className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    </>
-                  )}
+                      + {tag}
+                    </Badge>
+                  ))}
                 </div>
-              </div>
-              <CardContent className="p-8">
-                {isStructuredMode && structuredContent ? (
-                  <div className="structured-content-wrapper">
-                    <div className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 rounded-lg bg-gradient-to-br from-purple-50/50 to-blue-50/50">
-                      <StructuredContentRenderer structuredData={structuredContent} />
-                    </div>
-                  </div>
-                ) : isEditMode ? (
-                  <div
-                    ref={editorRef}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    onInput={handleInput}
-                    className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white prose prose-lg max-w-none"
-                    style={{
-                      whiteSpace: 'pre-wrap',
-                      wordWrap: 'break-word',
-                      lineHeight: '1.8',
-                      fontSize: '17px'
-                    }}
-                  />
-                ) : (
-                  <div
-                    className="min-h-[700px] max-h-[700px] overflow-y-auto p-8 border-2 border-gray-200 rounded-lg bg-gray-50 prose prose-lg max-w-none"
-                    style={{
-                      whiteSpace: 'pre-wrap',
-                      wordWrap: 'break-word',
-                      lineHeight: '1.8',
-                      fontSize: '17px'
-                    }}
-                    dangerouslySetInnerHTML={{ __html: content }}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              )}
+            </div>
 
-        {/* Toolbar moved inside Card - removed floating toolbar */}
+            {/* AI Actions Row */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Ações de IA
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>Melhorar Texto</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleAIAction('grammar')}>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Corrigir Gramática
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAIAction('clarity')}>
+                  <Lightbulb className="h-4 w-4 mr-2" />
+                  Melhorar Clareza
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Gerar Conteúdo</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleAIAction('expand')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Expandir Conteúdo
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAIAction('summarize')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Resumir
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Ferramentas Pedagógicas</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleAIAction('lesson-plan')}>
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  Gerar Plano de Aula
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAIAction('activity')}>
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Gerar Atividade
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAIAction('material')}>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Gerar Material Didático
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-      {/* Sheet for mobile AI actions */}
-      <Sheet open={showAIActionsSheet} onOpenChange={setShowAIActionsSheet}>
-        <SheetContent side="bottom" className="h-[75vh] rounded-t-3xl overflow-hidden flex flex-col">
-          <SheetHeader className="pb-4 flex-shrink-0">
-            <SheetTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="h-5 w-5 text-pink-500" />
-              Assistente IA Mia
-            </SheetTitle>
-          </SheetHeader>
-          
-          <div className="flex-1 overflow-y-auto space-y-3 py-4 px-6">
-            <Button
-              onClick={() => {
-                handleAIAction('improve_grammar');
-                setShowAIActionsSheet(false);
-              }}
-              className="w-full justify-start h-14 text-base"
-              variant="outline"
-            >
-              <CheckCircle2 className="h-5 w-5 mr-3 text-green-600" />
-              Corrigir erros gramaticais
-            </Button>
-                  
-            <Button
-              onClick={() => {
-                handleAIAction('fact_check');
-                setShowAIActionsSheet(false);
-              }}
-              className="w-full justify-start h-14 text-base"
-              variant="outline"
-            >
-              <ShieldCheck className="h-5 w-5 mr-3 text-blue-600" />
-              Fact Checking
-            </Button>
-            
-            <div className="border-t my-4 pt-4">
-              <p className="text-sm font-semibold text-gray-700 mb-3">
-                      ✏️ EDIÇÃO DE CONTEÚDO
-                    </p>
-                    
-                    <Button
-                      onClick={() => {
-                        handleAIAction('expand');
-                        setShowAIActionsSheet(false);
-                      }}
-                      className="w-full justify-start h-14 text-base mb-2"
-                      variant="outline"
-                    >
-                      <Sparkles className="h-5 w-5 mr-3 text-blue-600" />
-                      Expandir conteúdo
-              </Button>
-              
+            {/* Formatting Toolbar */}
+            <div className="flex flex-wrap gap-2 pt-2 border-t">
               <Button
-                      onClick={() => {
-                        handleAIAction('summarize');
-                        setShowAIActionsSheet(false);
-                      }}
-                      className="w-full justify-start h-14 text-base"
-                      variant="outline"
-                    >
-                      <FileText className="h-5 w-5 mr-3 text-gray-600" />
-                      Resumir conteúdo
-                    </Button>
-                  </div>
-                  
-                  <div className="border-t my-4 pt-4">
-                    <p className="text-sm font-semibold text-gray-700 mb-3">
-                🎓 FERRAMENTAS PEDAGÓGICAS
-              </p>
-              
-              <Button
-                onClick={() => {
-                  handleAIAction('format_lesson_plan');
-                  setShowAIActionsSheet(false);
-                }}
-                className="w-full justify-start h-12 text-base mb-2"
                 variant="outline"
+                size="sm"
+                onClick={() => executeCommand('bold')}
+                title="Negrito"
               >
-                      <BookOpen className="h-5 w-5 mr-3 text-blue-600" />
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">Gerar Plano de Aula</span>
-                        {!isMobile && (
-                          <span className="text-xs text-muted-foreground">
-                            Unidade de Aprendizagem Profunda e Estruturada
-                          </span>
-                        )}
-                      </div>
+                <Bold className="h-4 w-4" />
               </Button>
-              
               <Button
-                      onClick={() => {
-                        handleAIAction('generate_activity');
-                        setShowAIActionsSheet(false);
-                      }}
-                      className="w-full justify-start h-12 text-base mb-2"
-                      variant="outline"
-                    >
-                      <Lightbulb className="h-5 w-5 mr-3 text-orange-600" />
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">Gerar Atividade Avaliativa</span>
-                        {!isMobile && (
-                          <span className="text-xs text-muted-foreground">
-                            10 questões objetivas + 10 abertas com rubricas
-                          </span>
-                        )}
-                      </div>
-                    </Button>
-                    
-                    <Button
-                      onClick={() => {
-                        handleAIAction('improve_didactic');
-                        setShowAIActionsSheet(false);
-                      }}
-                      className="w-full justify-start h-12 text-base"
-                      variant="outline"
-                    >
-                      <GraduationCap className="h-5 w-5 mr-3 text-purple-600" />
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">Gerar Material Educativo</span>
-                        {!isMobile && (
-                          <span className="text-xs text-muted-foreground">
-                            Conteúdo de Apoio Didático para seus Alunos
-                          </span>
-                        )}
-                      </div>
+                variant="outline"
+                size="sm"
+                onClick={() => executeCommand('italic')}
+                title="Itálico"
+              >
+                <Italic className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => executeCommand('underline')}
+                title="Sublinhado"
+              >
+                <Underline className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleHighlight()}
+                title="Destacar"
+              >
+                <Highlighter className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => executeCommand('insertUnorderedList')}
+                title="Lista com marcadores"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => executeCommand('insertOrderedList')}
+                title="Lista numerada"
+              >
+                <ListOrdered className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => document.getElementById('image-upload')?.click()}
+                title="Adicionar imagem"
+              >
+                <ImagePlus className="h-4 w-4" />
+              </Button>
+              <input
+                id="image-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddTextbox}
+                title="Adicionar caixa de texto"
+              >
+                <Type className="h-4 w-4" />
               </Button>
             </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+          </CardHeader>
+          
+          <CardContent>
+            <div
+              ref={editorRef}
+              contentEditable
+              onInput={handleInput}
+              className="min-h-[500px] p-6 border-2 border-border rounded-lg focus:outline-none focus:border-primary bg-background prose prose-lg max-w-none"
+              style={{
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+              }}
+            />
+          </CardContent>
+        </Card>
+        </div>
 
         {/* Floating PDF Export Button */}
         {showPDFExportButton && !isStructuredMode && (
