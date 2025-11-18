@@ -283,9 +283,11 @@ const TeacherAnnotationPage = () => {
 
         {/* Main Content */}
         <div className="relative z-10 container mx-auto px-4 py-6 max-w-7xl">
-          {/* Semi-transparent card to show gradient behind */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 p-6 space-y-6">
-              {/* Header with title and tags */}
+          {/* Enhanced frosted glass card with better opacity and visual hierarchy */}
+          <div className="bg-white/40 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-white/30 overflow-hidden">
+            
+            {/* Header Section - Distinguished with subtle background */}
+            <div className="bg-white/50 backdrop-blur-sm border-b-2 border-white/40 p-6 space-y-4">
               <AnnotationHeader
                 title={title}
                 setTitle={setTitle}
@@ -296,8 +298,10 @@ const TeacherAnnotationPage = () => {
                 isGeneratingTitle={aiHooks.isGeneratingTitle}
                 isGeneratingTags={aiHooks.isGeneratingTags}
               />
+            </div>
 
-              {/* Editor Toolbar */}
+            {/* Toolbar Section - Clearly separated with border */}
+            <div className="border-b-2 border-white/30 bg-white/30 backdrop-blur-sm p-4">
               <EditorToolbar
                 editor={editor}
                 isListening={voiceHooks.isListening}
@@ -307,15 +311,18 @@ const TeacherAnnotationPage = () => {
                 onAIAction={handleAIAction}
                 isSaving={isSaving}
               />
+            </div>
 
-              {/* Tiptap Editor */}
+            {/* Editor Content Section - Pure white background for optimal readability */}
+            <div className="bg-white p-8 min-h-[500px]">
               <PedagogicalEditor
                 content={content}
                 onChange={setContent}
                 editable={true}
                 onEditorReady={setEditor}
-                className="min-h-[500px]"
+                className="prose prose-lg max-w-none"
               />
+            </div>
           </div>
           
           {/* Post-It Manager - Floating comments */}
@@ -325,10 +332,10 @@ const TeacherAnnotationPage = () => {
             onDelete={handleDeletePostIt}
           />
 
-          {/* PHASE 7: AI Actions Panel - Separate floating panel */}
-          <AIActionsPanel onAction={handleAIAction} />
+            {/* PHASE 7: AI Actions Panel - Separate floating panel */}
+            <AIActionsPanel onAction={handleAIAction} />
+          </div>
         </div>
-      </div>
       {/* End of gradient background container */}
 
       {/* Mobile Fixed Footer */}
