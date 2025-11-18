@@ -363,3 +363,5 @@ const TeacherAnnotationPage = () => {
     </MainLayout>
   );
 };
+
+export default TeacherAnnotationPage;
