@@ -10,8 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 interface CalloutGalleryProps {
-  editor: Editor;
-  onSelect: () => void;
+  editor?: Editor;
+  onSelect: (type: string) => void;
 }
 
 const calloutTypes = [
@@ -146,10 +146,9 @@ const calloutTypes = [
   },
 ];
 
-export const CalloutGallery: React.FC<CalloutGalleryProps> = ({ editor, onSelect }) => {
+export const CalloutGallery: React.FC<CalloutGalleryProps> = ({ onSelect }) => {
   const handleInsert = (type: string) => {
-    editor.chain().focus().setCalloutBox({ type }).run();
-    onSelect();
+    onSelect(type);
   };
 
   const categories = [
@@ -174,7 +173,7 @@ export const CalloutGallery: React.FC<CalloutGalleryProps> = ({ editor, onSelect
                 <Card
                   key={callout.type}
                   className={cn(
-                    'p-4 cursor-pointer transition-all border-2',
+                    'p-4 cursor-pointer transition-all duration-200 hover:shadow-lg border-2',
                     callout.bgClass
                   )}
                   onClick={() => handleInsert(callout.type)}
