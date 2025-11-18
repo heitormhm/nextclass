@@ -132,6 +132,25 @@ const calloutConfig = {
   },
 };
 
+// PHASE 6: Emoji mapping for all callout types
+const calloutEmojis: Record<string, string> = {
+  info: 'ℹ️',
+  warning: '⚠️',
+  success: '✅',
+  error: '❌',
+  tip: '💡',
+  concept: '📖',
+  question: '🤔',
+  example: '🔬',
+  summary: '📊',
+  professional: '🏭',
+  exercise: '✍️',
+  deep: '🔍',
+  quote: '🎓',
+  connection: '🔗',
+  ai: '✨',
+};
+
 export const CalloutBoxComponent: React.FC<NodeViewProps> = ({
   node,
   updateAttributes,
@@ -139,6 +158,7 @@ export const CalloutBoxComponent: React.FC<NodeViewProps> = ({
 }) => {
   const config = calloutConfig[node.attrs.type as keyof typeof calloutConfig] || calloutConfig.info;
   const Icon = config.icon;
+  const emoji = calloutEmojis[node.attrs.type] || 'ℹ️';
 
   return (
     <NodeViewWrapper
@@ -150,7 +170,9 @@ export const CalloutBoxComponent: React.FC<NodeViewProps> = ({
       )}
     >
       <div className="flex gap-3">
-        <div className="flex-shrink-0 mt-0.5">
+        {/* PHASE 6: Render emoji BEFORE icon */}
+        <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+          <span className="text-2xl leading-none">{emoji}</span>
           <Icon className={cn('h-5 w-5', config.iconClass)} />
         </div>
         <div className="flex-1 min-w-0">

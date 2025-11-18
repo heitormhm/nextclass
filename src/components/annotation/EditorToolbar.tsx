@@ -8,13 +8,11 @@ import { Editor } from '@tiptap/react';
 import { 
   Bold, Italic, List, ListOrdered, 
   Highlighter, MessageSquare, ImageIcon, 
-  Mic, Undo, Redo, Save, FileDown,
-  Sparkles, BookOpen, Lightbulb, GraduationCap,
-  Plus, Eye, EyeOff, Palette, Heading1, Heading2, 
-  Heading3, Type
+  Mic, Undo, Redo, Save, FileDown, Type, Palette
 } from 'lucide-react';
 import { CalloutGallery } from './CalloutGallery';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +21,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
@@ -59,18 +56,22 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onToggleFocusMode,
 }) => {
   const isMobile = useIsMobile();
-  const [showAISheet, setShowAISheet] = React.useState(false);
   const [showCalloutGallery, setShowCalloutGallery] = React.useState(false);
+  
+  // PHASE 3: Font size state
+  const [fontSize, setFontSize] = React.useState(16);
 
   if (!editor) return null;
 
-  const handleAIAction = (action: string) => {
-    onAIAction(action);
-    setShowAISheet(false);
-  };
-
   const handleInsertCallout = () => {
     setShowCalloutGallery(true);
+  };
+
+  // PHASE 3: Font size handler
+  const handleFontSizeChange = (value: number[]) => {
+    const size = value[0];
+    setFontSize(size);
+    editor.chain().focus().setMark('textStyle', { fontSize: `${size}px` }).run();
   };
 
   return (
@@ -137,74 +138,26 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </Tooltip>
           </div>
 
-          {/* Heading/Text Size Group - Phase 3 */}
-          <div className="flex items-center gap-1 border-r border-border pr-2">
+          {/* PHASE 3: Font Size Slider - Replaces H1/H2/H3 buttons */}
+          <div className="flex items-center gap-2 border-r border-border pr-2 min-w-[180px]">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                  className={cn(
-                    'h-11 w-11',
-                    editor.isActive('heading', { level: 1 }) && 'bg-primary text-primary-foreground'
-                  )}
-                >
-                  <Heading1 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Type className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Slider
+                    value={[fontSize]}
+                    onValueChange={handleFontSizeChange}
+                    min={12}
+                    max={48}
+                    step={2}
+                    className="w-24"
+                  />
+                  <span className="text-xs text-muted-foreground w-10 text-center shrink-0">
+                    {fontSize}px
+                  </span>
+                </div>
               </TooltipTrigger>
-              <TooltipContent>Título 1 (Ctrl+Alt+1)</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                  className={cn(
-                    'h-11 w-11',
-                    editor.isActive('heading', { level: 2 }) && 'bg-primary text-primary-foreground'
-                  )}
-                >
-                  <Heading2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Título 2 (Ctrl+Alt+2)</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                  className={cn(
-                    'h-11 w-11',
-                    editor.isActive('heading', { level: 3 }) && 'bg-primary text-primary-foreground'
-                  )}
-                >
-                  <Heading3 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Título 3 (Ctrl+Alt+3)</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => editor.chain().focus().setParagraph().run()}
-                  className={cn(
-                    'h-11 w-11',
-                    editor.isActive('paragraph') && 'bg-primary text-primary-foreground'
-                  )}
-                >
-                  <Type className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Parágrafo Normal</TooltipContent>
+              <TooltipContent>Tamanho do Texto (12-48px)</TooltipContent>
             </Tooltip>
           </div>
 
@@ -387,15 +340,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             <Mic className="h-4 w-4" />
           </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowAISheet(true)}
-            className="h-10 px-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700"
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            IA
-          </Button>
+          {/* PHASE 7: AI actions removed - now in separate AIActionsPanel */}
 
           <Button
             variant="ghost"
@@ -427,56 +372,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       </div>
       </TooltipProvider>
 
-      {/* AI Actions Sheet (Mobile) */}
-      <Sheet open={showAISheet} onOpenChange={setShowAISheet}>
-        <SheetContent className="h-[75vh] rounded-t-3xl flex flex-col">
-          <SheetHeader className="pb-4 flex-shrink-0">
-            <SheetTitle>Ações com IA</SheetTitle>
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto space-y-3 py-4 px-6">
-            <Button
-              variant="outline"
-              className="w-full justify-start h-12 text-base"
-              onClick={() => handleAIAction('grammar')}
-            >
-              <span className="mr-3">✍️</span>
-              Corrigir erros gramaticais
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start h-12 text-base"
-              onClick={() => handleAIAction('expand')}
-            >
-              <span className="mr-3">📖</span>
-              Expandir conteúdo selecionado
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start h-12 text-base"
-              onClick={() => handleAIAction('summarize')}
-            >
-              <span className="mr-3">📝</span>
-              Resumir conteúdo
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start h-12 text-base"
-              onClick={() => handleAIAction('lesson_plan')}
-            >
-              <BookOpen className="h-5 w-5 mr-3 text-blue-600" />
-              Gerar Plano de Aula
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start h-12 text-base"
-              onClick={() => handleAIAction('activity')}
-            >
-              <Lightbulb className="h-5 w-5 mr-3 text-orange-600" />
-              Gerar Atividade Avaliativa
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* PHASE 7: AI Actions Sheet removed - now in separate AIActionsPanel component */}
 
       {/* Phase 5C: Rich Callout Gallery Dialog */}
       <Dialog open={showCalloutGallery} onOpenChange={setShowCalloutGallery}>

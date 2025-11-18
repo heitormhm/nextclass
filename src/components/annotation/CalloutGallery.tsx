@@ -161,7 +161,7 @@ export const CalloutGallery: React.FC<CalloutGalleryProps> = ({ editor, onSelect
   ];
 
   return (
-    <ScrollArea className="h-[500px] pr-4">
+    <div className="h-[500px] overflow-y-auto pr-4">
       <div className="space-y-6">
         {categories.map(category => (
           <div key={category.id}>
@@ -195,6 +195,6 @@ export const CalloutGallery: React.FC<CalloutGalleryProps> = ({ editor, onSelect
           </div>
         ))}
       </div>
-    </ScrollArea>
+    </div>
   );
 };

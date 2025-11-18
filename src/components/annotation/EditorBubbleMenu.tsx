@@ -8,13 +8,14 @@ import { Editor } from '@tiptap/react';
 import { 
   Bold, Italic, Underline, Highlighter, 
   MessageSquare, Image as ImageIcon,
-  ListOrdered, List, Palette, X,
-  Heading1, Heading2, Heading3, Type
+  ListOrdered, List, Palette, X, Undo, Redo, Type
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { CalloutGallery } from './CalloutGallery';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +49,10 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [showCalloutGallery, setShowCalloutGallery] = useState(false);
+  
+  // PHASE 3: Font size state
+  const [fontSize, setFontSize] = useState(16);
 
   if (!editor) return null;
 
@@ -110,6 +115,13 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
     }
   };
 
+  // PHASE 3: Font size handler
+  const handleFontSizeChange = (value: number[]) => {
+    const size = value[0];
+    setFontSize(size);
+    editor.chain().focus().setMark('textStyle', { fontSize: `${size}px` }).run();
+  };
+
   return (
     <>
       <div className="flex items-center gap-1 bg-background/95 backdrop-blur-xl border border-border rounded-lg shadow-lg p-1">
@@ -152,58 +164,21 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
 
         <div className="w-px h-6 bg-border mx-1" />
 
-        {/* Heading Controls - Phase 3 */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={cn(
-            'h-8 w-8 p-0',
-            editor.isActive('heading', { level: 1 }) && 'bg-primary text-primary-foreground'
-          )}
-          title="Título 1"
-        >
-          <Heading1 className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={cn(
-            'h-8 w-8 p-0',
-            editor.isActive('heading', { level: 2 }) && 'bg-primary text-primary-foreground'
-          )}
-          title="Título 2"
-        >
-          <Heading2 className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={cn(
-            'h-8 w-8 p-0',
-            editor.isActive('heading', { level: 3 }) && 'bg-primary text-primary-foreground'
-          )}
-          title="Título 3"
-        >
-          <Heading3 className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().setParagraph().run()}
-          className={cn(
-            'h-8 w-8 p-0',
-            editor.isActive('paragraph') && 'bg-primary text-primary-foreground'
-          )}
-          title="Parágrafo"
-        >
-          <Type className="h-4 w-4" />
-        </Button>
+        {/* PHASE 3: Font Size Slider - Replaces H1/H2/H3 buttons */}
+        <div className="flex items-center gap-2 px-2 min-w-[140px]">
+          <Type className="h-3 w-3 text-muted-foreground shrink-0" />
+          <Slider
+            value={[fontSize]}
+            onValueChange={handleFontSizeChange}
+            min={12}
+            max={48}
+            step={2}
+            className="w-20"
+          />
+          <span className="text-xs text-muted-foreground w-8 text-center shrink-0">
+            {fontSize}px
+          </span>
+        </div>
 
         <div className="w-px h-6 bg-border mx-1" />
 
@@ -284,6 +259,43 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
         >
           <ImageIcon className="h-4 w-4" />
         </Button>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        {/* PHASE 8: Undo/Redo */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+          className="h-8 w-8 p-0"
+          title="Desfazer"
+        >
+          <Undo className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+          className="h-8 w-8 p-0"
+          title="Refazer"
+        >
+          <Redo className="h-4 w-4" />
+        </Button>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        {/* PHASE 8: Callout insertion */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowCalloutGallery(true)}
+          className="h-8 w-8 p-0"
+          title="Inserir caixa pedagógica"
+        >
+          <MessageSquare className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Comment Dialog */}
@@ -308,9 +320,22 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
             <Button onClick={handleSaveComment} disabled={!commentText.trim()}>
               Adicionar
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* PHASE 8: Callout Gallery Dialog */}
+    <Dialog open={showCalloutGallery} onOpenChange={setShowCalloutGallery}>
+      <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Inserir Caixa Pedagógica</DialogTitle>
+        </DialogHeader>
+        <CalloutGallery
+          editor={editor}
+          onSelect={() => setShowCalloutGallery(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  </>
+);
 };

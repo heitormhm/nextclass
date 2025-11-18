@@ -22,6 +22,7 @@ import { PedagogicalEditor } from '@/components/annotation/PedagogicalEditor';
 import { AnnotationHeader } from '@/components/annotation/AnnotationHeader';
 import { EditorToolbar } from '@/components/annotation/EditorToolbar';
 import { PostItManager } from '@/components/annotation/PostItManager';
+import { AIActionsPanel } from '@/components/annotation/AIActionsPanel';
 import { useAnnotation } from '@/hooks/useAnnotation';
 import { useAnnotationAI } from '@/hooks/useAnnotationAI';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
@@ -272,8 +273,8 @@ const TeacherAnnotationPage = () => {
         <TeacherBackgroundRipple className="fixed inset-0 pointer-events-none" />
 
         <div className="relative z-10 container mx-auto px-4 py-6 max-w-7xl">
-          <Card className="bg-white/70 backdrop-blur-2xl shadow-xl">
-            <CardContent className="p-6 space-y-6">
+          {/* PHASE 2: Option B - Remove Card, use transparent div */}
+          <div className="bg-white/30 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/20 p-6 space-y-6">
               {/* Header with title and tags */}
               <AnnotationHeader
                 title={title}
@@ -305,8 +306,7 @@ const TeacherAnnotationPage = () => {
                 onEditorReady={setEditor}
                 className="min-h-[500px]"
               />
-            </CardContent>
-          </Card>
+          </div>
           
           {/* Post-It Manager - Floating comments */}
           <PostItManager
@@ -314,6 +314,9 @@ const TeacherAnnotationPage = () => {
             onUpdate={handleUpdatePostIt}
             onDelete={handleDeletePostIt}
           />
+
+          {/* PHASE 7: AI Actions Panel - Separate floating panel */}
+          <AIActionsPanel onAction={handleAIAction} />
         </div>
 
         {/* Mobile Fixed Footer */}
