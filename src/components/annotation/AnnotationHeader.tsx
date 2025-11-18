@@ -148,16 +148,19 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
             <SheetHeader>
               <SheetTitle>Gerenciar Tags</SheetTitle>
             </SheetHeader>
-            <div className="space-y-4 pt-4">
+            <div className="space-y-5 pt-6">
               {/* Current Tags */}
-              {tags.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium mb-2 text-gray-700">Tags atuais</p>
+              {tags.length > 0 ? (
+                <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-200/50">
+                  <p className="text-sm font-semibold mb-3 text-purple-900 flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Tags atuais ({tags.length})
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag) => (
                       <Badge
                         key={tag}
-                        className="group bg-purple-100 text-purple-700 border border-purple-200 gap-2 text-sm px-3 py-1.5 animate-fade-in hover:border-purple-300 hover:bg-purple-200/60 transition-all duration-200"
+                        className="group bg-purple-100 text-purple-700 border border-purple-200 gap-1.5 text-xs px-2.5 py-1 animate-fade-in hover:border-purple-300 hover:bg-purple-200/60 transition-all duration-200"
                       >
                         <span className="select-none">{tag}</span>
                         <button
@@ -174,6 +177,12 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
                     ))}
                   </div>
                 </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <Tag className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm font-medium">Nenhuma tag adicionada ainda</p>
+                  <p className="text-xs mt-1">Organize suas anotações com tags</p>
+                </div>
               )}
 
               {/* Add New Tag */}
@@ -184,19 +193,20 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleAddTag}
                   placeholder="Digite o nome da tag..."
-                  className="w-full"
+                  className="w-full border-purple-300 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
                   autoFocus
                 />
-                <p className="text-xs text-gray-500">
-                  Pressione Enter para adicionar uma tag
-                </p>
+                <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 rounded-lg p-2 mt-1">
+                  <span className="text-base">⌨️</span>
+                  <p>Pressione <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-[10px] font-mono">Enter</kbd> para adicionar</p>
+                </div>
               </div>
 
               {/* AI Suggest Button */}
               <Button
                 onClick={onGenerateTags}
                 disabled={isGeneratingTags}
-                className="w-full bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg"
+                className="w-full h-12 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
               >
                 {isGeneratingTags ? (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -216,16 +226,19 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
             <DialogHeader>
               <DialogTitle>Gerenciar Tags</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
+            <div className="space-y-5 pt-6">
               {/* Current Tags */}
-              {tags.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium mb-2 text-gray-700">Tags atuais</p>
+              {tags.length > 0 ? (
+                <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-200/50">
+                  <p className="text-sm font-semibold mb-3 text-purple-900 flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Tags atuais ({tags.length})
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag) => (
                       <Badge
                         key={tag}
-                        className="group bg-purple-100 text-purple-700 border border-purple-200 gap-2 text-sm px-3 py-1.5 animate-fade-in hover:border-purple-300 hover:bg-purple-200/60 transition-all duration-200"
+                        className="group bg-purple-100 text-purple-700 border border-purple-200 gap-1.5 text-xs px-2.5 py-1 animate-fade-in hover:border-purple-300 hover:bg-purple-200/60 transition-all duration-200"
                       >
                         <span className="select-none">{tag}</span>
                         <button
@@ -242,6 +255,12 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
                     ))}
                   </div>
                 </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <Tag className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm font-medium">Nenhuma tag adicionada ainda</p>
+                  <p className="text-xs mt-1">Organize suas anotações com tags</p>
+                </div>
               )}
 
               {/* Add New Tag */}
@@ -252,19 +271,20 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleAddTag}
                   placeholder="Digite o nome da tag..."
-                  className="w-full"
+                  className="w-full border-purple-300 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
                   autoFocus
                 />
-                <p className="text-xs text-gray-500">
-                  Pressione Enter para adicionar uma tag
-                </p>
+                <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 rounded-lg p-2 mt-1">
+                  <span className="text-base">⌨️</span>
+                  <p>Pressione <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-[10px] font-mono">Enter</kbd> para adicionar</p>
+                </div>
               </div>
 
               {/* AI Suggest Button */}
               <Button
                 onClick={onGenerateTags}
                 disabled={isGeneratingTags}
-                className="w-full bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg"
+                className="w-full h-12 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
               >
                 {isGeneratingTags ? (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
