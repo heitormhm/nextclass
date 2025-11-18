@@ -543,15 +543,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   <TooltipContent>Ajustar Tamanho do Texto</TooltipContent>
                 </Tooltip>
               </div>
-              <ToolbarDivider />
-            </>
-          )}
 
-          {/* GROUP 3: Text Color - Show only when expanded on mobile */}
-          {(!isMobile || isExpanded) && (
-            <>
-              <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '150ms' }}>
-                <Popover>
+              <ToolbarDivider />
+
+          {/* GROUP 3: Text Color */}
+          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '150ms' }}>
+            <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-11 w-11">
                       <Palette className="h-4 w-4" />
@@ -627,9 +624,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   </PopoverContent>
                 </Popover>
               </div>
+
               <ToolbarDivider />
-            </>
-          )}
 
           {/* GROUP 4: Lists - Essential (Always visible) */}
           <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '200ms' }}>
@@ -672,10 +668,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
           <ToolbarDivider />
 
-          {/* GROUP 5: Insert - Show only when expanded on mobile */}
-          {(!isMobile || isExpanded) && (
-            <>
-              <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '250ms' }}>
+          {/* GROUP 5: Insert */}
+          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '250ms' }}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
@@ -689,16 +683,13 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Inserir Caixa Pedagógica</TooltipContent>
-                </Tooltip>
-              </div>
-              <ToolbarDivider />
-            </>
-          )}
+              </Tooltip>
+            </div>
 
-          {/* GROUP 6: History (Undo/Redo) - Show only when expanded on mobile */}
-          {(!isMobile || isExpanded) && (
-            <>
-              <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '300ms' }}>
+            <ToolbarDivider />
+
+          {/* GROUP 6: History (Undo/Redo) */}
+          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '300ms' }}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -718,9 +709,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   <Redo className="h-4 w-4" />
                 </Button>
               </div>
+
               <ToolbarDivider />
-            </>
-          )}
 
           {/* GROUP 7: Actions - Essential (Always visible) */}
           <div className="flex items-center gap-1 px-1.5 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border border-pink-200/50 animate-fade-in" style={{ animationDelay: '350ms' }}>
