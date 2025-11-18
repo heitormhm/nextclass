@@ -9,6 +9,7 @@ import { getPedagogicalExtensions } from '@/tiptap/extensions';
 import { EditorBubbleMenu } from './EditorBubbleMenu';
 import { EditorContextMenu } from './EditorContextMenu';
 import { cn } from '@/lib/utils';
+import { convertLegacyToTiptap, isStructuredJSON } from '@/utils/annotation/legacyMigration';
 
 interface PedagogicalEditorProps {
   content: string;
@@ -55,38 +56,61 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
     
     const currentContent = editor.getHTML();
     
+    console.group('📝 PedagogicalEditor Content Loading');
+    console.log('Content type:', typeof content);
+    console.log('Content length:', content?.length);
+    console.log('Content preview:', typeof content === 'string' ? content.substring(0, 150) : 'Not a string');
+    
     // Handle different content formats
     let processedContent = '';
     
     if (!content) {
       processedContent = '';
     } else if (typeof content === 'string') {
-      // Check if it's JSON (legacy structured format)
+      // PHASE 1: Check if it's legacy structured JSON FIRST
+      if (isStructuredJSON(content)) {
+        console.log('✅ Detected legacy structured JSON format');
+        const tiptapJson = convertLegacyToTiptap(content);
+        if (tiptapJson) {
+          console.log('✅ Successfully converted to Tiptap format');
+          editor.commands.setContent(tiptapJson);
+          console.groupEnd();
+          return;
+        }
+      }
+      
+      // Then check if it's already Tiptap JSON
       if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
         try {
           const parsed = JSON.parse(content);
-          // If it's legacy structured JSON, convert to HTML
           if (parsed.type === 'doc' && parsed.content) {
-            // Already Tiptap JSON format
+            console.log('✅ Detected Tiptap JSON format');
             editor.commands.setContent(parsed);
+            console.groupEnd();
             return;
-          } else {
-            // Legacy format - let Tiptap parse as HTML
-            processedContent = content;
           }
         } catch {
-          // Not valid JSON, treat as HTML/markdown
-          processedContent = content;
+          // Not valid JSON, continue to HTML/markdown handling
         }
-      } else {
-        // Plain HTML or markdown
-        processedContent = content;
       }
+      
+      // PHASE 4: Check for markdown patterns
+      if (content.includes('##') || content.includes('**') || content.includes('_')) {
+        console.log('⚠️ Detected potential markdown content (treating as HTML)');
+      }
+      
+      // Finally treat as HTML or plain text
+      processedContent = content;
     } else if (typeof content === 'object') {
       // Direct Tiptap JSON object
+      console.log('✅ Direct Tiptap JSON object');
       editor.commands.setContent(content);
+      console.groupEnd();
       return;
     }
+    
+    console.log('📄 Final processed content length:', processedContent.length);
+    console.groupEnd();
     
     // Only update if different
     if (currentContent !== processedContent) {
