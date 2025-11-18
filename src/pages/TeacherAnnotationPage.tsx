@@ -269,12 +269,22 @@ const TeacherAnnotationPage = () => {
 
   return (
     <MainLayout>
-      <div className="relative min-h-screen">
-        <TeacherBackgroundRipple className="fixed inset-0 pointer-events-none" />
+      {/* FIXED: Apply gradient background like TeacherDashboard */}
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-600 to-pink-500 animate-gradient-xy bg-[length:200%_200%]">
+        {/* Animated Background with Ripple Effect */}
+        <TeacherBackgroundRipple />
+        
+        {/* Gradient Blobs for Depth - matching TeacherDashboard */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-48 w-96 h-96 bg-gradient-to-br from-pink-500/30 to-purple-500/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-2/3 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/25 to-purple-400/25 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        </div>
 
+        {/* Main Content */}
         <div className="relative z-10 container mx-auto px-4 py-6 max-w-7xl">
-          {/* Background fixed: More transparent to show purple gradient clearly */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-6 space-y-6">
+          {/* Semi-transparent card to show gradient behind */}
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 p-6 space-y-6">
               {/* Header with title and tags */}
               <AnnotationHeader
                 title={title}
@@ -318,6 +328,8 @@ const TeacherAnnotationPage = () => {
           {/* PHASE 7: AI Actions Panel - Separate floating panel */}
           <AIActionsPanel onAction={handleAIAction} />
         </div>
+      </div>
+      {/* End of gradient background container */}
 
         {/* Mobile Fixed Footer */}
         {isMobile && (
@@ -362,8 +374,7 @@ const TeacherAnnotationPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-    </MainLayout>
+      </MainLayout>
   );
 };
 
