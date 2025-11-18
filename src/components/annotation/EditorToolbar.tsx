@@ -57,19 +57,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const [showCalloutGallery, setShowCalloutGallery] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(!isMobile); // Collapsed by default on mobile
   
-  // PHASE 3: Font size state
+  // Font size state
   const [fontSize, setFontSize] = React.useState(16);
-
-  // Log phase implementation status
-  React.useEffect(() => {
-    console.log('✅ PHASE 1: Callout boxes - emojis only, no icons');
-    console.log('✅ PHASE 2: Text size slider - fontSize extension added');
-    console.log('✅ PHASE 3: Color palette & lists - commands fixed');
-    console.log('✅ PHASE 4: AI floating button - gradient pink with shimmer');
-    console.log('✅ PHASE 5: Purple background - 20% transparency');
-    console.log('✅ PHASE 6: UI polish - enhanced animations & styling');
-  }, []);
 
   if (!editor) return null;
 
@@ -77,11 +68,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     setShowCalloutGallery(true);
   };
 
-  // PHASE 3: Font size handler
   const handleFontSizeChange = (value: number[]) => {
     const size = value[0];
     setFontSize(size);
-    console.log('✅ PHASE 2: Font size changed to', size);
     editor.chain().focus().setMark('textStyle', { fontSize: `${size}px` }).run();
   };
 
@@ -95,27 +84,46 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       <TooltipProvider>
         <div className={cn(
           'flex flex-wrap items-center gap-1.5 p-3 bg-white/95 backdrop-blur-xl rounded-t-2xl border-b-2 border-white/20 shadow-lg',
-          'sticky top-16 z-30 transition-all',
+          'sticky top-16 z-30 transition-all duration-300',
           isMobile && 'justify-center rounded-t-none',
           focusMode && 'opacity-0 pointer-events-none h-0 p-0 overflow-hidden'
         )}>
           
-          {/* GROUP 1: Text Formatting */}
-          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg">
+          {/* Mobile Expand/Collapse Toggle */}
+          {isMobile && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className={cn(
+                  'h-9 px-3 rounded-lg transition-all duration-200',
+                  'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
+                  'hover:shadow-lg hover:scale-105 active:scale-95',
+                  'animate-fade-in'
+                )}
+              >
+                <span className="text-xs font-medium">
+                  {isExpanded ? 'Menos' : 'Mais'} Ferramentas
+                </span>
+              </Button>
+              <ToolbarDivider />
+            </>
+          )}
+          
+          {/* GROUP 1: Text Formatting - Essential (Always visible) */}
+          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '50ms' }}>
             <Tooltip delayDuration={200}>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    console.log('✅ PHASE 6: Bold toggle');
-                    editor.chain().focus().toggleBold().run();
-                  }}
+                  onClick={() => editor.chain().focus().toggleBold().run()}
                   className={cn(
                     'h-11 w-11 rounded-xl transition-all duration-200',
-                    'hover:scale-105 hover:shadow-lg active:scale-95',
+                    'hover:scale-110 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] active:scale-95',
                     'focus-visible:ring-2 focus-visible:ring-offset-2',
-                    editor.isActive('bold') && 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-md scale-105'
+                    editor.isActive('bold') && 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-[0_0_20px_rgba(147,51,234,0.6)] scale-105'
                   )}
                 >
                   <Bold className="h-4 w-4" />
@@ -128,15 +136,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    console.log('✅ PHASE 6: Italic toggle');
-                    editor.chain().focus().toggleItalic().run();
-                  }}
+                  onClick={() => editor.chain().focus().toggleItalic().run()}
                   className={cn(
                     'h-11 w-11 rounded-xl transition-all duration-200',
-                    'hover:scale-105 hover:shadow-lg active:scale-95',
+                    'hover:scale-110 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] active:scale-95',
                     'focus-visible:ring-2 focus-visible:ring-offset-2',
-                    editor.isActive('italic') && 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-md scale-105'
+                    editor.isActive('italic') && 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-[0_0_20px_rgba(147,51,234,0.6)] scale-105'
                   )}
                 >
                   <Italic className="h-4 w-4" />
@@ -152,8 +157,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   size="sm"
                   onClick={() => editor.chain().focus().toggleCustomHighlight({ color: '#fef3c7' }).run()}
                   className={cn(
-                    'h-11 w-11',
-                    editor.isActive('customHighlight') && 'bg-primary text-primary-foreground'
+                    'h-11 w-11 rounded-xl transition-all duration-200',
+                    'hover:scale-110 hover:shadow-[0_0_20px_rgba(251,191,36,0.5)] active:scale-95',
+                    editor.isActive('customHighlight') && 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-[0_0_20px_rgba(251,191,36,0.6)] scale-105'
                   )}
                 >
                   <Highlighter className="h-4 w-4" />
@@ -165,123 +171,120 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
           <ToolbarDivider />
 
-          {/* GROUP 2: Font Size */}
-          <div className="flex items-center gap-2 px-1.5 bg-gray-50/50 rounded-lg min-w-[180px]">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-2">
-                  <Type className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <Slider
-                    value={[fontSize]}
-                    onValueChange={handleFontSizeChange}
-                    min={12}
-                    max={48}
-                    step={2}
-                    className="w-24"
-                  />
-                  <span className="text-xs text-muted-foreground w-10 text-center shrink-0">
-                    {fontSize}px
-                  </span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Tamanho do Texto (12-48px)</TooltipContent>
-            </Tooltip>
-          </div>
-
-          <ToolbarDivider />
-
-          {/* GROUP 3: Text Color */}
-          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg">
-            <Popover>
-              <PopoverTrigger asChild>
+          {/* GROUP 2: Font Size - Show only when expanded on mobile */}
+          {(!isMobile || isExpanded) && (
+            <>
+              <div className="flex items-center gap-2 px-1.5 bg-gray-50/50 rounded-lg min-w-[180px] animate-fade-in" style={{ animationDelay: '100ms' }}>
                 <Tooltip>
                   <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2">
+                      <Type className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <Slider
+                        value={[fontSize]}
+                        onValueChange={handleFontSizeChange}
+                        min={12}
+                        max={48}
+                        step={2}
+                        className="w-24"
+                      />
+                      <span className="text-xs text-muted-foreground w-10 text-center shrink-0">
+                        {fontSize}px
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Ajustar Tamanho do Texto</TooltipContent>
+                </Tooltip>
+              </div>
+              <ToolbarDivider />
+            </>
+          )}
+
+          {/* GROUP 3: Text Color - Show only when expanded on mobile */}
+          {(!isMobile || isExpanded) && (
+            <>
+              <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '150ms' }}>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-11 w-11">
+                      <Palette className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-3">
+                    <div className="grid grid-cols-4 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setColor('#000000').run()}
+                        className="h-8 w-8 p-0"
+                        style={{ backgroundColor: '#000000' }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setColor('#dc2626').run()}
+                        className="h-8 w-8 p-0"
+                        style={{ backgroundColor: '#dc2626' }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setColor('#2563eb').run()}
+                        className="h-8 w-8 p-0"
+                        style={{ backgroundColor: '#2563eb' }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setColor('#16a34a').run()}
+                        className="h-8 w-8 p-0"
+                        style={{ backgroundColor: '#16a34a' }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setColor('#ea580c').run()}
+                        className="h-8 w-8 p-0"
+                        style={{ backgroundColor: '#ea580c' }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setColor('#9333ea').run()}
+                        className="h-8 w-8 p-0"
+                        style={{ backgroundColor: '#9333ea' }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setColor('#ec4899').run()}
+                        className="h-8 w-8 p-0"
+                        style={{ backgroundColor: '#ec4899' }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editor.chain().focus().setColor('#6b7280').run()}
+                        className="h-8 w-8 p-0"
+                        style={{ backgroundColor: '#6b7280' }}
+                      />
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-11 w-11"
+                      onClick={() => editor.chain().focus().unsetColor().run()}
+                      className="w-full mt-2"
                     >
-                      <Palette className="h-4 w-4" />
+                      Remover Cor
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Cor do Texto</TooltipContent>
-                </Tooltip>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-2">
-                <div className="grid grid-cols-4 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setColor('#000000').run()}
-                    className="h-8 w-8 p-0"
-                    style={{ backgroundColor: '#000000' }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setColor('#dc2626').run()}
-                    className="h-8 w-8 p-0"
-                    style={{ backgroundColor: '#dc2626' }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setColor('#2563eb').run()}
-                    className="h-8 w-8 p-0"
-                    style={{ backgroundColor: '#2563eb' }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setColor('#16a34a').run()}
-                    className="h-8 w-8 p-0"
-                    style={{ backgroundColor: '#16a34a' }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setColor('#ea580c').run()}
-                    className="h-8 w-8 p-0"
-                    style={{ backgroundColor: '#ea580c' }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setColor('#9333ea').run()}
-                    className="h-8 w-8 p-0"
-                    style={{ backgroundColor: '#9333ea' }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setColor('#ec4899').run()}
-                    className="h-8 w-8 p-0"
-                    style={{ backgroundColor: '#ec4899' }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setColor('#6b7280').run()}
-                    className="h-8 w-8 p-0"
-                    style={{ backgroundColor: '#6b7280' }}
-                  />
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => editor.chain().focus().unsetColor().run()}
-                  className="w-full mt-2"
-                >
-                  Remover Cor
-                </Button>
-              </PopoverContent>
-            </Popover>
-          </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <ToolbarDivider />
+            </>
+          )}
 
-          <ToolbarDivider />
-
-          {/* GROUP 4: Lists */}
-          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg">
+          {/* GROUP 4: Lists - Essential (Always visible) */}
+          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '200ms' }}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -289,8 +292,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   size="sm"
                   onClick={() => editor.chain().focus().toggleBulletList().run()}
                   className={cn(
-                    'h-11 w-11',
-                    editor.isActive('bulletList') && 'bg-primary text-primary-foreground'
+                    'h-11 w-11 rounded-xl transition-all duration-200',
+                    'hover:scale-110 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] active:scale-95',
+                    editor.isActive('bulletList') && 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-[0_0_20px_rgba(99,102,241,0.6)] scale-105'
                   )}
                 >
                   <List className="h-4 w-4" />
@@ -306,8 +310,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   size="sm"
                   onClick={() => editor.chain().focus().toggleOrderedList().run()}
                   className={cn(
-                    'h-11 w-11',
-                    editor.isActive('orderedList') && 'bg-primary text-primary-foreground'
+                    'h-11 w-11 rounded-xl transition-all duration-200',
+                    'hover:scale-110 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] active:scale-95',
+                    editor.isActive('orderedList') && 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-[0_0_20px_rgba(99,102,241,0.6)] scale-105'
                   )}
                 >
                   <ListOrdered className="h-4 w-4" />
@@ -319,89 +324,90 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
           <ToolbarDivider />
 
-          {/* GROUP 5: Insert */}
-          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleInsertCallout}
-                className="h-11 px-3 gap-2"
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span className="hidden sm:inline">Inserir Caixa</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Inserir Caixa Pedagógica</TooltipContent>
-          </Tooltip>
-          </div>
+          {/* GROUP 5: Insert - Show only when expanded on mobile */}
+          {(!isMobile || isExpanded) && (
+            <>
+              <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '250ms' }}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleInsertCallout}
+                      className="h-11 px-3 gap-2"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="hidden sm:inline">Inserir Caixa</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Inserir Caixa Pedagógica</TooltipContent>
+                </Tooltip>
+              </div>
+              <ToolbarDivider />
+            </>
+          )}
 
-          <ToolbarDivider />
+          {/* GROUP 6: History (Undo/Redo) - Show only when expanded on mobile */}
+          {(!isMobile || isExpanded) && (
+            <>
+              <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '300ms' }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().undo().run()}
+                  disabled={!editor.can().undo()}
+                  className="h-10 w-10"
+                >
+                  <Undo className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().redo().run()}
+                  disabled={!editor.can().redo()}
+                  className="h-10 w-10"
+                >
+                  <Redo className="h-4 w-4" />
+                </Button>
+              </div>
+              <ToolbarDivider />
+            </>
+          )}
 
-          {/* GROUP 6: History (Undo/Redo) */}
-          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().undo().run()}
-            disabled={!editor.can().undo()}
-            className="h-10 w-10"
-          >
-            <Undo className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().redo().run()}
-            disabled={!editor.can().redo()}
-            className="h-10 w-10"
-          >
-            <Redo className="h-4 w-4" />
-          </Button>
-          </div>
-
-          <ToolbarDivider />
-
-          {/* GROUP 7: Actions */}
-          <div className="flex items-center gap-1 px-1.5 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg">
+          {/* GROUP 7: Actions - Essential (Always visible) */}
+          <div className="flex items-center gap-1 px-1.5 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border border-pink-200/50 animate-fade-in" style={{ animationDelay: '350ms' }}>
             <Button
-              variant={isListening ? 'destructive' : 'ghost'}
+              variant="ghost"
               size="sm"
               onClick={onToggleVoice}
               className={cn(
-                'h-10 w-10',
-                isListening && 'animate-pulse'
+                'h-11 px-3 gap-2',
+                isListening && 'bg-red-100 text-red-600 animate-pulse'
               )}
             >
               <Mic className="h-4 w-4" />
+              {!isMobile && <span className="hidden sm:inline">{isListening ? 'Gravando' : 'Voz'}</span>}
             </Button>
-
-            {/* PHASE 7: AI actions removed - now in separate AIActionsPanel */}
 
             <Button
               variant="ghost"
               size="sm"
-              onClick={onExportPDF}
-              className="h-10 px-3"
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              PDF
-            </Button>
-
-            <Button
-              variant="default"
-              size="sm"
               onClick={onSave}
               disabled={isSaving}
-              className="h-10 px-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              className={cn(
+                'h-11 px-3 gap-2 rounded-xl transition-all duration-200',
+                'bg-gradient-to-r from-green-500 to-emerald-600 text-white',
+                'hover:from-green-600 hover:to-emerald-700 hover:scale-105 hover:shadow-[0_0_20px_rgba(34,197,94,0.6)]',
+                'active:scale-95',
+                'disabled:opacity-50'
+              )}
             >
               {isSaving ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar
+                  <Save className="h-4 w-4" />
+                  {!isMobile && <span className="hidden sm:inline">Salvar</span>}
                 </>
               )}
             </Button>
@@ -409,17 +415,19 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         </div>
       </TooltipProvider>
 
-      {/* PHASE 7: AI Actions Sheet removed - now in separate AIActionsPanel component */}
-
-      {/* Phase 5C: Rich Callout Gallery Dialog */}
       <Dialog open={showCalloutGallery} onOpenChange={setShowCalloutGallery}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Inserir Caixa Pedagógica</DialogTitle>
+            <DialogTitle>Escolha um tipo de caixa pedagógica</DialogTitle>
           </DialogHeader>
           <CalloutGallery
-            editor={editor}
-            onSelect={() => setShowCalloutGallery(false)}
+            onSelect={(type: string) => {
+              editor?.chain().focus().insertContent({
+                type: 'calloutBox',
+                attrs: { type },
+              }).run();
+              setShowCalloutGallery(false);
+            }}
           />
         </DialogContent>
       </Dialog>
