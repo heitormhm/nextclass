@@ -171,10 +171,10 @@ export const CalloutBoxComponent: React.FC<NodeViewProps> = ({
     >
       <div className="flex gap-3">
         {/* PHASE 6: Render emoji BEFORE icon */}
-        <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
-          <span className="text-2xl leading-none">{emoji}</span>
-          <Icon className={cn('h-5 w-5', config.iconClass)} />
-        </div>
+      {/* PHASE 1: Show only emoji, remove icon */}
+      <div className="flex items-center flex-shrink-0 mt-0.5">
+        <span className="text-3xl leading-none">{emoji}</span>
+      </div>
         <div className="flex-1 min-w-0">
           {node.attrs.title && (
             <div className={cn('font-semibold mb-2 text-sm', config.titleClass)}>
