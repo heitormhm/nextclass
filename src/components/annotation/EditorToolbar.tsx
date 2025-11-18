@@ -9,8 +9,10 @@ import {
   Bold, Italic, List, ListOrdered, 
   Highlighter, MessageSquare, ImageIcon, 
   Mic, Undo, Redo, Save, FileDown,
-  Sparkles, BookOpen, Lightbulb, GraduationCap
+  Sparkles, BookOpen, Lightbulb, GraduationCap,
+  Plus, Eye, EyeOff
 } from 'lucide-react';
+import { CalloutGallery } from './CalloutGallery';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -21,6 +23,13 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +41,8 @@ interface EditorToolbarProps {
   onExportPDF: () => void;
   onAIAction: (action: string) => void;
   isSaving: boolean;
+  focusMode?: boolean;
+  onToggleFocusMode?: () => void;
 }
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
@@ -42,9 +53,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onExportPDF,
   onAIAction,
   isSaving,
+  focusMode = false,
+  onToggleFocusMode,
 }) => {
   const isMobile = useIsMobile();
   const [showAISheet, setShowAISheet] = React.useState(false);
+  const [showCalloutGallery, setShowCalloutGallery] = React.useState(false);
 
   if (!editor) return null;
 
@@ -53,78 +67,110 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     setShowAISheet(false);
   };
 
-  const handleInsertCallout = (type: string) => {
-    editor.chain().focus().setCalloutBox({ type }).run();
+  const handleInsertCallout = () => {
+    setShowCalloutGallery(true);
   };
 
   return (
     <>
-      <div className={cn(
-        'flex flex-wrap items-center gap-1.5 p-2 bg-white/90 backdrop-blur-xl border-b sticky top-16 z-30',
-        isMobile && 'justify-center'
-      )}>
-        {/* Text Formatting Group */}
-        <div className="flex items-center gap-1 border-r pr-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            className={cn(
-              'h-10 w-10',
-              editor.isActive('bold') && 'bg-primary text-primary-foreground'
-            )}
-          >
-            <Bold className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={cn(
-              'h-10 w-10',
-              editor.isActive('italic') && 'bg-primary text-primary-foreground'
-            )}
-          >
-            <Italic className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleCustomHighlight({ color: '#fef3c7' }).run()}
-            className={cn(
-              'h-10 w-10',
-              editor.isActive('customHighlight') && 'bg-primary text-primary-foreground'
-            )}
-          >
-            <Highlighter className="h-4 w-4" />
-          </Button>
-        </div>
+      <TooltipProvider>
+        <div className={cn(
+          'flex flex-wrap items-center gap-2 p-3 bg-white/95 backdrop-blur-xl border-b shadow-sm',
+          'sticky top-16 z-30 transition-all',
+          isMobile && 'justify-center',
+          focusMode && 'opacity-0 pointer-events-none h-0 p-0 overflow-hidden'
+        )}>
+          {/* Phase 5B: Enhanced Toolbar with Tooltips */}
+          
+          {/* Text Formatting Group */}
+          <div className="flex items-center gap-1 border-r border-border pr-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleBold().run()}
+                  className={cn(
+                    'h-11 w-11',
+                    editor.isActive('bold') && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Negrito (Ctrl+B)</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                  className={cn(
+                    'h-11 w-11',
+                    editor.isActive('italic') && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Itálico (Ctrl+I)</TooltipContent>
+            </Tooltip>
 
-        {/* Lists Group */}
-        <div className="flex items-center gap-1 border-r pr-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={cn(
-              'h-10 w-10',
-              editor.isActive('bulletList') && 'bg-primary text-primary-foreground'
-            )}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={cn(
-              'h-10 w-10',
-              editor.isActive('orderedList') && 'bg-primary text-primary-foreground'
-            )}
-          >
-            <ListOrdered className="h-4 w-4" />
-          </Button>
-        </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleCustomHighlight({ color: '#fef3c7' }).run()}
+                  className={cn(
+                    'h-11 w-11',
+                    editor.isActive('customHighlight') && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <Highlighter className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Destacar Texto</TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Lists Group */}
+          <div className="flex items-center gap-1 border-r border-border pr-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleBulletList().run()}
+                  className={cn(
+                    'h-11 w-11',
+                    editor.isActive('bulletList') && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Lista com Marcadores</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                  className={cn(
+                    'h-11 w-11',
+                    editor.isActive('orderedList') && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Lista Numerada</TooltipContent>
+            </Tooltip>
+          </div>
 
         {/* Insert Group */}
         <div className="flex items-center gap-1 border-r pr-2">
@@ -278,6 +324,19 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Phase 5C: Rich Callout Gallery Dialog */}
+      <Dialog open={showCalloutGallery} onOpenChange={setShowCalloutGallery}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Inserir Caixa Pedagógica</DialogTitle>
+          </DialogHeader>
+          <CalloutGallery
+            editor={editor}
+            onSelect={() => setShowCalloutGallery(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
