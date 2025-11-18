@@ -132,7 +132,7 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
               onClick={() => setShowManageTagsDialog(true)}
               variant="outline"
               size="sm"
-              className="h-8 px-4 text-xs font-medium text-purple-600 border-purple-300 hover:bg-purple-50 transition-all"
+              className="h-8 px-4 text-xs font-medium text-purple-600 border-purple-300 hover:bg-purple-100 hover:border-purple-400 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
             >
               <Tag className="h-3 w-3 mr-1" />
               Gerenciar Tags {tags.length > 0 && `(${tags.length})`}
@@ -150,7 +150,19 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
             </SheetHeader>
             <div className="space-y-5 pt-6">
               {/* Current Tags */}
-              {tags.length > 0 ? (
+              {isGeneratingTags && tags.length === 0 ? (
+                <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-200/50 animate-pulse">
+                  <p className="text-sm font-semibold mb-3 text-purple-900 flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Gerando tags...
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-7 w-20 bg-purple-200/50 rounded-full animate-pulse" />
+                    ))}
+                  </div>
+                </div>
+              ) : tags.length > 0 ? (
                 <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-200/50">
                   <p className="text-sm font-semibold mb-3 text-purple-900 flex items-center gap-2">
                     <Tag className="h-4 w-4" />
@@ -193,8 +205,9 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleAddTag}
                   placeholder="Digite o nome da tag..."
-                  className="w-full border-purple-300 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
+                  className="w-full border-purple-300 focus-visible:ring-purple-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   autoFocus
+                  disabled={isGeneratingTags}
                 />
                 <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 rounded-lg p-2 mt-1">
                   <span className="text-base">⌨️</span>
@@ -206,10 +219,13 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
               <Button
                 onClick={onGenerateTags}
                 disabled={isGeneratingTags}
-                className="w-full h-12 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
+                className="w-full h-12 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {isGeneratingTags ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span>Gerando tags...</span>
+                  </div>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
@@ -228,7 +244,19 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
             </DialogHeader>
             <div className="space-y-5 pt-6">
               {/* Current Tags */}
-              {tags.length > 0 ? (
+              {isGeneratingTags && tags.length === 0 ? (
+                <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-200/50 animate-pulse">
+                  <p className="text-sm font-semibold mb-3 text-purple-900 flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Gerando tags...
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-7 w-20 bg-purple-200/50 rounded-full animate-pulse" />
+                    ))}
+                  </div>
+                </div>
+              ) : tags.length > 0 ? (
                 <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-200/50">
                   <p className="text-sm font-semibold mb-3 text-purple-900 flex items-center gap-2">
                     <Tag className="h-4 w-4" />
@@ -271,8 +299,9 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleAddTag}
                   placeholder="Digite o nome da tag..."
-                  className="w-full border-purple-300 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
+                  className="w-full border-purple-300 focus-visible:ring-purple-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   autoFocus
+                  disabled={isGeneratingTags}
                 />
                 <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 rounded-lg p-2 mt-1">
                   <span className="text-base">⌨️</span>
@@ -284,10 +313,13 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
               <Button
                 onClick={onGenerateTags}
                 disabled={isGeneratingTags}
-                className="w-full h-12 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
+                className="w-full h-12 bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {isGeneratingTags ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span>Gerando tags...</span>
+                  </div>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />

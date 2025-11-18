@@ -126,14 +126,14 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
 
   return (
     <>
-      <div className="flex items-center gap-1.5 bg-background/95 backdrop-blur-xl border border-border rounded-lg shadow-lg p-1">
+      <div className="flex items-center gap-1.5 bg-background/95 backdrop-blur-xl border border-border rounded-lg shadow-lg shadow-purple-500/10 p-1">
         {/* Text Formatting */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={cn(
-            'h-8 w-8 p-0',
+            'h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2',
             editor.isActive('bold') && 'bg-primary text-primary-foreground'
           )}
         >
@@ -145,7 +145,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
           size="sm"
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={cn(
-            'h-8 w-8 p-0',
+            'h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2',
             editor.isActive('italic') && 'bg-primary text-primary-foreground'
           )}
         >
@@ -157,7 +157,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
           size="sm"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           className={cn(
-            'h-8 w-8 p-0',
+            'h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2',
             editor.isActive('underline') && 'bg-primary text-primary-foreground'
           )}
         >
@@ -217,7 +217,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
           <ListOrdered className="h-4 w-4" />
         </Button>
 
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-6 bg-border mx-0.5" />
 
         {/* Highlight with color picker */}
         <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
@@ -226,7 +226,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
               variant="ghost"
               size="sm"
               className={cn(
-                'h-8 w-8 p-0',
+                'h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2',
                 editor.isActive('customHighlight') && 'bg-primary text-primary-foreground'
               )}
             >
@@ -239,7 +239,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
                 <button
                   key={color}
                   onClick={() => handleHighlight(color)}
-                  className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                  className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-1"
                   style={{ backgroundColor: color }}
                   title={label}
                 />
@@ -253,7 +253,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
           variant="ghost"
           size="sm"
           onClick={handleAddComment}
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
           title="Adicionar comentário"
         >
           <MessageSquare className="h-4 w-4" />
@@ -264,13 +264,13 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
           variant="ghost"
           size="sm"
           onClick={handleImageUpload}
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
           title="Adicionar imagem"
         >
           <ImageIcon className="h-4 w-4" />
         </Button>
 
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-6 bg-border mx-0.5" />
 
         {/* PHASE 8: Undo/Redo */}
         <Button
@@ -278,7 +278,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
           size="sm"
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 disabled:opacity-50"
           title="Desfazer"
         >
           <Undo className="h-4 w-4" />
@@ -288,20 +288,20 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
           size="sm"
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 disabled:opacity-50"
           title="Refazer"
         >
           <Redo className="h-4 w-4" />
         </Button>
 
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-6 bg-border mx-0.5" />
 
         {/* PHASE 8: Callout insertion */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setShowCalloutGallery(true)}
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
           title="Inserir caixa pedagógica"
         >
           <MessageSquare className="h-4 w-4" />
