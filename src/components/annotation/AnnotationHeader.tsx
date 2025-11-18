@@ -116,15 +116,18 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
               {tags.map((tag) => (
                 <Badge
                   key={tag}
-                  className="bg-purple-100 text-purple-700 border-2 border-purple-200 gap-2 text-sm px-3 py-1.5 animate-fade-in hover:border-purple-300 transition-colors"
+                  className="group bg-purple-100 text-purple-700 border-2 border-purple-200 gap-2 text-sm px-3 py-1.5 animate-fade-in hover:border-purple-300 hover:bg-purple-150 transition-all duration-200"
                 >
-                  {tag}
+                  <span className="select-none">{tag}</span>
                   <button
-                    onClick={() => handleRemoveTag(tag)}
-                    className="text-purple-600 hover:text-red-600 hover:bg-red-50 rounded-full p-0.5 transition-colors duration-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveTag(tag);
+                    }}
+                    className="inline-flex items-center justify-center rounded-full p-0.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
                     aria-label={`Remove tag ${tag}`}
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-3.5 w-3.5 text-purple-600 hover:text-red-600 transition-colors duration-200" />
                   </button>
                 </Badge>
               ))}
