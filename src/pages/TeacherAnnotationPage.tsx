@@ -272,7 +272,7 @@ const TeacherAnnotationPage = () => {
         <TeacherBackgroundRipple className="fixed inset-0 pointer-events-none" />
 
         <div className="relative z-10 container mx-auto px-4 py-6 max-w-7xl">
-          <Card className="bg-white/95 backdrop-blur-xl shadow-xl">
+          <Card className="bg-white/70 backdrop-blur-2xl shadow-xl">
             <CardContent className="p-6 space-y-6">
               {/* Header with title and tags */}
               <AnnotationHeader
