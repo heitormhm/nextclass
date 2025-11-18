@@ -209,24 +209,57 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                       <TooltipContent>Itálico (Ctrl+I)</TooltipContent>
                     </Tooltip>
 
-                    {/* Highlight */}
-                    <Tooltip delayDuration={200}>
-                      <TooltipTrigger asChild>
+                    {/* Highlight with Color Picker */}
+                    <Popover>
+                      <Tooltip delayDuration={200}>
+                        <TooltipTrigger asChild>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                'h-11 w-11 rounded-xl transition-all duration-200',
+                                'hover:scale-110 hover:shadow-[0_0_20px_rgba(251,191,36,0.5)] active:scale-95',
+                                editor.isActive('customHighlight') && 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-[0_0_20px_rgba(251,191,36,0.6)] scale-105'
+                              )}
+                            >
+                              <Highlighter className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>Destacar Texto</TooltipContent>
+                      </Tooltip>
+                      <PopoverContent className="w-auto p-2 z-[100]" sideOffset={8}>
+                        <div className="flex gap-1 flex-wrap max-w-[200px]">
+                          {[
+                            { color: '#fef3c7', label: 'Amarelo' },
+                            { color: '#fce7f3', label: 'Rosa' },
+                            { color: '#dbeafe', label: 'Azul' },
+                            { color: '#d1fae5', label: 'Verde' },
+                            { color: '#fee2e2', label: 'Vermelho' },
+                            { color: '#e0e7ff', label: 'Roxo' },
+                          ].map(({ color, label }) => (
+                            <button
+                              key={color}
+                              onClick={() => {
+                                editor.chain().focus().setCustomHighlight({ color }).run();
+                              }}
+                              className="h-8 w-8 rounded border-2 border-gray-200 hover:border-gray-400 transition-colors"
+                              style={{ backgroundColor: color }}
+                              title={label}
+                            />
+                          ))}
+                        </div>
                         <Button
-                          variant="ghost"
+                          onClick={() => editor.chain().focus().unsetCustomHighlight().run()}
+                          variant="outline"
                           size="sm"
-                          onClick={() => editor.chain().focus().toggleCustomHighlight({ color: '#fef3c7' }).run()}
-                          className={cn(
-                            'h-11 w-11 rounded-xl transition-all duration-200',
-                            'hover:scale-110 hover:shadow-[0_0_20px_rgba(251,191,36,0.5)] active:scale-95',
-                            editor.isActive('customHighlight') && 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-[0_0_20px_rgba(251,191,36,0.6)] scale-105'
-                          )}
+                          className="w-full mt-2"
                         >
-                          <Highlighter className="h-4 w-4" />
+                          Remover Destaque
                         </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Destacar Texto</TooltipContent>
-                    </Tooltip>
+                      </PopoverContent>
+                    </Popover>
 
                     <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-2" />
 

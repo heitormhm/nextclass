@@ -289,18 +289,29 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
               <Highlighter className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-2">
-            <div className="flex gap-1">
+          <PopoverContent className="w-auto p-2 z-[100]" sideOffset={8}>
+            <div className="flex gap-1 flex-wrap max-w-[200px]">
               {highlightColors.map(({ color, label }) => (
                 <button
                   key={color}
                   onClick={() => handleHighlight(color)}
-                  className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-1"
+                  className="h-8 w-8 rounded border-2 border-gray-200 hover:border-gray-400 transition-colors"
                   style={{ backgroundColor: color }}
                   title={label}
                 />
               ))}
             </div>
+            <Button
+              onClick={() => {
+                editor.chain().focus().unsetCustomHighlight().run();
+                setShowColorPicker(false);
+              }}
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+            >
+              Remover Destaque
+            </Button>
           </PopoverContent>
         </Popover>
 
