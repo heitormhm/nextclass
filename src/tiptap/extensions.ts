@@ -32,11 +32,12 @@ const PostItExtension = Extension.create({
  * Configured for teacher annotation use cases
  */
 export const getPedagogicalExtensions = () => [
-  // Core functionality
+  // Core functionality - includes Underline by default
   StarterKit.configure({
     heading: {
       levels: [1, 2, 3, 4],
     },
+    // Underline is included in StarterKit
   }),
 
   // Text styling - PHASE 2: Extend TextStyle to support fontSize
@@ -60,7 +61,7 @@ export const getPedagogicalExtensions = () => [
     },
   }),
   Color,
-  Underline,
+  // Underline removed - already included in StarterKit
   
   // Highlighting
   Highlight.configure({
