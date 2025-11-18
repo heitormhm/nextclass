@@ -240,6 +240,50 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
 
         <div className="w-px h-6 bg-border mx-0.5" />
 
+        {/* PHASE 3: Text Color Picker */}
+        <Tooltip delayDuration={200}>
+          <TooltipTrigger asChild>
+            <Popover open={showTextColorPicker} onOpenChange={setShowTextColorPicker}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2'
+                  )}
+                >
+                  <Palette className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2 z-[100]" sideOffset={8}>
+                <div className="flex gap-1 flex-wrap max-w-[200px]">
+                  {textColors.map(({ color, label }) => (
+                    <button
+                      key={color}
+                      onClick={() => handleTextColor(color)}
+                      className="w-7 h-7 rounded-md border-2 border-white shadow-sm hover:scale-110 transition-transform"
+                      style={{ backgroundColor: color }}
+                      title={label}
+                    />
+                  ))}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRemoveTextColor}
+                  className="w-full mt-2 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Remover Cor
+                </Button>
+              </PopoverContent>
+            </Popover>
+          </TooltipTrigger>
+          <TooltipContent>Cor do Texto</TooltipContent>
+        </Tooltip>
+
+        <div className="w-px h-6 bg-border mx-0.5" />
+
         {/* PHASE 3: Fixed list commands with proper chaining */}
         <Button
           variant="ghost"
@@ -289,7 +333,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
               <Highlighter className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-2">
+          <PopoverContent className="w-auto p-2 z-[100]" sideOffset={8}>
             <div className="flex gap-1">
               {highlightColors.map(({ color, label }) => (
                 <button
