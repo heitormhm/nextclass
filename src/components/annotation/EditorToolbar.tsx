@@ -13,6 +13,9 @@ import {
 import { CalloutGallery } from './CalloutGallery';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import {
   Accordion,
   AccordionContent,
@@ -61,6 +64,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   focusMode = false,
   onToggleFocusMode,
 }) => {
+  const { user } = useAuth();
   const isMobile = useIsMobile();
   const [showCalloutGallery, setShowCalloutGallery] = React.useState(false);
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
@@ -78,6 +82,11 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   };
 
   const handleImageUpload = async () => {
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -87,19 +96,15 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       if (!file) return;
 
       if (file.size > 5 * 1024 * 1024) {
-        const { toast } = await import('sonner');
         toast.error('Imagem muito grande. Máximo 5MB.');
         return;
       }
 
       setIsUploadingImage(true);
       try {
-        const { supabase } = await import('@/integrations/supabase/client');
-        const { toast } = await import('sonner');
-        
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-        const filePath = `annotation-images/${fileName}`;
+        const filePath = `${user.id}/${fileName}`;
 
         const { data, error } = await supabase.storage
           .from('annotation-images')
@@ -120,7 +125,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         toast.success('Imagem inserida com sucesso!');
       } catch (error) {
         console.error('Error uploading image:', error);
-        const { toast } = await import('sonner');
         toast.error('Erro ao fazer upload da imagem');
       } finally {
         setIsUploadingImage(false);

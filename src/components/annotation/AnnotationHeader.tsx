@@ -106,22 +106,20 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
           {/* Row 2: Tags + Manage Tags Button */}
           <div className="flex items-center gap-2.5 flex-wrap">
             {tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2 items-center">
                 {tags.map((tag) => (
                   <Badge
                     key={tag}
-                    className="group bg-purple-100 text-purple-700 border border-purple-200 gap-1.5 text-xs px-2.5 py-1 animate-fade-in hover:border-purple-300 hover:bg-purple-200/60 transition-all duration-200"
+                    variant="secondary"
+                    className="bg-purple-100 text-purple-700 hover:bg-purple-200 text-xs px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors"
                   >
-                    <span className="select-none">{tag}</span>
+                    <span>{tag}</span>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveTag(tag);
-                      }}
-                      className="inline-flex items-center justify-center rounded-full p-0.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
-                      aria-label={`Remove tag ${tag}`}
+                      onClick={() => handleRemoveTag(tag)}
+                      className="hover:text-purple-900 transition-colors flex items-center justify-center"
+                      aria-label={`Remove ${tag} tag`}
                     >
-                      <X className="h-3.5 w-3.5 text-purple-600 hover:text-red-600 transition-colors duration-200" />
+                      <X className="h-3 w-3" />
                     </button>
                   </Badge>
                 ))}
@@ -129,13 +127,17 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
             )}
             
             <Button
-              onClick={() => setShowManageTagsDialog(true)}
-              variant="outline"
               size="sm"
-              className="h-8 px-4 text-xs font-medium text-purple-600 border-purple-300 hover:bg-purple-100 hover:border-purple-400 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
+              onClick={() => setShowManageTagsDialog(true)}
+              className={cn(
+                'shrink-0 h-9 px-3 transition-all',
+                'bg-gradient-to-br from-purple-500 to-pink-600 text-white',
+                'hover:from-purple-600 hover:to-pink-700',
+                'shadow-lg shadow-purple-500/30 hover:shadow-xl hover:scale-105'
+              )}
             >
-              <Tag className="h-3 w-3 mr-1" />
-              Gerenciar Tags {tags.length > 0 && `(${tags.length})`}
+              <Tag className="h-4 w-4 mr-2" />
+              Gerenciar Tags
             </Button>
           </div>
         </div>

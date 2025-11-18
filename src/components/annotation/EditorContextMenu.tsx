@@ -22,6 +22,8 @@ import {
   Undo, Redo, List, ListOrdered, Highlighter, Palette, Type
 } from 'lucide-react';
 import { CalloutGallery } from './CalloutGallery';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface EditorContextMenuProps {
@@ -33,6 +35,7 @@ export const EditorContextMenu: React.FC<EditorContextMenuProps> = ({
   editor,
   children,
 }) => {
+  const { user } = useAuth();
   const [showCalloutGallery, setShowCalloutGallery] = React.useState(false);
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
 
@@ -44,6 +47,11 @@ export const EditorContextMenu: React.FC<EditorContextMenuProps> = ({
   const mod = isMac ? 'Cmd' : 'Ctrl';
 
   const handleImageUpload = async () => {
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -59,11 +67,9 @@ export const EditorContextMenu: React.FC<EditorContextMenuProps> = ({
 
       setIsUploadingImage(true);
       try {
-        const { supabase } = await import('@/integrations/supabase/client');
-        
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-        const filePath = `annotation-images/${fileName}`;
+        const filePath = `${user.id}/${fileName}`;
 
         const { data, error } = await supabase.storage
           .from('annotation-images')
