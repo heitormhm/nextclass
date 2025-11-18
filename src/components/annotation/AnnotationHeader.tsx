@@ -104,13 +104,13 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
           </div>
 
           {/* Row 2: Tags + Manage Tags Button */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {tags.map((tag) => (
                   <Badge
                     key={tag}
-                    className="group bg-purple-100 text-purple-700 border border-purple-200 gap-1.5 text-[10px] px-2 py-1 animate-fade-in hover:border-purple-300 hover:bg-purple-200/60 transition-all duration-200"
+                    className="group bg-purple-100 text-purple-700 border border-purple-200 gap-1.5 text-xs px-2.5 py-1 animate-fade-in hover:border-purple-300 hover:bg-purple-200/60 transition-all duration-200"
                   >
                     <span className="select-none">{tag}</span>
                     <button
@@ -121,7 +121,7 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
                       className="inline-flex items-center justify-center rounded-full p-0.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
                       aria-label={`Remove tag ${tag}`}
                     >
-                      <X className="h-3 w-3 text-purple-600 hover:text-red-600 transition-colors duration-200" />
+                      <X className="h-3.5 w-3.5 text-purple-600 hover:text-red-600 transition-colors duration-200" />
                     </button>
                   </Badge>
                 ))}
@@ -132,7 +132,7 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
               onClick={() => setShowManageTagsDialog(true)}
               variant="outline"
               size="sm"
-              className="h-7 px-3 text-xs text-purple-600 border-purple-300 hover:bg-purple-50 transition-all"
+              className="h-8 px-4 text-xs font-medium text-purple-600 border-purple-300 hover:bg-purple-50 transition-all"
             >
               <Tag className="h-3 w-3 mr-1" />
               Gerenciar Tags {tags.length > 0 && `(${tags.length})`}
