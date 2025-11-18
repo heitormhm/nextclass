@@ -52,93 +52,121 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Title Row */}
-      <div className={cn(
-        'flex items-center gap-2',
-        isMobile && 'flex-col sm:flex-row'
-      )}>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/teacher/annotations')}
-          className="shrink-0 h-10 w-10"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+    <div className="space-y-3 mb-4">
+      {/* Title Section - Primary Focus Area */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-white/40 p-4">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/teacher/annotations')}
+            className="shrink-0 h-11 w-11 min-h-[44px] min-w-[44px] rounded-lg hover:bg-white/80 transition-all"
+            aria-label="Return to Annotations"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
 
-        <Input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Título da anotação"
-          className={cn(
-            'text-lg font-bold border-none focus-visible:ring-0 bg-transparent px-2',
-            isMobile ? 'flex-1' : 'flex-1'
-          )}
-        />
+          <Input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Título da anotação"
+            className="flex-1 text-base md:text-lg font-bold bg-white/80 rounded-lg px-4 py-2 border border-gray-200 focus-visible:ring-2 focus-visible:ring-purple-400 transition-all"
+            autoFocus={!title}
+          />
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onGenerateTitle}
-          disabled={isGeneratingTitle}
-          className="shrink-0 h-10 w-10 hover:bg-blue-100 hover:text-blue-600"
-          title="Gerar título com IA"
-        >
-          {isGeneratingTitle ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-        </Button>
+          <Button
+            onClick={onGenerateTitle}
+            disabled={isGeneratingTitle}
+            className={cn(
+              'shrink-0 h-11 px-4 rounded-lg transition-all',
+              'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 text-white',
+              'hover:shadow-lg hover:scale-105',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+            aria-label="Generate title with AI"
+            title="Gerar título com IA"
+          >
+            {isGeneratingTitle ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                {!isMobile && <span className="text-sm font-medium">Gerar</span>}
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
-      {/* Tags Row */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
-        
-        {tags.map((tag) => (
-          <Badge
-            key={tag}
-            variant="secondary"
-            className="gap-1 text-xs"
+      {/* Tags Section - Secondary Organization Area */}
+      <div className="bg-white/40 backdrop-blur-sm rounded-xl border border-white/30 p-4">
+        {/* Tags Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Tag className="h-4 w-4 text-purple-600" />
+            <span className="text-sm font-medium text-gray-700">
+              Tags {tags.length > 0 && <span className="text-gray-500">({tags.length})</span>}
+            </span>
+          </div>
+          
+          <Button
+            onClick={onGenerateTags}
+            disabled={isGeneratingTags}
+            className={cn(
+              'h-8 px-3 rounded-lg text-xs font-medium transition-all',
+              'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 text-white',
+              'hover:shadow-lg hover:scale-105',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+            aria-label="Suggest tags with AI"
+            title="Sugerir tags relevantes"
           >
-            {tag}
-            <button
-              onClick={() => handleRemoveTag(tag)}
-              className="hover:text-destructive"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </Badge>
-        ))}
+            {isGeneratingTags ? (
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <>
+                <Sparkles className="h-3 w-3 mr-1.5" />
+                Sugerir tags
+              </>
+            )}
+          </Button>
+        </div>
 
+        {/* Existing Tags */}
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {tags.map((tag) => (
+              <Badge
+                key={tag}
+                className="bg-purple-100 text-purple-700 border border-purple-200 gap-1.5 text-xs px-3 py-1 animate-fade-in"
+              >
+                {tag}
+                <button
+                  onClick={() => handleRemoveTag(tag)}
+                  className="hover:bg-red-50 hover:text-red-600 rounded-full p-0.5 transition-colors"
+                  aria-label={`Remove tag ${tag}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        {/* Tag Input */}
         <Input
           type="text"
           value={tagInput}
           onChange={(e) => setTagInput(e.target.value)}
           onKeyDown={handleAddTag}
-          placeholder="Adicionar tag..."
-          className="h-7 w-32 text-xs border-dashed"
+          placeholder="Adicionar nova tag..."
+          className="w-full h-9 text-sm border-dashed border-purple-200 focus-visible:ring-2 focus-visible:ring-purple-400 rounded-lg"
+          aria-describedby="tag-input-helper"
         />
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onGenerateTags}
-          disabled={isGeneratingTags}
-          className="h-7 px-2 text-xs"
-        >
-          {isGeneratingTags ? (
-            <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          ) : (
-            <>
-              <Sparkles className="h-3 w-3 mr-1" />
-              Sugerir tags
-            </>
-          )}
-        </Button>
+        <p id="tag-input-helper" className="text-xs text-gray-500 mt-1.5">
+          Pressione Enter para adicionar
+        </p>
       </div>
     </div>
   );

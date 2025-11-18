@@ -94,9 +94,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     <>
       <TooltipProvider>
         <div className={cn(
-          'flex flex-wrap items-center gap-1.5 p-3 bg-white/95 backdrop-blur-xl border-b shadow-sm',
+          'flex flex-wrap items-center gap-1.5 p-3 bg-white/95 backdrop-blur-xl rounded-t-2xl border-b-2 border-white/20 shadow-lg',
           'sticky top-16 z-30 transition-all',
-          isMobile && 'justify-center',
+          isMobile && 'justify-center rounded-t-none',
           focusMode && 'opacity-0 pointer-events-none h-0 p-0 overflow-hidden'
         )}>
           
