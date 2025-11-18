@@ -48,6 +48,17 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
     },
   });
 
+  // PHASE 1: Update editor content when prop changes
+  useEffect(() => {
+    if (!editor || !content) return;
+    
+    // Only update if content is different to prevent infinite loops
+    const currentContent = editor.getHTML();
+    if (currentContent !== content && content.trim() !== '') {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
+
   // Update bubble menu position on selection
   useEffect(() => {
     if (!editor) return;
