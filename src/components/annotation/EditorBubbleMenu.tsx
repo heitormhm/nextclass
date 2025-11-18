@@ -7,11 +7,14 @@ import React, { useState } from 'react';
 import { Editor } from '@tiptap/react';
 import { 
   Bold, Italic, Underline, Highlighter, 
-  MessageSquare, Palette, Image as ImageIcon,
+  MessageSquare, Image as ImageIcon,
   ListOrdered, List
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface EditorBubbleMenuProps {
@@ -29,6 +32,8 @@ const highlightColors = [
 
 export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showCommentDialog, setShowCommentDialog] = useState(false);
+  const [commentText, setCommentText] = useState('');
 
   if (!editor) return null;
 
@@ -38,9 +43,40 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
   };
 
   const handleAddComment = () => {
+    setShowCommentDialog(true);
+  };
+
+  const handleSaveComment = () => {
+    if (!commentText.trim()) {
+      toast.error('Digite um comentário');
+      return;
+    }
+
     const commentId = `comment-${Date.now()}`;
+    
+    // Apply comment highlight mark to selected text
     editor.chain().focus().setCommentHighlight(commentId).run();
-    // TODO: Open post-it creation modal
+    
+    // Create post-it via plugin
+    const { from } = editor.state.selection;
+    const postIt = {
+      id: commentId,
+      commentId: commentId,
+      content: commentText,
+      position: from,
+      createdAt: Date.now(),
+    };
+
+    // Dispatch to post-it plugin
+    const tr = editor.state.tr.setMeta('postItPlugin', {
+      action: 'add',
+      postIt,
+    });
+    editor.view.dispatch(tr);
+
+    toast.success('Comentário adicionado!');
+    setShowCommentDialog(false);
+    setCommentText('');
   };
 
   const handleImageUpload = () => {
@@ -51,121 +87,151 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
   };
 
   return (
-    <div className="flex items-center gap-1 bg-white/95 backdrop-blur-xl border border-border rounded-lg shadow-lg p-1">
-      {/* Text Formatting */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        className={cn(
-          'h-8 w-8 p-0',
-          editor.isActive('bold') && 'bg-primary text-primary-foreground'
-        )}
-      >
-        <Bold className="h-4 w-4" />
-      </Button>
+    <>
+      <div className="flex items-center gap-1 bg-background/95 backdrop-blur-xl border border-border rounded-lg shadow-lg p-1">
+        {/* Text Formatting */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          className={cn(
+            'h-8 w-8 p-0',
+            editor.isActive('bold') && 'bg-primary text-primary-foreground'
+          )}
+        >
+          <Bold className="h-4 w-4" />
+        </Button>
 
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={cn(
-          'h-8 w-8 p-0',
-          editor.isActive('italic') && 'bg-primary text-primary-foreground'
-        )}
-      >
-        <Italic className="h-4 w-4" />
-      </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          className={cn(
+            'h-8 w-8 p-0',
+            editor.isActive('italic') && 'bg-primary text-primary-foreground'
+          )}
+        >
+          <Italic className="h-4 w-4" />
+        </Button>
 
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        className={cn(
-          'h-8 w-8 p-0',
-          editor.isActive('underline') && 'bg-primary text-primary-foreground'
-        )}
-      >
-        <Underline className="h-4 w-4" />
-      </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          className={cn(
+            'h-8 w-8 p-0',
+            editor.isActive('underline') && 'bg-primary text-primary-foreground'
+          )}
+        >
+          <Underline className="h-4 w-4" />
+        </Button>
 
-      <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-6 bg-border mx-1" />
 
-      {/* Lists */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={cn(
-          'h-8 w-8 p-0',
-          editor.isActive('bulletList') && 'bg-primary text-primary-foreground'
-        )}
-      >
-        <List className="h-4 w-4" />
-      </Button>
+        {/* Lists */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          className={cn(
+            'h-8 w-8 p-0',
+            editor.isActive('bulletList') && 'bg-primary text-primary-foreground'
+          )}
+        >
+          <List className="h-4 w-4" />
+        </Button>
 
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={cn(
-          'h-8 w-8 p-0',
-          editor.isActive('orderedList') && 'bg-primary text-primary-foreground'
-        )}
-      >
-        <ListOrdered className="h-4 w-4" />
-      </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          className={cn(
+            'h-8 w-8 p-0',
+            editor.isActive('orderedList') && 'bg-primary text-primary-foreground'
+          )}
+        >
+          <ListOrdered className="h-4 w-4" />
+        </Button>
 
-      <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-6 bg-border mx-1" />
 
-      {/* Highlight with color picker */}
-      <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              'h-8 w-8 p-0',
-              editor.isActive('customHighlight') && 'bg-primary text-primary-foreground'
-            )}
-          >
-            <Highlighter className="h-4 w-4" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-2">
-          <div className="grid grid-cols-3 gap-2">
-            {highlightColors.map(({ color, label }) => (
-              <button
-                key={color}
-                onClick={() => handleHighlight(color)}
-                className="w-8 h-8 rounded border-2 border-border hover:border-primary transition-all"
-                style={{ backgroundColor: color }}
-                title={label}
-              />
-            ))}
+        {/* Highlight with color picker */}
+        <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                'h-8 w-8 p-0',
+                editor.isActive('customHighlight') && 'bg-primary text-primary-foreground'
+              )}
+            >
+              <Highlighter className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2">
+            <div className="flex gap-1">
+              {highlightColors.map(({ color, label }) => (
+                <button
+                  key={color}
+                  onClick={() => handleHighlight(color)}
+                  className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                  style={{ backgroundColor: color }}
+                  title={label}
+                />
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Add Comment */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleAddComment}
+          className="h-8 w-8 p-0"
+          title="Adicionar comentário"
+        >
+          <MessageSquare className="h-4 w-4" />
+        </Button>
+
+        {/* Add Image */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleImageUpload}
+          className="h-8 w-8 p-0"
+          title="Adicionar imagem"
+        >
+          <ImageIcon className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Comment Dialog */}
+      <Dialog open={showCommentDialog} onOpenChange={setShowCommentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Comentário</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Escreva seu comentário aqui..."
+              className="min-h-[120px] resize-none"
+              autoFocus
+            />
           </div>
-        </PopoverContent>
-      </Popover>
-
-      {/* Comment/Post-It */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleAddComment}
-        className="h-8 w-8 p-0"
-      >
-        <MessageSquare className="h-4 w-4" />
-      </Button>
-
-      {/* Image Upload */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleImageUpload}
-        className="h-8 w-8 p-0"
-      >
-        <ImageIcon className="h-4 w-4" />
-      </Button>
-    </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCommentDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveComment} disabled={!commentText.trim()}>
+              Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

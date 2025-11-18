@@ -9,10 +9,22 @@ import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
+import Underline from '@tiptap/extension-underline';
+import { Extension } from '@tiptap/core';
 import { CalloutBox } from './nodes/calloutBox';
 import { CommentHighlight } from './marks/commentHighlight';
 import { CustomHighlight } from './marks/customHighlight';
 import { EnhancedImage } from './nodes/enhancedImage';
+import { createPostItPlugin } from './plugins/postItPlugin';
+
+// Wrap the post-it plugin as a Tiptap Extension
+const PostItExtension = Extension.create({
+  name: 'postIt',
+  
+  addProseMirrorPlugins() {
+    return [createPostItPlugin()];
+  },
+});
 
 /**
  * Get all Tiptap extensions for the Pedagogical Editor
@@ -29,6 +41,7 @@ export const getPedagogicalExtensions = () => [
   // Text styling
   TextStyle,
   Color,
+  Underline,
   
   // Highlighting
   Highlight.configure({
@@ -50,4 +63,7 @@ export const getPedagogicalExtensions = () => [
   
   // Custom Marks
   CommentHighlight,
+  
+  // Custom Extensions with Plugins
+  PostItExtension,
 ];
