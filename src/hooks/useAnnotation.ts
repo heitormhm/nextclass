@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { convertLegacyToTiptap, isStructuredJSON } from '@/utils/annotation/legacyMigration';
 
 export interface Annotation {
   id: string;
@@ -46,6 +47,17 @@ export const useAnnotation = (annotationId?: string) => {
         .single();
 
       if (error) throw error;
+
+      // Convert legacy structured JSON to Tiptap format if needed
+      if (data && data.content) {
+        if (isStructuredJSON(data.content)) {
+          const tiptapJson = convertLegacyToTiptap(data.content);
+          if (tiptapJson) {
+            // Store converted content
+            data.content = tiptapJson;
+          }
+        }
+      }
 
       setAnnotation(data);
     } catch (error: any) {

@@ -3,13 +3,40 @@
  * Converts old HTML annotations to Tiptap JSON format
  */
 
+import { convertStructuredJsonToTiptap } from './structuredJsonConverter';
+
+/**
+ * Detect if content is structured JSON format
+ */
+export const isStructuredJSON = (content: string): boolean => {
+  if (!content || typeof content !== 'string') return false;
+  
+  // Check if it starts with { and contains expected keys
+  const trimmed = content.trim();
+  if (!trimmed.startsWith('{')) return false;
+  
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.conteudo && Array.isArray(parsed.conteudo);
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Convert legacy HTML annotation to Tiptap JSON
  * Handles structured content markers and converts to proper nodes
  */
-export const convertLegacyToTiptap = (htmlContent: string): string => {
-  // For now, return HTML as-is since Tiptap can parse HTML
-  // In future, can add more sophisticated parsing of custom markers
+export const convertLegacyToTiptap = (htmlContent: string): any => {
+  // Check if it's structured JSON first
+  if (isStructuredJSON(htmlContent)) {
+    const tiptapJson = convertStructuredJsonToTiptap(htmlContent);
+    if (tiptapJson) {
+      return tiptapJson;
+    }
+  }
+  
+  // Otherwise, return HTML as-is since Tiptap can parse HTML
   return htmlContent;
 };
 

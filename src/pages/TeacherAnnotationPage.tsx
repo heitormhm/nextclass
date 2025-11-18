@@ -21,9 +21,11 @@ import html2canvas from 'html2canvas';
 import { PedagogicalEditor } from '@/components/annotation/PedagogicalEditor';
 import { AnnotationHeader } from '@/components/annotation/AnnotationHeader';
 import { EditorToolbar } from '@/components/annotation/EditorToolbar';
+import { PostItManager } from '@/components/annotation/PostItManager';
 import { useAnnotation } from '@/hooks/useAnnotation';
 import { useAnnotationAI } from '@/hooks/useAnnotationAI';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { postItPluginKey, type PostIt } from '@/tiptap/plugins/postItPlugin';
 
 const TeacherAnnotationPage = () => {
   const navigate = useNavigate();
@@ -38,6 +40,7 @@ const TeacherAnnotationPage = () => {
   const [tags, setTags] = useState<string[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [editor, setEditor] = useState<any>(null);
+  const [postIts, setPostIts] = useState<PostIt[]>([]);
 
   // Custom hooks
   const { annotation, isLoading, isSaving, saveAnnotation } = useAnnotation(id);
@@ -55,6 +58,28 @@ const TeacherAnnotationPage = () => {
       setTitle(location.state.prePopulatedTitle || '');
     }
   }, [annotation, location.state]);
+
+  // Sync post-its from editor plugin state
+  useEffect(() => {
+    if (!editor) return;
+
+    const updatePostIts = () => {
+      const pluginState = postItPluginKey.getState(editor.state);
+      if (pluginState) {
+        setPostIts(pluginState.postIts);
+      }
+    };
+
+    // Initial load
+    updatePostIts();
+
+    // Listen for updates
+    editor.on('transaction', updatePostIts);
+
+    return () => {
+      editor.off('transaction', updatePostIts);
+    };
+  }, [editor]);
 
   // Handle AI actions
   const handleAIAction = async (action: string) => {
@@ -188,6 +213,46 @@ const TeacherAnnotationPage = () => {
     }
   };
 
+  // Handle post-it operations
+  const handleUpdatePostIt = (id: string, content: string) => {
+    if (!editor) return;
+    const tr = editor.state.tr.setMeta('postItPlugin', {
+      action: 'update',
+      id,
+      updates: { content },
+    });
+    editor.view.dispatch(tr);
+  };
+
+  const handleDeletePostIt = (id: string) => {
+    if (!editor) return;
+    
+    // Remove the post-it
+    const tr = editor.state.tr.setMeta('postItPlugin', {
+      action: 'remove',
+      id,
+    });
+    editor.view.dispatch(tr);
+    
+    // Also remove the comment highlight mark if it exists
+    const { doc } = editor.state;
+    let tr2 = editor.state.tr;
+    
+    doc.descendants((node, pos) => {
+      node.marks.forEach((mark) => {
+        if (mark.type.name === 'commentHighlight' && mark.attrs.commentId === id) {
+          tr2 = tr2.removeMark(pos, pos + node.nodeSize, mark.type);
+        }
+      });
+    });
+    
+    if (tr2.steps.length > 0) {
+      editor.view.dispatch(tr2);
+    }
+
+    toast.success('Comentário excluído');
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -237,10 +302,18 @@ const TeacherAnnotationPage = () => {
                 content={content}
                 onChange={setContent}
                 editable={true}
+                onEditorReady={setEditor}
                 className="min-h-[500px]"
               />
             </CardContent>
           </Card>
+          
+          {/* Post-It Manager - Floating comments */}
+          <PostItManager
+            postIts={postIts}
+            onUpdate={handleUpdatePostIt}
+            onDelete={handleDeletePostIt}
+          />
         </div>
 
         {/* Mobile Fixed Footer */}

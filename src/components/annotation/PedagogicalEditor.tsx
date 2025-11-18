@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
+import { BubbleMenu as TiptapBubbleMenu } from '@tiptap/extension-bubble-menu';
 import { getPedagogicalExtensions } from '@/tiptap/extensions';
 import { EditorBubbleMenu } from './EditorBubbleMenu';
 import { cn } from '@/lib/utils';
@@ -14,6 +15,7 @@ interface PedagogicalEditorProps {
   onChange: (html: string) => void;
   editable?: boolean;
   className?: string;
+  onEditorReady?: (editor: any) => void;
 }
 
 export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
@@ -21,13 +23,24 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
   onChange,
   editable = true,
   className,
+  onEditorReady,
 }) => {
   const editor = useEditor({
-    extensions: getPedagogicalExtensions(),
+    extensions: [
+      ...getPedagogicalExtensions(),
+      TiptapBubbleMenu.configure({
+        element: document.createElement('div'),
+      }),
+    ],
     content,
     editable,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+    },
+    onCreate: ({ editor }) => {
+      if (onEditorReady) {
+        onEditorReady(editor);
+      }
     },
     editorProps: {
       attributes: {
@@ -46,7 +59,14 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
   }
 
   return (
-    <div className={cn('pedagogical-editor-wrapper', className)}>
+    <div className={cn('pedagogical-editor-wrapper relative', className)}>
+      {/* Bubble Menu - appears when text is selected */}
+      {editor && (
+        <div className="bubble-menu-wrapper">
+          <EditorBubbleMenu editor={editor} />
+        </div>
+      )}
+      
       <EditorContent editor={editor} className="tiptap-editor" />
       
       {/* Global styles for Tiptap content */}
@@ -78,6 +98,18 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
 
         .tiptap mark {
           @apply px-1 py-0.5 rounded;
+        }
+        
+        /* Bubble Menu Positioning */
+        .bubble-menu-wrapper {
+          position: absolute;
+          z-index: 50;
+          pointer-events: auto;
+        }
+        
+        .tippy-box[data-theme~='bubble-menu'] {
+          background: transparent;
+          border: none;
         }
       `}</style>
     </div>
