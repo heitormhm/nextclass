@@ -14,6 +14,12 @@ import { CalloutGallery } from './CalloutGallery';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -57,10 +63,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const [showCalloutGallery, setShowCalloutGallery] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(!isMobile); // Collapsed by default on mobile
   
   // Font size state
   const [fontSize, setFontSize] = React.useState(16);
+  
+  // Accordion state for mobile - "text" and "actions" expanded by default
+  const [accordionValue, setAccordionValue] = React.useState<string[]>(['text', 'actions']);
 
   if (!editor) return null;
 
@@ -79,39 +87,381 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     <div className="h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent mx-1" />
   );
 
+  // Mobile Accordion Layout
+  if (isMobile) {
+    return (
+      <>
+        <TooltipProvider>
+          <div className={cn(
+            'sticky top-16 z-30 bg-white/95 backdrop-blur-xl rounded-2xl border-b-2 border-white/20 shadow-lg mb-3 overflow-hidden',
+            'transition-all duration-300',
+            focusMode && 'opacity-0 pointer-events-none h-0 p-0'
+          )}>
+            <Accordion 
+              type="multiple" 
+              value={accordionValue} 
+              onValueChange={setAccordionValue}
+              className="w-full"
+            >
+              {/* Category 1: Text Formatting */}
+              <AccordionItem value="text" className="border-b border-white/20">
+                <AccordionTrigger className="px-4 py-3 hover:bg-purple-50/50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">✍️</span>
+                    <span className="text-sm font-semibold">Formatação de Texto</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="flex flex-wrap items-center gap-2 justify-center">
+                    {/* Bold */}
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => editor.chain().focus().toggleBold().run()}
+                          className={cn(
+                            'h-11 w-11 rounded-xl transition-all duration-200',
+                            'hover:scale-110 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] active:scale-95',
+                            editor.isActive('bold') && 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-[0_0_20px_rgba(147,51,234,0.6)] scale-105'
+                          )}
+                        >
+                          <Bold className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Negrito (Ctrl+B)</TooltipContent>
+                    </Tooltip>
+
+                    {/* Italic */}
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => editor.chain().focus().toggleItalic().run()}
+                          className={cn(
+                            'h-11 w-11 rounded-xl transition-all duration-200',
+                            'hover:scale-110 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] active:scale-95',
+                            editor.isActive('italic') && 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-[0_0_20px_rgba(147,51,234,0.6)] scale-105'
+                          )}
+                        >
+                          <Italic className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Itálico (Ctrl+I)</TooltipContent>
+                    </Tooltip>
+
+                    {/* Highlight */}
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => editor.chain().focus().toggleCustomHighlight({ color: '#fef3c7' }).run()}
+                          className={cn(
+                            'h-11 w-11 rounded-xl transition-all duration-200',
+                            'hover:scale-110 hover:shadow-[0_0_20px_rgba(251,191,36,0.5)] active:scale-95',
+                            editor.isActive('customHighlight') && 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-[0_0_20px_rgba(251,191,36,0.6)] scale-105'
+                          )}
+                        >
+                          <Highlighter className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Destacar Texto</TooltipContent>
+                    </Tooltip>
+
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-2" />
+
+                    {/* Font Size Slider */}
+                    <div className="flex items-center gap-2 w-full px-2">
+                      <Type className="h-4 w-4 text-gray-600" />
+                      <Slider
+                        value={[fontSize]}
+                        onValueChange={handleFontSizeChange}
+                        min={12}
+                        max={48}
+                        step={2}
+                        className="flex-1"
+                      />
+                      <span className="text-xs font-medium text-gray-600 min-w-[40px] text-right">
+                        {fontSize}px
+                      </span>
+                    </div>
+
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-2" />
+
+                    {/* Color Picker */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-11 w-11 rounded-xl hover:scale-110 hover:shadow-lg active:scale-95 transition-all"
+                        >
+                          <Palette className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3" align="center">
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium text-gray-700">Cor do Texto</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            {[
+                              { color: '#000000', label: 'Preto' },
+                              { color: '#dc2626', label: 'Vermelho' },
+                              { color: '#2563eb', label: 'Azul' },
+                              { color: '#16a34a', label: 'Verde' },
+                              { color: '#ea580c', label: 'Laranja' },
+                              { color: '#9333ea', label: 'Roxo' },
+                              { color: '#ec4899', label: 'Rosa' },
+                              { color: '#6b7280', label: 'Cinza' },
+                            ].map(({ color, label }) => (
+                              <Tooltip key={color}>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => editor.chain().focus().setColor(color).run()}
+                                    className={cn(
+                                      'h-10 w-10 rounded-lg border-2 transition-all hover:scale-110 active:scale-95',
+                                      editor.isActive('textStyle', { color }) 
+                                        ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-400'
+                                        : 'border-gray-200 hover:border-gray-400'
+                                    )}
+                                    style={{ backgroundColor: color }}
+                                    aria-label={label}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent>{label}</TooltipContent>
+                              </Tooltip>
+                            ))}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => editor.chain().focus().unsetColor().run()}
+                            className="w-full text-xs"
+                          >
+                            Remover Cor
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Category 2: Lists & Structure */}
+              <AccordionItem value="lists" className="border-b border-white/20">
+                <AccordionTrigger className="px-4 py-3 hover:bg-blue-50/50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📝</span>
+                    <span className="text-sm font-semibold">Listas e Estrutura</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="flex flex-wrap items-center gap-2 justify-center">
+                    {/* Bullet List */}
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => editor.chain().focus().toggleBulletList().run()}
+                          className={cn(
+                            'h-11 w-11 rounded-xl transition-all duration-200',
+                            'hover:scale-110 hover:shadow-lg active:scale-95',
+                            editor.isActive('bulletList') && 'bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.6)] scale-105'
+                          )}
+                        >
+                          <List className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Lista com Marcadores</TooltipContent>
+                    </Tooltip>
+
+                    {/* Ordered List */}
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                          className={cn(
+                            'h-11 w-11 rounded-xl transition-all duration-200',
+                            'hover:scale-110 hover:shadow-lg active:scale-95',
+                            editor.isActive('orderedList') && 'bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.6)] scale-105'
+                          )}
+                        >
+                          <ListOrdered className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Lista Numerada</TooltipContent>
+                    </Tooltip>
+
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-2" />
+
+                    {/* Undo */}
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => editor.chain().focus().undo().run()}
+                          disabled={!editor.can().undo()}
+                          className="h-11 w-11 rounded-xl hover:scale-110 hover:shadow-lg active:scale-95 transition-all disabled:opacity-30"
+                        >
+                          <Undo className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Desfazer (Ctrl+Z)</TooltipContent>
+                    </Tooltip>
+
+                    {/* Redo */}
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => editor.chain().focus().redo().run()}
+                          disabled={!editor.can().redo()}
+                          className="h-11 w-11 rounded-xl hover:scale-110 hover:shadow-lg active:scale-95 transition-all disabled:opacity-30"
+                        >
+                          <Redo className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Refazer (Ctrl+Y)</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Category 3: Pedagogical Boxes */}
+              <AccordionItem value="boxes" className="border-b border-white/20">
+                <AccordionTrigger className="px-4 py-3 hover:bg-orange-50/50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📦</span>
+                    <span className="text-sm font-semibold">Caixas Pedagógicas</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="flex justify-center">
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleInsertCallout}
+                          className={cn(
+                            'h-11 px-4 rounded-xl transition-all duration-200',
+                            'bg-gradient-to-br from-orange-400 to-amber-500 text-white border-0',
+                            'hover:from-orange-500 hover:to-amber-600 hover:scale-105 hover:shadow-lg',
+                            'active:scale-95'
+                          )}
+                        >
+                          <ImageIcon className="h-4 w-4 mr-2" />
+                          <span className="text-sm font-medium">Inserir Caixa</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Inserir Caixa Pedagógica</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Category 4: Actions & Recording - Always visible */}
+              <AccordionItem value="actions">
+                <AccordionTrigger className="px-4 py-3 hover:bg-green-50/50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🎙️</span>
+                    <span className="text-sm font-semibold">Ações e Gravação</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="flex items-center gap-2 justify-center">
+                    {/* Voice Input */}
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={onToggleVoice}
+                          className={cn(
+                            'h-11 w-11 rounded-xl transition-all duration-200',
+                            'hover:scale-110 active:scale-95',
+                            isListening 
+                              ? 'bg-red-100 text-red-600 animate-pulse hover:bg-red-200' 
+                              : 'hover:bg-gray-100'
+                          )}
+                        >
+                          <Mic className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {isListening ? 'Parar Gravação' : 'Iniciar Gravação de Voz'}
+                      </TooltipContent>
+                    </Tooltip>
+
+                    {/* Save Button */}
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={onSave}
+                          disabled={isSaving}
+                          className={cn(
+                            'h-11 px-4 rounded-xl transition-all duration-200',
+                            'bg-gradient-to-r from-green-500 to-emerald-600 text-white',
+                            'hover:from-green-600 hover:to-emerald-700 hover:scale-105 hover:shadow-lg',
+                            'active:scale-95',
+                            'disabled:opacity-50'
+                          )}
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          <span className="text-sm font-medium">
+                            {isSaving ? 'Salvando...' : 'Salvar'}
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Salvar Anotação</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </TooltipProvider>
+
+        {/* Callout Gallery Dialog */}
+        <Dialog open={showCalloutGallery} onOpenChange={setShowCalloutGallery}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Escolha uma Caixa Pedagógica</DialogTitle>
+            </DialogHeader>
+            <CalloutGallery 
+              onSelect={(type) => {
+                editor.chain().focus().insertContent({
+                  type: 'calloutBox',
+                  attrs: { type },
+                }).run();
+                setShowCalloutGallery(false);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  // Desktop Layout (Original)
   return (
     <>
       <TooltipProvider>
         <div className={cn(
           'flex flex-wrap items-center gap-1.5 p-3 bg-white/95 backdrop-blur-xl rounded-2xl border-b-2 border-white/20 shadow-lg mb-3',
           'sticky top-16 z-30 transition-all duration-300',
-          isMobile && 'justify-center rounded-t-none',
           focusMode && 'opacity-0 pointer-events-none h-0 p-0 overflow-hidden'
         )}>
           
-          {/* Mobile Expand/Collapse Toggle */}
-          {isMobile && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className={cn(
-                  'h-9 px-3 rounded-lg transition-all duration-200',
-                  'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
-                  'hover:shadow-lg hover:scale-105 active:scale-95',
-                  'animate-fade-in'
-                )}
-              >
-                <span className="text-xs font-medium">
-                  {isExpanded ? 'Menos' : 'Mais'} Ferramentas
-                </span>
-              </Button>
-              <ToolbarDivider />
-            </>
-          )}
-          
-          {/* GROUP 1: Text Formatting - Essential (Always visible) */}
+          {/* GROUP 1: Text Formatting */}
           <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '50ms' }}>
             <Tooltip delayDuration={200}>
               <TooltipTrigger asChild>
@@ -171,10 +521,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
           <ToolbarDivider />
 
-          {/* GROUP 2: Font Size - Show only when expanded on mobile */}
-          {(!isMobile || isExpanded) && (
-            <>
-              <div className="flex items-center gap-2 px-1.5 bg-gray-50/50 rounded-lg min-w-[180px] animate-fade-in" style={{ animationDelay: '100ms' }}>
+          {/* GROUP 2: Font Size */}
+          <div className="flex items-center gap-2 px-1.5 bg-gray-50/50 rounded-lg min-w-[180px] animate-fade-in" style={{ animationDelay: '100ms' }}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="flex items-center gap-2">
