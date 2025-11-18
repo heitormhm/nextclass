@@ -49,24 +49,48 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
     },
   });
 
-  // Update editor content when prop changes
+  // Optimized content loading with legacy format support
   useEffect(() => {
     if (!editor) return;
     
-    // Only update if content is different to prevent infinite loops
     const currentContent = editor.getHTML();
     
-    // Ensure content is a string before comparison
-    const contentStr = typeof content === 'string' ? content : '';
+    // Handle different content formats
+    let processedContent = '';
     
-    // Always update if content is different, even if empty (to clear editor)
-    if (currentContent !== contentStr) {
-      console.log('📝 PedagogicalEditor: Updating content', {
-        contentLength: contentStr.length,
-        contentPreview: contentStr.substring(0, 100),
-        currentLength: currentContent.length
-      });
-      editor.commands.setContent(contentStr);
+    if (!content) {
+      processedContent = '';
+    } else if (typeof content === 'string') {
+      // Check if it's JSON (legacy structured format)
+      if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(content);
+          // If it's legacy structured JSON, convert to HTML
+          if (parsed.type === 'doc' && parsed.content) {
+            // Already Tiptap JSON format
+            editor.commands.setContent(parsed);
+            return;
+          } else {
+            // Legacy format - let Tiptap parse as HTML
+            processedContent = content;
+          }
+        } catch {
+          // Not valid JSON, treat as HTML/markdown
+          processedContent = content;
+        }
+      } else {
+        // Plain HTML or markdown
+        processedContent = content;
+      }
+    } else if (typeof content === 'object') {
+      // Direct Tiptap JSON object
+      editor.commands.setContent(content);
+      return;
+    }
+    
+    // Only update if different
+    if (currentContent !== processedContent) {
+      editor.commands.setContent(processedContent);
     }
   }, [content, editor]);
 

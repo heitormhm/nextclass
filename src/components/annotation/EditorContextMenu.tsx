@@ -175,28 +175,29 @@ export const EditorContextMenu: React.FC<EditorContextMenuProps> = ({
             </ContextMenuSubContent>
           </ContextMenuSub>
 
-          {/* Highlight Color */}
+          {/* Highlight Color Submenu with Color Swatches */}
           <ContextMenuSub>
             <ContextMenuSubTrigger>
               <Highlighter className="h-4 w-4 mr-2" />
               Destacar
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-48">
-              {highlightColors.map((color) => (
-                <ContextMenuItem
-                  key={color.value}
-                  onClick={() => editor.chain().focus().toggleHighlight({ color: color.value }).run()}
-                >
-                  <div
-                    className="h-4 w-4 rounded border border-gray-300 mr-2"
-                    style={{ backgroundColor: color.value }}
-                  />
-                  {color.name}
-                </ContextMenuItem>
-              ))}
+              <div className="p-2">
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {highlightColors.map((color) => (
+                    <button
+                      key={color.value}
+                      onClick={() => editor.chain().focus().setCustomHighlight({ color: color.value }).run()}
+                      className="h-10 w-full rounded border-2 border-gray-200 hover:border-gray-400 transition-colors"
+                      style={{ backgroundColor: color.value }}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
+              </div>
               <ContextMenuSeparator />
               <ContextMenuItem
-                onClick={() => editor.chain().focus().unsetHighlight().run()}
+                onClick={() => editor.chain().focus().unsetCustomHighlight().run()}
               >
                 Remover Destaque
               </ContextMenuItem>
