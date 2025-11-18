@@ -183,16 +183,16 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuLabel>Caixas Pedagógicas</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => handleInsertCallout('info')}>
+              <DropdownMenuItem onClick={handleInsertCallout}>
                 ℹ️ Informação
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleInsertCallout('warning')}>
+              <DropdownMenuItem onClick={handleInsertCallout}>
                 ⚠️ Atenção
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleInsertCallout('tip')}>
+              <DropdownMenuItem onClick={handleInsertCallout}>
                 💡 Dica
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleInsertCallout('concept')}>
+              <DropdownMenuItem onClick={handleInsertCallout}>
                 📚 Conceito-chave
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -273,6 +273,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           </Button>
         </div>
       </div>
+      </TooltipProvider>
 
       {/* AI Actions Sheet (Mobile) */}
       <Sheet open={showAISheet} onOpenChange={setShowAISheet}>
