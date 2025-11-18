@@ -37,7 +37,6 @@ export const useAnnotation = (annotationId?: string) => {
   const loadAnnotation = async () => {
     if (!annotationId || !user) return;
 
-    console.log('🔍 Loading annotation:', annotationId);
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -49,36 +48,20 @@ export const useAnnotation = (annotationId?: string) => {
 
       if (error) throw error;
 
-      console.log('📥 Raw annotation data:', {
-        id: data?.id,
-        title: data?.title,
-        contentLength: data?.content?.length,
-        contentPreview: data?.content?.substring(0, 100),
-        tags: data?.tags
-      });
-
       // Convert legacy structured JSON to Tiptap format if needed
       if (data && data.content) {
-        const isStructured = isStructuredJSON(data.content);
-        console.log('📋 Content type:', isStructured ? 'Structured JSON' : 'Tiptap format');
-        
-        if (isStructured) {
+        if (isStructuredJSON(data.content)) {
           const tiptapJson = convertLegacyToTiptap(data.content);
-          console.log('🔄 Converted to Tiptap:', tiptapJson ? 'Success' : 'Failed');
           if (tiptapJson) {
+            // Store converted content
             data.content = tiptapJson;
           }
         }
       }
 
-      console.log('✅ Final content passed to editor:', {
-        contentLength: data?.content?.length,
-        contentPreview: data?.content?.substring(0, 100)
-      });
-
       setAnnotation(data);
     } catch (error: any) {
-      console.error('❌ Error loading annotation:', error);
+      console.error('Error loading annotation:', error);
       toast.error('Erro ao carregar anotação');
     } finally {
       setIsLoading(false);

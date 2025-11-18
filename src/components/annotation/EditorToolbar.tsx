@@ -259,7 +259,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                           <Palette className="h-4 w-4" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-64 p-3 z-[100]" align="center" sideOffset={8}>
+                      <PopoverContent className="w-64 p-3" align="center">
                         <div className="space-y-3">
                           <p className="text-sm font-medium text-gray-700">Cor do Texto</p>
                           <div className="grid grid-cols-4 gap-2">
@@ -640,7 +640,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                       <Palette className="h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-56 p-3 z-[100]" sideOffset={8}>
+                  <PopoverContent className="w-56 p-3">
                     <div className="grid grid-cols-4 gap-2">
                       <Button
                         variant="outline"

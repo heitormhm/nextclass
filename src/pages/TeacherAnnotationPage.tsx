@@ -50,24 +50,11 @@ const TeacherAnnotationPage = () => {
 
   // Load annotation data
   useEffect(() => {
-    console.log('📄 TeacherAnnotationPage: Loading annotation data', {
-      hasAnnotation: !!annotation,
-      annotationId: annotation?.id,
-      hasPrePopulated: !!location.state?.prePopulatedContent
-    });
-
     if (annotation) {
-      console.log('✅ Setting content from annotation:', {
-        title: annotation.title,
-        contentLength: annotation.content?.length,
-        contentPreview: annotation.content?.substring(0, 100),
-        tags: annotation.tags
-      });
       setTitle(annotation.title);
       setContent(annotation.content);
       setTags(annotation.tags || []);
     } else if (location.state?.prePopulatedContent) {
-      console.log('📝 Setting pre-populated content');
       setContent(location.state.prePopulatedContent);
       setTitle(location.state.prePopulatedTitle || '');
     }
