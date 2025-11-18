@@ -542,9 +542,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   </TooltipTrigger>
                   <TooltipContent>Ajustar Tamanho do Texto</TooltipContent>
                 </Tooltip>
-              </div>
+          </div>
 
-              <ToolbarDivider />
+          <ToolbarDivider />
 
           {/* GROUP 3: Text Color */}
           <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '150ms' }}>
@@ -621,13 +621,13 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                     >
                       Remover Cor
                     </Button>
-                  </PopoverContent>
-                </Popover>
-              </div>
+              </PopoverContent>
+            </Popover>
+          </div>
 
-              <ToolbarDivider />
+          <ToolbarDivider />
 
-          {/* GROUP 4: Lists - Essential (Always visible) */}
+          {/* GROUP 4: Lists */}
           <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '200ms' }}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -670,8 +670,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
           {/* GROUP 5: Insert */}
           <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '250ms' }}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
+            <Tooltip>
+              <TooltipTrigger asChild>
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -680,13 +680,13 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                     >
                       <MessageSquare className="h-4 w-4" />
                       <span className="hidden sm:inline">Inserir Caixa</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Inserir Caixa Pedagógica</TooltipContent>
-              </Tooltip>
-            </div>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Inserir Caixa Pedagógica</TooltipContent>
+            </Tooltip>
+          </div>
 
-            <ToolbarDivider />
+          <ToolbarDivider />
 
           {/* GROUP 6: History (Undo/Redo) */}
           <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg animate-fade-in" style={{ animationDelay: '300ms' }}>
@@ -706,11 +706,11 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   disabled={!editor.can().redo()}
                   className="h-10 w-10"
                 >
-                  <Redo className="h-4 w-4" />
-                </Button>
-              </div>
+              <Redo className="h-4 w-4" />
+            </Button>
+          </div>
 
-              <ToolbarDivider />
+          <ToolbarDivider />
 
           {/* GROUP 7: Actions - Essential (Always visible) */}
           <div className="flex items-center gap-1 px-1.5 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border border-pink-200/50 animate-fade-in" style={{ animationDelay: '350ms' }}>
