@@ -17,6 +17,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { CalloutGallery } from './CalloutGallery';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -46,11 +48,13 @@ const textColors = [
 ];
 
 export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) => {
+  const { user } = useAuth();
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [showCalloutGallery, setShowCalloutGallery] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   
   // PHASE 3: Font size state
   const [fontSize, setFontSize] = useState(16);
@@ -110,9 +114,12 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
     setCommentText('');
   };
 
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-
   const handleImageUpload = async () => {
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -129,12 +136,10 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
 
       setIsUploadingImage(true);
       try {
-        const { supabase } = await import('@/integrations/supabase/client');
-        
         // Generate unique filename
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-        const filePath = `annotation-images/${fileName}`;
+        const filePath = `${user.id}/${fileName}`;
 
         // Upload to Supabase Storage
         const { data, error } = await supabase.storage

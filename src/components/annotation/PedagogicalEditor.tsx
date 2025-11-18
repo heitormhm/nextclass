@@ -49,16 +49,23 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
     },
   });
 
-  // PHASE 1: Update editor content when prop changes
+  // Update editor content when prop changes
   useEffect(() => {
-    if (!editor || !content) return;
+    if (!editor) return;
     
     // Only update if content is different to prevent infinite loops
     const currentContent = editor.getHTML();
     
     // Ensure content is a string before comparison
     const contentStr = typeof content === 'string' ? content : '';
-    if (currentContent !== contentStr && contentStr.trim() !== '') {
+    
+    // Always update if content is different, even if empty (to clear editor)
+    if (currentContent !== contentStr) {
+      console.log('📝 PedagogicalEditor: Updating content', {
+        contentLength: contentStr.length,
+        contentPreview: contentStr.substring(0, 100),
+        currentLength: currentContent.length
+      });
       editor.commands.setContent(contentStr);
     }
   }, [content, editor]);
