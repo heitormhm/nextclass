@@ -8,7 +8,7 @@ import { Editor } from '@tiptap/react';
 import { 
   Bold, Italic, Underline, Highlighter, 
   MessageSquare, Image as ImageIcon,
-  ListOrdered, List
+  ListOrdered, List, Palette, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -30,8 +30,21 @@ const highlightColors = [
   { color: '#e0e7ff', label: 'Roxo' },
 ];
 
+// Phase 3: Text Color Palette
+const textColors = [
+  { color: '#000000', label: 'Preto' },
+  { color: '#dc2626', label: 'Vermelho' },
+  { color: '#2563eb', label: 'Azul' },
+  { color: '#16a34a', label: 'Verde' },
+  { color: '#ea580c', label: 'Laranja' },
+  { color: '#9333ea', label: 'Roxo' },
+  { color: '#ec4899', label: 'Rosa' },
+  { color: '#6b7280', label: 'Cinza' },
+];
+
 export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
   const [commentText, setCommentText] = useState('');
 
@@ -40,6 +53,16 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
   const handleHighlight = (color: string) => {
     editor.chain().focus().setCustomHighlight({ color }).run();
     setShowColorPicker(false);
+  };
+
+  const handleTextColor = (color: string) => {
+    editor.chain().focus().setColor(color).run();
+    setShowTextColorPicker(false);
+  };
+
+  const handleRemoveTextColor = () => {
+    editor.chain().focus().unsetColor().run();
+    setShowTextColorPicker(false);
   };
 
   const handleAddComment = () => {
