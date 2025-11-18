@@ -126,7 +126,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
 
   return (
     <>
-      <div className="flex items-center gap-1 bg-background/95 backdrop-blur-xl border border-border rounded-lg shadow-lg p-1">
+      <div className="flex items-center gap-1.5 bg-background/95 backdrop-blur-xl border border-border rounded-lg shadow-lg p-1">
         {/* Text Formatting */}
         <Button
           variant="ghost"
@@ -164,25 +164,25 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
           <Underline className="h-4 w-4" />
         </Button>
 
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-6 bg-border mx-0.5" />
 
         {/* PHASE 3: Font Size Slider - Replaces H1/H2/H3 buttons */}
-        <div className="flex items-center gap-2 px-2 min-w-[140px]">
-          <Type className="h-3 w-3 text-muted-foreground shrink-0" />
+        <div className="flex items-center gap-1.5 px-1.5 min-w-[120px]">
+          <Type className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           <Slider
             value={[fontSize]}
             onValueChange={handleFontSizeChange}
             min={12}
             max={48}
             step={2}
-            className="w-20"
+            className="w-16"
           />
-          <span className="text-xs text-muted-foreground w-8 text-center shrink-0">
+          <span className="text-[10px] leading-tight text-muted-foreground w-7 text-center shrink-0">
             {fontSize}px
           </span>
         </div>
 
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-6 bg-border mx-0.5" />
 
         {/* PHASE 3: Fixed list commands with proper chaining */}
         <Button
