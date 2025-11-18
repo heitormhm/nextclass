@@ -39,8 +39,26 @@ export const getPedagogicalExtensions = () => [
     },
   }),
 
-  // Text styling
-  TextStyle,
+  // Text styling - PHASE 2: Extend TextStyle to support fontSize
+  TextStyle.extend({
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+        fontSize: {
+          default: null,
+          parseHTML: element => element.style.fontSize,
+          renderHTML: attributes => {
+            if (!attributes.fontSize) {
+              return {};
+            }
+            return {
+              style: `font-size: ${attributes.fontSize}`,
+            };
+          },
+        },
+      };
+    },
+  }),
   Color,
   Underline,
   

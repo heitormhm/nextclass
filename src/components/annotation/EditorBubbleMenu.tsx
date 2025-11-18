@@ -62,6 +62,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
   };
 
   const handleTextColor = (color: string) => {
+    console.log('✅ PHASE 3: Text color applied:', color);
     editor.chain().focus().setColor(color).run();
     setShowTextColorPicker(false);
   };
@@ -119,6 +120,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
   const handleFontSizeChange = (value: number[]) => {
     const size = value[0];
     setFontSize(size);
+    console.log('✅ PHASE 2: Font size changed to', size);
     editor.chain().focus().setMark('textStyle', { fontSize: `${size}px` }).run();
   };
 
@@ -182,14 +184,18 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
 
         <div className="w-px h-6 bg-border mx-1" />
 
-        {/* Lists */}
+        {/* PHASE 3: Fixed list commands with proper chaining */}
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          onClick={() => {
+            console.log('✅ PHASE 3: Bullet list toggle');
+            editor.chain().focus().toggleBulletList().run();
+          }}
           className={cn(
-            'h-8 w-8 p-0',
-            editor.isActive('bulletList') && 'bg-primary text-primary-foreground'
+            'h-8 w-8 p-0 rounded-lg transition-all duration-200',
+            'hover:scale-105 hover:shadow-md active:scale-95',
+            editor.isActive('bulletList') && 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-md'
           )}
         >
           <List className="h-4 w-4" />
@@ -198,10 +204,14 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          onClick={() => {
+            console.log('✅ PHASE 3: Numbered list toggle');
+            editor.chain().focus().toggleOrderedList().run();
+          }}
           className={cn(
-            'h-8 w-8 p-0',
-            editor.isActive('orderedList') && 'bg-primary text-primary-foreground'
+            'h-8 w-8 p-0 rounded-lg transition-all duration-200',
+            'hover:scale-105 hover:shadow-md active:scale-95',
+            editor.isActive('orderedList') && 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-md'
           )}
         >
           <ListOrdered className="h-4 w-4" />

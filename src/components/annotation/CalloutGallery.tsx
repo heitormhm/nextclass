@@ -161,7 +161,8 @@ export const CalloutGallery: React.FC<CalloutGalleryProps> = ({ editor, onSelect
   ];
 
   return (
-    <div className="h-[500px] overflow-y-auto pr-4">
+    <div className="pr-2">
+      {/* PHASE 1: Removed overflow-y-auto to fix dual scrollbars - Dialog handles scrolling */}
       <div className="space-y-6">
         {categories.map(category => (
           <div key={category.id}>

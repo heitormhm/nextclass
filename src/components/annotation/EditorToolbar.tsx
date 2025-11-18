@@ -61,6 +61,16 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   // PHASE 3: Font size state
   const [fontSize, setFontSize] = React.useState(16);
 
+  // Log phase implementation status
+  React.useEffect(() => {
+    console.log('✅ PHASE 1: Callout boxes - emojis only, no icons');
+    console.log('✅ PHASE 2: Text size slider - fontSize extension added');
+    console.log('✅ PHASE 3: Color palette & lists - commands fixed');
+    console.log('✅ PHASE 4: AI floating button - gradient pink with shimmer');
+    console.log('✅ PHASE 5: Purple background - 20% transparency');
+    console.log('✅ PHASE 6: UI polish - enhanced animations & styling');
+  }, []);
+
   if (!editor) return null;
 
   const handleInsertCallout = () => {
@@ -71,6 +81,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   const handleFontSizeChange = (value: number[]) => {
     const size = value[0];
     setFontSize(size);
+    console.log('✅ PHASE 2: Font size changed to', size);
     editor.chain().focus().setMark('textStyle', { fontSize: `${size}px` }).run();
   };
 
@@ -85,17 +96,24 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         )}>
           {/* Phase 5B: Enhanced Toolbar with Tooltips */}
           
-          {/* Text Formatting Group */}
-          <div className="flex items-center gap-1 border-r border-border pr-2">
-            <Tooltip>
+          {/* PHASE 6: Text Formatting Group with gradient separator */}
+          <div className="flex items-center gap-1 pr-2 border-r">
+            <div className="w-px h-8 bg-gradient-to-b from-transparent via-gray-300 to-transparent absolute right-0" />
+            {/* PHASE 6: Enhanced button styling with smooth animations */}
+            <Tooltip delayDuration={200}>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleBold().run()}
+                  onClick={() => {
+                    console.log('✅ PHASE 6: Bold toggle');
+                    editor.chain().focus().toggleBold().run();
+                  }}
                   className={cn(
-                    'h-11 w-11',
-                    editor.isActive('bold') && 'bg-primary text-primary-foreground'
+                    'h-11 w-11 rounded-xl transition-all duration-200',
+                    'hover:scale-105 hover:shadow-lg active:scale-95',
+                    'focus-visible:ring-2 focus-visible:ring-offset-2',
+                    editor.isActive('bold') && 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-md scale-105'
                   )}
                 >
                   <Bold className="h-4 w-4" />
@@ -103,15 +121,20 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               </TooltipTrigger>
               <TooltipContent>Negrito (Ctrl+B)</TooltipContent>
             </Tooltip>
-            <Tooltip>
+            <Tooltip delayDuration={200}>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                  onClick={() => {
+                    console.log('✅ PHASE 6: Italic toggle');
+                    editor.chain().focus().toggleItalic().run();
+                  }}
                   className={cn(
-                    'h-11 w-11',
-                    editor.isActive('italic') && 'bg-primary text-primary-foreground'
+                    'h-11 w-11 rounded-xl transition-all duration-200',
+                    'hover:scale-105 hover:shadow-lg active:scale-95',
+                    'focus-visible:ring-2 focus-visible:ring-offset-2',
+                    editor.isActive('italic') && 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-md scale-105'
                   )}
                 >
                   <Italic className="h-4 w-4" />

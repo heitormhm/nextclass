@@ -273,8 +273,8 @@ const TeacherAnnotationPage = () => {
         <TeacherBackgroundRipple className="fixed inset-0 pointer-events-none" />
 
         <div className="relative z-10 container mx-auto px-4 py-6 max-w-7xl">
-          {/* PHASE 2: Option B - Remove Card, use transparent div */}
-          <div className="bg-white/30 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/20 p-6 space-y-6">
+          {/* PHASE 2: Option B - transparent div to show purple gradient */}
+          <div className="bg-white/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/30 p-6 space-y-6">
               {/* Header with title and tags */}
               <AnnotationHeader
                 title={title}
