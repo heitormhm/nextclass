@@ -353,7 +353,7 @@ const TeacherAnnotationPage = () => {
           </div>
         )}
 
-        {/* Save Dialog */}
+      {/* Save Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
           <DialogContent>
             <DialogHeader>
@@ -374,7 +374,7 @@ const TeacherAnnotationPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-  </MainLayout>
+    </MainLayout>
   );
 };
 
