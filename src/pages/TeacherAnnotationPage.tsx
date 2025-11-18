@@ -359,6 +359,8 @@ const TeacherAnnotationPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </CardContent>
+      </Card>
       </div>
     </MainLayout>
   );
