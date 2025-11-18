@@ -54,8 +54,11 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
     
     // Only update if content is different to prevent infinite loops
     const currentContent = editor.getHTML();
-    if (currentContent !== content && content.trim() !== '') {
-      editor.commands.setContent(content);
+    
+    // Ensure content is a string before comparison
+    const contentStr = typeof content === 'string' ? content : '';
+    if (currentContent !== contentStr && contentStr.trim() !== '') {
+      editor.commands.setContent(contentStr);
     }
   }, [content, editor]);
 
