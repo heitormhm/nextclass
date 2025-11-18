@@ -81,8 +81,8 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
             disabled={isGeneratingTitle}
             className={cn(
               'shrink-0 h-11 px-4 rounded-lg transition-all',
-              'bg-gradient-to-br from-purple-500 via-pink-500 to-purple-600 text-white',
-              'hover:from-purple-600 hover:via-pink-600 hover:to-purple-700',
+              'bg-gradient-to-br from-purple-500 to-pink-600 text-white',
+              'hover:from-purple-600 hover:to-pink-700',
               'shadow-lg shadow-purple-500/30 hover:shadow-xl hover:scale-105',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
@@ -121,7 +121,7 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
                   {tag}
                   <button
                     onClick={() => handleRemoveTag(tag)}
-                    className="text-purple-600 hover:text-red-600 hover:bg-red-50 rounded-full p-0.5 transition-colors"
+                    className="text-purple-600 hover:text-red-600 hover:bg-red-50 rounded-full p-0.5 transition-colors duration-200"
                     aria-label={`Remove tag ${tag}`}
                   >
                     <X className="h-3.5 w-3.5" />
@@ -148,8 +148,8 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
               disabled={isGeneratingTags}
               className={cn(
                 'shrink-0 h-10 px-4 rounded-lg text-sm font-medium transition-all',
-                'bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 text-white',
-                'hover:from-pink-600 hover:via-purple-600 hover:to-pink-700',
+                'bg-gradient-to-br from-pink-500 to-purple-600 text-white',
+                'hover:from-pink-600 hover:to-purple-700',
                 'shadow-lg shadow-pink-500/30 hover:shadow-xl hover:scale-105',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}

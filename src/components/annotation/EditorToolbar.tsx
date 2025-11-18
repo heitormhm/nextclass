@@ -84,7 +84,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
   // Separator component for visual grouping
   const ToolbarDivider = () => (
-    <div className="h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent mx-1" />
+    <div className="h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent mx-0.5" />
   );
 
   // Mobile Accordion Layout
@@ -522,20 +522,20 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           <ToolbarDivider />
 
           {/* GROUP 2: Font Size */}
-          <div className="flex items-center gap-2 px-1.5 bg-gray-50/50 rounded-lg min-w-[180px] animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <div className="flex items-center gap-1.5 px-1.5 bg-gray-50/50 rounded-lg min-w-[140px] animate-fade-in" style={{ animationDelay: '100ms' }}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2">
-                      <Type className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex items-center gap-1.5">
+                      <Type className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       <Slider
                         value={[fontSize]}
                         onValueChange={handleFontSizeChange}
                         min={12}
                         max={48}
                         step={2}
-                        className="w-24"
+                        className="w-16"
                       />
-                      <span className="text-xs text-muted-foreground w-10 text-center shrink-0">
+                      <span className="text-[10px] leading-tight text-muted-foreground w-7 text-center shrink-0">
                         {fontSize}px
                       </span>
                     </div>
