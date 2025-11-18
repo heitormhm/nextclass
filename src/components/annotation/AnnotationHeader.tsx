@@ -116,7 +116,7 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
               {tags.map((tag) => (
                 <Badge
                   key={tag}
-                  className="group bg-purple-100 text-purple-700 border-2 border-purple-200 gap-2 text-sm px-3 py-1.5 animate-fade-in hover:border-purple-300 hover:bg-purple-150 transition-all duration-200"
+                  className="group bg-purple-100 text-purple-700 border-2 border-purple-200 gap-2 text-sm px-3 py-1.5 animate-fade-in hover:border-purple-300 hover:bg-purple-200/60 transition-all duration-200"
                 >
                   <span className="select-none">{tag}</span>
                   <button
