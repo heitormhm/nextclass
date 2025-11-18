@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { NodeViewWrapper } from '@tiptap/react';
+import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { cn } from '@/lib/utils';
 
 interface EnhancedImageComponentProps {
@@ -19,7 +19,7 @@ interface EnhancedImageComponentProps {
   selected: boolean;
 }
 
-export const EnhancedImageComponent: React.FC<EnhancedImageComponentProps> = ({
+export const EnhancedImageComponent: React.FC<NodeViewProps> = ({
   node,
   updateAttributes,
   selected,

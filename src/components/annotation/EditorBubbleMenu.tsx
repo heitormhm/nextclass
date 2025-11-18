@@ -5,7 +5,6 @@
 
 import React, { useState } from 'react';
 import { Editor } from '@tiptap/react';
-import { BubbleMenu } from '@tiptap/extension-bubble-menu';
 import { 
   Bold, Italic, Underline, Highlighter, 
   MessageSquare, Palette, Image as ImageIcon,
@@ -52,14 +51,7 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
   };
 
   return (
-    <BubbleMenu
-      editor={editor}
-      tippyOptions={{ 
-        duration: 100,
-        placement: 'top',
-      }}
-      className="flex items-center gap-1 bg-white/95 backdrop-blur-xl border border-border rounded-lg shadow-lg p-1"
-    >
+    <div className="flex items-center gap-1 bg-white/95 backdrop-blur-xl border border-border rounded-lg shadow-lg p-1">
       {/* Text Formatting */}
       <Button
         variant="ghost"
@@ -174,6 +166,6 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
       >
         <ImageIcon className="h-4 w-4" />
       </Button>
-    </BubbleMenu>
+    </div>
   );
 };

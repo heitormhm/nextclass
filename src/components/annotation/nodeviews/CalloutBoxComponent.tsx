@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
+import { NodeViewWrapper, NodeViewContent, NodeViewProps } from '@tiptap/react';
 import { 
   Info, AlertTriangle, CheckCircle2, XCircle, 
   Lightbulb, BookOpen, Sparkles 
@@ -74,7 +74,7 @@ const calloutConfig = {
   },
 };
 
-export const CalloutBoxComponent: React.FC<CalloutBoxComponentProps> = ({
+export const CalloutBoxComponent: React.FC<NodeViewProps> = ({
   node,
   updateAttributes,
   selected,

@@ -47,7 +47,6 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
 
   return (
     <div className={cn('pedagogical-editor-wrapper', className)}>
-      {editable && <EditorBubbleMenu editor={editor} />}
       <EditorContent editor={editor} className="tiptap-editor" />
       
       {/* Global styles for Tiptap content */}
