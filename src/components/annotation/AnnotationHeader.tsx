@@ -52,10 +52,11 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
   };
 
   return (
-    <div className="space-y-3 mb-4">
-      {/* Title Section - Primary Focus Area */}
+    <div className="mb-4">
+      {/* Integrated Single-Line Header with Inline Tags */}
       <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-white/40 p-4">
-        <div className="flex items-center gap-3">
+        {/* Top Row: Back Button + Title + Generate Button */}
+        <div className="flex items-center gap-3 mb-4">
           <Button
             variant="ghost"
             size="sm"
@@ -80,8 +81,9 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
             disabled={isGeneratingTitle}
             className={cn(
               'shrink-0 h-11 px-4 rounded-lg transition-all',
-              'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 text-white',
-              'hover:shadow-lg hover:scale-105',
+              'bg-gradient-to-br from-purple-500 via-pink-500 to-purple-600 text-white',
+              'hover:from-purple-600 hover:via-pink-600 hover:to-purple-700',
+              'shadow-lg shadow-purple-500/30 hover:shadow-xl hover:scale-105',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
             aria-label="Generate title with AI"
@@ -97,76 +99,78 @@ export const AnnotationHeader: React.FC<AnnotationHeaderProps> = ({
             )}
           </Button>
         </div>
-      </div>
 
-      {/* Tags Section - Secondary Organization Area */}
-      <div className="bg-white/40 backdrop-blur-sm rounded-xl border border-white/30 p-4">
-        {/* Tags Header */}
-        <div className="flex items-center justify-between mb-3">
+        {/* Tags Section Inline Below Title */}
+        <div className="space-y-3">
+          {/* Tags Label (Bigger and Bold) */}
           <div className="flex items-center gap-2">
-            <Tag className="h-4 w-4 text-purple-600" />
-            <span className="text-sm font-medium text-gray-700">
-              Tags {tags.length > 0 && <span className="text-gray-500">({tags.length})</span>}
+            <Tag className="h-5 w-5 text-purple-600" />
+            <span className="text-base md:text-lg font-bold text-gray-800">
+              Tags {tags.length > 0 && <span className="text-gray-600">({tags.length})</span>}
             </span>
           </div>
-          
-          <Button
-            onClick={onGenerateTags}
-            disabled={isGeneratingTags}
-            className={cn(
-              'h-8 px-3 rounded-lg text-xs font-medium transition-all',
-              'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 text-white',
-              'hover:shadow-lg hover:scale-105',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
-            )}
-            aria-label="Suggest tags with AI"
-            title="Sugerir tags relevantes"
-          >
-            {isGeneratingTags ? (
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <>
-                <Sparkles className="h-3 w-3 mr-1.5" />
-                Sugerir tags
-              </>
-            )}
-          </Button>
-        </div>
 
-        {/* Existing Tags */}
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {tags.map((tag) => (
-              <Badge
-                key={tag}
-                className="bg-purple-100 text-purple-700 border border-purple-200 gap-1.5 text-xs px-3 py-1 animate-fade-in"
-              >
-                {tag}
-                <button
-                  onClick={() => handleRemoveTag(tag)}
-                  className="hover:bg-red-50 hover:text-red-600 rounded-full p-0.5 transition-colors"
-                  aria-label={`Remove tag ${tag}`}
+          {/* Existing Tags */}
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <Badge
+                  key={tag}
+                  className="bg-purple-100 text-purple-700 border-2 border-purple-200 gap-2 text-sm px-3 py-1.5 animate-fade-in hover:border-purple-300 transition-colors"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        )}
+                  {tag}
+                  <button
+                    onClick={() => handleRemoveTag(tag)}
+                    className="text-purple-600 hover:text-red-600 hover:bg-red-50 rounded-full p-0.5 transition-colors"
+                    aria-label={`Remove tag ${tag}`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
 
-        {/* Tag Input */}
-        <Input
-          type="text"
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-          onKeyDown={handleAddTag}
-          placeholder="Adicionar nova tag..."
-          className="w-full h-9 text-sm border-dashed border-purple-200 focus-visible:ring-2 focus-visible:ring-purple-400 rounded-lg"
-          aria-describedby="tag-input-helper"
-        />
-        <p id="tag-input-helper" className="text-xs text-gray-500 mt-1.5">
-          Pressione Enter para adicionar
-        </p>
+          {/* Tag Input + Suggest Button on Same Line */}
+          <div className="flex items-center gap-2">
+            <Input
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleAddTag}
+              placeholder="Adicionar nova tag..."
+              className="flex-1 h-10 text-sm border-dashed border-purple-200 focus-visible:ring-2 focus-visible:ring-purple-400 rounded-lg"
+              aria-describedby="tag-input-helper"
+            />
+            
+            <Button
+              onClick={onGenerateTags}
+              disabled={isGeneratingTags}
+              className={cn(
+                'shrink-0 h-10 px-4 rounded-lg text-sm font-medium transition-all',
+                'bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 text-white',
+                'hover:from-pink-600 hover:via-purple-600 hover:to-pink-700',
+                'shadow-lg shadow-pink-500/30 hover:shadow-xl hover:scale-105',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              aria-label="Suggest tags with AI"
+              title="Sugerir tags relevantes"
+            >
+              {isGeneratingTags ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {!isMobile && <span>Sugerir</span>}
+                </>
+              )}
+            </Button>
+          </div>
+          
+          <p id="tag-input-helper" className="text-xs text-gray-500">
+            Pressione Enter para adicionar uma tag
+          </p>
+        </div>
       </div>
     </div>
   );
