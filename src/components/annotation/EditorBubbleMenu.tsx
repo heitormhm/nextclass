@@ -110,11 +110,61 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
     setCommentText('');
   };
 
-  const handleImageUpload = () => {
-    const url = window.prompt('URL da imagem:');
-    if (url) {
-      editor.chain().focus().setEnhancedImage({ src: url }).run();
-    }
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const handleImageUpload = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Imagem muito grande. Máximo 5MB.');
+        return;
+      }
+
+      setIsUploadingImage(true);
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        // Generate unique filename
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `annotation-images/${fileName}`;
+
+        // Upload to Supabase Storage
+        const { data, error } = await supabase.storage
+          .from('annotation-images')
+          .upload(filePath, file);
+
+        if (error) throw error;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('annotation-images')
+          .getPublicUrl(filePath);
+
+        // Insert image into editor
+        editor.chain().focus().setEnhancedImage({ 
+          src: publicUrl, 
+          alt: file.name || 'Imagem da anotação',
+          caption: ''
+        }).run();
+
+        toast.success('Imagem inserida com sucesso!');
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        toast.error('Erro ao fazer upload da imagem');
+      } finally {
+        setIsUploadingImage(false);
+      }
+    };
+
+    input.click();
   };
 
   // PHASE 3: Font size handler
@@ -265,10 +315,15 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
           variant="ghost"
           size="sm"
           onClick={handleImageUpload}
+          disabled={isUploadingImage}
           className="h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
-          title="Adicionar imagem"
+          title={isUploadingImage ? "Enviando imagem..." : "Adicionar imagem"}
         >
-          <ImageIcon className="h-4 w-4" />
+          {isUploadingImage ? (
+            <div className="h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <ImageIcon className="h-4 w-4" />
+          )}
         </Button>
 
         <div className="w-px h-6 bg-border mx-0.5" />
@@ -343,7 +398,10 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
         </DialogHeader>
         <CalloutGallery
           editor={editor}
-          onSelect={() => setShowCalloutGallery(false)}
+          onSelect={(type) => {
+            editor.commands.setCalloutBox({ type });
+            setShowCalloutGallery(false);
+          }}
         />
       </DialogContent>
     </Dialog>
