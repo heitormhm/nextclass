@@ -48,6 +48,16 @@ export const useAnnotation = (annotationId?: string) => {
 
       if (error) throw error;
 
+      console.group('📝 Annotation Loaded from Database');
+      console.log('ID:', data.id);
+      console.log('Title:', data.title);
+      console.log('Content Type:', typeof data.content);
+      console.log('Content Length:', data.content?.length);
+      console.log('Content Preview:', data.content?.substring(0, 150));
+      console.log('Is Structured JSON:', isStructuredJSON(data.content));
+      console.log('Tags:', data.tags);
+      console.groupEnd();
+
       // Keep content as-is from database (as string)
       // PedagogicalEditor will handle format conversion
       setAnnotation(data);

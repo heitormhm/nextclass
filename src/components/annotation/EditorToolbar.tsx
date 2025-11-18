@@ -209,6 +209,60 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                       <TooltipContent>Itálico (Ctrl+I)</TooltipContent>
                     </Tooltip>
 
+                    {/* Text Color Picker */}
+                    <Popover>
+                      <Tooltip delayDuration={200}>
+                        <TooltipTrigger asChild>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                'h-11 w-11 rounded-xl transition-all duration-200',
+                                'hover:scale-110 hover:shadow-[0_0_20px_rgba(147,51,234,0.5)] active:scale-95',
+                                editor.isActive('textStyle') && 'bg-gradient-to-br from-purple-500 to-pink-600 text-white shadow-[0_0_20px_rgba(147,51,234,0.6)] scale-105'
+                              )}
+                            >
+                              <Palette className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>Cor do Texto</TooltipContent>
+                      </Tooltip>
+                      <PopoverContent className="w-auto p-2 z-[100]" sideOffset={8}>
+                        <div className="flex gap-1 flex-wrap max-w-[200px]">
+                          {[
+                            { color: '#000000', label: 'Preto' },
+                            { color: '#dc2626', label: 'Vermelho' },
+                            { color: '#2563eb', label: 'Azul' },
+                            { color: '#16a34a', label: 'Verde' },
+                            { color: '#ea580c', label: 'Laranja' },
+                            { color: '#9333ea', label: 'Roxo' },
+                            { color: '#ec4899', label: 'Rosa' },
+                            { color: '#6b7280', label: 'Cinza' },
+                          ].map(({ color, label }) => (
+                            <button
+                              key={color}
+                              onClick={() => {
+                                editor.chain().focus().setColor(color).run();
+                              }}
+                              className="h-8 w-8 rounded border-2 border-gray-200 hover:border-gray-400 transition-colors"
+                              style={{ backgroundColor: color }}
+                              title={label}
+                            />
+                          ))}
+                        </div>
+                        <Button
+                          onClick={() => editor.chain().focus().unsetColor().run()}
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2"
+                        >
+                          Remover Cor
+                        </Button>
+                      </PopoverContent>
+                    </Popover>
+
                     {/* Highlight with Color Picker */}
                     <Popover>
                       <Tooltip delayDuration={200}>

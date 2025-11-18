@@ -275,6 +275,43 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
 
         <div className="w-px h-6 bg-border mx-0.5" />
 
+        {/* Text Color Picker */}
+        <Popover open={showTextColorPicker} onOpenChange={setShowTextColorPicker}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Cor do texto"
+            >
+              <Palette className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2 z-[100]" sideOffset={8}>
+            <div className="flex gap-1 flex-wrap max-w-[200px]">
+              {textColors.map(({ color, label }) => (
+                <button
+                  key={color}
+                  onClick={() => handleTextColor(color)}
+                  className="h-8 w-8 rounded border-2 border-gray-200 hover:border-gray-400 transition-colors"
+                  style={{ backgroundColor: color }}
+                  title={label}
+                />
+              ))}
+            </div>
+            <Button
+              onClick={handleRemoveTextColor}
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+            >
+              Remover Cor
+            </Button>
+          </PopoverContent>
+        </Popover>
+
+        <div className="w-px h-6 bg-border mx-0.5" />
+
         {/* Highlight with color picker */}
         <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
           <PopoverTrigger asChild>
