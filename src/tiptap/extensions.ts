@@ -10,6 +10,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
+import { BubbleMenu } from '@tiptap/extension-bubble-menu';
 import { Extension } from '@tiptap/core';
 import { CalloutBox } from './nodes/calloutBox';
 import { CommentHighlight } from './marks/commentHighlight';
@@ -56,6 +57,15 @@ export const getPedagogicalExtensions = () => [
   // Placeholder
   Placeholder.configure({
     placeholder: 'Comece a escrever sua anotação pedagógica...',
+  }),
+  
+  // Bubble Menu
+  BubbleMenu.configure({
+    pluginKey: 'bubbleMenu',
+    shouldShow: ({ editor, view, state, from, to }) => {
+      // Only show when there's an actual text selection
+      return from !== to && !state.selection.empty;
+    },
   }),
   
   // Custom Nodes

@@ -137,10 +137,27 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Alias Tiptap ProseMirror packages to prevent duplicate React instances
+      '@tiptap/pm/view': '@tiptap/pm/view',
+      '@tiptap/pm/state': '@tiptap/pm/state',
     },
-    dedupe: ['react', 'react-dom'],
+    dedupe: ['react', 'react-dom', '@tiptap/react', '@tiptap/core', '@tiptap/pm'],
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', '@tiptap/react', '@tiptap/core'],
+    include: [
+      'react', 
+      'react-dom', 
+      '@tiptap/react', 
+      '@tiptap/core',
+      '@tiptap/starter-kit',
+      '@tiptap/extension-bubble-menu',
+      '@tiptap/extension-highlight',
+      '@tiptap/extension-color',
+      '@tiptap/extension-text-style',
+      '@tiptap/extension-image',
+      '@tiptap/extension-placeholder',
+      '@tiptap/extension-underline',
+    ],
+    exclude: [],
   },
 }));

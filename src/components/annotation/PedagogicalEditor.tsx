@@ -3,9 +3,8 @@
  * Central editor for teacher annotations following "Document of Canvases" architecture
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import { BubbleMenu as TiptapBubbleMenu } from '@tiptap/extension-bubble-menu';
 import { getPedagogicalExtensions } from '@/tiptap/extensions';
 import { EditorBubbleMenu } from './EditorBubbleMenu';
 import { cn } from '@/lib/utils';
@@ -26,12 +25,7 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
   onEditorReady,
 }) => {
   const editor = useEditor({
-    extensions: [
-      ...getPedagogicalExtensions(),
-      TiptapBubbleMenu.configure({
-        element: document.createElement('div'),
-      }),
-    ],
+    extensions: getPedagogicalExtensions(),
     content,
     editable,
     onUpdate: ({ editor }) => {
@@ -54,15 +48,45 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
     },
   });
 
+  // Update bubble menu position on selection
+  useEffect(() => {
+    if (!editor) return;
+
+    const updateBubbleMenuPosition = () => {
+      const { from, to } = editor.state.selection;
+      const hasSelection = from !== to;
+      
+      const bubbleMenuContainer = document.querySelector('.bubble-menu-container') as HTMLElement;
+      if (bubbleMenuContainer) {
+        bubbleMenuContainer.style.display = hasSelection ? 'block' : 'none';
+        
+        if (hasSelection) {
+          // Position the bubble menu above the selection
+          const coords = editor.view.coordsAtPos(from);
+          bubbleMenuContainer.style.top = `${coords.top - 60}px`;
+          bubbleMenuContainer.style.left = `${coords.left}px`;
+        }
+      }
+    };
+
+    editor.on('selectionUpdate', updateBubbleMenuPosition);
+    editor.on('update', updateBubbleMenuPosition);
+
+    return () => {
+      editor.off('selectionUpdate', updateBubbleMenuPosition);
+      editor.off('update', updateBubbleMenuPosition);
+    };
+  }, [editor]);
+
   if (!editor) {
     return null;
   }
 
   return (
     <div className={cn('pedagogical-editor-wrapper relative', className)}>
-      {/* Bubble Menu - appears when text is selected */}
+      {/* Bubble Menu - positioned absolutely */}
       {editor && (
-        <div className="bubble-menu-wrapper">
+        <div className="bubble-menu-container" style={{ position: 'fixed', display: 'none', zIndex: 50 }}>
           <EditorBubbleMenu editor={editor} />
         </div>
       )}
@@ -100,16 +124,9 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
           @apply px-1 py-0.5 rounded;
         }
         
-        /* Bubble Menu Positioning */
-        .bubble-menu-wrapper {
-          position: absolute;
-          z-index: 50;
+        /* Bubble Menu container */
+        .bubble-menu-container > div {
           pointer-events: auto;
-        }
-        
-        .tippy-box[data-theme~='bubble-menu'] {
-          background: transparent;
-          border: none;
         }
       `}</style>
     </div>
