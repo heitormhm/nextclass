@@ -10,7 +10,8 @@ import {
   Highlighter, MessageSquare, ImageIcon, 
   Mic, Undo, Redo, Save, FileDown,
   Sparkles, BookOpen, Lightbulb, GraduationCap,
-  Plus, Eye, EyeOff
+  Plus, Eye, EyeOff, Palette, Heading1, Heading2, 
+  Heading3, Type
 } from 'lucide-react';
 import { CalloutGallery } from './CalloutGallery';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   Tooltip,
   TooltipContent,
@@ -135,6 +137,165 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </Tooltip>
           </div>
 
+          {/* Heading/Text Size Group - Phase 3 */}
+          <div className="flex items-center gap-1 border-r border-border pr-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                  className={cn(
+                    'h-11 w-11',
+                    editor.isActive('heading', { level: 1 }) && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <Heading1 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Título 1 (Ctrl+Alt+1)</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  className={cn(
+                    'h-11 w-11',
+                    editor.isActive('heading', { level: 2 }) && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <Heading2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Título 2 (Ctrl+Alt+2)</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                  className={cn(
+                    'h-11 w-11',
+                    editor.isActive('heading', { level: 3 }) && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <Heading3 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Título 3 (Ctrl+Alt+3)</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().setParagraph().run()}
+                  className={cn(
+                    'h-11 w-11',
+                    editor.isActive('paragraph') && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <Type className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Parágrafo Normal</TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Text Color Picker - Phase 2 */}
+          <div className="flex items-center gap-1 border-r border-border pr-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-11 w-11"
+                    >
+                      <Palette className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Cor do Texto</TooltipContent>
+                </Tooltip>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2">
+                <div className="grid grid-cols-4 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor.chain().focus().setColor('#000000').run()}
+                    className="h-8 w-8 p-0"
+                    style={{ backgroundColor: '#000000' }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor.chain().focus().setColor('#dc2626').run()}
+                    className="h-8 w-8 p-0"
+                    style={{ backgroundColor: '#dc2626' }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor.chain().focus().setColor('#2563eb').run()}
+                    className="h-8 w-8 p-0"
+                    style={{ backgroundColor: '#2563eb' }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor.chain().focus().setColor('#16a34a').run()}
+                    className="h-8 w-8 p-0"
+                    style={{ backgroundColor: '#16a34a' }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor.chain().focus().setColor('#ea580c').run()}
+                    className="h-8 w-8 p-0"
+                    style={{ backgroundColor: '#ea580c' }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor.chain().focus().setColor('#9333ea').run()}
+                    className="h-8 w-8 p-0"
+                    style={{ backgroundColor: '#9333ea' }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor.chain().focus().setColor('#ec4899').run()}
+                    className="h-8 w-8 p-0"
+                    style={{ backgroundColor: '#ec4899' }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editor.chain().focus().setColor('#6b7280').run()}
+                    className="h-8 w-8 p-0"
+                    style={{ backgroundColor: '#6b7280' }}
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().unsetColor().run()}
+                  className="w-full mt-2"
+                >
+                  Remover Cor
+                </Button>
+              </PopoverContent>
+            </Popover>
+          </div>
+
           {/* Lists Group */}
           <div className="flex items-center gap-1 border-r border-border pr-2">
             <Tooltip>
@@ -172,31 +333,22 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </Tooltip>
           </div>
 
-        {/* Insert Group */}
+        {/* Insert Callout Button - Phase 5 */}
         <div className="flex items-center gap-1 border-r pr-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-10 px-3">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Inserir
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleInsertCallout}
+                className="h-11 px-3 gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">Inserir Caixa</span>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuLabel>Caixas Pedagógicas</DropdownMenuLabel>
-              <DropdownMenuItem onClick={handleInsertCallout}>
-                ℹ️ Informação
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleInsertCallout}>
-                ⚠️ Atenção
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleInsertCallout}>
-                💡 Dica
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleInsertCallout}>
-                📚 Conceito-chave
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent>Inserir Caixa Pedagógica</TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Undo/Redo Group */}

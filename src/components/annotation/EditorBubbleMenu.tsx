@@ -8,7 +8,8 @@ import { Editor } from '@tiptap/react';
 import { 
   Bold, Italic, Underline, Highlighter, 
   MessageSquare, Image as ImageIcon,
-  ListOrdered, List, Palette, X
+  ListOrdered, List, Palette, X,
+  Heading1, Heading2, Heading3, Type
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -147,6 +148,61 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
           )}
         >
           <Underline className="h-4 w-4" />
+        </Button>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        {/* Heading Controls - Phase 3 */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          className={cn(
+            'h-8 w-8 p-0',
+            editor.isActive('heading', { level: 1 }) && 'bg-primary text-primary-foreground'
+          )}
+          title="Título 1"
+        >
+          <Heading1 className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          className={cn(
+            'h-8 w-8 p-0',
+            editor.isActive('heading', { level: 2 }) && 'bg-primary text-primary-foreground'
+          )}
+          title="Título 2"
+        >
+          <Heading2 className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          className={cn(
+            'h-8 w-8 p-0',
+            editor.isActive('heading', { level: 3 }) && 'bg-primary text-primary-foreground'
+          )}
+          title="Título 3"
+        >
+          <Heading3 className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().setParagraph().run()}
+          className={cn(
+            'h-8 w-8 p-0',
+            editor.isActive('paragraph') && 'bg-primary text-primary-foreground'
+          )}
+          title="Parágrafo"
+        >
+          <Type className="h-4 w-4" />
         </Button>
 
         <div className="w-px h-6 bg-border mx-1" />

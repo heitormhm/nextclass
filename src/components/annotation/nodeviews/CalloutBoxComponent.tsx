@@ -7,7 +7,9 @@ import React from 'react';
 import { NodeViewWrapper, NodeViewContent, NodeViewProps } from '@tiptap/react';
 import { 
   Info, AlertTriangle, CheckCircle2, XCircle, 
-  Lightbulb, BookOpen, Sparkles 
+  Lightbulb, BookOpen, Sparkles, HelpCircle, 
+  FlaskConical, BarChart3, Building2, PenTool,
+  Microscope, Quote, Link2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -71,6 +73,62 @@ const calloutConfig = {
     borderClass: 'border-pink-200',
     iconClass: 'text-pink-600',
     titleClass: 'text-pink-900',
+  },
+  question: {
+    icon: HelpCircle,
+    bgClass: 'bg-violet-50/80',
+    borderClass: 'border-violet-200',
+    iconClass: 'text-violet-600',
+    titleClass: 'text-violet-900',
+  },
+  example: {
+    icon: FlaskConical,
+    bgClass: 'bg-sky-50/80',
+    borderClass: 'border-sky-200',
+    iconClass: 'text-sky-600',
+    titleClass: 'text-sky-900',
+  },
+  summary: {
+    icon: BarChart3,
+    bgClass: 'bg-teal-50/80',
+    borderClass: 'border-teal-200',
+    iconClass: 'text-teal-600',
+    titleClass: 'text-teal-900',
+  },
+  professional: {
+    icon: Building2,
+    bgClass: 'bg-slate-50/80',
+    borderClass: 'border-slate-300',
+    iconClass: 'text-slate-700',
+    titleClass: 'text-slate-900',
+  },
+  exercise: {
+    icon: PenTool,
+    bgClass: 'bg-lime-50/80',
+    borderClass: 'border-lime-200',
+    iconClass: 'text-lime-600',
+    titleClass: 'text-lime-900',
+  },
+  deep: {
+    icon: Microscope,
+    bgClass: 'bg-purple-100/80',
+    borderClass: 'border-purple-300',
+    iconClass: 'text-purple-700',
+    titleClass: 'text-purple-900',
+  },
+  quote: {
+    icon: Quote,
+    bgClass: 'bg-gray-50/80',
+    borderClass: 'border-gray-300',
+    iconClass: 'text-gray-600',
+    titleClass: 'text-gray-900',
+  },
+  connection: {
+    icon: Link2,
+    bgClass: 'bg-cyan-50/80',
+    borderClass: 'border-cyan-200',
+    iconClass: 'text-cyan-600',
+    titleClass: 'text-cyan-900',
   },
 };
 
