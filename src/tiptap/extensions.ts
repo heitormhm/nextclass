@@ -13,7 +13,6 @@ import { CalloutBox } from './nodes/calloutBox';
 import { CommentHighlight } from './marks/commentHighlight';
 import { CustomHighlight } from './marks/customHighlight';
 import { EnhancedImage } from './nodes/enhancedImage';
-import { postItPlugin } from './plugins/postItPlugin';
 
 /**
  * Get all Tiptap extensions for the Pedagogical Editor
@@ -51,7 +50,4 @@ export const getPedagogicalExtensions = () => [
   
   // Custom Marks
   CommentHighlight,
-  
-  // Plugins
-  postItPlugin,
 ];
