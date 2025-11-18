@@ -85,21 +85,23 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     editor.chain().focus().setMark('textStyle', { fontSize: `${size}px` }).run();
   };
 
+  // Separator component for visual grouping
+  const ToolbarDivider = () => (
+    <div className="h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent mx-1" />
+  );
+
   return (
     <>
       <TooltipProvider>
         <div className={cn(
-          'flex flex-wrap items-center gap-2 p-3 bg-white/95 backdrop-blur-xl border-b shadow-sm',
+          'flex flex-wrap items-center gap-1.5 p-3 bg-white/95 backdrop-blur-xl border-b shadow-sm',
           'sticky top-16 z-30 transition-all',
           isMobile && 'justify-center',
           focusMode && 'opacity-0 pointer-events-none h-0 p-0 overflow-hidden'
         )}>
-          {/* Phase 5B: Enhanced Toolbar with Tooltips */}
           
-          {/* PHASE 6: Text Formatting Group with gradient separator */}
-          <div className="flex items-center gap-1 pr-2 border-r">
-            <div className="w-px h-8 bg-gradient-to-b from-transparent via-gray-300 to-transparent absolute right-0" />
-            {/* PHASE 6: Enhanced button styling with smooth animations */}
+          {/* GROUP 1: Text Formatting */}
+          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg">
             <Tooltip delayDuration={200}>
               <TooltipTrigger asChild>
                 <Button
@@ -161,8 +163,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </Tooltip>
           </div>
 
-          {/* PHASE 3: Font Size Slider - Replaces H1/H2/H3 buttons */}
-          <div className="flex items-center gap-2 border-r border-border pr-2 min-w-[180px]">
+          <ToolbarDivider />
+
+          {/* GROUP 2: Font Size */}
+          <div className="flex items-center gap-2 px-1.5 bg-gray-50/50 rounded-lg min-w-[180px]">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-2">
@@ -184,8 +188,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </Tooltip>
           </div>
 
-          {/* Text Color Picker - Phase 2 */}
-          <div className="flex items-center gap-1 border-r border-border pr-2">
+          <ToolbarDivider />
+
+          {/* GROUP 3: Text Color */}
+          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg">
             <Popover>
               <PopoverTrigger asChild>
                 <Tooltip>
@@ -272,8 +278,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </Popover>
           </div>
 
-          {/* Lists Group */}
-          <div className="flex items-center gap-1 border-r border-border pr-2">
+          <ToolbarDivider />
+
+          {/* GROUP 4: Lists */}
+          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -309,8 +317,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </Tooltip>
           </div>
 
-        {/* Insert Callout Button - Phase 5 */}
-        <div className="flex items-center gap-1 border-r pr-2">
+          <ToolbarDivider />
+
+          {/* GROUP 5: Insert */}
+          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
@@ -325,10 +335,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </TooltipTrigger>
             <TooltipContent>Inserir Caixa Pedagógica</TooltipContent>
           </Tooltip>
-        </div>
+          </div>
 
-        {/* Undo/Redo Group */}
-        <div className="flex items-center gap-1 border-r pr-2">
+          <ToolbarDivider />
+
+          {/* GROUP 6: History (Undo/Redo) */}
+          <div className="flex items-center gap-1 px-1.5 bg-gray-50/50 rounded-lg">
           <Button
             variant="ghost"
             size="sm"
@@ -347,52 +359,54 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           >
             <Redo className="h-4 w-4" />
           </Button>
+          </div>
+
+          <ToolbarDivider />
+
+          {/* GROUP 7: Actions */}
+          <div className="flex items-center gap-1 px-1.5 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg">
+            <Button
+              variant={isListening ? 'destructive' : 'ghost'}
+              size="sm"
+              onClick={onToggleVoice}
+              className={cn(
+                'h-10 w-10',
+                isListening && 'animate-pulse'
+              )}
+            >
+              <Mic className="h-4 w-4" />
+            </Button>
+
+            {/* PHASE 7: AI actions removed - now in separate AIActionsPanel */}
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onExportPDF}
+              className="h-10 px-3"
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              PDF
+            </Button>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={onSave}
+              disabled={isSaving}
+              className="h-10 px-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+            >
+              {isSaving ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-
-        {/* Actions Group */}
-        <div className="flex items-center gap-1">
-          <Button
-            variant={isListening ? 'destructive' : 'ghost'}
-            size="sm"
-            onClick={onToggleVoice}
-            className={cn(
-              'h-10 w-10',
-              isListening && 'animate-pulse'
-            )}
-          >
-            <Mic className="h-4 w-4" />
-          </Button>
-
-          {/* PHASE 7: AI actions removed - now in separate AIActionsPanel */}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onExportPDF}
-            className="h-10 px-3"
-          >
-            <FileDown className="h-4 w-4 mr-2" />
-            PDF
-          </Button>
-
-          <Button
-            variant="default"
-            size="sm"
-            onClick={onSave}
-            disabled={isSaving}
-            className="h-10 px-3"
-          >
-            {isSaving ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Salvar
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
       </TooltipProvider>
 
       {/* PHASE 7: AI Actions Sheet removed - now in separate AIActionsPanel component */}
