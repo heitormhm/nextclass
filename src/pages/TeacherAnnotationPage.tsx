@@ -359,11 +359,7 @@ const TeacherAnnotationPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        </CardContent>
-      </Card>
       </div>
     </MainLayout>
   );
 };
-
-export default TeacherAnnotationPage;
