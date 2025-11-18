@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { getPedagogicalExtensions } from '@/tiptap/extensions';
 import { EditorBubbleMenu } from './EditorBubbleMenu';
+import { EditorContextMenu } from './EditorContextMenu';
 import { cn } from '@/lib/utils';
 
 interface PedagogicalEditorProps {
@@ -105,7 +106,10 @@ export const PedagogicalEditor: React.FC<PedagogicalEditorProps> = ({
         </div>
       )}
       
-      <EditorContent editor={editor} className="tiptap-editor" />
+      {/* Context Menu - wraps editor content */}
+      <EditorContextMenu editor={editor}>
+        <EditorContent editor={editor} className="tiptap-editor" />
+      </EditorContextMenu>
       
       {/* Global styles for Tiptap content */}
       <style>{`
