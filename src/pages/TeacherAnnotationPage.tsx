@@ -331,8 +331,8 @@ const TeacherAnnotationPage = () => {
       </div>
       {/* End of gradient background container */}
 
-        {/* Mobile Fixed Footer */}
-        {isMobile && (
+      {/* Mobile Fixed Footer */}
+      {isMobile && (
           <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-xl border-t shadow-2xl pb-safe">
             <div className="flex gap-2 p-3">
               <Button
@@ -354,7 +354,7 @@ const TeacherAnnotationPage = () => {
         )}
 
         {/* Save Dialog */}
-        <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Salvar anotação</DialogTitle>
@@ -374,7 +374,7 @@ const TeacherAnnotationPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </MainLayout>
+  </MainLayout>
   );
 };
 
