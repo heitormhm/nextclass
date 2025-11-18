@@ -48,17 +48,8 @@ export const useAnnotation = (annotationId?: string) => {
 
       if (error) throw error;
 
-      // Convert legacy structured JSON to Tiptap format if needed
-      if (data && data.content) {
-        if (isStructuredJSON(data.content)) {
-          const tiptapJson = convertLegacyToTiptap(data.content);
-          if (tiptapJson) {
-            // Store converted content
-            data.content = tiptapJson;
-          }
-        }
-      }
-
+      // Keep content as-is from database (as string)
+      // PedagogicalEditor will handle format conversion
       setAnnotation(data);
     } catch (error: any) {
       console.error('Error loading annotation:', error);
